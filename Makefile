@@ -158,6 +158,8 @@ ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
 ### Misc rules for targets that we don't control the source for
 ext/memorymapping/src/fmemopen.o: ext/memorymapping/src/fmemopen.c
 	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter ${GTEST_INC} ${INC} -c $< -o $@
+ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
+	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
 	${CXX} ${CXX_OPT} -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc
