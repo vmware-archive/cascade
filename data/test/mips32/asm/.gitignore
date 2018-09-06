@@ -1,0 +1,7 @@
+# Compilation Targets:
+asm
+lex.yy.*
+location.hh
+mips32.tab.*
+position.hh
+stack.hh

@@ -1,0 +1,12 @@
+[submodule "ext/googletest"]
+	path = ext/googletest
+	url = https://github.com/google/googletest
+[submodule "ext/cl"]
+	path = ext/cl
+	url = https://github.com/eschkufz/cl
+[submodule "ext/mongoose"]
+	path = ext/mongoose
+	url = https://github.com/cesanta/mongoose
+[submodule "ext/memorymapping"]
+	path = ext/memorymapping
+	url = https://github.com/NimbusKit/memorymapping.git

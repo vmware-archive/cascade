@@ -1,0 +1,164 @@
+### Target Attributes
+UNAME=$(shell uname)
+
+### Constants: g++
+CC=ccache gcc
+CXX=ccache g++ --std=c++14
+CC_OPT=\
+	-Werror -Wextra -Wall -Wfatal-errors -pedantic\
+ 	-Wno-deprecated-register
+CXX_OPT=\
+	-Werror -Wextra -Wall -Wfatal-errors -pedantic\
+ 	-Wno-overloaded-virtual -Wno-deprecated-register
+PERF=\
+	-march=native -fno-exceptions -fno-stack-protector \
+	-Ofast -DNDEBUG
+INC=-I. -I./ext/cl
+LIB=-lgmp -lncurses -lpthread
+
+### Target-specific constants
+ifeq ($(UNAME), Darwin)
+	CC_OPT += -D_DARWIN_C_SOURCE 
+	CXX_OPT += -D_DARWIN_C_SOURCE
+endif
+
+### Constants: gtest
+GTEST_ROOT_DIR=ext/googletest/googletest
+GTEST_BUILD_DIR=${GTEST_ROOT_DIR}/build
+GTEST_INC_DIR=${GTEST_ROOT_DIR}/include
+GTEST_MAIN=${GTEST_BUILD_DIR}/libgtest_main.a
+GTEST_INC=-I${GTEST_INC_DIR}
+GTEST_LIB=${GTEST_BUILD_DIR}/libgtest.a
+GTEST_TARGET=bin/gtest
+
+### Constants: auto-generated files
+FLEX_SRC=src/verilog/parse/lex.yy.cc
+BISON_SRC=src/verilog/parse/verilog.tab.cc
+
+### Source binaries
+OBJ=\
+	ext/mongoose/mongoose.o\
+	\
+	src/runtime/data_plane.o\
+	src/runtime/isolate.o\
+	src/runtime/module.o\
+	src/runtime/runtime.o\
+	\
+	src/target/common/remote_runtime.o\
+	src/target/compiler.o\
+	src/target/core/de10/boxer.o\
+	src/target/core/de10/de10_compiler.o\
+	src/target/core/de10/de10_logic.o\
+	src/target/core/de10/quartus_client.o\
+	src/target/core/de10/quartus_server.o\
+	src/target/core/proxy/proxy_compiler.o\
+	src/target/core/sw/sw_compiler.o\
+	src/target/core/sw/sw_logic.o\
+	src/target/core_compiler.o\
+	\
+	src/ui/stream/stream_controller.o\
+	src/ui/term/term_controller.o\
+	src/ui/term/term_view.o\
+	src/ui/web/web_ui.o\
+	\
+	src/verilog/analyze/bit_width.o\
+	src/verilog/analyze/constant.o\
+	src/verilog/analyze/evaluate.o\
+	src/verilog/analyze/indices.o\
+	src/verilog/analyze/module_info.o\
+	src/verilog/analyze/navigate.o\
+	src/verilog/analyze/read_set.o\
+	src/verilog/analyze/resolve.o\
+	\
+	src/verilog/ast/visitors/builder.o\
+	src/verilog/ast/visitors/editor.o\
+	src/verilog/ast/visitors/rewriter.o\
+	src/verilog/ast/visitors/visitor.o\
+	\
+	src/verilog/parse/lex.yy.o\
+	src/verilog/parse/parser.o\
+	src/verilog/parse/verilog.tab.o\
+	\
+	src/verilog/print/printer.o\
+	src/verilog/print/html/html_printer.o\
+	src/verilog/print/term/term_printer.o\
+	src/verilog/print/text/text_printer.o\
+	\
+	src/verilog/program/elaborate.o\
+	src/verilog/program/inline.o\
+	src/verilog/program/program.o\
+	src/verilog/program/type_check.o\
+	\
+	src/verilog/transform/constant_prop.o\
+	src/verilog/transform/de_alias.o
+
+### Target-Specific source binaries
+ifeq ($(UNAME), Darwin)
+	OBJ += ext/memorymapping/src/fmemopen.o
+endif
+
+### Test binaries
+TEST_OBJ=\
+	test/harness.o\
+	test/parse.o\
+	test/type_check.o\
+	test/simple.o\
+	test/bitcoin.o\
+	test/mips.o\
+	test/regex.o\
+	test/remote.o\
+	test/jit.o
+
+### Tool binaries
+BIN=\
+	bin/cascade\
+	bin/quartus_server\
+	bin/remote_runtime\
+	bin/sw_fpga
+
+### Top-level commands
+all: ${BIN}
+check: ${GTEST_TARGET}
+	${MAKE} -C data/test/mips32/asm
+	${MAKE} -C data/test/regex/codegen
+	${MAKE} -C data/test/regex/data
+	${GTEST_TARGET}
+clean:
+	${MAKE} -C src/target/core/de10/fpga clean
+	${MAKE} -C data/test/mips32/asm clean
+	${MAKE} -C data/test/regex/codegen clean
+	${MAKE} -C data/test/regex/data clean
+	${RM} -rf data/test/mips32/sc/*.mem
+	${RM} -rf ${GTEST_BUILD_DIR} ${GTEST_TARGET} ${TEST_OBJ} 
+	${RM} -rf ${FLEX_SRC} src/verilog/parse/*.hh src/verilog/parse/*.tab.* src/verilog/parse/*.output
+	${RM} -rf ${OBJ} 
+	${RM} -rf ${BIN}
+	${RM} -rf bin/*.dSYM
+
+### Build rules
+submodule:
+	git submodule init
+	git submodule update
+bin/%: tools/%.cc ${FLEX_SRC} ${OBJ}
+	${CXX} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
+${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC}
+	cd src/verilog/parse && flex verilog.ll	
+${BISON_SRC}: src/verilog/parse/verilog.yy
+	cd src/verilog/parse && bison -d -v verilog.yy
+%.o: %.c 
+	${CC} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+%.o: %.cc 
+	${CXX} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+${GTEST_LIB}: submodule
+	mkdir -p ${GTEST_BUILD_DIR}
+	cd ${GTEST_BUILD_DIR} && cmake .. && make
+${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
+	${CXX} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
+
+### Misc rules for targets that we don't control the source for
+ext/memorymapping/src/fmemopen.o: ext/memorymapping/src/fmemopen.c
+	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter ${GTEST_INC} ${INC} -c $< -o $@
+src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
+	${CXX} ${CXX_OPT} -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
+src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc
+	${CXX} ${CXX_OPT} ${GTEST_INC} ${INC} -c $< -o $@
