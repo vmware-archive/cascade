@@ -40,7 +40,7 @@ namespace cascade {
 StreamController::StreamController(Runtime* rt, istream& is) : Controller(rt), is_(is) { }
 
 void StreamController::run_logic() {
-  runtime()->eval(is_);
+  runtime()->eval(is_, false);
 }
 
 } // namespace cascade

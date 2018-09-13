@@ -25,15 +25,11 @@ std::string strip_path(const char* c);
 
 %%
 
-%{
-parser->loc_.step();
-%}
+[ \t]+     parser->text_ += yytext; parser->loc_.columns(yyleng);
+[\n]       parser->text_ += yytext; parser->loc_.lines(1); 
 
-[ \t]+     parser->text_ += yytext; parser->loc_.step();
-[\n]       parser->text_ += yytext; parser->loc_.lines(1); parser->loc_.step();
-
-"//"[^\n]*                  parser->text_ += yytext; parser->loc_.step();
-"/*"([^*]|(\*+[^*/]))*\*+\/ parser->text_ += yytext; for (size_t i = 0; i < yyleng; ++i) { if (yytext[i] == '\n') { parser->loc_.lines(1); } } parser->loc_.step();
+"//"[^\n]*                  parser->text_ += yytext; parser->loc_.columns(yyleng);
+"/*"([^*]|(\*+[^*/]))*\*+\/ parser->text_ += yytext; for (size_t i = 0; i < yyleng; ++i) { if (yytext[i] == '\n') { parser->loc_.lines(1); } else { parser->loc_.columns(1); } }
 
 "&&"      parser->text_ += yytext; return yyParser::make_AAMP(parser->loc_);
 "&"       parser->text_ += yytext; return yyParser::make_AMP(parser->loc_);

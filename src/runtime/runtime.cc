@@ -53,12 +53,13 @@ namespace cascade {
 Runtime::Runtime(View* view) : Asynchronous() {
   view_ = view;
 
-  program_ = new Program();
-  root_ = nullptr;
-
+  parser_ = new Parser();
   dp_ = new DataPlane();
   isolate_ = new Isolate(dp_);
   compiler_ = new Compiler();
+
+  program_ = new Program();
+  root_ = nullptr;
 
   disable_inlining_ = false;
   enable_open_loop_ = false;
@@ -84,6 +85,7 @@ Runtime::~Runtime() {
     delete root_;
   }
 
+  delete parser_;
   delete dp_;
   delete isolate_;
   delete compiler_;
@@ -119,14 +121,14 @@ void Runtime::eval(Node* n) {
 void Runtime::eval(const string& s) {
   auto ss = new stringstream(s);
   schedule_interrupt(Interrupt([this, ss]{
-    eval_stream(*ss);
+    eval_stream(*ss, false);
     delete ss;
   }));
 }
 
-void Runtime::eval(istream& is) {
-  schedule_interrupt(Interrupt([this, &is]{
-    eval_stream(is);
+void Runtime::eval(istream& is, bool is_term) {
+  schedule_interrupt(Interrupt([this, &is, is_term]{
+    eval_stream(is, is_term);
   }));
 }
 
@@ -227,25 +229,34 @@ void Runtime::run_logic() {
   done_simulation();
 }
 
-bool Runtime::eval_stream(istream& is) {
+bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
-    Parser p;
-    const auto pres = p.parse(is); 
-    // Stop parsing if we encountered an error
-    if (p.error()) {
-      for (auto e = p.error_begin(), ee = p.error_end(); e != ee; ++e) {
+    const auto pres = parser_->parse(is); 
+
+    // Stop eval'ing as soon as we enounter a parse error, and return false.
+    if (parser_->error()) {
+      for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
         error("Parse Error:\n" + *e);
       }
       return false;
     } 
-    // If we hit an eof, we're done with this stream.
+    // An eof marks end of stream, return the last result, and trigger finish
+    // if the eof appeared on the term
     if (pres.second) {
-      return res;
+      if (is_term) {
+        display("Caught Ctrl-D. Exiting...");
+        finish(0);
+      }
+      break;
     }
-    // Keep on eval'ing
+    // Eval the code we just parsed; if this is the term, don't loop
     res = eval_node(pres.first);
+    if (is_term) {
+      break;
+    }
   }
+
   return res;
 }
 
@@ -280,7 +291,7 @@ bool Runtime::eval_include(String* s) {
     }
     return false;
   }
-  return eval_stream(ifs);
+  return eval_stream(ifs, false);
 }
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {

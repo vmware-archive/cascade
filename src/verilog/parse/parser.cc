@@ -57,18 +57,19 @@ pair<Node*, bool> Parser::parse(const string& s) {
 }
 
 pair<Node*, bool> Parser::parse(istream& is) {
-  clear_logs();
-
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
-  text_ = "";
   loc_.initialize();
 
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
+  clear_logs();
+  text_ = "";
   res_ = nullptr;
   eof_ = false;
+
+  loc_.step();
   parser.parse();
   if (res_ != nullptr) {
     res_->accept(this);

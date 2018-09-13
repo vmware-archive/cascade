@@ -58,11 +58,12 @@ class Parser : public Editor, public Loggable {
     bool debug_lexer_;
     friend class yyLexer;
     yyLexer lexer_;
-    std::string text_;
     location loc_;
 
     bool debug_parser_;
     friend class yyParser;
+    
+    std::string text_;
     Node* res_;
     bool eof_;
 
