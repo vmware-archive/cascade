@@ -1,115 +1,143 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog")
+=====
 
-### Dependencies
-This project *should* build successfully on both OSX and Ubuntu. Third-party dependencies can be retrieved with either ```apt-get``` (Ubuntu) or ```port``` (OSX).
+Index
+=====
+0. [Dependencies](#dependencies)
+1. [Building Cascade](#building-cascade)
+2. [Using Cascade](#using-cascade)
+    1. [The Basics](#the-basics)
+    2. [Additional UIs](#additional-uis)
+    3. [Minimal Environment](#minimal-environment)
+    4. [Software Backend](#software-backend)
+    5. [DE10 Backend](#de10-backend)
+3. [Verilog Support](#verilog-support)
+4. [Standard Library](#standard-library)
 
-1. Lexing and Parsing
+Dependencies
+=====
+Cascade should build successfully on both OSX and Ubuntu. Third-party dependencies can be retrieved using either ```apt-get``` (Ubuntu) or ```port``` (OSX). Please contact the developers if you discover a dependency which is not shown below.
+
 ```
-$ sudo (apt-get|port) install flex bison libgmp3-dev
+$ sudo (apt-get|port) install ccache cmake flex bison libgmp3-dev 
+```
+
+Building Cascade
+=====
+1. Clone this repository (make sure to use the ```--recursive``` flag)
+```
+$ git clone --recursive https://github.com/vmware/cascade cascade
 ```
 2. Build
 ```
-$ sudo (apt-get|port) install ccache
-```
-3. Additional Dependencies?
-```
-$ sudo (apt-get|port) install ...
-```
-
-### Build
-1. Clone source (make sure to use the ```--recursive``` flag)
-```
-$ git clone --recursive https://github.com/jitfpga/fpga
-```
-2. Build
-```
+$ cd cascade/
 $ make
 ```
-3. The build didn't succeed (because you didn't use the ```--recursive``` flag)
+If the build didn't succeed (because you didn't use the ```--recursive``` flag)
 ```
+$ rm -rf ext/*
 $ make submodule
 $ make
 ```
-4. Test
+3. Check that the build succeeded (all tests should pass)
 ```
 $ make check
 ```
 
-### Run
-#### The Basics
-You can start the system by typing:
+Using Cascade
+=====
+
+##### The Basics
+
+Start Cascade by typing
 ```
-$ ./bin/fpga
+$ ./bin/cascade
 ```
-This will place you in a REPL loop. Code which is typed here is appended to the source of the (initially empty) top-level module, JIT-compiled, and executed immediately. Try defining a wire. If things go well, you'll see the text ```OK```.
+This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed here is appended to the source of the (initially empty) top-level module and executed immediately. Try defining a wire. You'll see the text ```ITEM OK``` to indicate that a new module item was added to the top-level module.
 ```verilog
 >>> wire x;
-OK
+ITEM OK
 ```
-The verilog specification requires that code inside of ```initial``` blocks is executed exactly once at the beginning of the simulation. Because this is a JIT-compiler, we generalize this specification as follows: Code inside of ```initial``` blocks is executed exactly once at the beginning of the first time step after it is compiled. Try printing the value of the wire you just defined. 
+The verilog specification requires that code inside of ```initial``` blocks is executed exactly once when a program begins execution. Because Cascade provides a dynamic environment, we generalize the specification as follows: Code inside of ```initial``` blocks is executed exactly once immediately after it is compiled. Try printing the value of the wire you just defined. 
 ```verilog
 >>> initial $display(x);
-OK 
+ITEM OK 
 >>> 0
 ```
-Now try printing a value that isn't in scope:
+Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
-*** Checker Error:
-  Reference to an undefined identifier!
-  y
+*** Referenece to unresolved identifier >>> y <<< 
 >>>
 ```
-In general, anything you type from the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, you will see an error message and the program will be left unmodified. However, if you type multiple statements and only the last fails, the statements which were compiled successfully cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error. This error does not change the fact that ```x``` and ```y``` were successfully introduced into the program.
+Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, Cascade will produce an error message and the remainder of your text will be ignored. If you type multiple statements, anything which compiles successfully before the error is encountered cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error. This does not change the fact that ```x``` and ```y``` were successfully introduced into the program.
 ```verilog
 >>> wire x,y,x;
-OK
-OK
-*** Checker Error:
-  A variable with this name already appears in this scope!
-  x
->>> initial $display(x);
-OK
+ITEM OK
+ITEM OK
+>>> *** A variable with this name already exists in this scope >>> wire x; <<< 
+>>> *** Previous instance >>> wire x; <<<
+>>> initial $display(y);
+ITEM OK
 >>> 0
 ```
-You can declare modules from the REPL, too.
+You can declare and instantiate modules from the REPL as well.
 ```verilog
->>> module foo(x,y); 
-input wire x; 
-output wire y;
-assign y = x;
+>>> module foo(
+  input wire x,
+  output wire y 
+);
+  assign y = x;
 endmodule
-OK
+DECL OK
+>>> wire q,r;
+ITEM OK
+ITEM OK
+>>> foo f(q,r);
+ITEM OK
 ```
-Assuming they lex, parse, and typecheck, you can instantiate them as well.
-```verilog
->>> wire x,y;
-OK
-OK
->>> foo f(x,y);
-OK
-```
-If you don't feel like typing everything from scratch, you can include a file by typing the following, where path is assumed to be relative to the current working directory.
+If you don't want to type your entire program into the REPL you can use the include statement, where ```path/``` is assumed to be relative to your current working directory.
 ```verilog
 >>> include path/to/file.v;
 ```
-If you'd like to introduce additional search paths, you can restart the tool using the ```--include_dir``` flag and providing a list of colon-separated paths.
+If you'd like to use additional search paths, you can start Cascade using the ```-I``` flag and provide a list of colon-separated alternatives. Cascade will try each of these paths as a prefix, in order, until it finds a match.
 ```
-$ ./bin/fpga --include_dir path/to/dir1:path/to/dir2
+$ ./bin/cascade -I path/to/dir1:path/to/dir2
 ```
-And if you'd like to run the tool completely free of interaction, you can restart it with the ```-e``` flag and the name of a file to include.
+Alternately, you can start Cascade with the ```-e``` flag and the name of a file to include.
 ```
-$ ./bin/fpga -e path/to/file.v
+$ ./bin/cascade -e path/to/file.v
 ```
-Finally, a program can shut down the tool at any time by invoking the ```$finish``` task:
+Finally, Cascade will stop running whenever a program invokes the ```$finish``` task.
 ```verilog
 >>> initial $finish;
-OK
+ITEM OK
 Goodbye!
 ```
-Or you can do it yourself by typing ```Ctrl-C```.
+You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 ```verilog
 >>> module foo(); wir... I give up... arg... ^C
+```
+
+### Additional UIs
+
+If you're absolutely fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
+```
+$ ./bin/cascade --batch -e path/to/file.v
+```
+
+If you prefer a GUI, cascade has a frontend which runs in the browser.
+```
+$ ./bin/cascade --ui web
+>>> Running server out of /Users/you/Desktop/cascade/bin/../src/ui/web/
+>>> Server started on port 11111
+```
+```
+$ (firefox|chrome|...) localhost:11111
+```
+If something on your machine is using port 11111, you can specify an alternate using the ```web-ui-port``` flag.
+```
+$ ./bin/cascade --ui web --web-ui-port 22222
 ```
 
 #### Minimal Environment
