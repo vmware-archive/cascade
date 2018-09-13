@@ -1354,7 +1354,7 @@ hierarchical_identifier
     $$ = $1;
     if (!$$->get_dim()->null()) {
       if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
-        error(parser->loc_, "Found range expression inside hierarchical identifier!");
+        error(parser->loc(), "Found range expression inside hierarchical identifier!");
         YYERROR;
       }
       auto lid = $$->get_ids()->back();
@@ -1609,16 +1609,14 @@ se_output_declaration
 namespace cascade {
 
 void yyParser::error(const location_type& l, const std::string& m) {
-  (void) m;
-
   std::stringstream ss;
-  ss << parser->text_ << "\n";
-  for (unsigned int i = 0, ie = l.begin.column-1; i < ie; ++i) {
-    ss << " ";
+
+  if (parser->loc_.top().first == "<top>") {
+    ss << "In final line of user input:\n";
+  } else {
+    ss << "In " << parser->loc_.top().first << " on line " << l.end.line << ":\n";
   }
-  for (unsigned int i = 0, ie = l.end.column-l.begin.column; i < ie; ++i) {
-    ss << "^";
-  }
+  ss << m << "\n";
   parser->error(ss.str());
 }
 

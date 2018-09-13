@@ -33,6 +33,7 @@
 #include <cassert>
 #include <cctype>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include "src/base/stream/incstream.h"
 #include "src/runtime/data_plane.h"
@@ -239,6 +240,9 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
       for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
         error("Parse Error:\n" + *e);
       }
+      if (is_term) {
+        is.ignore(numeric_limits<streamsize>::max(), '\n');
+      }
       return false;
     } 
     // An eof marks end of stream, return the last result, and trigger finish
@@ -291,7 +295,12 @@ bool Runtime::eval_include(String* s) {
     }
     return false;
   }
-  return eval_stream(ifs, false);
+
+  parser_->push(path);
+  const auto res = eval_stream(ifs, false);
+  parser_->pop();
+
+  return res;
 }
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {

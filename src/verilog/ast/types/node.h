@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NODE_H
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
+#include <string>
 #include <vector>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/visitors/builder.h"
@@ -67,11 +68,17 @@ class Node {
     friend class Inline;
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
+
+    friend class Parser;
+    DECORATION(std::string, source);
+    DECORATION(size_t, line);
 };
 
 inline Node::Node() {
   ctrl_ = 0;
   active_ = false;
+  source_ = "";
+  line_ = 1;
 }
 
 } // namespace cascade

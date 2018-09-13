@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_PARSE_PARSER_H
 
 #include <iostream>
+#include <stack>
 #include <string>
 #include "src/base/log/loggable.h"
 #include "src/verilog/ast/ast_fwd.h"
@@ -51,21 +52,24 @@ class Parser : public Editor, public Loggable {
     Parser& debug_parser(bool debug);
 
     // Parser Interface:
-    std::pair<Node*, bool> parse(const std::string& s);
+    void push();
+    void push(const std::string& path);
     std::pair<Node*, bool> parse(std::istream& is);
+    void pop();
 
   private:
     bool debug_lexer_;
     friend class yyLexer;
     yyLexer lexer_;
-    location loc_;
 
     bool debug_parser_;
     friend class yyParser;
     
-    std::string text_;
+    std::stack<std::pair<std::string, location>> loc_;
     Node* res_;
     bool eof_;
+
+    location& loc();
 
     void edit(ModuleDeclaration* md) override;
     void edit(ModuleInstantiation* mi) override;

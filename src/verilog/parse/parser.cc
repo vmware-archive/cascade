@@ -39,6 +39,7 @@ namespace cascade {
 Parser::Parser() : Editor(), Loggable() { 
   debug_lexer_ = false;
   debug_parser_ = false;
+  push("<top>");
 }
 
 Parser& Parser::debug_lexer(bool debug) {
@@ -51,31 +52,41 @@ Parser& Parser::debug_parser(bool debug) {
   return *this;
 }
 
-pair<Node*, bool> Parser::parse(const string& s) {
-  stringstream ss(s);
-  return parse(ss);
+void Parser::push() {
+  loc_.push(loc_.top());
+}
+
+void Parser::push(const string& path) {
+  loc_.push(make_pair(path, location()));
+  loc_.top().second.initialize();
 }
 
 pair<Node*, bool> Parser::parse(istream& is) {
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
-  loc_.initialize();
 
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
   clear_logs();
-  text_ = "";
   res_ = nullptr;
   eof_ = false;
 
-  loc_.step();
+  loc().step();
   parser.parse();
   if (res_ != nullptr) {
     res_->accept(this);
   }
 
   return make_pair(res_, eof_);
+}
+
+void Parser::pop() {
+  loc_.pop();
+}
+
+location& Parser::loc() {
+  return loc_.top().second;
 }
 
 void Parser::edit(ModuleDeclaration* md) {
