@@ -46,7 +46,7 @@ $ make check
 Using Cascade
 =====
 
-##### The Basics
+### The Basics
 
 Start Cascade by typing
 ```
