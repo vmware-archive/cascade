@@ -138,7 +138,7 @@ If something on your machine is using port 11111, you can specify an alternate u
 $ ./bin/cascade --ui web --web-ui-port 22222
 ```
 
-#### Default Environment
+### Default Environment
 By default, Cascade is started in a minimal environment. You can invoke this behavior explicitly using the ```--march``` flag.
 ```
 $ ./bin/cascade --march minimal
@@ -163,7 +163,7 @@ ITEM OK
 ...
 ```
 
-#### Software Backend
+### Software Backend
 If you'd like to write a program with additional peripherals, you can try using Cascade's virtual FPGA.
 ```
 $ ./bin/sw_fpga
@@ -199,7 +199,7 @@ ITEM OK
 ```
 Toggling the pads should change the values of the leds.
 
-#### DE10 Backend
+### DE10 Backend
 All of the functionality described above is also supported on the terasic de10 soc. Except that instead of mapping compute and leds to virtual components, the system maps them directly onto a real fpga. Try booting up the de10 target by ssh'ing onto the ARM core on the de10 and typing.
 ```
 $ ./bin/de10_target
@@ -210,9 +210,7 @@ $ ./bin/fpga --march de10
 ```
 Assuming the system is able to successfully connect to the de10, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
 
-
-
-#### Standard Library
+### Standard Library
 In general, assets such as Clocks, Pads, and Leds can be thought of as standard peripheral components with a *more or less* well-defined interface. Currently, most assets are supported on most targets. However, as the standard library grows and we introduce support for more targets, this graph may become sparser:
 
 |Asset|minimal|sw |de10|
@@ -221,27 +219,3 @@ In general, assets such as Clocks, Pads, and Leds can be thought of as standard 
 |Pad|no|yes|yes|
 |Led|no|yes|yes|
 |Reset|no|yes|no|
-
-### DE10 Programming Notes
-This process has only been verified on Ubuntu.
-
-1. Download and install the Quartus Toolchain from www.altera.com/downloads/download-center.html
-2. Configure the USB-Blaster driver by typing (source https://ubuntuforums.org/showthread.php?t=1441742)
-```
-$ sudo mount --bind /dev/bus /proc/bus
-$ sudo ln -s /sys/kernel/debug/usb/devices /proc/bus/usb/devices
-$ sudo <quartus_directory>/bin/jtagd
-$ sudo <quartus_directory>/bin/jtagconfig
-$ <quartus_directory>/bin/quartus
-```
-3. Create a quartus project ```<proj>.qpf``` with a minimal top-level module and constraint file.
-4. Build a project and program the DE10 from the command line
-```
-$ <quartus_dir>/quartus/bin/quartus_map <proj>.qpf
-$ <quartus_dir>/quartus/bin/quartus_fit <proj>.qpf
-$ <quartus_dir>/quartus/bin/quartus_asm <proj>.qpf
-$ <quartus_dir>/quartus/bin/quartus_pgm -c "DE-SoC [1-2]" --mode JTAG -o "P;<proj>.sof@2"
-```
-
-### Git Submodule Notes
-A really helpful cheatsheet (https://medium.com/@porteneuve/mastering-git-submodules-34c65e940407)
