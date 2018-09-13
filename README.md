@@ -1,5 +1,4 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog")
-=====
 
 Index
 =====
@@ -7,8 +6,8 @@ Index
 1. [Building Cascade](#building-cascade)
 2. [Using Cascade](#using-cascade)
     1. [The Basics](#the-basics)
-    2. [Additional UIs](#additional-uis)
-    3. [Minimal Environment](#minimal-environment)
+    2. [Alternate UIs](#alternate-uis)
+    3. [Default Environment](#default-environment)
     4. [Software Backend](#software-backend)
     5. [DE10 Backend](#de10-backend)
 3. [Verilog Support](#verilog-support)
@@ -70,7 +69,7 @@ Now try printing a variable which hasn't been defined.
 *** Referenece to unresolved identifier >>> y <<< 
 >>>
 ```
-Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, Cascade will produce an error message and the remainder of your text will be ignored. If you type multiple statements, anything which compiles successfully before the error is encountered cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error. This does not change the fact that ```x``` and ```y``` were successfully introduced into the program.
+Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, Cascade will produce an error message and the remainder of your text will be ignored. If you type multiple statements, anything which compiles successfully before the error is encountered cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error.
 ```verilog
 >>> wire x,y,x;
 ITEM OK
@@ -119,8 +118,7 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 >>> module foo(); wir... I give up... arg... ^C
 ```
 
-### Additional UIs
-
+### Alternate UIs
 If you're absolutely fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
 ```
 $ ./bin/cascade --batch -e path/to/file.v
@@ -140,62 +138,68 @@ If something on your machine is using port 11111, you can specify an alternate u
 $ ./bin/cascade --ui web --web-ui-port 22222
 ```
 
-#### Minimal Environment
-By default, the system is started in a minimal environment. You can invoke this behavior explicitly by typing:
+#### Default Environment
+By default, Cascade is started in a minimal environment. You can invoke this behavior explicitly using the ```--march``` flag.
 ```
-$ ./bin/fpga --march minimal
+$ ./bin/cascade --march minimal
 ```
-This implicitly declares a module with the following definition and instantiates it into the top-level module for you:
+This environment declares the following module and instantiates it into the top-level module for you:
 ```verilog
-module Clock(val);
-  output wire val;
+module Clock(
+  output wire val
+);
 endmodule
+
 Clock clock;
 ```
-This module represents the runtime's virtual clock. Its value flips between zero and one every virtual clock cycle. Try typing the following (and remember that you can type Ctrl-C to quit):
+This module represents Cascade's clock. Its value flips between zero and one every virtual clock cycle. Try typing the following (and remember that you can type Ctrl-C to quit):
 ```verilog
 >>> always @(clock.val) $display(clock.val);
-OK
+ITEM OK
 0
 1
 0
 1
 ...
 ```
-#### Software Target
-If you want more than just a clock, you can try booting up a software fpga by typing:
+
+#### Software Backend
+If you'd like to write a program with additional peripherals, you can try using Cascade's virtual FPGA.
 ```
-$ ./bin/sw_target
+$ ./bin/sw_fpga
 ```
-This program provides an ncurses gui with four buttons, one reset, and eight leds. You can toggle the buttons using the ```1 2 3 4``` keys and the reset using the ```r``` key. You can shut the fpga down by typing ```q```. In order to communicate with this target, restart the system by typing:
+Cascade's virtual FPGA provides an ncurses GUI with four buttons, one reset, and eight leds. You can toggle the buttons using the ```1 2 3 4``` keys, toggle the reset using the ```r``` key, and shut down the virtual FPGA by typing ```q```. To use this backend, restart Cascade by typing:
 ```
-$ ./bin/fpga --march sw
+$ ./bin/cascade --march sw
 ```
-Assuming the system is able to successfully connect to the software fpga, these new assets will be exposed as additional modules which are implicitly declared and instantiated in the top-level module:
+Cascade will automatically detect the virtual FPGA and expose its peripherals as modules which are implicitly declared and instantiated in the top-level module:
 ```verilog
-module Pad(val);
-  output wire[3:0] val;
+module Pad(
+  output wire[3:0] val
+);
 endmodule
 Pad pad();
 
-module Reset(val);
-  output wire val;
+module Reset(
+  output wire val
+);
 endmodule
 Reset reset();
 
-module Led(val);
-  output wire[7:0] val;
+module Led(
+  output wire[7:0] val
+);
 endmodule
 Led led();
 ```
 Now try writing a simple program that connects the pads to the leds.
 ```verilog
 >>> assign led.val = pad.val;
-OK
+ITEM OK
 ```
-Toggling the pads should now change the values of the leds.
+Toggling the pads should change the values of the leds.
 
-#### de10 Target
+#### DE10 Backend
 All of the functionality described above is also supported on the terasic de10 soc. Except that instead of mapping compute and leds to virtual components, the system maps them directly onto a real fpga. Try booting up the de10 target by ssh'ing onto the ARM core on the de10 and typing.
 ```
 $ ./bin/de10_target
@@ -205,6 +209,8 @@ In order to communicate with this target, restart the system by typing:
 $ ./bin/fpga --march de10
 ```
 Assuming the system is able to successfully connect to the de10, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
+
+
 
 #### Standard Library
 In general, assets such as Clocks, Pads, and Leds can be thought of as standard peripheral components with a *more or less* well-defined interface. Currently, most assets are supported on most targets. However, as the standard library grows and we introduce support for more targets, this graph may become sparser:
