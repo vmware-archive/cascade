@@ -65,7 +65,9 @@ void TermController::run_logic() {
       break;
     } else if (p.error()) {
       cin.ignore(numeric_limits<streamsize>::max(), '\n');
-      runtime()->error("Parse Error:\n" + p.what()); 
+      for (auto e = p.error_begin(), ee = p.error_end(); e != ee; ++e) {
+        runtime()->error("Parse Error:\n" + *e); 
+      }
     } else {
       runtime()->eval(res.first);
     }

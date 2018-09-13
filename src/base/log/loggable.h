@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_MISC_LOGGABLE_H
 #define CASCADE_SRC_MISC_LOGGABLE_H
 
-#include <cassert>
 #include <string>
 #include <vector>
 
@@ -49,12 +48,10 @@ class Loggable {
     virtual ~Loggable() = default;
 
     bool error() const;
-    const std::string& what() const;
     error_iterator error_begin() const;
     error_iterator error_end() const;
 
     bool warning() const;
-    const std::string& why() const;
     warn_iterator warn_begin() const;
     warn_iterator warn_end() const;
 
@@ -74,11 +71,6 @@ inline bool Loggable::error() const {
   return !errors_.empty();
 }
 
-inline const std::string& Loggable::what() const {
-  assert(error());
-  return *error_begin();
-}
-
 inline Loggable::error_iterator Loggable::error_begin() const {
   return errors_.begin();
 }
@@ -89,11 +81,6 @@ inline Loggable::error_iterator Loggable::error_end() const {
   
 inline bool Loggable::warning() const {
   return !warns_.empty();
-}
-
-inline const std::string& Loggable::why() const {
-  assert(warning());
-  return *warn_begin();
 }
 
 inline Loggable::warn_iterator Loggable::warn_begin() const {

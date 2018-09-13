@@ -234,7 +234,9 @@ bool Runtime::eval_stream(istream& is) {
     const auto pres = p.parse(is); 
     // Stop parsing if we encountered an error
     if (p.error()) {
-      error("Parse Error:\n" + p.what());
+      for (auto e = p.error_begin(), ee = p.error_end(); e != ee; ++e) {
+        error("Parse Error:\n" + *e);
+      }
       return false;
     } 
     // If we hit an eof, we're done with this stream.
