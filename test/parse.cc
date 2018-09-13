@@ -63,6 +63,9 @@ TEST(parse, pass_continuous_assign) {
 TEST(parse, pass_declaration) {
   run_parse("data/test/parse/pass/declaration.v", false);
 }
+TEST(parse, pass_issue_6) {
+  run_parse("data/test/parse/pass/issue_6.v", false);
+}
 TEST(parse, pass_issue_224) {
   run_parse("data/test/parse/pass/issue_224.v", false);
 }

@@ -74,7 +74,7 @@ parser->loc_.step();
 "+"       parser->text_ += yytext; return yyParser::make_PLUS(parser->loc_);
 "#"       parser->text_ += yytext; return yyParser::make_POUND(parser->loc_);
 "?"       parser->text_ += yytext; return yyParser::make_QMARK(parser->loc_);
-";"[ \t]* parser->text_ += yytext; return yyParser::make_SCOLON(parser->loc_);
+";"       parser->text_ += yytext; return yyParser::make_SCOLON(parser->loc_);
 "(*)"     parser->text_ += yytext; return yyParser::make_STAR(parser->loc_);
 "~&"      parser->text_ += yytext; return yyParser::make_TAMP(parser->loc_);
 "~^"      parser->text_ += yytext; return yyParser::make_TCARAT(parser->loc_);
