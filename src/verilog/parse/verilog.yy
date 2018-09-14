@@ -363,10 +363,12 @@ cascade::Identifier dummy("__dummy");
 %type <Many<ArgAssign>*> ordered_parameter_assignment_P
 %type <Many<ArgAssign>*> ordered_port_connection_P
 %type <Many<Declaration>*> parameter_declaration_P
+%type <size_t> parameter_L
 %type <Many<ArgAssign>*> parameter_value_assignment_Q
 %type <Many<ModuleItem>*> port_declaration_P
 %type <Many<ArgAssign>*> port_P
 %type <Maybe<RangeExpression>*> range_Q
+%type <size_t> reg_L
 %type <bool> signed_Q
 %type <std::pair<size_t, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
@@ -585,22 +587,30 @@ local_parameter_declaration
   }
   ;
 parameter_declaration
-  : attribute_instance_S PARAMETER signed_Q range_Q list_of_param_assignments %prec PARAMETER {
+  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments %prec PARAMETER {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto pd = new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      pd->get_id()->set_source(va->get_lhs()->get_source());
+      pd->get_id()->set_line(va->get_lhs()->get_line());
+      pd->set_source(parser->source());
+      pd->set_line($2);
+      $$->push_back(pd);
       delete va;
     }
     delete $1;
     delete $4;
     delete $5;
   }
-  | attribute_instance_S PARAMETER parameter_type list_of_param_assignments %prec PARAMETER {
+  | attribute_instance_S parameter_L parameter_type list_of_param_assignments %prec PARAMETER {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      $$->push_back(new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto pd = new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      pd->set_source(parser->source());
+      pd->set_line($2);
+      $$->push_back(pd);
       delete va;
     }
     delete $1;
@@ -724,11 +734,16 @@ net_declaration
 /* TODO real_declaration */
 /* TODO realtime_declaration */
 reg_declaration
-  : attribute_instance_S REG signed_Q range_Q list_of_variable_identifiers SCOLON {
+  : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>()));
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      rd->get_id()->set_source(va->get_lhs()->get_source());
+      rd->get_id()->set_line(va->get_lhs()->get_line());
+      rd->set_source(parser->source());
+      rd->set_line($2);
+      $$->push_back(rd);
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
       }
@@ -969,15 +984,25 @@ genvar_initialization
   : identifier EQ expression { $$ = new VariableAssign($1,$3); }
   ;
 genvar_expression
-  : genvar_primary { $$ = $1; }
+  : genvar_primary { 
+    $$ = $1; 
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
+  }
   | unary_operator /*attribute_instance_S*/ genvar_primary { 
     $$ = new UnaryExpression($1,$2);
+    $$->set_source($2->get_source());
+    $$->set_line($2->get_line());
   }
   | genvar_expression binary_operator /*attribute_instance_S*/ genvar_expression %prec AAMP { 
     $$ = new BinaryExpression($1,$2,$3);
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
   }
   | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression %prec AAMP { 
     $$ = new ConditionalExpression($1,$3,$5);
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
   }
   ;
 genvar_iteration
@@ -1574,6 +1599,9 @@ parameter_declaration_P
     $$->push_back($3);
   }
   ;
+parameter_L
+  : PARAMETER { $$ = parser->loc().begin.line; }
+  ;
 parameter_value_assignment_Q
   : %empty { $$ = new Many<ArgAssign>(); }
   | parameter_value_assignment { $$ = $1; }
@@ -1595,6 +1623,9 @@ port_P
 range_Q
   : %empty { $$ = new Maybe<RangeExpression>(); }
   | range { $$ = new Maybe<RangeExpression>($1); }
+  ;
+reg_L
+  : REG { $$ = parser->loc().begin.line; }
   ;
 signed_Q
   : %empty { $$ = false; }
