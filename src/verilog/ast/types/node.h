@@ -56,6 +56,8 @@ class Node {
 
     // Get/Set:
     GET(parent);
+    LEAF_GET_SET(source);
+    LEAF_GET_SET(line);
 
   private:
     friend class Monitor;
@@ -69,7 +71,6 @@ class Node {
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
 
-    friend class Parser;
     DECORATION(std::string, source);
     DECORATION(size_t, line);
 };
@@ -77,8 +78,8 @@ class Node {
 inline Node::Node() {
   ctrl_ = 0;
   active_ = false;
-  source_ = "";
-  line_ = 1;
+  source_ = "<unknown location --- please submit bug report>";
+  line_ = 0;
 }
 
 } // namespace cascade

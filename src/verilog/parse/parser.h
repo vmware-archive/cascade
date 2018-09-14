@@ -51,11 +51,16 @@ class Parser : public Editor, public Loggable {
     Parser& debug_lexer(bool debug);
     Parser& debug_parser(bool debug);
 
-    // Parser Interface:
-    void push();
+    // Location Tracking Interface:
     void push(const std::string& path);
-    std::pair<Node*, bool> parse(std::istream& is);
     void pop();
+
+    // Location Querying Interface:
+    const std::string& source() const;
+    size_t line() const;
+
+    // Parser Interface:
+    std::pair<Node*, bool> parse(std::istream& is);
 
   private:
     bool debug_lexer_;

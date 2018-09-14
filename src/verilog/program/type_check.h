@@ -74,6 +74,7 @@ class TypeCheck : public Loggable, public Visitor {
     // Logging Helpers:
     void warn(const std::string& s, const Node* n);
     void error(const std::string& s, const Node* n);
+    void multiple_def(const Node* n, const Node* m);
 
     // Visitor Interface:
     void visit(const Identifier* id) override;

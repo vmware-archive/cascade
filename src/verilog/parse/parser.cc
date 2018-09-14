@@ -52,13 +52,21 @@ Parser& Parser::debug_parser(bool debug) {
   return *this;
 }
 
-void Parser::push() {
-  loc_.push(loc_.top());
-}
-
 void Parser::push(const string& path) {
   loc_.push(make_pair(path, location()));
   loc_.top().second.initialize();
+}
+
+void Parser::pop() {
+  loc_.pop();
+}
+
+const string& Parser::source() const {
+  return loc_.top().first;
+}
+
+size_t Parser::line() const {
+  return loc_.top().second.begin.line;
 }
 
 pair<Node*, bool> Parser::parse(istream& is) {
@@ -79,10 +87,6 @@ pair<Node*, bool> Parser::parse(istream& is) {
   }
 
   return make_pair(res_, eof_);
-}
-
-void Parser::pop() {
-  loc_.pop();
 }
 
 location& Parser::loc() {

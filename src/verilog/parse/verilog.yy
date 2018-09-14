@@ -888,7 +888,7 @@ named_parameter_assignment
   ; 
 module_instance
   : name_of_module_instance OPAREN list_of_port_connections CPAREN { 
-    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()),new Identifier(""),$1,new Many<ArgAssign>(),$3);
+    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()), new Identifier(""), $1, new Many<ArgAssign>(), $3);
   }
   ;
 name_of_module_instance
@@ -1611,10 +1611,10 @@ namespace cascade {
 void yyParser::error(const location_type& l, const std::string& m) {
   std::stringstream ss;
 
-  if (parser->loc_.top().first == "<top>") {
+  if (parser->source() == "<top>") {
     ss << "In final line of user input:\n";
   } else {
-    ss << "In " << parser->loc_.top().first << " on line " << l.end.line << ":\n";
+    ss << "In " << parser->source() << " on line " << l.end.line << ":\n";
   }
   ss << m << "\n";
   parser->error(ss.str());
