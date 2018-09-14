@@ -74,8 +74,10 @@ Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. I
 >>> wire x,y,x;
 ITEM OK
 ITEM OK
->>> *** A variable with this name already exists in this scope >>> wire x; <<< 
->>> *** Previous instance >>> wire x; <<<
+>>> *** Typechecker Error:
+  > In final line of user input:
+    A variable named x already appears in this scope.
+    Previous declaration appears in previous user input.
 >>> initial $display(y);
 ITEM OK
 >>> 0
