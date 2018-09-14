@@ -163,6 +163,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.1.2 Verilog Source Text */
 %type <ModuleDeclaration*> module_declaration
+%type <class location> module_keyword
 
 /* A.1.3 Module Parameters and Ports */
 %type <Many<ModuleItem>*> module_parameter_port_list
@@ -364,6 +365,7 @@ cascade::Identifier dummy("__dummy");
 %type <Many<ArgAssign>*> port_P
 %type <Maybe<RangeExpression>*> range_Q
 %type <bool> signed_Q
+%type <std::pair<class location, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
 
 /* Stop-Gap Rules */
@@ -401,6 +403,8 @@ module_declaration
       auto mis = $4;
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,$5,mis);
+      $$->set_source(parser->source());
+      $$->set_line($2.begin.line);
     }
   | attribute_instance_S module_keyword identifier module_parameter_port_list 
       list_of_port_declarations_Q SCOLON non_port_module_item_S
@@ -418,11 +422,13 @@ module_declaration
       mis->concat($5);
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,ps,mis);
+      $$->set_source(parser->source());
+      $$->set_line($2.begin.line);
     }
   ;
 module_keyword
-  : MODULE
-  | MACROMODULE
+  : MODULE { $$ = parser->loc(); }
+  | MACROMODULE { $$ = parser->loc(); }
   ;
 
 /* A.1.3 Module Parameters and Ports */
@@ -1346,9 +1352,11 @@ attr_name
 
 /* A.9.3 Identifiers */
 hierarchical_identifier
-  : SIMPLE_ID braced_re_q { 
-    const auto id = new Id($1, new Maybe<Expression>());
+  : simple_id_L braced_re_q { 
+    const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
+    $$->set_source(parser->source());
+    $$->set_line($1.first.begin.line);
   }
   | hierarchical_identifier DOT SIMPLE_ID braced_re_q {
     $$ = $1;
@@ -1367,9 +1375,11 @@ hierarchical_identifier
   }
   ;
 identifier 
-  : SIMPLE_ID { 
-    const auto id = new Id($1, new Maybe<Expression>());
+  : simple_id_L { 
+    const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), new Maybe<Expression>()); 
+    $$->set_source(parser->source());
+    $$->set_line($1.first.begin.line);
   }
   /* TODO | ESCAPED_ID */
   ;
@@ -1554,6 +1564,8 @@ signed_Q
   : %empty { $$ = false; }
   | SIGNED { $$ = true; }
   ;
+simple_id_L
+  : SIMPLE_ID { $$ = make_pair(parser->loc(), $1); }
 statement_S
   : %empty { $$ = new Many<Statement>(); }
   | statement_S statement {
