@@ -238,7 +238,7 @@ void TypeCheck::warn(const string& s, const Node* n) {
   } else {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
-  TextPrinter(ss) << s << "\n";
+  TextPrinter(ss) << s;
   Loggable::warn(ss.str());
 }
 
@@ -249,7 +249,7 @@ void TypeCheck::error(const string& s, const Node* n) {
   } else {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
-  TextPrinter(ss) << s << "\n";
+  TextPrinter(ss) << s;
   Loggable::error(ss.str());
 }
 
@@ -263,9 +263,9 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
   TextPrinter(ss) << "A variable named " << n << " already appears in this scope.\n";
   TextPrinter(ss) << "Previous declaration appears in ";
   if (m->get_source() == "<top>") {
-    TextPrinter(ss) << "previous user input\n";      
+    TextPrinter(ss) << "previous user input.";      
   } else {
-    TextPrinter(ss) << m->get_source() << " on line " << m->get_line() << "\n";
+    TextPrinter(ss) << m->get_source() << " on line " << m->get_line() << ".";
   }
   Loggable::error(ss.str());
 }

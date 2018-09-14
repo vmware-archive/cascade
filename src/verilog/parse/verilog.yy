@@ -163,7 +163,6 @@ cascade::Identifier dummy("__dummy");
 
 /* A.1.2 Verilog Source Text */
 %type <ModuleDeclaration*> module_declaration
-%type <class location> module_keyword
 
 /* A.1.3 Module Parameters and Ports */
 %type <Many<ModuleItem>*> module_parameter_port_list
@@ -348,13 +347,17 @@ cascade::Identifier dummy("__dummy");
 %type <Many<Expression>*> expression_P
 %type <Maybe<Expression>*> expression_Q
 %type <Maybe<Identifier>*> generate_block_id_Q
+%type <size_t> integer_L
 %type <Many<ModuleItem>*> list_of_port_declarations_Q
+%type <size_t> localparam_L
 %type <Maybe<Expression>*> mintypmax_expression_Q
 %type <Many<ModuleInstantiation>*> module_instance_P
 %type <Many<ModuleItem>*> module_item_S
+%type <size_t> module_keyword_L
 %type <Many<ModuleItem>*> module_or_generate_item_S
 %type <Many<ArgAssign>*> named_parameter_assignment_P
 %type <Many<ArgAssign>*> named_port_connection_P
+%type <std::pair<size_t, NetDeclaration::Type>> net_type_L
 %type <NetDeclaration::Type> net_type_Q
 %type <Many<ModuleItem>*> non_port_module_item_S
 %type <Many<ArgAssign>*> ordered_parameter_assignment_P
@@ -365,7 +368,7 @@ cascade::Identifier dummy("__dummy");
 %type <Many<ArgAssign>*> port_P
 %type <Maybe<RangeExpression>*> range_Q
 %type <bool> signed_Q
-%type <std::pair<class location, std::string>> simple_id_L
+%type <std::pair<size_t, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
 
 /* Stop-Gap Rules */
@@ -397,16 +400,16 @@ include_statement
 /* A.1.2 Verilog Source Text */
 /* TODO description */
 module_declaration
-  : attribute_instance_S module_keyword identifier module_parameter_port_list
+  : attribute_instance_S module_keyword_L identifier module_parameter_port_list
       list_of_ports SCOLON module_item_S
       ENDMODULE {
       auto mis = $4;
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,$5,mis);
       $$->set_source(parser->source());
-      $$->set_line($2.begin.line);
+      $$->set_line($2);
     }
-  | attribute_instance_S module_keyword identifier module_parameter_port_list 
+  | attribute_instance_S module_keyword_L identifier module_parameter_port_list 
       list_of_port_declarations_Q SCOLON non_port_module_item_S
       ENDMODULE {
       auto ps = new Many<ArgAssign>();
@@ -423,12 +426,12 @@ module_declaration
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,ps,mis);
       $$->set_source(parser->source());
-      $$->set_line($2.begin.line);
+      $$->set_line($2);
     }
   ;
 module_keyword
-  : MODULE { $$ = parser->loc(); }
-  | MACROMODULE { $$ = parser->loc(); }
+  : MODULE 
+  | MACROMODULE 
   ;
 
 /* A.1.3 Module Parameters and Ports */
@@ -551,22 +554,30 @@ non_port_module_item
 
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
-  : attribute_instance_S LOCALPARAM signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
+  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto lpd = new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      lpd->get_id()->set_source(va->get_lhs()->get_source());
+      lpd->get_id()->set_line(va->get_lhs()->get_line());
+      lpd->set_source(parser->source());
+      lpd->set_line($2);
+      $$->push_back(lpd);
       delete va;
     }
     delete $1;
     delete $4;
     delete $5;
   }
-  | attribute_instance_S LOCALPARAM parameter_type list_of_param_assignments %prec LOCALPARAM {
+  | attribute_instance_S localparam_L parameter_type list_of_param_assignments %prec LOCALPARAM {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      $$->push_back(new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto lpd = new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      lpd->set_source(parser->source());
+      lpd->set_line($2);
+      $$->push_back(lpd);
       delete va;
     }
     delete $1;
@@ -657,11 +668,16 @@ output_declaration
 /* A.2.1.3 Type Declarations
 /* TODO event_declaration */
 integer_declaration
-  : attribute_instance_S INTEGER list_of_variable_identifiers SCOLON {
+  : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto va = $3->remove_front();
-      $$->push_back(new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>()));
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      id->get_id()->set_source(va->get_lhs()->get_source());
+      id->get_id()->set_line(va->get_lhs()->get_line());
+      id->set_source(parser->source());
+      id->set_line($2);
+      $$->push_back(id);
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
       }
@@ -672,10 +688,13 @@ integer_declaration
   }
 net_declaration 
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  : attribute_instance_S net_type /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
+  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
-      $$->push_back(new NetDeclaration($1->clone(),$2,$5->clone(),$6->remove_front(), $4->clone()));
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $4->clone());
+      nd->set_source(parser->source());
+      nd->set_line($2.first);
+      $$->push_back(nd);
     }
     delete $1;
     delete $4;
@@ -683,11 +702,16 @@ net_declaration
     delete $6;
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  | attribute_instance_S net_type /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
+  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto va = $6->remove_front();
-      $$->push_back(new NetDeclaration($1->clone(),$2,$5->clone(),va->get_lhs()->clone(),$4->clone()));
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $4->clone());
+      nd->get_id()->set_source(va->get_lhs()->get_source());
+      nd->get_id()->set_line(va->get_lhs()->get_line());
+      nd->set_source(parser->source());
+      nd->set_line($2.first);
+      $$->push_back(nd);
       $$->push_back(new ContinuousAssign(new Maybe<DelayControl>(), va));
     }
     delete $1;
@@ -1356,7 +1380,7 @@ hierarchical_identifier
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
     $$->set_source(parser->source());
-    $$->set_line($1.first.begin.line);
+    $$->set_line($1.first);
   }
   | hierarchical_identifier DOT SIMPLE_ID braced_re_q {
     $$ = $1;
@@ -1379,7 +1403,7 @@ identifier
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), new Maybe<Expression>()); 
     $$->set_source(parser->source());
-    $$->set_line($1.first.begin.line);
+    $$->set_line($1.first);
   }
   /* TODO | ESCAPED_ID */
   ;
@@ -1463,9 +1487,15 @@ generate_block_id_Q
   : %empty { $$ = new Maybe<Identifier>(); }
   | COLON identifier { $$ = new Maybe<Identifier>($2); }
   ;
+integer_L
+  : INTEGER { $$ = parser->loc().begin.line; }
+  ;
 list_of_port_declarations_Q 
   : %empty { $$ = new Many<ModuleItem>(); } 
   | list_of_port_declarations { $$ = $1; }
+  ;
+localparam_L
+  : LOCALPARAM { $$ = parser->loc().begin.line; }
   ;
 mintypmax_expression_Q 
   : %empty { $$ = new Maybe<Expression>(); }
@@ -1484,6 +1514,9 @@ module_item_S
     $$ = $1;
     $$->concat($2);
   }
+  ;
+module_keyword_L
+  : module_keyword { $$ = parser->loc().begin.line; }
   ;
 module_or_generate_item_S
   : %empty { $$ = new Many<ModuleItem>(); }
@@ -1505,6 +1538,9 @@ named_port_connection_P
     $$ = $1;
     $$->push_back($3);
   }
+  ;
+net_type_L
+  : net_type { $$ = std::make_pair(parser->loc().begin.line, $1); }
   ;
 net_type_Q
   : %empty { $$ = NetDeclaration::WIRE; }
@@ -1565,7 +1601,7 @@ signed_Q
   | SIGNED { $$ = true; }
   ;
 simple_id_L
-  : SIMPLE_ID { $$ = make_pair(parser->loc(), $1); }
+  : SIMPLE_ID { $$ = make_pair(parser->loc().begin.line, $1); }
 statement_S
   : %empty { $$ = new Many<Statement>(); }
   | statement_S statement {
