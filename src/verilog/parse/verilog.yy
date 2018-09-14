@@ -1697,7 +1697,7 @@ void yyParser::error(const location_type& l, const std::string& m) {
   } else {
     ss << "In " << parser->source() << " on line " << l.end.line << ":\n";
   }
-  ss << m << "\n";
+  ss << m;
   parser->error(ss.str());
 }
 

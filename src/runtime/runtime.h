@@ -243,6 +243,19 @@ class Runtime : public Asynchronous {
     // Runs a single iteration of the reference scheduling algoirthm
     void reference_scheduler();
 
+    // Logging Helpers
+    //
+    // Dumps parse errors to the console
+    void log_parse_errors();
+    // Dumps typechecking warnings to the console
+    void log_checker_warns();
+    // Dumps typechecking errors to the console
+    void log_checker_errors();
+    // Dumps compilation errors to the console
+    void log_compiler_errors();
+    // Dumps ctrl-d intercept
+    void log_ctrl_d();
+
     // Time Keeping Helpers:
     //
     // Prints a frequency in either MHz, KHz, or Hz. No GHz. We wish.

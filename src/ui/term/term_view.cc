@@ -44,7 +44,7 @@ TermView::TermView() : View() {
 
 void TermView::error(const string& s) {
   lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::RED << "*** " << s << Color::RESET << "\n";
+  TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }
@@ -58,7 +58,7 @@ void TermView::print(const string& s) {
 
 void TermView::warn(const string& s) {
   lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::YELLOW << "*** " << s << Color::RESET << "\n";
+  TermPrinter(cout) << Color::YELLOW << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }

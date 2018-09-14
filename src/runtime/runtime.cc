@@ -36,6 +36,7 @@
 #include <limits>
 #include <sstream>
 #include "src/base/stream/incstream.h"
+#include "src/base/stream/indstream.h"
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
 #include "src/runtime/module.h"
@@ -237,30 +238,27 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (parser_->error()) {
-      for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
-        error("Parse Error:\n" + *e);
-      }
       if (is_term) {
         is.ignore(numeric_limits<streamsize>::max(), '\n');
       }
+      log_parse_errors();
       return false;
     } 
     // An eof marks end of stream, return the last result, and trigger finish
     // if the eof appeared on the term
     if (pres.second) {
       if (is_term) {
-        display("Caught Ctrl-D. Exiting...");
+        log_ctrl_d();
         finish(0);
       }
-      break;
+      return res;
     }
     // Eval the code we just parsed; if this is the term, don't loop
     res = eval_node(pres.first);
     if (is_term) {
-      break;
+      return res;
     }
   }
-
   return res;
 }
 
@@ -305,13 +303,9 @@ bool Runtime::eval_include(String* s) {
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {
   program_->declare(md);
-  for (auto i = program_->warn_begin(), ie = program_->warn_end(); i != ie; ++i) {
-    warning(*i);
-  }
+  log_checker_warns();
   if (program_->error()) {
-    for (auto i = program_->error_begin(), ie = program_->error_end(); i != ie; ++i) {
-      error(*i);
-    }
+    log_checker_errors();
     return false;
   }
   view_->eval_decl(program_, md);
@@ -320,13 +314,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
 
 bool Runtime::eval_item(ModuleItem* mi) {
   program_->eval(mi); 
-  for (auto i = program_->warn_begin(), ie = program_->warn_end(); i != ie; ++i) {
-    warning(*i);
-  }
+  log_checker_warns();
   if (program_->error()) {
-    for (auto i = program_->error_begin(), ie = program_->error_end(); i != ie; ++i) {
-      error(*i);
-    }
+    log_checker_errors();
     return false;
   }
   view_->eval_item(program_, program_->root_elab()->second);
@@ -350,7 +340,8 @@ void Runtime::rebuild() {
   // Instantiate and recompile whatever items were eval'ed in the last
   // invocation of drain_interrupts().
   if (!root_->synchronize(item_evals_)) {
-    return fatal(0, "Fatal Error:\n Unable to materialize program logic");
+    log_compiler_errors();
+    return finish(0);
   } 
 
   // Clear scheduling state
@@ -488,6 +479,66 @@ void Runtime::reference_scheduler() {
   done_step();
   drain_interrupts();
   ++logical_time_;
+}
+
+void Runtime::log_parse_errors() {
+  stringstream ss;
+  ss << "*** Parse Error:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
+    is << "\n> ";
+    is.tab();
+    is << *e;
+    is.untab();
+  }
+
+  error(ss.str());
+}
+
+void Runtime::log_checker_warns() {
+  if (program_->warn_begin() == program_->warn_end()) {
+    return;
+  }
+
+  stringstream ss;
+  ss << "*** Typechecker Warning:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto w = program_->warn_begin(), we = program_->warn_end(); w != we; ++w) {
+    is << "\n> ";
+    is.tab();
+    is << *w;
+    is.untab();
+  }
+
+  warning(ss.str());
+}
+
+void Runtime::log_checker_errors() {
+  stringstream ss;
+  ss << "*** Typechecker Error:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto e = program_->error_begin(), ee = program_->error_end(); e != ee; ++e) {
+    is << "\n> ";
+    is.tab();
+    is << *e;
+    is.untab();
+  }
+
+  error(ss.str());
+}
+
+void Runtime::log_compiler_errors() {
+  error("*** Compiler Error:\n  > Unable to compile program logic! Shutting down!");
+}
+
+void Runtime::log_ctrl_d() {
+  error("*** User Interrupt:\n  > Caught Ctrl-D. Shutting down.");
 }
 
 string Runtime::format_freq(uint64_t f) const {
