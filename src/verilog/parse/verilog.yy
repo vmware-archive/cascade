@@ -909,6 +909,8 @@ module_instantiation
       auto mi = $3->remove_front();
       mi->replace_mid($1->clone());
       mi->replace_params($2->clone());
+      mi->set_source($1->get_source());
+      mi->set_line($1->get_line());
       $$->push_back(mi);
     }
     delete $1;
