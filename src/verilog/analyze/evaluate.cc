@@ -204,7 +204,7 @@ void Evaluate::edit(Identifier* id) {
 }
 
 void Evaluate::edit(MultipleConcatenation* mc) {
-  const auto lhs = get_value(mc->get_expr()).to_int();
+  const auto lhs = get_value(mc->get_expr()).to_uint();
   mc->bit_val_ = get_value(mc->get_concat());
   for (size_t i = 1; i < lhs; ++i) {
     mc->bit_val_.concat(mc->get_concat()->bit_val_);
@@ -267,12 +267,12 @@ void Evaluate::edit(UnaryExpression* ue) {
 }
 
 void Evaluate::edit(GenvarDeclaration* gd) {
-  set_value(gd->get_id(), Bits(64, 0));
+  set_value(gd->get_id(), Bits(32, 0));
 }
 
 void Evaluate::edit(IntegerDeclaration* id) {
   const auto rhs = !id->get_val()->null() ? get_value(id->get_val()->get()).to_int() : 0;
-  set_value(id->get_id(), Bits(64, rhs));
+  set_value(id->get_id(), Bits(32, rhs));
 }
 
 void Evaluate::edit(LocalparamDeclaration* ld) {

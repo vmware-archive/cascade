@@ -56,7 +56,9 @@ class Bits : public Serializable {
   public:
     // Constructors:
     Bits();
-    Bits(size_t n, uint64_t val);
+    Bits(bool b);
+    Bits(size_t n, int32_t val);
+    Bits(size_t n, uint32_t val);
     Bits(const Bits& rhs);
     Bits(Bits&& rhs);
     Bits& operator=(const Bits& rhs);
@@ -71,7 +73,8 @@ class Bits : public Serializable {
 
     // Casts:
     bool to_bool() const;
-    uint64_t to_int() const;
+    int32_t to_int() const;
+    uint32_t to_uint() const;
 
     // Size:
     size_t size() const;
@@ -164,20 +167,27 @@ class Bits : public Serializable {
     void trim_to(size_t n);
 };
 
-inline Bits::Bits() {
-  mpz_init(val_);
+inline Bits::Bits() : Bits(false) { }
+
+inline Bits::Bits(bool b) : Bits(1, b ? (uint32_t)1 : (uint32_t)0) { }
+
+inline Bits::Bits(size_t n, int32_t val) { 
+  assert(n > 0);
+  mpz_init_set_si(val_, val);
   mpz_init(scratch1_);
   mpz_init(scratch2_);
-  size_ = 1;
+  size_ = n;
+  assert(mpz_sizeinbase(val_, 2) <= n);
 }
 
-inline Bits::Bits(size_t n, uint64_t val) { 
+inline Bits::Bits(size_t n, uint32_t val) { 
   assert(n > 0);
   mpz_init_set_ui(val_, val);
   mpz_init(scratch1_);
   mpz_init(scratch2_);
   size_ = n;
-  trim();
+  mpz_realloc2(val_, n); 
+  assert(mpz_sizeinbase(val_, 2) <= n);
 }
 
 inline Bits::Bits(const Bits& rhs) {
@@ -263,8 +273,13 @@ inline bool Bits::to_bool() const {
   return mpz_cmp_ui(val_, 0) != 0;
 }
 
-inline uint64_t Bits::to_int() const {
-  assert(size() <= 64);
+inline int32_t Bits::to_int() const {
+  assert(size() <= 32);
+  return mpz_get_si(val_);
+}
+
+inline uint32_t Bits::to_uint() const {
+  assert(size() <= 32);
   return mpz_get_ui(val_);
 }
 
@@ -359,7 +374,6 @@ inline Bits& Bits::arithmetic_plus(const Bits& rhs) {
 
 inline Bits& Bits::arithmetic_minus() {
   mpz_neg(val_, val_);
-  trim();
   return *this;
 }
 

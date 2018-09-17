@@ -71,9 +71,9 @@ inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
   std::stringstream ssl;
   ssl << j__;
 
-  upper_ = new Number(ssu.str(), Number::UNSIGNED, 64);
+  upper_ = new Number(ssu.str(), Number::UNSIGNED, 32);
   type_ = RangeExpression::CONSTANT;
-  lower_ = new Number(ssl.str(), Number::UNSIGNED, 64);
+  lower_ = new Number(ssl.str(), Number::UNSIGNED, 32);
 }
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression() {

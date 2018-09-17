@@ -181,7 +181,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   auto attrs = new Attributes(new Many<AttrSpec>());
   attrs->get_as()->push_back(new AttrSpec(
     new Identifier("__inline"),
-    new Maybe<Expression>(new Number(Bits(64, inline_src->size())))
+    new Maybe<Expression>(new Number(Bits(32, (uint32_t)inline_src->size())))
   ));
   // Finally, append the connections to the new source
   inline_src->concat(conns);
@@ -189,7 +189,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   // Update inline decorations
   auto igc = new IfGenerateConstruct(
     attrs,
-    new Number("1"),
+    new Number(Bits(true)),
     new Maybe<GenerateBlock>(new GenerateBlock(
       new Maybe<Identifier>(mi->get_iid()->clone()),
       inline_src
@@ -218,7 +218,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
 
   // Move this inlined code back into the instantiation. Replace port and
   // parameter delcarations, and delete the connections.
-  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
+  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_uint();
   for (size_t i = 0; i < length; ++i) {
     auto item = mi->inline_->get_then()->get()->get_items()->remove_front();
     if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {

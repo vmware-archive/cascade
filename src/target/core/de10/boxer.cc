@@ -346,7 +346,7 @@ Statement* Boxer::build(const NonblockingAssign* na) {
 
   Maybe<Expression>* idx = nullptr;
   if (titr->second.size == 1) {
-    idx = new Maybe<Expression>(new Number(Bits(32, titr->second.index)));
+    idx = new Maybe<Expression>(new Number(Bits(32, (uint32_t)titr->second.index)));
   } else {
     idx = new Maybe<Expression>(new RangeExpression(titr->second.index+titr->second.size, titr->second.index));
   }
@@ -413,13 +413,13 @@ Statement* Boxer::mangle_systask(size_t id, const Many<Expression>* args) {
     new VariableAssign(
       new Identifier(
         new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-        new Maybe<Expression>(new Number(Bits(32, id)))
+        new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
           new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-          new Maybe<Expression>(new Number(Bits(32, id)))
+          new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
         )
       )
     )    
@@ -447,7 +447,7 @@ Statement* Boxer::mangle_systask(size_t id, const Many<Expression>* args) {
               new Identifier(
                 new Many<Id>(v->get_ids()->front()->clone()),
 		upper == 0 ? new Maybe<Expression>() :
-                upper == lower ? new Maybe<Expression>(new Number(Bits(32, upper))) :
+                upper == lower ? new Maybe<Expression>(new Number(Bits(32, (uint32_t)upper))) :
                   new Maybe<Expression>(new RangeExpression(upper+1, lower))
               )
             )    

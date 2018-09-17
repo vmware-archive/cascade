@@ -784,7 +784,7 @@ delay3
   ;
 /* TODO delay2 */
 delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 64); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 32); }
   /* TODO | real_number */
   /* TODO | identifier */
   ;
@@ -1238,7 +1238,7 @@ system_task_enable
   : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3); }
-  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number("0", Number::UNSIGNED, 1)); }
+  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNSIGNED, 1)); }
   | SYS_FINISH OPAREN number CPAREN SCOLON { $$ = new FinishStatement($3); }
   | SYS_WRITE SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
@@ -1361,22 +1361,22 @@ number
 /* TODO real_number */
 /* TODO exp */
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 64); }
-  | DECIMAL_VALUE { $$ = new Number($1, Number::DEC, 64); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 32); }
+  | DECIMAL_VALUE { $$ = new Number($1, Number::DEC, 32); }
   | size DECIMAL_VALUE { $$ = new Number($2, Number::DEC, $1); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1, Number::BIN, 64); }
+  : BINARY_VALUE { $$ = new Number($1, Number::BIN, 32); }
   | size BINARY_VALUE { $$ = new Number($2, Number::BIN, $1); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1, Number::OCT, 64); }
+  : OCTAL_VALUE { $$ = new Number($1, Number::OCT, 32); }
   | size OCTAL_VALUE { $$ = new Number($2, Number::OCT, $1); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1, Number::HEX, 64); }
+  : HEX_VALUE { $$ = new Number($1, Number::HEX, 32); }
   | size HEX_VALUE { $$ = new Number($2, Number::HEX, $1); }
   ;
 /* TODO sign */
