@@ -137,7 +137,7 @@ Profiler* profiler = nullptr;
 
 void segv_handler(int sig) {
   (void) sig;
-  runtime->crash(cerr);
+  runtime->crash_dump(cerr);
   exit(1);
 }
 

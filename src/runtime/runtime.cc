@@ -554,20 +554,28 @@ string Runtime::format_freq(uint64_t f) const {
   return ss.str();
 }
 
-void Runtime::crash(ostream& os) {
-  TermPrinter(os) << "\n\n" << Color::RED << "*** CASCADE SHUTDOWN UNEXPECTEDLY IN THE FOLLOWING STATE" << Color::RESET;
+void Runtime::crash_dump(ostream& os) {
+  TermPrinter(os) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY" << Color::RESET;
+  TermPrinter(os) << Color::RED << "SEE BEST-EFFORT STATE DUMP BELOW" << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "THIS PROCESS SHOULD FINISH QUICKLY AND PRINT THE PHRASE \"END STATE DUMP\"" << Color::RESET;
+  TermPrinter(os) << Color::RED << "BEFORE RETURNING CONTROL TO THE TERMINAL. IF YOU DO NOT SEE THIS MESSAGE" << Color::RESET;
+  TermPrinter(os) << Color::RED << "IT IS SAFE TO ASSUME THAT CASCADE HAS HUNG AND CANNOT CONTINUE." << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "PLEASE FORWARD THIS REPORT ALONG WITH ANY ADDITIONAL INFORMATION TO THE" << Color::RESET;
+  TermPrinter(os) << Color::RED << "CASCADE DEVELOPER MAILING LIST." << Color::RESET;
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** DECLARATIONS" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "PROGRAM DECLARATIONS" << Color::RESET;
   for (auto i = program_->decl_begin(), ie = program_->decl_end(); i != ie; ++i) {
     if (i->first->eq("Root")) {
       continue;
     }
-    DebugTermPrinter(os) << "\n\n" << i->second;
+    DebugTermPrinter(os) << "\n" << i->second;
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** ELABORATED SOURCE" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "ELABORATED PROGRAM SOURCE" << Color::RESET;
   for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
-    TermPrinter(os) << "\n\n" << "Hierarchical Name: " << i->first;
+    TermPrinter(os) << "\n" << "Hierarchical Name: " << i->first;
     auto p = i->second->get_parent();
     if ((p != nullptr) && Inline().is_inlined(dynamic_cast<const ModuleInstantiation*>(p))) {
       TermPrinter(os) << " (inlined)";
@@ -576,15 +584,14 @@ void Runtime::crash(ostream& os) {
     }
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** IR SOURCE" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "IR SOURCE" << Color::RESET;
   for (auto i = root_->begin(), ie = root_->end(); i != ie; ++i) {
     auto md = (*i)->regenerate_ir_source();
-    TermPrinter(os) << "\n\n" << md;
+    TermPrinter(os) << "\n" << md;
     delete md;
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** END CRASH REPORT" << Color::RESET;
-  TermPrinter(os) << "\n";
+  TermPrinter(os) << "\n" << Color::RED << "END STATE DUMP" << Color::RESET;
 }
 
 } // namespace cascade

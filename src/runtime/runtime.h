@@ -156,7 +156,7 @@ class Runtime : public Asynchronous {
     // Performs a best-effort attempt at dumping program state. This method is
     // inherently unsafe and will place the entire enclosing process in an
     // inconsitent state.  
-    void crash(std::ostream& os);
+    void crash_dump(std::ostream& os);
 
   private:
     // MVC State:
