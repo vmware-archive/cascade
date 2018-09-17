@@ -347,23 +347,30 @@ cascade::Identifier dummy("__dummy");
 %type <Many<Expression>*> expression_P
 %type <Maybe<Expression>*> expression_Q
 %type <Maybe<Identifier>*> generate_block_id_Q
+%type <size_t> integer_L
 %type <Many<ModuleItem>*> list_of_port_declarations_Q
+%type <size_t> localparam_L
 %type <Maybe<Expression>*> mintypmax_expression_Q
 %type <Many<ModuleInstantiation>*> module_instance_P
 %type <Many<ModuleItem>*> module_item_S
+%type <size_t> module_keyword_L
 %type <Many<ModuleItem>*> module_or_generate_item_S
 %type <Many<ArgAssign>*> named_parameter_assignment_P
 %type <Many<ArgAssign>*> named_port_connection_P
+%type <std::pair<size_t, NetDeclaration::Type>> net_type_L
 %type <NetDeclaration::Type> net_type_Q
 %type <Many<ModuleItem>*> non_port_module_item_S
 %type <Many<ArgAssign>*> ordered_parameter_assignment_P
 %type <Many<ArgAssign>*> ordered_port_connection_P
 %type <Many<Declaration>*> parameter_declaration_P
+%type <size_t> parameter_L
 %type <Many<ArgAssign>*> parameter_value_assignment_Q
 %type <Many<ModuleItem>*> port_declaration_P
 %type <Many<ArgAssign>*> port_P
 %type <Maybe<RangeExpression>*> range_Q
+%type <size_t> reg_L
 %type <bool> signed_Q
+%type <std::pair<size_t, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
 
 /* Stop-Gap Rules */
@@ -395,14 +402,16 @@ include_statement
 /* A.1.2 Verilog Source Text */
 /* TODO description */
 module_declaration
-  : attribute_instance_S module_keyword identifier module_parameter_port_list
+  : attribute_instance_S module_keyword_L identifier module_parameter_port_list
       list_of_ports SCOLON module_item_S
       ENDMODULE {
       auto mis = $4;
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,$5,mis);
+      $$->set_source(parser->source());
+      $$->set_line($2);
     }
-  | attribute_instance_S module_keyword identifier module_parameter_port_list 
+  | attribute_instance_S module_keyword_L identifier module_parameter_port_list 
       list_of_port_declarations_Q SCOLON non_port_module_item_S
       ENDMODULE {
       auto ps = new Many<ArgAssign>();
@@ -418,11 +427,13 @@ module_declaration
       mis->concat($5);
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,ps,mis);
+      $$->set_source(parser->source());
+      $$->set_line($2);
     }
   ;
 module_keyword
-  : MODULE
-  | MACROMODULE
+  : MODULE 
+  | MACROMODULE 
   ;
 
 /* A.1.3 Module Parameters and Ports */
@@ -545,22 +556,30 @@ non_port_module_item
 
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
-  : attribute_instance_S LOCALPARAM signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
+  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto lpd = new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      lpd->get_id()->set_source(va->get_lhs()->get_source());
+      lpd->get_id()->set_line(va->get_lhs()->get_line());
+      lpd->set_source(parser->source());
+      lpd->set_line($2);
+      $$->push_back(lpd);
       delete va;
     }
     delete $1;
     delete $4;
     delete $5;
   }
-  | attribute_instance_S LOCALPARAM parameter_type list_of_param_assignments %prec LOCALPARAM {
+  | attribute_instance_S localparam_L parameter_type list_of_param_assignments %prec LOCALPARAM {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      $$->push_back(new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto lpd = new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      lpd->set_source(parser->source());
+      lpd->set_line($2);
+      $$->push_back(lpd);
       delete va;
     }
     delete $1;
@@ -568,22 +587,30 @@ local_parameter_declaration
   }
   ;
 parameter_declaration
-  : attribute_instance_S PARAMETER signed_Q range_Q list_of_param_assignments %prec PARAMETER {
+  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments %prec PARAMETER {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto pd = new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      pd->get_id()->set_source(va->get_lhs()->get_source());
+      pd->get_id()->set_line(va->get_lhs()->get_line());
+      pd->set_source(parser->source());
+      pd->set_line($2);
+      $$->push_back(pd);
       delete va;
     }
     delete $1;
     delete $4;
     delete $5;
   }
-  | attribute_instance_S PARAMETER parameter_type list_of_param_assignments %prec PARAMETER {
+  | attribute_instance_S parameter_L parameter_type list_of_param_assignments %prec PARAMETER {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      $$->push_back(new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone()));
+      auto pd = new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      pd->set_source(parser->source());
+      pd->set_line($2);
+      $$->push_back(pd);
       delete va;
     }
     delete $1;
@@ -651,11 +678,16 @@ output_declaration
 /* A.2.1.3 Type Declarations
 /* TODO event_declaration */
 integer_declaration
-  : attribute_instance_S INTEGER list_of_variable_identifiers SCOLON {
+  : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto va = $3->remove_front();
-      $$->push_back(new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>()));
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      id->get_id()->set_source(va->get_lhs()->get_source());
+      id->get_id()->set_line(va->get_lhs()->get_line());
+      id->set_source(parser->source());
+      id->set_line($2);
+      $$->push_back(id);
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
       }
@@ -666,10 +698,13 @@ integer_declaration
   }
 net_declaration 
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  : attribute_instance_S net_type /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
+  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
-      $$->push_back(new NetDeclaration($1->clone(),$2,$5->clone(),$6->remove_front(), $4->clone()));
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $4->clone());
+      nd->set_source(parser->source());
+      nd->set_line($2.first);
+      $$->push_back(nd);
     }
     delete $1;
     delete $4;
@@ -677,11 +712,16 @@ net_declaration
     delete $6;
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  | attribute_instance_S net_type /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
+  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto va = $6->remove_front();
-      $$->push_back(new NetDeclaration($1->clone(),$2,$5->clone(),va->get_lhs()->clone(),$4->clone()));
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $4->clone());
+      nd->get_id()->set_source(va->get_lhs()->get_source());
+      nd->get_id()->set_line(va->get_lhs()->get_line());
+      nd->set_source(parser->source());
+      nd->set_line($2.first);
+      $$->push_back(nd);
       $$->push_back(new ContinuousAssign(new Maybe<DelayControl>(), va));
     }
     delete $1;
@@ -694,11 +734,16 @@ net_declaration
 /* TODO real_declaration */
 /* TODO realtime_declaration */
 reg_declaration
-  : attribute_instance_S REG signed_Q range_Q list_of_variable_identifiers SCOLON {
+  : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      $$->push_back(new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>()));
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      rd->get_id()->set_source(va->get_lhs()->get_source());
+      rd->get_id()->set_line(va->get_lhs()->get_line());
+      rd->set_source(parser->source());
+      rd->set_line($2);
+      $$->push_back(rd);
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
       }
@@ -864,6 +909,8 @@ module_instantiation
       auto mi = $3->remove_front();
       mi->replace_mid($1->clone());
       mi->replace_params($2->clone());
+      mi->set_source($1->get_source());
+      mi->set_line($1->get_line());
       $$->push_back(mi);
     }
     delete $1;
@@ -888,7 +935,7 @@ named_parameter_assignment
   ; 
 module_instance
   : name_of_module_instance OPAREN list_of_port_connections CPAREN { 
-    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()),new Identifier(""),$1,new Many<ArgAssign>(),$3);
+    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()), new Identifier(""), $1, new Many<ArgAssign>(), $3);
   }
   ;
 name_of_module_instance
@@ -939,15 +986,25 @@ genvar_initialization
   : identifier EQ expression { $$ = new VariableAssign($1,$3); }
   ;
 genvar_expression
-  : genvar_primary { $$ = $1; }
+  : genvar_primary { 
+    $$ = $1; 
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
+  }
   | unary_operator /*attribute_instance_S*/ genvar_primary { 
     $$ = new UnaryExpression($1,$2);
+    $$->set_source($2->get_source());
+    $$->set_line($2->get_line());
   }
   | genvar_expression binary_operator /*attribute_instance_S*/ genvar_expression %prec AAMP { 
     $$ = new BinaryExpression($1,$2,$3);
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
   }
   | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression %prec AAMP { 
     $$ = new ConditionalExpression($1,$3,$5);
+    $$->set_source($1->get_source());
+    $$->set_line($1->get_line());
   }
   ;
 genvar_iteration
@@ -1346,15 +1403,17 @@ attr_name
 
 /* A.9.3 Identifiers */
 hierarchical_identifier
-  : SIMPLE_ID braced_re_q { 
-    const auto id = new Id($1, new Maybe<Expression>());
+  : simple_id_L braced_re_q { 
+    const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
+    $$->set_source(parser->source());
+    $$->set_line($1.first);
   }
   | hierarchical_identifier DOT SIMPLE_ID braced_re_q {
     $$ = $1;
     if (!$$->get_dim()->null()) {
       if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
-        error(parser->loc_, "Found range expression inside hierarchical identifier!");
+        error(parser->loc(), "Found range expression inside hierarchical identifier!");
         YYERROR;
       }
       auto lid = $$->get_ids()->back();
@@ -1367,9 +1426,11 @@ hierarchical_identifier
   }
   ;
 identifier 
-  : SIMPLE_ID { 
-    const auto id = new Id($1, new Maybe<Expression>());
+  : simple_id_L { 
+    const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), new Maybe<Expression>()); 
+    $$->set_source(parser->source());
+    $$->set_line($1.first);
   }
   /* TODO | ESCAPED_ID */
   ;
@@ -1453,9 +1514,15 @@ generate_block_id_Q
   : %empty { $$ = new Maybe<Identifier>(); }
   | COLON identifier { $$ = new Maybe<Identifier>($2); }
   ;
+integer_L
+  : INTEGER { $$ = parser->loc().begin.line; }
+  ;
 list_of_port_declarations_Q 
   : %empty { $$ = new Many<ModuleItem>(); } 
   | list_of_port_declarations { $$ = $1; }
+  ;
+localparam_L
+  : LOCALPARAM { $$ = parser->loc().begin.line; }
   ;
 mintypmax_expression_Q 
   : %empty { $$ = new Maybe<Expression>(); }
@@ -1474,6 +1541,9 @@ module_item_S
     $$ = $1;
     $$->concat($2);
   }
+  ;
+module_keyword_L
+  : module_keyword { $$ = parser->loc().begin.line; }
   ;
 module_or_generate_item_S
   : %empty { $$ = new Many<ModuleItem>(); }
@@ -1495,6 +1565,9 @@ named_port_connection_P
     $$ = $1;
     $$->push_back($3);
   }
+  ;
+net_type_L
+  : net_type { $$ = std::make_pair(parser->loc().begin.line, $1); }
   ;
 net_type_Q
   : %empty { $$ = NetDeclaration::WIRE; }
@@ -1528,6 +1601,9 @@ parameter_declaration_P
     $$->push_back($3);
   }
   ;
+parameter_L
+  : PARAMETER { $$ = parser->loc().begin.line; }
+  ;
 parameter_value_assignment_Q
   : %empty { $$ = new Many<ArgAssign>(); }
   | parameter_value_assignment { $$ = $1; }
@@ -1550,10 +1626,15 @@ range_Q
   : %empty { $$ = new Maybe<RangeExpression>(); }
   | range { $$ = new Maybe<RangeExpression>($1); }
   ;
+reg_L
+  : REG { $$ = parser->loc().begin.line; }
+  ;
 signed_Q
   : %empty { $$ = false; }
   | SIGNED { $$ = true; }
   ;
+simple_id_L
+  : SIMPLE_ID { $$ = make_pair(parser->loc().begin.line, $1); }
 statement_S
   : %empty { $$ = new Many<Statement>(); }
   | statement_S statement {
@@ -1609,16 +1690,14 @@ se_output_declaration
 namespace cascade {
 
 void yyParser::error(const location_type& l, const std::string& m) {
-  (void) m;
-
   std::stringstream ss;
-  ss << parser->text_ << "\n";
-  for (unsigned int i = 0, ie = l.begin.column-1; i < ie; ++i) {
-    ss << " ";
+
+  if (parser->source() == "<top>") {
+    ss << "In final line of user input:\n";
+  } else {
+    ss << "In " << parser->source() << " on line " << l.end.line << ":\n";
   }
-  for (unsigned int i = 0, ie = l.end.column-l.begin.column; i < ie; ++i) {
-    ss << "^";
-  }
+  ss << m;
   parser->error(ss.str());
 }
 

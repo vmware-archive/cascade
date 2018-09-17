@@ -137,7 +137,7 @@ Profiler* profiler = nullptr;
 
 void segv_handler(int sig) {
   (void) sig;
-  runtime->crash(cerr);
+  runtime->crash_dump(cerr);
   exit(1);
 }
 
@@ -203,14 +203,11 @@ int main(int argc, char** argv) {
   } else {
     view->error("Unrecognized march option " + march.value() + "!");
   }
-  // Parse file inputs
-  incstream fis(inc_dirs.value());
+  // Translate -e to include statement if it was provided
+  stringstream ss;
   if (input_path.value() != "") {
-    if (fis.open(input_path)) {
-      StreamController(runtime, fis).run_to_completion();
-    } else {
-      view->error("Unable to open input file " + input_path.value() + "!");
-    }
+    ss << "include " << input_path.value() << ";";
+    StreamController(runtime, ss).run_to_completion();
   }
   // Switch over to a live console (unless the --batch flag has been provided)
   if (!batch.value()) {

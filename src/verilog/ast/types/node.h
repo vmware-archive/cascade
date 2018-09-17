@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NODE_H
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
+#include <string>
 #include <vector>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/visitors/builder.h"
@@ -55,6 +56,8 @@ class Node {
 
     // Get/Set:
     GET(parent);
+    LEAF_GET_SET(source);
+    LEAF_GET_SET(line);
 
   private:
     friend class Monitor;
@@ -67,11 +70,16 @@ class Node {
     friend class Inline;
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
+
+    DECORATION(std::string, source);
+    DECORATION(size_t, line);
 };
 
 inline Node::Node() {
   ctrl_ = 0;
   active_ = false;
+  source_ = "<unknown location --- please submit bug report>";
+  line_ = 0;
 }
 
 } // namespace cascade

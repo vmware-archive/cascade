@@ -31,11 +31,9 @@
 #include "src/ui/term/term_controller.h"
 
 #include <iostream>
-#include <limits>
 #include <sys/select.h>
 #include <unistd.h>
 #include "src/runtime/runtime.h"
-#include "src/verilog/parse/parser.h"
 
 using namespace std;
 
@@ -44,12 +42,16 @@ namespace cascade {
 TermController::TermController(Runtime* rt) : Controller(rt) { }
 
 void TermController::run_logic() {
+  // This flag is used to block while the runtime has control of cin
+  auto busy = false;
+
   while (!stop_requested()) {
     fd_set read_set;
     FD_ZERO(&read_set);
     struct timeval tv = {0, 100};
 
-    while (!FD_ISSET(STDIN_FILENO, &read_set)) {
+    // Wait here until cin is ready and isn't under runtime control
+    while (busy || !FD_ISSET(STDIN_FILENO, &read_set)) {
       FD_SET(STDIN_FILENO, &read_set);
       select(STDIN_FILENO+1, &read_set, nullptr, nullptr, &tv);
       if (stop_requested()) {
@@ -57,18 +59,11 @@ void TermController::run_logic() {
       }
     }
 
-    Parser p;
-    auto res = p.parse(cin);
-    if (res.second) {
-      runtime()->display("Caught Ctrl-D. Exiting...");
-      runtime()->finish(0);
-      break;
-    } else if (p.error()) {
-      cin.ignore(numeric_limits<streamsize>::max(), '\n');
-      runtime()->error("Parse Error:\n" + p.what()); 
-    } else {
-      runtime()->eval(res.first);
-    }
+    // Flag cin as controlled by the runtime. This second interrupt, which
+    // resets the flag, won't be handled until after the eval is complete
+    busy = true;
+    runtime()->eval(cin, true);
+    runtime()->schedule_interrupt([&busy]{busy = false;});
   }
 }
 

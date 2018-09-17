@@ -84,8 +84,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
     if (auto v = Navigate(mi).find_duplicate_name(mi->get_iid()->get_ids()->back())) {
-      error("A variable with this name already exists in this scope", mi);
-      error("Previous instance", v->get_parent());
+      multiple_def(mi->get_iid(), v->get_parent());
     }
     if (Navigate(mi).find_child(mi->get_iid()->get_ids()->back())) {
       error("A nested scope scope with this name already exists in this scope", mi);
@@ -234,13 +233,40 @@ void TypeCheck::post_elaboration_check(const Node* n) {
 
 void TypeCheck::warn(const string& s, const Node* n) {
   stringstream ss;
-  TextPrinter(ss) << s << " >>> " << n << " <<< ";
+  if (n->get_source() == "<top>") {
+    TextPrinter(ss) << "In final line of user input:\n";
+  } else {
+    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
+  }
+  TextPrinter(ss) << s;
   Loggable::warn(ss.str());
 }
 
 void TypeCheck::error(const string& s, const Node* n) {
   stringstream ss;
-  TextPrinter(ss) << s << " >>> " << n << " <<< ";
+  if (n->get_source() == "<top>") {
+    TextPrinter(ss) << "In final line of user input:\n";
+  } else {
+    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
+  }
+  TextPrinter(ss) << s;
+  Loggable::error(ss.str());
+}
+
+void TypeCheck::multiple_def(const Node* n, const Node* m) {
+  stringstream ss;
+  if (n->get_source() == "<top>") {
+    TextPrinter(ss) << "In final line of user input:\n";
+  } else {
+    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
+  }
+  TextPrinter(ss) << "A variable named " << n << " already appears in this scope.\n";
+  TextPrinter(ss) << "Previous declaration appears in ";
+  if (m->get_source() == "<top>") {
+    TextPrinter(ss) << "previous user input.";      
+  } else {
+    TextPrinter(ss) << m->get_source() << " on line " << m->get_line() << ".";
+  }
   Loggable::error(ss.str());
 }
 
@@ -260,7 +286,7 @@ void TypeCheck::visit(const Identifier* id) {
     if (rng.first < rng.second) {
       error("No support for little-endian range", id);
     }
-    if (r != nullptr && rng.first >= BitWidth().get_width(r)) {
+    if ((r != nullptr) && (rng.first >= BitWidth().get_width(r))) {
       error("Upper end of range exceeds variable width", id);
     }
   }
@@ -348,8 +374,7 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
 void TypeCheck::visit(const GenvarDeclaration* gd) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(gd).find_duplicate_name(gd->get_id()->get_ids()->back())) {
-    error("A variable with this name already exists in this scope", gd);
-    error("Previous instance", v->get_parent());
+    multiple_def(gd->get_id(), v->get_parent());
   }
   if (Navigate(gd).find_child(gd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", gd);
@@ -359,8 +384,7 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 void TypeCheck::visit(const IntegerDeclaration* id) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
-    error("A variable with this name already exists in this scope", id);
-    error("Previous instance", v->get_parent());
+    multiple_def(id->get_id(), v->get_parent());
   }
   if (Navigate(id).find_child(id->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", id);
@@ -374,8 +398,7 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
-    error("A variable with this name already exists in this scope", ld);
-    error("Previous instance", v->get_parent());
+    multiple_def(ld->get_id(), v->get_parent());
   }
   if (Navigate(ld).find_child(ld->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", ld);
@@ -387,8 +410,7 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
 void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(nd).find_duplicate_name(nd->get_id()->get_ids()->back())) {
-    error("A variable with this name already exists in this scope", nd);
-    error("Previous instance", v->get_parent());
+    multiple_def(nd->get_id(), v->get_parent());
   }
   if (Navigate(nd).find_child(nd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", nd);
@@ -404,8 +426,7 @@ void TypeCheck::visit(const NetDeclaration* nd) {
 void TypeCheck::visit(const ParameterDeclaration* pd) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
-    error("A variable with this name already exists in this scope", pd);
-    error("Previous instance", v->get_parent());
+    multiple_def(pd->get_id(), v->get_parent());
   }
   if (Navigate(pd).find_child(pd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", pd);
@@ -417,8 +438,7 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 void TypeCheck::visit(const RegDeclaration* rd) {
   // CHECK: Duplicate definition
   if (auto v = Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
-    error("A register with this name already exists in this scope", rd);
-    error("Previous instance", v->get_parent());
+    multiple_def(rd->get_id(), v->get_parent());
   }
   if (Navigate(rd).find_child(rd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", rd);

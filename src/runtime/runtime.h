@@ -48,6 +48,7 @@ class Compiler;
 class DataPlane;
 class Isolate;
 class Module;
+class Parser;
 class Program;
 class View;
 
@@ -86,7 +87,7 @@ class Runtime : public Asynchronous {
     // Invokes eval_stream() in the gap between this and the next timestep.
     // Returns immediately. Code which is successfully eval'ed will begin
     // execution at the beginning of the following timestep.
-    void eval(std::istream& is);
+    void eval(std::istream& is, bool is_term);
 
     // Display System Task Interface:
     //
@@ -155,21 +156,22 @@ class Runtime : public Asynchronous {
     // Performs a best-effort attempt at dumping program state. This method is
     // inherently unsafe and will place the entire enclosing process in an
     // inconsitent state.  
-    void crash(std::ostream& os);
+    void crash_dump(std::ostream& os);
 
   private:
     // MVC State:
     View* view_;
     
+    // Major Components:
+    Parser* parser_;
+    DataPlane* dp_;
+    Isolate* isolate_;
+    Compiler* compiler_;
+
     // Program State:
     std::string include_dirs_;
     Program* program_;
     Module* root_;
-
-    // Major Components:
-    DataPlane* dp_;
-    Isolate* isolate_;
-    Compiler* compiler_;
 
     // Optimization State:
     bool disable_inlining_;
@@ -205,7 +207,7 @@ class Runtime : public Asynchronous {
     //
     // Repeatedly parses and then invokes eval_node() on the contents of an
     // istream until either an error occurs or end of file is encountered.
-    bool eval_stream(std::istream& is);
+    bool eval_stream(std::istream& is, bool is_term);
     // Main eval handler. Expects either a module declaration, many module
     // items, or an include statement. 
     bool eval_node(Node* n);
@@ -240,6 +242,19 @@ class Runtime : public Asynchronous {
     void open_loop_scheduler();
     // Runs a single iteration of the reference scheduling algoirthm
     void reference_scheduler();
+
+    // Logging Helpers
+    //
+    // Dumps parse errors to the console
+    void log_parse_errors();
+    // Dumps typechecking warnings to the console
+    void log_checker_warns();
+    // Dumps typechecking errors to the console
+    void log_checker_errors();
+    // Dumps compilation errors to the console
+    void log_compiler_errors();
+    // Dumps ctrl-d intercept
+    void log_ctrl_d();
 
     // Time Keeping Helpers:
     //

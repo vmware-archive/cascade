@@ -33,8 +33,10 @@
 #include <cassert>
 #include <cctype>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include "src/base/stream/incstream.h"
+#include "src/base/stream/indstream.h"
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
 #include "src/runtime/module.h"
@@ -53,12 +55,13 @@ namespace cascade {
 Runtime::Runtime(View* view) : Asynchronous() {
   view_ = view;
 
-  program_ = new Program();
-  root_ = nullptr;
-
+  parser_ = new Parser();
   dp_ = new DataPlane();
   isolate_ = new Isolate(dp_);
   compiler_ = new Compiler();
+
+  program_ = new Program();
+  root_ = nullptr;
 
   disable_inlining_ = false;
   enable_open_loop_ = false;
@@ -84,6 +87,7 @@ Runtime::~Runtime() {
     delete root_;
   }
 
+  delete parser_;
   delete dp_;
   delete isolate_;
   delete compiler_;
@@ -119,14 +123,14 @@ void Runtime::eval(Node* n) {
 void Runtime::eval(const string& s) {
   auto ss = new stringstream(s);
   schedule_interrupt(Interrupt([this, ss]{
-    eval_stream(*ss);
+    eval_stream(*ss, false);
     delete ss;
   }));
 }
 
-void Runtime::eval(istream& is) {
-  schedule_interrupt(Interrupt([this, &is]{
-    eval_stream(is);
+void Runtime::eval(istream& is, bool is_term) {
+  schedule_interrupt(Interrupt([this, &is, is_term]{
+    eval_stream(is, is_term);
   }));
 }
 
@@ -227,22 +231,33 @@ void Runtime::run_logic() {
   done_simulation();
 }
 
-bool Runtime::eval_stream(istream& is) {
+bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
-    Parser p;
-    const auto pres = p.parse(is); 
-    // Stop parsing if we encountered an error
-    if (p.error()) {
-      error("Parse Error:\n" + p.what());
+    const auto pres = parser_->parse(is); 
+
+    // Stop eval'ing as soon as we enounter a parse error, and return false.
+    if (parser_->error()) {
+      if (is_term) {
+        is.ignore(numeric_limits<streamsize>::max(), '\n');
+      }
+      log_parse_errors();
       return false;
     } 
-    // If we hit an eof, we're done with this stream.
+    // An eof marks end of stream, return the last result, and trigger finish
+    // if the eof appeared on the term
     if (pres.second) {
+      if (is_term) {
+        log_ctrl_d();
+        finish(0);
+      }
       return res;
     }
-    // Keep on eval'ing
+    // Eval the code we just parsed; if this is the term, don't loop
     res = eval_node(pres.first);
+    if (is_term) {
+      return res;
+    }
   }
   return res;
 }
@@ -278,18 +293,19 @@ bool Runtime::eval_include(String* s) {
     }
     return false;
   }
-  return eval_stream(ifs);
+
+  parser_->push(path);
+  const auto res = eval_stream(ifs, false);
+  parser_->pop();
+
+  return res;
 }
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {
   program_->declare(md);
-  for (auto i = program_->warn_begin(), ie = program_->warn_end(); i != ie; ++i) {
-    warning(*i);
-  }
+  log_checker_warns();
   if (program_->error()) {
-    for (auto i = program_->error_begin(), ie = program_->error_end(); i != ie; ++i) {
-      error(*i);
-    }
+    log_checker_errors();
     return false;
   }
   view_->eval_decl(program_, md);
@@ -298,13 +314,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
 
 bool Runtime::eval_item(ModuleItem* mi) {
   program_->eval(mi); 
-  for (auto i = program_->warn_begin(), ie = program_->warn_end(); i != ie; ++i) {
-    warning(*i);
-  }
+  log_checker_warns();
   if (program_->error()) {
-    for (auto i = program_->error_begin(), ie = program_->error_end(); i != ie; ++i) {
-      error(*i);
-    }
+    log_checker_errors();
     return false;
   }
   view_->eval_item(program_, program_->root_elab()->second);
@@ -328,7 +340,8 @@ void Runtime::rebuild() {
   // Instantiate and recompile whatever items were eval'ed in the last
   // invocation of drain_interrupts().
   if (!root_->synchronize(item_evals_)) {
-    return fatal(0, "Fatal Error:\n Unable to materialize program logic");
+    log_compiler_errors();
+    return finish(0);
   } 
 
   // Clear scheduling state
@@ -468,6 +481,66 @@ void Runtime::reference_scheduler() {
   ++logical_time_;
 }
 
+void Runtime::log_parse_errors() {
+  stringstream ss;
+  ss << "*** Parse Error:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
+    is << "\n> ";
+    is.tab();
+    is << *e;
+    is.untab();
+  }
+
+  error(ss.str());
+}
+
+void Runtime::log_checker_warns() {
+  if (program_->warn_begin() == program_->warn_end()) {
+    return;
+  }
+
+  stringstream ss;
+  ss << "*** Typechecker Warning:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto w = program_->warn_begin(), we = program_->warn_end(); w != we; ++w) {
+    is << "\n> ";
+    is.tab();
+    is << *w;
+    is.untab();
+  }
+
+  warning(ss.str());
+}
+
+void Runtime::log_checker_errors() {
+  stringstream ss;
+  ss << "*** Typechecker Error:";
+
+  indstream is(ss);
+  is.tab();
+  for (auto e = program_->error_begin(), ee = program_->error_end(); e != ee; ++e) {
+    is << "\n> ";
+    is.tab();
+    is << *e;
+    is.untab();
+  }
+
+  error(ss.str());
+}
+
+void Runtime::log_compiler_errors() {
+  error("*** Compiler Error:\n  > Unable to compile program logic! Shutting down!");
+}
+
+void Runtime::log_ctrl_d() {
+  error("*** User Interrupt:\n  > Caught Ctrl-D. Shutting down.");
+}
+
 string Runtime::format_freq(uint64_t f) const {
   stringstream ss;
   ss.precision(2);
@@ -481,20 +554,28 @@ string Runtime::format_freq(uint64_t f) const {
   return ss.str();
 }
 
-void Runtime::crash(ostream& os) {
-  TermPrinter(os) << "\n\n" << Color::RED << "*** CASCADE SHUTDOWN UNEXPECTEDLY IN THE FOLLOWING STATE" << Color::RESET;
+void Runtime::crash_dump(ostream& os) {
+  TermPrinter(os) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY" << Color::RESET;
+  TermPrinter(os) << Color::RED << "SEE BEST-EFFORT STATE DUMP BELOW" << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "THIS PROCESS SHOULD FINISH QUICKLY AND PRINT THE PHRASE \"END STATE DUMP\"" << Color::RESET;
+  TermPrinter(os) << Color::RED << "BEFORE RETURNING CONTROL TO THE TERMINAL. IF YOU DO NOT SEE THIS MESSAGE" << Color::RESET;
+  TermPrinter(os) << Color::RED << "IT IS SAFE TO ASSUME THAT CASCADE HAS HUNG AND CANNOT CONTINUE." << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "PLEASE FORWARD THIS REPORT ALONG WITH ANY ADDITIONAL INFORMATION TO THE" << Color::RESET;
+  TermPrinter(os) << Color::RED << "CASCADE DEVELOPER MAILING LIST." << Color::RESET;
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** DECLARATIONS" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "PROGRAM DECLARATIONS" << Color::RESET;
   for (auto i = program_->decl_begin(), ie = program_->decl_end(); i != ie; ++i) {
     if (i->first->eq("Root")) {
       continue;
     }
-    DebugTermPrinter(os) << "\n\n" << i->second;
+    DebugTermPrinter(os) << "\n" << i->second;
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** ELABORATED SOURCE" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "ELABORATED PROGRAM SOURCE" << Color::RESET;
   for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
-    TermPrinter(os) << "\n\n" << "Hierarchical Name: " << i->first;
+    TermPrinter(os) << "\n" << "Hierarchical Name: " << i->first;
     auto p = i->second->get_parent();
     if ((p != nullptr) && Inline().is_inlined(dynamic_cast<const ModuleInstantiation*>(p))) {
       TermPrinter(os) << " (inlined)";
@@ -503,15 +584,14 @@ void Runtime::crash(ostream& os) {
     }
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** IR SOURCE" << Color::RESET;
+  TermPrinter(os) << "\n\n" << Color::RED << "IR SOURCE" << Color::RESET;
   for (auto i = root_->begin(), ie = root_->end(); i != ie; ++i) {
     auto md = (*i)->regenerate_ir_source();
-    TermPrinter(os) << "\n\n" << md;
+    TermPrinter(os) << "\n" << md;
     delete md;
   }
 
-  TermPrinter(os) << "\n\n" << Color::RED << "*** END CRASH REPORT" << Color::RESET;
-  TermPrinter(os) << "\n";
+  TermPrinter(os) << "\n" << Color::RED << "END STATE DUMP" << Color::RESET;
 }
 
 } // namespace cascade
