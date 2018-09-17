@@ -37,15 +37,20 @@
 namespace cascade {
 
 // This class is used to attach logging facilities to objects with complex
-// behavior. It allows the user to attach warnings and errors and inspect their
-// values at a later time.
+// behavior. It allows the user to attach messages, warnings,  and errors and
+// inspect their values at a later time.
 
 class Loggable {
   public:
+    typedef std::vector<std::string>::const_iterator log_iterator;
     typedef std::vector<std::string>::const_iterator error_iterator;
     typedef std::vector<std::string>::const_iterator warn_iterator;
 
     virtual ~Loggable() = default;
+
+    bool log() const;
+    log_iterator log_begin() const;
+    log_iterator log_end() const;
 
     bool error() const;
     error_iterator error_begin() const;
@@ -59,14 +64,28 @@ class Loggable {
     void clear_logs();
     void copy_logs(const Loggable& rhs);
 
+    void log(const std::string& s);
     void error(const std::string& s);
     void warn(const std::string& s);
 
   private:
+    std::vector<std::string> logs_;
     std::vector<std::string> errors_;
     std::vector<std::string> warns_;
 };
 
+inline bool Loggable::log() const {
+  return !logs_.empty();
+}
+
+inline Loggable::log_iterator Loggable::log_begin() const {
+  return logs_.begin();
+}
+
+inline Loggable::log_iterator Loggable::log_end() const {
+  return logs_.end();
+}
+  
 inline bool Loggable::error() const {
   return !errors_.empty();
 }
@@ -92,11 +111,15 @@ inline Loggable::warn_iterator Loggable::warn_end() const {
 }
  
 inline void Loggable::clear_logs() {
+  logs_.clear();
   errors_.clear();
   warns_.clear();
 }
 
 inline void Loggable::copy_logs(const Loggable& rhs) {
+  for (auto i = rhs.log_begin(), ie = rhs.log_end(); i != ie; ++i) {
+    log(*i);
+  }
   for (auto i = rhs.error_begin(), ie = rhs.error_end(); i != ie; ++i) {
     error(*i);
   }
@@ -104,6 +127,10 @@ inline void Loggable::copy_logs(const Loggable& rhs) {
     warn(*i);
   }
 }
+
+inline void Loggable::log(const std::string& s) {
+  logs_.push_back(s);
+} 
 
 inline void Loggable::error(const std::string& s) {
   errors_.push_back(s);
