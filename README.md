@@ -1,5 +1,7 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog")
 
+(This project just transitioned to open source. Please bear with us in the next few weeks this document evolves.)
+
 Index
 =====
 0. [Dependencies](#dependencies)
@@ -212,12 +214,8 @@ $ ./bin/fpga --march de10
 ```
 Assuming the system is able to successfully connect to the de10, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
 
-### Standard Library
-In general, assets such as Clocks, Pads, and Leds can be thought of as standard peripheral components with a *more or less* well-defined interface. Currently, most assets are supported on most targets. However, as the standard library grows and we introduce support for more targets, this graph may become sparser:
+### Verilog Support
+(Coming soon.)
 
-|Asset|minimal|sw |de10|
-|---|---|---|---|
-|Clock|yes|yes|yes|
-|Pad|no|yes|yes|
-|Led|no|yes|yes|
-|Reset|no|yes|no|
+### Standard Library
+(Coming soon.)
