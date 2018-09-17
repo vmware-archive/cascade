@@ -1,6 +1,6 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog")
 
-(This project just transitioned to open source. Please bear with us in the next few weeks this document evolves.)
+(This project just transitioned to open source. Please bear with us in the next few weeks as this document evolves.)
 
 Index
 =====
