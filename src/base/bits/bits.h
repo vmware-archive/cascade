@@ -48,9 +48,9 @@
 
 namespace cascade {
 
-// This class is the fundamental representation of a bit string. To a large
-// extent, the implementation is a thin wrapper around the GNU Multiple
-// Precision Numeric Library.
+// This class is the fundamental representation of a bit string. It imposes the
+// semantics of Verilog expressions onto the GNU Multiple Precision Numeric
+// Library.
 
 class Bits : public Serializable {
   public:
@@ -79,7 +79,6 @@ class Bits : public Serializable {
     // Size:
     size_t size() const;
     void resize(size_t n);
-    void resize_to_bool();
 
     // Bitwise Operators:
     Bits& bitwise_and(const Bits& rhs);
@@ -155,16 +154,34 @@ class Bits : public Serializable {
 
   private:
     // Bit state:
+    //
+    // INVARIANT: The bit-width of val_ is always equal to size_.  libgmp will
+    // automatically size extend (sometimes unexpectedly).  The implementation
+    // of this class must account for this (see below).
     mpz_t val_;
     uint16_t size_;
 
     // Scratch space 
+    //
+    // Several of the methods in this class require the use of bit mask.
+    // Allocating permanent scratch space for these masks rather than
+    // dynamically allocating them on demand seems to be more performant. That
+    // said, if we could eliminate these buffers, we could significantly
+    // improve our memory footprint.
     mpz_t scratch1_;
     mpz_t scratch2_;
 
-    // Size helpers:
+    // Helper methods
+    //
+    // Enforces the invariant that val_ has the same bit-width as size_. This
+    // method should be called whenever size extension may be necessary (say
+    // for bitwise or where rhs is larger than lhs).
+    void extend(const Bits& rhs);
+    // Enforces the invariant that val_ has the same bit-width as size_.  This
+    // method should be called whenever there is some chance that libgmp has
+    // size extended val_ beyond size_ (say for arithmetic addition) where 2'2
+    // + 2'2 yields 3'4, when it should yield 2'0.
     void trim();
-    void trim_to(size_t n);
 };
 
 inline Bits::Bits() : Bits(false) { }
@@ -173,28 +190,32 @@ inline Bits::Bits(bool b) : Bits(1, b ? (uint32_t)1 : (uint32_t)0) { }
 
 inline Bits::Bits(size_t n, int32_t val) { 
   assert(n > 0);
-  mpz_init_set_si(val_, val);
+  mpz_init2(val_, n);
+  mpz_set_si(val_, val);
+  size_ = n;
+  assert(mpz_sizeinbase(val_, 2) <= size_);
+
   mpz_init(scratch1_);
   mpz_init(scratch2_);
-  size_ = n;
-  assert(mpz_sizeinbase(val_, 2) <= n);
 }
 
 inline Bits::Bits(size_t n, uint32_t val) { 
   assert(n > 0);
-  mpz_init_set_ui(val_, val);
+  mpz_init2(val_, n);
+  mpz_set_ui(val_, val);
+  size_ = n;
+  assert(mpz_sizeinbase(val_, 2) <= size_);
+
   mpz_init(scratch1_);
   mpz_init(scratch2_);
-  size_ = n;
-  mpz_realloc2(val_, n); 
-  assert(mpz_sizeinbase(val_, 2) <= n);
 }
 
 inline Bits::Bits(const Bits& rhs) {
   mpz_init_set(val_, rhs.val_);
+  size_ = rhs.size_;
+
   mpz_init(scratch1_);
   mpz_init(scratch2_);
-  size_ = rhs.size_;
 }
 
 inline Bits::Bits(Bits&& rhs) : Bits{} {
@@ -224,9 +245,7 @@ inline void Bits::read(std::istream& is, size_t base) {
   is >> s;  
 
   auto f = fmemopen((void*)s.c_str(), s.length(), "r");
-  if (mpz_inp_str(val_, f, base) == 0) {
-    mpz_set_ui(val_, 0);
-  }
+  mpz_inp_str(val_, f, base);
   size_ = mpz_sizeinbase(val_, 2);
   fclose(f);
 }
@@ -242,6 +261,7 @@ inline void Bits::write(std::ostream& os, size_t base) const {
 }
 
 inline size_t Bits::deserialize(std::istream& is) {
+  // TODO: This method is ignoring sign
   char buffer[1024];
   uint16_t l = 0;
 
@@ -256,6 +276,7 @@ inline size_t Bits::deserialize(std::istream& is) {
 }
 
 inline size_t Bits::serialize(std::ostream& os) const {
+  // TODO: This method is ignoring sign
   char buffer[1024];
   size_t len;
 
@@ -289,37 +310,35 @@ inline size_t Bits::size() const {
 
 inline void Bits::resize(size_t n) {
   if (n < size()) {
-    trim_to(n);
+    size_ = n;
+    trim();
+  } else {
+    size_ = n;
   }
-  size_ = n;
-}
-
-inline void Bits::resize_to_bool() {
-  mpz_set_ui(val_, mpz_tstbit(val_, 0) ? 1 : 0);
-  size_ = 1;
 }
 
 inline Bits& Bits::bitwise_and(const Bits& rhs) {
+  extend(rhs);
   mpz_and(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
   return *this;
 }
 
 inline Bits& Bits::bitwise_or(const Bits& rhs) {
+  extend(rhs);
   mpz_ior(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
   return *this;
 }
 
 inline Bits& Bits::bitwise_xor(const Bits& rhs) {
+  extend(rhs);
   mpz_xor(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
   return *this;
 }
 
 inline Bits& Bits::bitwise_xnor(const Bits& rhs) {
-  bitwise_xor(rhs);
-  bitwise_not();
+  extend(rhs);
+  mpz_xor(val_, val_, rhs.val_);
+  mpz_com(val_, val_);
   return *this;
 }
 
@@ -330,8 +349,7 @@ inline Bits& Bits::bitwise_sll(const Bits& rhs) {
 }
 
 inline Bits& Bits::bitwise_sal(const Bits& rhs) {
-  bitwise_sll(rhs);
-  return *this;
+  return bitwise_sll(rhs);
 }
 
 inline Bits& Bits::bitwise_slr(const Bits& rhs) {
@@ -340,24 +358,12 @@ inline Bits& Bits::bitwise_slr(const Bits& rhs) {
 }
 
 inline Bits& Bits::bitwise_sar(const Bits& rhs) {
-  // TODO: The gmp documentation says that mpz_fdiv_q_2exp *should* perform
-  // arithmetic shift, but for some reason it doesn't. This is a workaround.
-
-  const auto amt = rhs.to_int();
   mpz_fdiv_q_2exp(val_, val_, rhs.to_int());
-  if (mpz_tstbit(val_, size_-amt-1)) {
-    mpz_set_ui(scratch1_, 1);
-    mpz_mul_2exp(scratch1_, scratch1_, amt);
-    mpz_sub_ui(scratch1_, scratch1_, 1);
-    mpz_mul_2exp(scratch1_, scratch1_, size_-amt);
-    mpz_ior(val_, val_, scratch1_);
-  }
   return *this;
 }
 
 inline Bits& Bits::bitwise_not() {
   mpz_com(val_, val_);
-  trim();
   return *this;
 }
 
@@ -409,91 +415,106 @@ inline Bits& Bits::arithmetic_pow(const Bits& rhs) {
 
 inline Bits& Bits::logical_and(const Bits& rhs) {
   mpz_set_ui(val_, to_bool() && rhs.to_bool() ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_or(const Bits& rhs) {
   mpz_set_ui(val_, to_bool() || rhs.to_bool() ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_not() {
-  mpz_set_ui(val_, !to_bool() ? 1 : 0);
-  resize_to_bool();
+  mpz_set_ui(val_, mpz_cmp_ui(val_, 0) == 0 ? 1 : 0);
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_eq(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) == 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_ne(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) != 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_lt(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) < 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_lte(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) <= 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_gt(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) > 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::logical_gte(const Bits& rhs) {
   mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) >= 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_and() {
-  mpz_set_ui(val_, mpz_popcount(val_) == size() ? 1 : 0);
-  resize_to_bool();
+  mpz_set_ui(val_, mpz_popcount(val_) == size_ ? 1 : 0);
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_nand() {
-  reduce_and();
-  logical_not();
+  mpz_set_ui(val_, mpz_popcount(val_) == size_ ? 0 : 1);
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_or() {
   mpz_set_ui(val_, mpz_cmp_ui(val_, 0) != 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_nor() {
   mpz_set_ui(val_, mpz_cmp_ui(val_, 0) == 0 ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_xor() {
   mpz_set_ui(val_, mpz_odd_p(val_) ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
 inline Bits& Bits::reduce_xnor() {
   mpz_set_ui(val_, mpz_even_p(val_) ? 1 : 0);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
@@ -507,7 +528,8 @@ inline Bits& Bits::concat(const Bits& rhs) {
 inline Bits& Bits::slice(size_t idx) {
   assert(idx < size());
   mpz_tdiv_q_2exp(val_, val_, idx);
-  resize_to_bool();
+  size_ = 1;
+  trim();
   return *this;
 }
 
@@ -646,15 +668,16 @@ inline void Bits::swap(Bits& rhs) {
   std::swap(size_, rhs.size_);
 }
 
-inline void Bits::trim() {
-  trim_to(size());
+inline void Bits::extend(const Bits& rhs) {
+  if (rhs.size_ > size_) {
+    mpz_realloc2(val_, rhs.size_);
+    size_ = rhs.size_;
+  }
 }
 
-inline void Bits::trim_to(size_t n) {
-  assert(n > 0);
-
+inline void Bits::trim() {
   mpz_set_ui(scratch1_, 1);
-  mpz_mul_2exp(scratch1_, scratch1_, n);
+  mpz_mul_2exp(scratch1_, scratch1_, size_);
   mpz_sub_ui(scratch1_, scratch1_, 1);
   mpz_and(val_, val_, scratch1_);
 }
