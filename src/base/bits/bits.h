@@ -123,6 +123,10 @@ class Bits : public Serializable {
     // Concatenation Operators:
     Bits& concat(const Bits& rhs);
 
+    // Sign manipulation
+    Bits& to_signed();
+    Bits& to_unsigned();
+
     // Slicing Operators:
     Bits& slice(size_t idx);
     Bits& slice(size_t msb, size_t lsb);
@@ -529,6 +533,54 @@ inline Bits& Bits::concat(const Bits& rhs) {
   mpz_mul_2exp(val_, val_, rhs.size_);
   mpz_ior(val_, val_, rhs.val_);
   size_ = size_ + rhs.size_;
+  return *this;
+}
+
+inline Bits& Bits::to_signed() {
+  // Some bit-fiddling is necessary here due to the way that libgmp handles
+  // signedness. Internally, it uses sign and magnitude rather than a bit-wise
+  // representation. 
+
+  if (mpz_tstbit(val_, size_-1)) {
+    // Create all 1s mask
+    mpz_set_ui(scratch1_, 1);
+    mpz_mul_2exp(scratch1_, scratch1_, size_);
+    mpz_sub_ui(scratch1_, scratch1_, 1);
+
+    // Subtract val, add 1
+    mpz_sub(val_, scratch1_, val_);
+    mpz_add_ui(val_, val_, 1);
+
+    // Shrink to size_ if necessary
+    mpz_realloc2(val_, size_);
+
+    // Negate
+    mpz_neg(val_, val_);
+  }
+  return *this;
+}
+
+inline Bits& Bits::to_unsigned() {
+  // Some bit-fiddling is necessary here due to the way that libgmp handles
+  // signedness. Internally, it uses sign and magnitude rather than a bit-wise
+  // representation. 
+
+  if (mpz_cmp_ui(val_, 0) < 0) {
+    // Take absolute value
+    mpz_abs(val_, val_);
+
+    // Create all 1s mask
+    mpz_set_ui(scratch1_, 1);
+    mpz_mul_2exp(scratch1_, scratch1_, size_);
+    mpz_sub_ui(scratch1_, scratch1_, 1);
+
+    // Subtract val_, add 1
+    mpz_sub(val_, scratch1_, val_);
+    mpz_add_ui(val_, val_, 1);
+
+    // Shrink to size_ if necessary
+    mpz_realloc2(val_, size_);
+  }
   return *this;
 }
 
