@@ -159,7 +159,7 @@ class Bits : public Serializable {
     // automatically size extend (sometimes unexpectedly).  The implementation
     // of this class must account for this (see below).
     mpz_t val_;
-    uint16_t size_;
+    size_t size_;
 
     // Scratch space 
     //
@@ -295,12 +295,12 @@ inline bool Bits::to_bool() const {
 }
 
 inline int32_t Bits::to_int() const {
-  assert(size() <= 32);
+  assert(size_ <= 32);
   return mpz_get_si(val_);
 }
 
 inline uint32_t Bits::to_uint() const {
-  assert(size() <= 32);
+  assert(size_ <= 32);
   return mpz_get_ui(val_);
 }
 
@@ -309,7 +309,7 @@ inline size_t Bits::size() const {
 }
 
 inline void Bits::resize(size_t n) {
-  if (n < size()) {
+  if (n < size_) {
     size_ = n;
     trim();
   } else {
@@ -374,7 +374,8 @@ inline Bits& Bits::arithmetic_plus() {
 
 inline Bits& Bits::arithmetic_plus(const Bits& rhs) {
   mpz_add(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
+  extend(rhs);
+  trim();
   return *this;
 }
 
@@ -385,30 +386,36 @@ inline Bits& Bits::arithmetic_minus() {
 
 inline Bits& Bits::arithmetic_minus(const Bits& rhs) {
   mpz_sub(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
+  extend(rhs);
+  trim();
   return *this;
 }
 
 inline Bits& Bits::arithmetic_multiply(const Bits& rhs) {
   mpz_mul(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
+  extend(rhs);
+  trim();
   return *this;
 }
 
 inline Bits& Bits::arithmetic_divide(const Bits& rhs) {
   mpz_tdiv_q(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
+  extend(rhs);
+  trim();
   return *this;
 }
 
 inline Bits& Bits::arithmetic_mod(const Bits& rhs) {
   mpz_mod(val_, val_, rhs.val_);
-  resize(std::max(size(), rhs.size()));
+  extend(rhs);
+  trim();
   return *this;
 }
 
 inline Bits& Bits::arithmetic_pow(const Bits& rhs) {
   mpz_pow_ui(val_, val_, rhs.to_int());
+  // No extension necessary. The spec says the length of this expression is
+  // determined by size_ alone.
   trim();
   return *this;
 }
@@ -519,14 +526,14 @@ inline Bits& Bits::reduce_xnor() {
 }
 
 inline Bits& Bits::concat(const Bits& rhs) {
-  mpz_mul_2exp(val_, val_, rhs.size());
+  mpz_mul_2exp(val_, val_, rhs.size_);
   mpz_ior(val_, val_, rhs.val_);
-  resize(size() + rhs.size());
+  size_ = size_ + rhs.size_;
   return *this;
 }
 
 inline Bits& Bits::slice(size_t idx) {
-  assert(idx < size());
+  assert(idx < size_);
   mpz_tdiv_q_2exp(val_, val_, idx);
   size_ = 1;
   trim();
@@ -535,9 +542,10 @@ inline Bits& Bits::slice(size_t idx) {
 
 inline Bits& Bits::slice(size_t msb, size_t lsb) {
   assert(msb >= lsb);
-  assert(msb < size());
+  assert(msb < size_);
   mpz_tdiv_q_2exp(val_, val_, lsb);
-  resize(msb-lsb+1);
+  size_ = msb - lsb + 1;
+  trim();
   return *this;
 }
 
@@ -547,7 +555,7 @@ inline bool Bits::eq(const Bits& rhs, size_t idx) {
 
 inline bool Bits::eq(const Bits& rhs, size_t msb, size_t lsb) {
   assert(msb >= lsb);
-  assert(msb < size());
+  assert(msb < size_);
 
   // Copy val_ and slice
   mpz_set(scratch1_, val_);
@@ -561,13 +569,13 @@ inline bool Bits::eq(const Bits& rhs, size_t msb, size_t lsb) {
 }
 
 inline Bits& Bits::flip(size_t idx) {
-  assert(idx < size());
+  assert(idx < size_);
   mpz_combit(val_, idx);
   return *this;
 }
 
 inline Bits& Bits::set(size_t idx, bool b) {
-  assert(idx < size());
+  assert(idx < size_);
   if (b) {
     mpz_setbit(val_, idx);
   } else {
@@ -578,7 +586,7 @@ inline Bits& Bits::set(size_t idx, bool b) {
 
 template <typename T>
 inline T Bits::read_word(size_t n) {
-  const auto msb = std::min(size(), 8*sizeof(T)*(n+1));
+  const auto msb = std::min(size_, 8*sizeof(T)*(n+1));
   const auto lsb = 8*sizeof(T)*n;
 
   mpz_set(scratch1_, val_);
@@ -593,7 +601,7 @@ inline T Bits::read_word(size_t n) {
 
 template <typename T>
 inline void Bits::write_word(size_t n, T t) {
-  const auto msb = std::min(size(), 8*sizeof(T)*(n+1));
+  const auto msb = std::min(size_, 8*sizeof(T)*(n+1));
   const auto lsb = 8*sizeof(T)*n;
 
   mpz_set_ui(scratch1_, 1);
@@ -611,14 +619,14 @@ inline void Bits::write_word(size_t n, T t) {
 
 inline Bits& Bits::assign(const Bits& rhs) {
   mpz_set(val_, rhs.val_);
-  if (rhs.size() > size()) {
+  if (rhs.size_ > size_) {
     trim();
   }
   return *this;
 }
 
 inline Bits& Bits::assign(size_t idx, const Bits& rhs) {
-  assert(idx < size());
+  assert(idx < size_);
   if (mpz_tstbit(rhs.val_, 0)) {
     mpz_setbit(val_, idx);
   } else {
@@ -633,7 +641,7 @@ inline Bits& Bits::assign(size_t msb, size_t lsb, const Bits& rhs) {
   }
 
   assert(msb >= lsb);
-  assert(msb < size());
+  assert(msb < size_);
 
   mpz_set_ui(scratch1_, 1);
   mpz_mul_2exp(scratch1_, scratch1_, msb-lsb+1);
@@ -669,17 +677,21 @@ inline void Bits::swap(Bits& rhs) {
 }
 
 inline void Bits::extend(const Bits& rhs) {
+  // Size extend val_ if necessary 
   if (rhs.size_ > size_) {
-    mpz_realloc2(val_, rhs.size_);
     size_ = rhs.size_;
   }
 }
 
 inline void Bits::trim() {
+  // Mask off size_ bits
   mpz_set_ui(scratch1_, 1);
   mpz_mul_2exp(scratch1_, scratch1_, size_);
   mpz_sub_ui(scratch1_, scratch1_, 1);
   mpz_and(val_, val_, scratch1_);
+  
+  // Reduce val_ to size_ bits if necessary
+  mpz_realloc2(val_, size_);
 }
 
 } // namespace cascade
