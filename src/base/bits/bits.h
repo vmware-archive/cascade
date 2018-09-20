@@ -153,6 +153,25 @@ class BitsBase : public Serializable {
     // How is this value being interpreted
     bool signed_;
 
+    // I/O Helpers
+    // 
+    // Reads a number in base 2, 8, or 16, updates size as necessary
+    void read_2_8_16(std::istream& is, size_t base);
+    // Reads a number in base 10, updates size as necessary
+    void read_10(std::istream& is);
+    // Writes a number in base 2, 8, or 16
+    void write_2_8_16(std::ostream& os, size_t base) const;
+    // Writes a number in base 10
+    void write_10(std::ostream& os) const;
+    // Halves a decimal value, stored with msb in index 0
+    void dec_halve(std::vector<uint8_t>& s) const;
+    // Returns true if a decimal value, stored with msb in index 0 is 0
+    bool dec_zero(const std::vector<uint8_t>& s) const;
+    // Doubles a decimal value, stored with lsb in index 0
+    void dec_double(std::vector<uint8_t>& s) const;
+    // Increments a decimal value, stored with lsb in index 0
+    void dec_inc(std::vector<uint8_t>& s) const;
+
     // Shift helpers 
     BitsBase& bitwise_sll_const(size_t samt);
     BitsBase& bitwise_sxr_const(size_t samt, bool arith);
@@ -206,49 +225,30 @@ inline BitsBase<T>::BitsBase(size_t n, T val) {
 
 template <typename T>
 inline void BitsBase<T>::read(std::istream& is, size_t base) {
-  (void) is;
-  (void) base;
-  // TODO!!!!!!
+  switch (base) {
+    case 2:
+    case 8:
+    case 16:
+      return read_2_8_16(is, base);
+    case 10:
+      return read_10(is);
+    default:
+      assert(false);
+  }
 }
 
 template <typename T>
 inline void BitsBase<T>::write(std::ostream& os, size_t base) const {
-  // Binary, octal, and hex are easy
-  if ((base == 2) || (base == 8) || (base == 16)) {
-    // How many bits do we consume per character? Make a mask.
-    const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-    const auto mask = (1 << step) - 1;
-    // How far from the back of each word will we start extracting characters?
-    const auto offset = (base == 8) ? (bits_per_word() % 3) : step;
-
-    // Walk over the string with special handling for trailing zeros
-    bool zeros = true;
-    for (int i = val_.size()-1; i >= 0; --i) {
-      for (int j = bits_per_word() - offset; j >= 0; j -= step) {
-        const auto val = (val_[i] >> j) & mask;
-        zeros = zeros && (val == 0);
-        if (zeros) {
-          continue;
-        } else if (val > 9) {
-          os << (char)('a' + val - 10);
-        } else {
-          os << val;
-        }
-      }
-    }
-    if (zeros) {
-      os << "0";
-    }
-    return;
+  switch (base) {
+    case 2:
+    case 8:
+    case 16:
+      return write_2_8_16(os, base);
+    case 10:
+      return write_10(os);
+    default:
+      assert(false);
   }
-
-  // No additional support unless base is 10
-  if (base != 10) {
-    assert(false);
-    return;
-  }
-  
-  // TODO!!!!!!!
 }
 
 template <typename T>
@@ -799,6 +799,155 @@ inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
   (void) rhs;
   // TODO!!!!!!
   return true;
+}
+
+template <typename T>
+inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
+  (void) is;
+  (void) base;
+}
+
+template <typename T>
+inline void BitsBase<T>::read_10(std::istream& is) {
+  // Input Buffer:
+  std::vector<uint8_t> buf;
+  uint8_t c;
+  while (is >> c) {
+    buf.push_back(c-'0');
+  }
+
+  // Reset interal state
+  shrink_to_bool(false);
+  // TODO... set signed to false?
+
+  // Halve decimal string until it becomes zero. Add 1s when least significant
+  // digit is odd, 0s otherwise
+  for (size_t i = 1; !dec_zero(buf); ++i) {
+    extend_to(i);
+    set(i-1, buf.back() % 2); 
+    dec_halve(buf);
+  }
+}
+
+template <typename T>
+inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
+  // Output Buffer:
+  std::vector<uint8_t> buf;
+
+  // How many bits do we consume per character? Make a mask.
+  const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
+  const auto mask = (1 << step) - 1;
+
+  // Walk over the string from lowest to highest order
+  auto idx = 0;
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    while (true) {
+      // Extract mask bits 
+      buf.push_back((val_[i] >> idx) & mask);
+      idx += step;
+      // Easy case: Step divides words evently 
+      if (idx == bits_per_word()) {
+        idx = 0;
+        break;
+      } 
+      // Hard case: Look ahead for more bits
+      if (idx > bits_per_word()) {
+        idx %= bits_per_word();
+        if ((i+1) != ie) {
+          buf.back() |= (val_[i+1] & ((1 << idx) - 1)) << (step - idx);
+        }
+        break;
+      }
+    }
+  }
+
+  // Print the result
+  bool zero = true;
+  for (int i = buf.size()-1; i >= 0; --i) {
+    if (zero && (buf[i] == 0)) {
+      continue;
+    } else {
+      zero = false;
+      if (buf[i] > 9) {
+        os << (char)('a' + buf[i] - 10);
+      } else {
+        os << (int)buf[i];
+      }
+    }
+  }
+  if (zero) {
+    os << "0";  
+  }
+}
+
+
+template <typename T>
+inline void BitsBase<T>::write_10(std::ostream& os) const {
+  // Output Buffer (lsb in index 0):
+  std::vector<uint8_t> buf;
+  buf.push_back(0);
+
+  // Walk binary string from highest to lowest.
+  // Double result each time, add 1s as they appear.
+  for (int i = size_-1; i >= 0; --i) {
+    dec_double(buf);
+    if (get(i)) {
+      dec_inc(buf);
+    }
+  }
+  // Print the result
+  for (int i = buf.size()-1; i >= 0; --i) {
+    os << (int)buf[i];
+  }
+}
+
+template <typename T>
+inline void BitsBase<T>::dec_halve(std::vector<uint8_t>& s) const {
+  auto next_carry = 0;
+  for (size_t i = 0, ie = s.size(); i < ie; ++i) {
+    auto carry = next_carry;
+    next_carry = (s[i] % 2) ? 5 : 0;
+    s[i] = s[i] / 2 + carry;
+  }
+}
+
+template <typename T>
+inline bool BitsBase<T>::dec_zero(const std::vector<uint8_t>& s) const {
+  for (const auto& v : s) {
+    if (v) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
+inline void BitsBase<T>::dec_double(std::vector<uint8_t>& s) const {
+  auto carry = 0;
+  for (size_t i = 0, ie = s.size(); i < ie; ++i) {
+    s[i] = 2 * s[i] + carry;
+    if (s[i] >= 10) {
+      s[i] -= 10;
+      carry = 1;
+    } else {
+      carry = 0;
+    }
+  }
+  if (carry) {
+    s.push_back(1);
+  }
+}
+
+template <typename T>
+inline void BitsBase<T>::dec_inc(std::vector<uint8_t>& s) const {
+  for (size_t i = 0, ie = s.size(); i < ie; ++i) {
+    if (++s[i] == 10) {
+      s[i] = 0;
+    } else {
+      return;
+    }
+  }
+  s.push_back(1);
 }
 
 template <typename T>
