@@ -218,7 +218,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
 
   // Move this inlined code back into the instantiation. Replace port and
   // parameter delcarations, and delete the connections.
-  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_uint();
+  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
     auto item = mi->inline_->get_then()->get()->get_items()->remove_front();
     if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {

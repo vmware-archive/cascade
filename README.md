@@ -20,7 +20,7 @@ Dependencies
 Cascade should build successfully on both OSX and Ubuntu. Third-party dependencies can be retrieved using either ```apt-get``` (Ubuntu) or ```port``` (OSX). Please contact the developers if you discover a dependency which is not shown below.
 
 ```
-$ sudo (apt-get|port) install ccache cmake flex bison libgmp3-dev 
+$ sudo (apt-get|port) install ccache cmake flex bison 
 ```
 
 Building Cascade

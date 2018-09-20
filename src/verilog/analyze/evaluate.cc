@@ -204,7 +204,7 @@ void Evaluate::edit(Identifier* id) {
 }
 
 void Evaluate::edit(MultipleConcatenation* mc) {
-  const auto lhs = get_value(mc->get_expr()).to_uint();
+  const auto lhs = get_value(mc->get_expr()).to_int();
   mc->bit_val_ = get_value(mc->get_concat());
   for (size_t i = 1; i < lhs; ++i) {
     mc->bit_val_.concat(mc->get_concat()->bit_val_);

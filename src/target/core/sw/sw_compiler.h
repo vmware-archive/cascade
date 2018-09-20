@@ -32,6 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_COMPILER_H
 
 #include <mutex>
+#include "src/base/bits/bits.h"
 #include "src/target/core/sw/sw_clock.h"
 #include "src/target/core/sw/sw_fifo.h"
 #include "src/target/core/sw/sw_led.h"
@@ -42,8 +43,6 @@
 #include "src/target/core_compiler.h"
 
 namespace cascade {
-
-class Bits;
 
 class SwCompiler : public CoreCompiler {
   public:

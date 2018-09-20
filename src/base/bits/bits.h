@@ -33,37 +33,27 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
-#include <cstdio>
-#include <gmp.h>
 #include <iostream>
-#include <stddef.h>
 #include <stdint.h>
-#include <string>
+#include <vector>
 #include "src/base/serial/serializable.h"
-
-#ifdef __APPLE__
-#include "ext/memorymapping/src/fmemopen.h"
-#endif
 
 namespace cascade {
 
-// This class is the fundamental representation of a bit string. It imposes the
-// semantics of Verilog expressions onto the GNU Multiple Precision Numeric
-// Library.
+// This class is the fundamental representation of a bit string. 
 
-class Bits : public Serializable {
+template <typename T>
+class BitsBase : public Serializable {
   public:
     // Constructors:
-    Bits();
-    Bits(bool b);
-    Bits(size_t n, int32_t val);
-    Bits(size_t n, uint32_t val);
-    Bits(const Bits& rhs);
-    Bits(Bits&& rhs);
-    Bits& operator=(const Bits& rhs);
-    Bits& operator=(Bits&& rhs);
-    ~Bits() override;
+    BitsBase();
+    explicit BitsBase(bool b);
+    BitsBase(size_t n, T val);
+    BitsBase(const BitsBase& rhs) = default;
+    BitsBase(BitsBase&& rhs) = default;
+    BitsBase& operator=(const BitsBase& rhs) = default;
+    BitsBase& operator=(BitsBase&& rhs) = default;
+    ~BitsBase() override = default;
     
     // Serial I/O
     void read(std::istream& is, size_t base);
@@ -71,679 +61,866 @@ class Bits : public Serializable {
     size_t deserialize(std::istream& is) override;
     size_t serialize(std::ostream& os) const override;
 
+    // Block I/O
+    template <typename B>
+    B read_word(size_t n);
+    template <typename B>
+    void write_word(size_t n, B b);
+
     // Casts:
     bool to_bool() const;
-    int32_t to_int() const;
-    uint32_t to_uint() const;
+    T to_int() const;
 
     // Size:
     size_t size() const;
     void resize(size_t n);
 
     // Bitwise Operators:
-    Bits& bitwise_and(const Bits& rhs);
-    Bits& bitwise_or(const Bits& rhs);
-    Bits& bitwise_xor(const Bits& rhs);
-    Bits& bitwise_xnor(const Bits& rhs);
-    Bits& bitwise_sll(const Bits& rhs);
-    Bits& bitwise_sal(const Bits& rhs);
-    Bits& bitwise_slr(const Bits& rhs);
-    Bits& bitwise_sar(const Bits& rhs);
-    Bits& bitwise_not();
+    BitsBase& bitwise_and(const BitsBase& rhs);
+    BitsBase& bitwise_or(const BitsBase& rhs);
+    BitsBase& bitwise_xor(const BitsBase& rhs);
+    BitsBase& bitwise_xnor(const BitsBase& rhs);
+    BitsBase& bitwise_sll(const BitsBase& rhs);
+    BitsBase& bitwise_sal(const BitsBase& rhs);
+    BitsBase& bitwise_slr(const BitsBase& rhs);
+    BitsBase& bitwise_sar(const BitsBase& rhs);
+    BitsBase& bitwise_not();
 
     // Arithmetic Operators:
-    Bits& arithmetic_plus();
-    Bits& arithmetic_plus(const Bits& rhs);
-    Bits& arithmetic_minus();
-    Bits& arithmetic_minus(const Bits& rhs);
-    Bits& arithmetic_multiply(const Bits& rhs);
-    Bits& arithmetic_divide(const Bits& rhs);
-    Bits& arithmetic_mod(const Bits& rhs);
-    Bits& arithmetic_pow(const Bits& rhs);
+    BitsBase& arithmetic_plus();
+    BitsBase& arithmetic_plus(const BitsBase& rhs);
+    BitsBase& arithmetic_minus();
+    BitsBase& arithmetic_minus(const BitsBase& rhs);
+    BitsBase& arithmetic_multiply(const BitsBase& rhs);
+    BitsBase& arithmetic_divide(const BitsBase& rhs);
+    BitsBase& arithmetic_mod(const BitsBase& rhs);
+    BitsBase& arithmetic_pow(const BitsBase& rhs);
 
     // Logical Operators:
-    Bits& logical_and(const Bits& rhs);
-    Bits& logical_or(const Bits& rhs);
-    Bits& logical_not();
-    Bits& logical_eq(const Bits& rhs);
-    Bits& logical_ne(const Bits& rhs);
-    Bits& logical_lt(const Bits& rhs);
-    Bits& logical_lte(const Bits& rhs);
-    Bits& logical_gt(const Bits& rhs);
-    Bits& logical_gte(const Bits& rhs);
+    BitsBase& logical_and(const BitsBase& rhs);
+    BitsBase& logical_or(const BitsBase& rhs);
+    BitsBase& logical_not();
+    BitsBase& logical_eq(const BitsBase& rhs);
+    BitsBase& logical_ne(const BitsBase& rhs);
+    BitsBase& logical_lt(const BitsBase& rhs);
+    BitsBase& logical_lte(const BitsBase& rhs);
+    BitsBase& logical_gt(const BitsBase& rhs);
+    BitsBase& logical_gte(const BitsBase& rhs);
 
     // Reduction Operators:
-    Bits& reduce_and();
-    Bits& reduce_nand();
-    Bits& reduce_or();
-    Bits& reduce_nor();
-    Bits& reduce_xor();
-    Bits& reduce_xnor();
+    BitsBase& reduce_and();
+    BitsBase& reduce_nand();
+    BitsBase& reduce_or();
+    BitsBase& reduce_nor();
+    BitsBase& reduce_xor();
+    BitsBase& reduce_xnor();
 
     // Concatenation Operators:
-    Bits& concat(const Bits& rhs);
+    BitsBase& concat(const BitsBase& rhs);
 
     // Sign manipulation
-    Bits& to_signed();
-    Bits& to_unsigned();
+    BitsBase& to_signed();
+    BitsBase& to_unsigned();
 
     // Slicing Operators:
-    Bits& slice(size_t idx);
-    Bits& slice(size_t msb, size_t lsb);
+    BitsBase& slice(size_t idx);
+    BitsBase& slice(size_t msb, size_t lsb);
 
-    // Comparison Operators:
-    bool eq(const Bits& rhs, size_t idx);
-    bool eq(const Bits& rhs, size_t msb, size_t lsb);
+    // Slice Comparison Operators:
+    bool eq(const BitsBase& rhs, size_t idx);
+    bool eq(const BitsBase& rhs, size_t msb, size_t lsb);
 
     // Bitwise Operators:
-    Bits& flip(size_t idx);
-    Bits& set(size_t idx, bool b);
-    template <typename T>
-    T read_word(size_t n);
-    template <typename T>
-    void write_word(size_t n, T t);
+    bool get(size_t idx) const;
+    BitsBase& set(size_t idx, bool b);
+    BitsBase& flip(size_t idx);
 
     // Assignment Operators:
-    Bits& assign(const Bits& rhs);
-    Bits& assign(size_t idx, const Bits& rhs);
-    Bits& assign(size_t msb, size_t lsb, const Bits& rhs);
+    BitsBase& assign(const BitsBase& rhs);
+    BitsBase& assign(size_t idx, const BitsBase& rhs);
+    BitsBase& assign(size_t msb, size_t lsb, const BitsBase& rhs);
 
     // Built-in Operators:
-    bool operator==(const Bits& rhs) const;
-    bool operator!=(const Bits& rhs) const;
-    bool operator<(const Bits& rhs) const;
-
-    // Swap Operator:
-    void swap(Bits& rhs);
+    bool operator==(const BitsBase& rhs) const;
+    bool operator!=(const BitsBase& rhs) const;
+    bool operator<(const BitsBase& rhs) const;
 
   private:
-    // Bit state:
-    //
-    // INVARIANT: The bit-width of val_ is always equal to size_.  libgmp will
-    // automatically size extend (sometimes unexpectedly).  The implementation
-    // of this class must account for this (see below).
-    mpz_t val_;
-    size_t size_;
+    // Bit-string representation
+    std::vector<T> val_;
+    // Total number of bits in this string
+    uint32_t size_;
+    // How is this value being interpreted
+    bool signed_;
 
-    // Scratch space 
-    //
-    // Several of the methods in this class require the use of bit mask.
-    // Allocating permanent scratch space for these masks rather than
-    // dynamically allocating them on demand seems to be more performant. That
-    // said, if we could eliminate these buffers, we could significantly
-    // improve our memory footprint.
-    mpz_t scratch1_;
-    mpz_t scratch2_;
+    // Shift helpers 
+    BitsBase& bitwise_sll_const(size_t samt);
+    BitsBase& bitwise_sxr_const(size_t samt, bool arith);
 
-    // Helper methods
-    //
-    // Enforces the invariant that val_ has the same bit-width as size_. This
-    // method should be called whenever size extension may be necessary (say
-    // for bitwise or where rhs is larger than lhs).
-    void extend(const Bits& rhs);
-    // Enforces the invariant that val_ has the same bit-width as size_.  This
-    // method should be called whenever there is some chance that libgmp has
-    // size extended val_ beyond size_ (say for arithmetic addition) where 2'2
-    // + 2'2 yields 3'4, when it should yield 2'0.
+    // Trims additional bits down to size_
     void trim();
+    // Extends representation to n bits and zero pads
+    void extend_to(size_t n); 
+    // Shrinks size and calls trim
+    void shrink_to(size_t n);
+    // Shrinks to size one and sets val
+    void shrink_to_bool(bool b);
+
+    // Returns the number of bits in a word
+    constexpr size_t bits_per_word() const;
+    // Returns the number of bytes in a word
+    constexpr size_t bytes_per_word() const;
 };
 
-inline Bits::Bits() : Bits(false) { }
+using Bits8 = BitsBase<uint8_t>;
+using Bits16 = BitsBase<uint16_t>;
+using Bits32 = BitsBase<uint32_t>;
+using Bits64 = BitsBase<uint64_t>;
+using Bits = Bits64;
 
-inline Bits::Bits(bool b) : Bits(1, b ? (uint32_t)1 : (uint32_t)0) { }
+template <typename T>
+inline BitsBase<T>::BitsBase() {
+  val_.push_back(0);
+  size_ = 1;
+  signed_ = false;
+}
 
-inline Bits::Bits(size_t n, int32_t val) { 
+template <typename T>
+inline BitsBase<T>::BitsBase(bool b) {
+  val_.push_back(b ? 1 : 0);
+  size_ = 1;
+  signed_ = false;
+}
+
+template <typename T>
+inline BitsBase<T>::BitsBase(size_t n, T val) { 
   assert(n > 0);
-  mpz_init2(val_, n);
-  mpz_set_si(val_, val);
+
+  val_.push_back(val);
   size_ = n;
-  assert(mpz_sizeinbase(val_, 2) <= size_);
+  signed_ = false;
 
-  mpz_init(scratch1_);
-  mpz_init(scratch2_);
+  extend_to(size_);
+  trim();
 }
 
-inline Bits::Bits(size_t n, uint32_t val) { 
-  assert(n > 0);
-  mpz_init2(val_, n);
-  mpz_set_ui(val_, val);
-  size_ = n;
-  assert(mpz_sizeinbase(val_, 2) <= size_);
-
-  mpz_init(scratch1_);
-  mpz_init(scratch2_);
+template <typename T>
+inline void BitsBase<T>::read(std::istream& is, size_t base) {
+  (void) is;
+  (void) base;
+  // TODO!!!!!!
 }
 
-inline Bits::Bits(const Bits& rhs) {
-  mpz_init_set(val_, rhs.val_);
-  size_ = rhs.size_;
+template <typename T>
+inline void BitsBase<T>::write(std::ostream& os, size_t base) const {
+  // Binary, octal, and hex are easy
+  if ((base == 2) || (base == 8) || (base == 16)) {
+    // How many bits do we consume per character? Make a mask.
+    const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
+    const auto mask = (1 << step) - 1;
+    // How far from the back of each word will we start extracting characters?
+    const auto offset = (base == 8) ? (bits_per_word() % 3) : step;
 
-  mpz_init(scratch1_);
-  mpz_init(scratch2_);
+    // Walk over the string with special handling for trailing zeros
+    bool zeros = true;
+    for (int i = val_.size()-1; i >= 0; --i) {
+      for (int j = bits_per_word() - offset; j >= 0; j -= step) {
+        const auto val = (val_[i] >> j) & mask;
+        zeros = zeros && (val == 0);
+        if (zeros) {
+          continue;
+        } else if (val > 9) {
+          os << (char)('a' + val - 10);
+        } else {
+          os << val;
+        }
+      }
+    }
+    if (zeros) {
+      os << "0";
+    }
+    return;
+  }
+
+  // No additional support unless base is 10
+  if (base != 10) {
+    assert(false);
+    return;
+  }
+  
+  // TODO!!!!!!!
 }
 
-inline Bits::Bits(Bits&& rhs) : Bits{} {
-  swap(rhs);
+template <typename T>
+inline size_t BitsBase<T>::deserialize(std::istream& is) {
+  uint32_t header;
+  is.read((char*)&header, 4);
+
+  extend_to(header & 0x7fffffff);
+  signed_ = header & 0x80000000;
+
+  for (auto& v : val_) {
+    for (size_t i = 0; i < bytes_per_word(); ++i) {
+      uint8_t b;
+      is.read((char*)&b, 1);
+      v |= (b << 8*i);
+    }
+  }
+
+  return 4 + val_.size() * bytes_per_word();
 }
 
-inline Bits& Bits::operator=(const Bits& rhs) {
-  mpz_set(val_, rhs.val_);
-  size_ = rhs.size_;
-  return *this;
+template <typename T>
+inline size_t BitsBase<T>::serialize(std::ostream& os) const {
+  const uint32_t header = size_ | (signed_ ? 0x8000000 : 0);
+  os.write((char*)&header, 4);
+
+  for (auto v : val_) {
+    for (size_t i = 0; i < bytes_per_word(); ++i) {
+      os.write((char*)&v, 1);
+      v >>= 8;
+    }
+  }
+
+  return 4 + val_.size() * bytes_per_word();
 }
 
-inline Bits& Bits::operator=(Bits&& rhs) {
-  swap(rhs);
-  return *this;
+template <typename T>
+template <typename B>
+inline B BitsBase<T>::read_word(size_t n) {
+  (void) n;
+  // TODO!!!!!!
+  return 0;
 }
 
-inline Bits::~Bits() {
-  mpz_clear(val_);
-  mpz_clear(scratch1_);
-  mpz_clear(scratch2_);
+template <typename T>
+template <typename B>
+inline void BitsBase<T>::write_word(size_t n, B b) {
+  (void) n;
+  (void) b;
+  // TODO!!!!!!
 }
 
-inline void Bits::read(std::istream& is, size_t base) {
-  // TODO: Is there a nicer way to do this that doesn't use fmemopen?
-  std::string s;
-  is >> s;  
-
-  auto f = fmemopen((void*)s.c_str(), s.length(), "r");
-  mpz_inp_str(val_, f, base);
-  size_ = mpz_sizeinbase(val_, 2);
-  fclose(f);
+template <typename T>
+inline bool BitsBase<T>::to_bool() const {
+  for (const auto& v : val_) {
+    if (v) {
+      return true;
+    }
+  }
+  return false;
 }
 
-inline void Bits::write(std::ostream& os, size_t base) const {
-  // TODO: Is there a nicer way to do this that doesn't use fmemopen?
-  char buffer[1024];
-  auto f = fmemopen(buffer, 1024, "w");
-  const auto s = mpz_out_str(f, base, val_);
-  fclose(f);
-
-  os << std::string(buffer, s);
+template <typename T>
+inline T BitsBase<T>::to_int() const {
+  assert(size_ <= bits_per_word());
+  return val_[0];
 }
 
-inline size_t Bits::deserialize(std::istream& is) {
-  // TODO: This method is ignoring sign
-  char buffer[1024];
-  uint16_t l = 0;
-
-  is.read((char*)&size_, sizeof(size_));
-  is.read((char*)&l, sizeof(l));
-  is.read((char*)buffer, l);
-
-  size_t len = l;
-  mpz_import(val_, len, 1, sizeof(char), 0, 0, buffer);
-
-  return sizeof(size_) + sizeof(l) + len;
-}
-
-inline size_t Bits::serialize(std::ostream& os) const {
-  // TODO: This method is ignoring sign
-  char buffer[1024];
-  size_t len;
-
-  mpz_export(buffer, &len, 1, sizeof(char), 0, 0, val_);
-  uint16_t l = len;
-
-  os.write((char*)&size_, sizeof(size_));
-  os.write((char*)&l, sizeof(l));
-  os.write((char*)buffer, len);
-
-  return sizeof(size_) + sizeof(l) + len;
-}
-
-inline bool Bits::to_bool() const {
-  return mpz_cmp_ui(val_, 0) != 0;
-}
-
-inline int32_t Bits::to_int() const {
-  assert(size_ <= 32);
-  return mpz_get_si(val_);
-}
-
-inline uint32_t Bits::to_uint() const {
-  assert(size_ <= 32);
-  return mpz_get_ui(val_);
-}
-
-inline size_t Bits::size() const {
+template <typename T>
+inline size_t BitsBase<T>::size() const {
   return size_;
 }
 
-inline void Bits::resize(size_t n) {
+template <typename T>
+inline void BitsBase<T>::resize(size_t n) {
   if (n < size_) {
-    size_ = n;
-    trim();
+    shrink_to(n);
   } else {
-    size_ = n;
+    extend_to(n);
   }
 }
 
-inline Bits& Bits::bitwise_and(const Bits& rhs) {
-  extend(rhs);
-  mpz_and(val_, val_, rhs.val_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_and(const BitsBase& rhs) {
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] &= rhs.val_[i];
+  }
   return *this;
 }
 
-inline Bits& Bits::bitwise_or(const Bits& rhs) {
-  extend(rhs);
-  mpz_ior(val_, val_, rhs.val_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_or(const BitsBase& rhs) {
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] |= rhs.val_[i];
+  }
   return *this;
 }
 
-inline Bits& Bits::bitwise_xor(const Bits& rhs) {
-  extend(rhs);
-  mpz_xor(val_, val_, rhs.val_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_xor(const BitsBase& rhs) {
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] ^= rhs.val_[i];
+  }
   return *this;
 }
 
-inline Bits& Bits::bitwise_xnor(const Bits& rhs) {
-  extend(rhs);
-  mpz_xor(val_, val_, rhs.val_);
-  mpz_com(val_, val_);
-  return *this;
-}
-
-inline Bits& Bits::bitwise_sll(const Bits& rhs) {
-  mpz_mul_2exp(val_, val_, rhs.to_int());
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_xnor(const BitsBase& rhs) {
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] ^= rhs.val_[i];
+    val_[i] = ~val_[i];
+  }
+  // Careful: We can introduce trailing 1s here
   trim();
   return *this;
 }
 
-inline Bits& Bits::bitwise_sal(const Bits& rhs) {
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_sll(const BitsBase& rhs) {
+  const auto samt = rhs.to_int();
+  if (samt > 0) {
+    bitwise_sll_const(samt);
+  }
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_sal(const BitsBase& rhs) {
+  // Equivalent to sll
   return bitwise_sll(rhs);
 }
 
-inline Bits& Bits::bitwise_slr(const Bits& rhs) {
-  mpz_tdiv_q_2exp(val_, val_, rhs.to_int());
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_slr(const BitsBase& rhs) {
+  const auto samt = rhs.to_int();
+  if (samt > 0) {
+    bitwise_sxr_const(samt, false);
+  }
   return *this;
 }
 
-inline Bits& Bits::bitwise_sar(const Bits& rhs) {
-  mpz_fdiv_q_2exp(val_, val_, rhs.to_int());
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_sar(const BitsBase& rhs) {
+  const auto samt = rhs.to_int();
+  if (samt > 0) {
+    bitwise_sxr_const(samt, true);
+  }
   return *this;
 }
 
-inline Bits& Bits::bitwise_not() {
-  mpz_com(val_, val_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_not() {
+  for (auto& v : val_) {
+    v = ~v;
+  }
+  // Careful: We can introduce trailing 1s here
+  trim();
   return *this;
 }
 
-inline Bits& Bits::arithmetic_plus() {
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_plus() {
   // Does nothing.
   return *this;
 }
 
-inline Bits& Bits::arithmetic_plus(const Bits& rhs) {
-  mpz_add(val_, val_, rhs.val_);
-  extend(rhs);
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_minus() {
-  mpz_neg(val_, val_);
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_minus(const Bits& rhs) {
-  mpz_sub(val_, val_, rhs.val_);
-  extend(rhs);
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_multiply(const Bits& rhs) {
-  mpz_mul(val_, val_, rhs.val_);
-  extend(rhs);
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_divide(const Bits& rhs) {
-  mpz_tdiv_q(val_, val_, rhs.val_);
-  extend(rhs);
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_mod(const Bits& rhs) {
-  mpz_mod(val_, val_, rhs.val_);
-  extend(rhs);
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::arithmetic_pow(const Bits& rhs) {
-  mpz_pow_ui(val_, val_, rhs.to_int());
-  // No extension necessary. The spec says the length of this expression is
-  // determined by size_ alone.
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_and(const Bits& rhs) {
-  mpz_set_ui(val_, to_bool() && rhs.to_bool() ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_or(const Bits& rhs) {
-  mpz_set_ui(val_, to_bool() || rhs.to_bool() ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_not() {
-  mpz_set_ui(val_, mpz_cmp_ui(val_, 0) == 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_eq(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) == 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_ne(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) != 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_lt(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) < 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_lte(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) <= 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_gt(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) > 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::logical_gte(const Bits& rhs) {
-  mpz_set_ui(val_, mpz_cmp(val_, rhs.val_) >= 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_and() {
-  mpz_set_ui(val_, mpz_popcount(val_) == size_ ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_nand() {
-  mpz_set_ui(val_, mpz_popcount(val_) == size_ ? 0 : 1);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_or() {
-  mpz_set_ui(val_, mpz_cmp_ui(val_, 0) != 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_nor() {
-  mpz_set_ui(val_, mpz_cmp_ui(val_, 0) == 0 ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_xor() {
-  mpz_set_ui(val_, mpz_odd_p(val_) ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::reduce_xnor() {
-  mpz_set_ui(val_, mpz_even_p(val_) ? 1 : 0);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::concat(const Bits& rhs) {
-  mpz_mul_2exp(val_, val_, rhs.size_);
-  mpz_ior(val_, val_, rhs.val_);
-  size_ = size_ + rhs.size_;
-  return *this;
-}
-
-inline Bits& Bits::to_signed() {
-  // Some bit-fiddling is necessary here due to the way that libgmp handles
-  // signedness. Internally, it uses sign and magnitude rather than a bit-wise
-  // representation. 
-
-  if (mpz_tstbit(val_, size_-1)) {
-    // Create all 1s mask
-    mpz_set_ui(scratch1_, 1);
-    mpz_mul_2exp(scratch1_, scratch1_, size_);
-    mpz_sub_ui(scratch1_, scratch1_, 1);
-
-    // Subtract val, add 1
-    mpz_sub(val_, scratch1_, val_);
-    mpz_add_ui(val_, val_, 1);
-
-    // Shrink to size_ if necessary
-    mpz_realloc2(val_, size_);
-
-    // Negate
-    mpz_neg(val_, val_);
-  }
-  return *this;
-}
-
-inline Bits& Bits::to_unsigned() {
-  // Some bit-fiddling is necessary here due to the way that libgmp handles
-  // signedness. Internally, it uses sign and magnitude rather than a bit-wise
-  // representation. 
-
-  if (mpz_cmp_ui(val_, 0) < 0) {
-    // Take absolute value
-    mpz_abs(val_, val_);
-
-    // Create all 1s mask
-    mpz_set_ui(scratch1_, 1);
-    mpz_mul_2exp(scratch1_, scratch1_, size_);
-    mpz_sub_ui(scratch1_, scratch1_, 1);
-
-    // Subtract val_, add 1
-    mpz_sub(val_, scratch1_, val_);
-    mpz_add_ui(val_, val_, 1);
-
-    // Shrink to size_ if necessary
-    mpz_realloc2(val_, size_);
-  }
-  return *this;
-}
-
-inline Bits& Bits::slice(size_t idx) {
-  assert(idx < size_);
-  mpz_tdiv_q_2exp(val_, val_, idx);
-  size_ = 1;
-  trim();
-  return *this;
-}
-
-inline Bits& Bits::slice(size_t msb, size_t lsb) {
-  assert(msb >= lsb);
-  assert(msb < size_);
-  mpz_tdiv_q_2exp(val_, val_, lsb);
-  size_ = msb - lsb + 1;
-  trim();
-  return *this;
-}
-
-inline bool Bits::eq(const Bits& rhs, size_t idx) {
-  return mpz_tstbit(val_, idx) == mpz_tstbit(rhs.val_, 0);
-}
-
-inline bool Bits::eq(const Bits& rhs, size_t msb, size_t lsb) {
-  assert(msb >= lsb);
-  assert(msb < size_);
-
-  // Copy val_ and slice
-  mpz_set(scratch1_, val_);
-  mpz_tdiv_q_2exp(scratch1_, scratch1_, lsb);
-  mpz_set_ui(scratch2_, 1);
-  mpz_mul_2exp(scratch2_, scratch2_, msb-lsb+1);
-  mpz_sub_ui(scratch2_, scratch2_, 1);
-  mpz_and(scratch1_, scratch1_, scratch2_);
-
-  return mpz_cmp(scratch1_, rhs.val_) == 0;
-}
-
-inline Bits& Bits::flip(size_t idx) {
-  assert(idx < size_);
-  mpz_combit(val_, idx);
-  return *this;
-}
-
-inline Bits& Bits::set(size_t idx, bool b) {
-  assert(idx < size_);
-  if (b) {
-    mpz_setbit(val_, idx);
-  } else {
-    mpz_clrbit(val_, idx);
-  }
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_plus(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
   return *this;
 }
 
 template <typename T>
-inline T Bits::read_word(size_t n) {
-  const auto msb = std::min(size_, 8*sizeof(T)*(n+1));
-  const auto lsb = 8*sizeof(T)*n;
-
-  mpz_set(scratch1_, val_);
-  mpz_tdiv_q_2exp(scratch1_, scratch1_, lsb);
-  mpz_set_ui(scratch2_, 1);
-  mpz_mul_2exp(scratch2_, scratch2_, msb-lsb+1);
-  mpz_sub_ui(scratch2_, scratch2_, 1);
-  mpz_and(scratch1_, scratch1_, scratch2_);
-
-  return mpz_get_ui(scratch1_);
+inline BitsBase<T>& BitsBase<T>::arithmetic_minus() {
+  // TODO!!!!!!
+  return *this;
 }
 
 template <typename T>
-inline void Bits::write_word(size_t n, T t) {
-  const auto msb = std::min(size_, 8*sizeof(T)*(n+1));
-  const auto lsb = 8*sizeof(T)*n;
-
-  mpz_set_ui(scratch1_, 1);
-  mpz_mul_2exp(scratch1_, scratch1_, msb-lsb+1);
-  mpz_sub_ui(scratch1_, scratch1_, 1);
-  mpz_mul_2exp(scratch1_, scratch1_, lsb);
-  mpz_com(scratch1_, scratch1_);
-
-  mpz_and(val_, val_, scratch1_);
-
-  mpz_set_ui(scratch1_, t);
-  mpz_mul_2exp(scratch1_, scratch1_, lsb);
-  mpz_ior(val_, val_, scratch1_);
-}
-
-inline Bits& Bits::assign(const Bits& rhs) {
-  mpz_set(val_, rhs.val_);
-  if (rhs.size_ > size_) {
-    trim();
-  }
+inline BitsBase<T>& BitsBase<T>::arithmetic_minus(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
   return *this;
 }
 
-inline Bits& Bits::assign(size_t idx, const Bits& rhs) {
-  assert(idx < size_);
-  if (mpz_tstbit(rhs.val_, 0)) {
-    mpz_setbit(val_, idx);
-  } else {
-    mpz_clrbit(val_, idx);
-  }
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
   return *this;
 }
 
-inline Bits& Bits::assign(size_t msb, size_t lsb, const Bits& rhs) {
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_divide(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_mod(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::arithmetic_pow(const BitsBase& rhs) {
+  (void) rhs;
+  // TODO!!!!!!
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_and(const BitsBase& rhs) {
+  shrink_to_bool(to_bool() && rhs.to_bool());
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_or(const BitsBase& rhs) {
+  shrink_to_bool(to_bool() || rhs.to_bool());
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_not() {
+  shrink_to_bool(!to_bool());
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_eq(const BitsBase& rhs) {
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    if (val_[i] != rhs.val_[i]) {
+      shrink_to_bool(false);
+      return *this;
+    }
+  }
+  if (val_.size() < rhs.val_.size()) {
+    for (size_t i = val_.size(), ie = rhs.val_.size(); i < ie; ++i) {
+      if (rhs.val_[i]) {
+        shrink_to_bool(false);
+        return *this;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
+      if (val_[i]) {
+        shrink_to_bool(false);
+        return *this;
+      }
+    }
+  } 
+
+  shrink_to_bool(true);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_ne(const BitsBase& rhs) {
+  logical_eq(rhs);
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_lt(const BitsBase& rhs) {
+  if (val_.size() < rhs.val_.size()) {
+    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+      if (rhs.val_[i]) {
+        shrink_to_bool(true);
+        return *this;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+      if (val_[i]) {
+        shrink_to_bool(true);
+        return *this;
+      }
+    }
+  } 
+  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+    if (val_[i] < rhs.val_[i]) {
+      shrink_to_bool(true);
+      return *this;
+    }
+  }
+
+  shrink_to_bool(false);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_lte(const BitsBase& rhs) {
+  if (val_.size() < rhs.val_.size()) {
+    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+      if (rhs.val_[i]) {
+        shrink_to_bool(true);
+        return *this;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+      if (val_[i]) {
+        shrink_to_bool(true);
+        return *this;
+      }
+    }
+  } 
+  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+    if (val_[i] <= rhs.val_[i]) {
+      shrink_to_bool(true);
+      return *this;
+    }
+  }
+
+  shrink_to_bool(false);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_gt(const BitsBase& rhs) {
+  logical_lte(rhs);
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::logical_gte(const BitsBase& rhs) {
+  logical_lt(rhs);
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_and() {
+  for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
+    if (val_[0] != T(-1)) {
+      shrink_to_bool(false);
+      return *this;
+    }
+  }
+  const auto mask = (1 << (size_ % bits_per_word())) - 1;
+  if ((val_.back() & mask) != mask) {
+    shrink_to_bool(false);
+    return *this;
+  }
+  shrink_to_bool(true);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_nand() {
+  reduce_and();
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_or() {
+  for (const auto& v : val_) {
+    if (v) {
+      shrink_to_bool(true);
+      return *this;
+    }
+  }
+  shrink_to_bool(true);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_nor() {
+  reduce_or();
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_xor() {
+  size_t cnt = 0;
+  for (const auto& v : val_) {
+    cnt += __builtin_popcount(v);
+  }
+  shrink_to_bool(cnt % 2);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::reduce_xnor() {
+  reduce_xor();
+  val_[0] = val_[0] ? 0 : 1;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::concat(const BitsBase& rhs) {
+  extend_to(size_ + rhs.size_);
+  bitwise_sll_const(rhs.size_);
+  bitwise_or(rhs);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::to_signed() {
+  signed_ = true;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::to_unsigned() {
+  signed_ = false;
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::slice(size_t idx) {
+  shrink_to_bool(get(idx));
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::slice(size_t msb, size_t lsb) {
+  // Corner Case: Is this range 1 bit?
   if (msb == lsb) {
-    return assign(msb, rhs);
+    return slice(msb);
   }
+  bitwise_sxr_const(lsb, false);
+  shrink_to(msb-lsb+1);
+  return *this;
+}
 
-  assert(msb >= lsb);
-  assert(msb < size_);
+template <typename T>
+inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t idx) {
+  return get(0) == rhs.get(idx);
+}
 
-  mpz_set_ui(scratch1_, 1);
-  mpz_mul_2exp(scratch1_, scratch1_, msb-lsb+1);
-  mpz_sub_ui(scratch1_, scratch1_, 1);
+template <typename T>
+inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t msb, size_t lsb) {
+  (void) rhs;
+  (void) msb;
+  (void) lsb;
+  // TODO!!!!!!
+  return false;
+}
 
-  mpz_set(scratch2_, scratch1_);
-  mpz_mul_2exp(scratch2_, scratch2_, lsb);
-  mpz_com(scratch2_, scratch2_);
+template <typename T>
+inline bool BitsBase<T>::get(size_t idx) const {
+  assert(idx < size_);
+  const auto widx = idx / bits_per_word();
+  const auto bidx = idx % bits_per_word();
+  return val_[widx] & (1 << bidx);
+}
 
-  mpz_and(val_, val_, scratch2_);
-  mpz_and(scratch1_, scratch1_, rhs.val_);
-  mpz_mul_2exp(scratch1_, scratch1_, lsb);
-  mpz_ior(val_, val_, scratch1_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::set(size_t idx, bool b) {
+  assert(idx < size_);
+  const auto widx = idx / bits_per_word();
+  const auto bidx = idx % bits_per_word();
+
+  if (b) {
+    val_[widx] |= (1 << bidx);
+  } else {
+    val_[widx] &= ~(1 << bidx);
+  }
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
+  assert(idx < size_);
+  const auto widx = idx / bits_per_word();
+  const auto bidx = idx % bits_per_word();
+  const auto b = (val_[widx] >> bidx) & 1;
+
+  if (!b) {
+    val_[widx] |= (1 << bidx);
+  } else {
+    val_[widx] &= ~(1 << bidx);
+  }
 
   return *this;
 }
 
-inline bool Bits::operator==(const Bits& rhs) const {
-  return size_ == rhs.size_ && mpz_cmp(val_, rhs.val_) == 0;
-}
-
-inline bool Bits::operator!=(const Bits& rhs) const {
-  return !(*this == rhs);
-}
-
-inline bool Bits::operator<(const Bits& rhs) const {
-  return size_ < rhs.size_ || mpz_cmp(val_, rhs.val_) < 0;
-}
-
-inline void Bits::swap(Bits& rhs) {
-  std::swap(val_, rhs.val_);
-  std::swap(size_, rhs.size_);
-}
-
-inline void Bits::extend(const Bits& rhs) {
-  // Size extend val_ if necessary 
-  if (rhs.size_ > size_) {
-    size_ = rhs.size_;
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::assign(const BitsBase& rhs) {
+  // Copy as many words as appear in both bits
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] = rhs.val_[i];
   }
+  // If this bits is longer, pad out zeros
+  for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
+    val_[i] = 0;
+  }
+  // Trim just in case the bits have different sizes
+  trim();
+  return *this;
 }
 
-inline void Bits::trim() {
-  // Mask off size_ bits
-  mpz_set_ui(scratch1_, 1);
-  mpz_mul_2exp(scratch1_, scratch1_, size_);
-  mpz_sub_ui(scratch1_, scratch1_, 1);
-  mpz_and(val_, val_, scratch1_);
-  
-  // Reduce val_ to size_ bits if necessary
-  mpz_realloc2(val_, size_);
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::assign(size_t idx, const BitsBase& rhs) {
+  set(idx, rhs.val_[0] & 1);
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
+  // Corner case: Is this range one bit?
+  if (msb == lsb) {
+    assign(msb, rhs);
+  }
+
+  // TODO!!!!!!
+
+  return *this;
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator==(const BitsBase& rhs) const {
+  (void) rhs;
+  // TODO!!!!!!
+  return true;
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator!=(const BitsBase& rhs) const {
+  (void) rhs;
+  // TODO!!!!!!
+  return true;
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
+  (void) rhs;
+  // TODO!!!!!!
+  return true;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
+  // This algorithm works from highest to lowest order, one word at a time
+  // word: The current word we're looking at
+  // top/bottom: The words that will be shifted into word; word can equal top
+
+  // How many words ahead is bottom?
+  const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
+  // How many bits are we taking from bottom and shifting top?
+  const auto bamt = samt % bits_per_word();
+  // Create a mask for extracting the highest bamt bits from bottom
+  const auto mamt = bits_per_word() - bamt;
+  const auto mask = ((1 << bamt) - 1) << mamt;
+
+  // Work our way down until bottom hits zero
+  int w = val_.size() - 1;
+  for (int b = w-delta; b >= 0; --w, --b) {
+    if (bamt == 0) {
+      val_[w] = val_[b];
+    } else {
+      val_[w] = (val_[b+1] << bamt) | ((val_[b] & mask) >> mamt);
+    }
+  }
+  // There's one more block to build where bottom is implicitly zero
+  val_[w--] = (bamt == 0) ? 0 : (val_[0] << bamt);
+  // Everything else is zero
+  for (; w >= 0; --w) {
+    val_[w] = 0;
+  }
+
+  // Trim the top and we're done
+  trim();
+  return *this;
+}
+
+template <typename T>
+inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
+  // This algorithm works from lowest to highest order, one word at a time
+  // word: The current word we're looking at
+  // top/bottom: The words that will be shifted into word; word can equal bottom
+
+  // Is the highest order bit a 1 and do we care?
+  const auto idx = (size_-1) % bits_per_word();
+  const auto hob = arith && (val_.back() & (1 << idx)); 
+  // How many words ahead is top?
+  const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
+  // How many bits are we taking from top and shifting bottom?
+  const auto bamt = samt % bits_per_word();
+  // Create a mask for extracting the lowest bamt bits from top
+  const auto mamt = bits_per_word() - bamt;
+  const auto mask = (1 << bamt) - 1;
+
+  // Work our way up until top goes out of range
+  int w = 0;
+  for (int t = w+delta, te = val_.size(); t < te; ++w, ++t) {
+    if (bamt == 0) {
+      val_[w] = val_[t];
+    } else {
+      val_[w] = (val_[t-1] >> bamt) | ((val_[t] & mask) << mamt);
+    }
+  }
+  // There's one more block to build where top is implicitly zero
+  if (hob) {
+    val_[w++] = (bamt == 0) ? -1 : ((val_.back() >> bamt) | (mask << mamt));
+  } else {
+    val_[w++] = (bamt == 0) ? 0 : (val_.back() >> bamt);
+  }
+  // Everything else is zero or padded 1s
+  for (int we = val_.size(); w < we; ++w) {
+    val_[w] = hob ? -1 : 0;
+  }
+
+  // Trim since we could have introduced trailing 1s
+  trim();
+  return *this;
+}
+
+template <typename T>
+void BitsBase<T>::trim() {
+  // How many bits do we care about in the top word?
+  const auto trailing = size_ % bits_per_word();
+  // Zero means we're full
+  if (trailing == 0) {
+    return;
+  }
+  // Otherwise, mask these off
+  const auto mask = (1 << trailing) - 1;
+  val_.back() &= mask;
+}
+    
+template <typename T>
+void BitsBase<T>::extend_to(size_t n) {
+  const auto words = (n + bits_per_word() - 1) / bits_per_word();
+  val_.resize(words);
+  size_ = n;
+}
+   
+template <typename T>
+void BitsBase<T>::shrink_to(size_t n) {
+  const auto words = (n + bits_per_word() - 1) / bits_per_word();
+  val_.resize(words);
+  size_ = n;
+  trim();
+}
+
+template <typename T>
+void BitsBase<T>::shrink_to_bool(bool b) {
+  val_.resize(1);
+  val_[0] = b ? 1 : 0;
+  size_ = 1;
+}
+
+template <typename T>
+constexpr size_t BitsBase<T>::bits_per_word() const {
+  return 8 * bytes_per_word();
+}
+
+template <typename T>
+constexpr size_t BitsBase<T>::bytes_per_word() const {
+  return sizeof(T);
 }
 
 } // namespace cascade
