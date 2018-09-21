@@ -199,15 +199,13 @@ using Bits = Bits64;
 
 template <typename T>
 inline BitsBase<T>::BitsBase() {
-  val_.push_back(0);
-  size_ = 1;
+  shrink_to_bool(false);
   signed_ = false;
 }
 
 template <typename T>
 inline BitsBase<T>::BitsBase(bool b) {
-  val_.push_back(b ? 1 : 0);
-  size_ = 1;
+  shrink_to_bool(b);
   signed_ = false;
 }
 
@@ -216,11 +214,9 @@ inline BitsBase<T>::BitsBase(size_t n, T val) {
   assert(n > 0);
 
   val_.push_back(val);
-  size_ = n;
-  signed_ = false;
-
-  extend_to(size_);
+  extend_to(n);
   trim();
+  signed_ = false;
 }
 
 template <typename T>
@@ -263,7 +259,7 @@ inline size_t BitsBase<T>::deserialize(std::istream& is) {
     for (size_t i = 0; i < bytes_per_word(); ++i) {
       uint8_t b;
       is.read((char*)&b, 1);
-      v |= (b << 8*i);
+      v |= (T(b) << 8*i);
     }
   }
 
@@ -429,8 +425,22 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_plus() {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_plus(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+
+  T carry = 0;
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    const T sum = val_[i] + rhs.val_[i] + carry;
+    if (carry) {
+      carry = (sum <= val_[i]) ? 1 : 0; 
+    } else {
+      carry = (sum < val_[i]) ? 1 : 0;
+    }
+    val_[i] = sum;
+  }
+
+  trim();
   return *this;
 }
 
@@ -606,7 +616,7 @@ inline BitsBase<T>& BitsBase<T>::reduce_and() {
       return *this;
     }
   }
-  const auto mask = (1 << (size_ % bits_per_word())) - 1;
+  const auto mask = (T(1) << (size_ % bits_per_word())) - 1;
   if ((val_.back() & mask) != mask) {
     shrink_to_bool(false);
     return *this;
@@ -714,7 +724,7 @@ inline bool BitsBase<T>::get(size_t idx) const {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-  return val_[widx] & (1 << bidx);
+  return val_[widx] & (T(1) << bidx);
 }
 
 template <typename T>
@@ -724,9 +734,9 @@ inline BitsBase<T>& BitsBase<T>::set(size_t idx, bool b) {
   const auto bidx = idx % bits_per_word();
 
   if (b) {
-    val_[widx] |= (1 << bidx);
+    val_[widx] |= (T(1) << bidx);
   } else {
-    val_[widx] &= ~(1 << bidx);
+    val_[widx] &= ~(T(1) << bidx);
   }
   return *this;
 }
@@ -739,9 +749,9 @@ inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
   const auto b = (val_[widx] >> bidx) & 1;
 
   if (!b) {
-    val_[widx] |= (1 << bidx);
+    val_[widx] |= (T(1) << bidx);
   } else {
-    val_[widx] &= ~(1 << bidx);
+    val_[widx] &= ~(T(1) << bidx);
   }
 
   return *this;
@@ -836,10 +846,10 @@ inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
 
   // How many bits do we consume per character? Make a mask.
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-  const auto mask = (1 << step) - 1;
+  const auto mask = (T(1) << step) - 1;
 
   // Walk over the string from lowest to highest order
-  auto idx = 0;
+  size_t idx = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     while (true) {
       // Extract mask bits 
@@ -854,7 +864,7 @@ inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
       if (idx > bits_per_word()) {
         idx %= bits_per_word();
         if ((i+1) != ie) {
-          buf.back() |= (val_[i+1] & ((1 << idx) - 1)) << (step - idx);
+          buf.back() |= (val_[i+1] & ((T(1) << idx) - 1)) << (step - idx);
         }
         break;
       }
@@ -962,7 +972,7 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
   const auto bamt = samt % bits_per_word();
   // Create a mask for extracting the highest bamt bits from bottom
   const auto mamt = bits_per_word() - bamt;
-  const auto mask = ((1 << bamt) - 1) << mamt;
+  const auto mask = ((T(1) << bamt) - 1) << mamt;
 
   // Work our way down until bottom hits zero
   int w = val_.size() - 1;
@@ -993,14 +1003,14 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
 
   // Is the highest order bit a 1 and do we care?
   const auto idx = (size_-1) % bits_per_word();
-  const auto hob = arith && (val_.back() & (1 << idx)); 
+  const auto hob = arith && (val_.back() & (T(1) << idx)); 
   // How many words ahead is top?
   const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
   // How many bits are we taking from top and shifting bottom?
   const auto bamt = samt % bits_per_word();
   // Create a mask for extracting the lowest bamt bits from top
   const auto mamt = bits_per_word() - bamt;
-  const auto mask = (1 << bamt) - 1;
+  const auto mask = (T(1) << bamt) - 1;
 
   // Work our way up until top goes out of range
   int w = 0;
@@ -1036,7 +1046,7 @@ void BitsBase<T>::trim() {
     return;
   }
   // Otherwise, mask these off
-  const auto mask = (1 << trailing) - 1;
+  const auto mask = (T(1) << trailing) - 1;
   val_.back() &= mask;
 }
     
