@@ -35,6 +35,7 @@
 #include <cassert>
 #include <iostream>
 #include <stdint.h>
+#include <type_traits>
 #include <vector>
 #include "src/base/serial/serializable.h"
 
@@ -44,6 +45,12 @@ namespace cascade {
 
 template <typename T>
 class BitsBase : public Serializable {
+  private:
+    typedef 
+      typename std::conditional<sizeof(T) == 1, uint16_t,
+      typename std::conditional<sizeof(T) == 2, uint32_t,
+      typename std::conditional<sizeof(T) == 4, uint64_t, __uint128_t>::type>::type>::type BigT;
+
   public:
     // Constructors:
     BitsBase();
@@ -446,21 +453,56 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_plus(const BitsBase& rhs) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_minus() {
-  // TODO!!!!!!
+  bitwise_not();
+  // TODO: Add one
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_minus(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+
+  T carry = 0;
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    const T dif = val_[i] - rhs.val_[i] - carry;
+    if (carry) {
+      carry = (dif >= val_[i]) ? 1 : 0; 
+    } else {
+      carry = (dif > val_[i]) ? 1 : 0;
+    }
+    val_[i] = dif;
+  }
+
+  trim();
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+
+  // This is the optimized space algorithm described in wiki's multiplication
+  // algorithm article. The code is simplified here, as we can assume that both
+  // inputs and the result are capped at N words. 
+
+  const int N = val_.size();
+  std::vector<T> product(N, 0);
+  BigT tot = 0;
+  for (size_t ri = 0; ri < N; ++ri) {
+    for (size_t bi = 0; bi <= ri; ++bi) {
+      size_t ai = ri - bi;
+      tot += (BigT(val_[ai]) * BigT(rhs.val_[bi]));
+    }
+    product[ri] = (T)tot;
+    tot >>= bits_per_word();
+  }
+
+  val_ = product;
+  trim();
   return *this;
 }
 
