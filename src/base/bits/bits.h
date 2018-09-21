@@ -152,6 +152,9 @@ class BitsBase : public Serializable {
     bool operator==(const BitsBase& rhs) const;
     bool operator!=(const BitsBase& rhs) const;
     bool operator<(const BitsBase& rhs) const;
+    bool operator<=(const BitsBase& rhs) const;
+    bool operator>(const BitsBase& rhs) const;
+    bool operator>=(const BitsBase& rhs) const;
 
   private:
     // Bit-string representation
@@ -461,6 +464,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_minus() {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_minus(const BitsBase& rhs) {
+  // TODO: What about unsigned subtraction?
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
@@ -482,6 +486,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_minus(const BitsBase& rhs) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
+  // TODO: What about unsigned multiplication?
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
@@ -490,7 +495,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
   // algorithm article. The code is simplified here, as we can assume that both
   // inputs and the result are capped at N words. 
 
-  const int N = val_.size();
+  const auto N = val_.size();
   std::vector<T> product(N, 0);
   BigT tot = 0;
   for (size_t ri = 0; ri < N; ++ri) {
@@ -548,106 +553,37 @@ inline BitsBase<T>& BitsBase<T>::logical_not() {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_eq(const BitsBase& rhs) {
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    if (val_[i] != rhs.val_[i]) {
-      shrink_to_bool(false);
-      return *this;
-    }
-  }
-  if (val_.size() < rhs.val_.size()) {
-    for (size_t i = val_.size(), ie = rhs.val_.size(); i < ie; ++i) {
-      if (rhs.val_[i]) {
-        shrink_to_bool(false);
-        return *this;
-      }
-    }
-  } else if (val_.size() > rhs.val_.size()) {
-    for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
-      if (val_[i]) {
-        shrink_to_bool(false);
-        return *this;
-      }
-    }
-  } 
-
-  shrink_to_bool(true);
+  shrink_to_bool(*this == rhs);
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_ne(const BitsBase& rhs) {
-  logical_eq(rhs);
-  val_[0] = val_[0] ? 0 : 1;
+  shrink_to_bool(*this != rhs);
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_lt(const BitsBase& rhs) {
-  if (val_.size() < rhs.val_.size()) {
-    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
-      if (rhs.val_[i]) {
-        shrink_to_bool(true);
-        return *this;
-      }
-    }
-  } else if (val_.size() > rhs.val_.size()) {
-    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
-      if (val_[i]) {
-        shrink_to_bool(true);
-        return *this;
-      }
-    }
-  } 
-  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
-    if (val_[i] < rhs.val_[i]) {
-      shrink_to_bool(true);
-      return *this;
-    }
-  }
-
-  shrink_to_bool(false);
+  shrink_to_bool(*this < rhs);
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_lte(const BitsBase& rhs) {
-  if (val_.size() < rhs.val_.size()) {
-    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
-      if (rhs.val_[i]) {
-        shrink_to_bool(true);
-        return *this;
-      }
-    }
-  } else if (val_.size() > rhs.val_.size()) {
-    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
-      if (val_[i]) {
-        shrink_to_bool(true);
-        return *this;
-      }
-    }
-  } 
-  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
-    if (val_[i] <= rhs.val_[i]) {
-      shrink_to_bool(true);
-      return *this;
-    }
-  }
-
-  shrink_to_bool(false);
+  shrink_to_bool(*this <= rhs);
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_gt(const BitsBase& rhs) {
-  logical_lte(rhs);
-  val_[0] = val_[0] ? 0 : 1;
+  shrink_to_bool(*this > rhs);
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::logical_gte(const BitsBase& rhs) {
-  logical_lt(rhs);
-  val_[0] = val_[0] ? 0 : 1;
+  shrink_to_bool(*this >= rhs);
   return *this;
 }
 
@@ -835,23 +771,86 @@ inline BitsBase<T>& BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& 
 
 template <typename T>
 inline bool BitsBase<T>::operator==(const BitsBase& rhs) const {
-  (void) rhs;
-  // TODO!!!!!!
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    if (val_[i] != rhs.val_[i]) {
+      return false;
+    }
+  }
+  if (val_.size() < rhs.val_.size()) {
+    for (size_t i = val_.size(), ie = rhs.val_.size(); i < ie; ++i) {
+      if (rhs.val_[i]) {
+        return false;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
+      if (val_[i]) {
+        return false;
+      }
+    }
+  } 
   return true;
 }
 
 template <typename T>
 inline bool BitsBase<T>::operator!=(const BitsBase& rhs) const {
-  (void) rhs;
-  // TODO!!!!!!
-  return true;
+  return !(*this == rhs);
 }
 
 template <typename T>
 inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
-  (void) rhs;
-  // TODO!!!!!!
-  return true;
+  if (val_.size() < rhs.val_.size()) {
+    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+      if (rhs.val_[i]) {
+        return true;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+      if (val_[i]) {
+        return true;
+      }
+    }
+  } 
+  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+    if (val_[i] < rhs.val_[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator<=(const BitsBase& rhs) const {
+  if (val_.size() < rhs.val_.size()) {
+    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+      if (rhs.val_[i]) {
+        return true;
+      }
+    }
+  } else if (val_.size() > rhs.val_.size()) {
+    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+      if (val_[i]) {
+        return true;
+      }
+    }
+  } 
+  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+    if (val_[i] <= rhs.val_[i]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator>(const BitsBase& rhs) const {
+  return !(*this <= rhs);
+}
+
+template <typename T>
+inline bool BitsBase<T>::operator>=(const BitsBase& rhs) const {
+  return !(*this < rhs);
 }
 
 template <typename T>
