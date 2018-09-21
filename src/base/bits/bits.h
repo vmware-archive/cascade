@@ -619,7 +619,7 @@ inline BitsBase<T>& BitsBase<T>::reduce_or() {
       return *this;
     }
   }
-  shrink_to_bool(true);
+  shrink_to_bool(false);
   return *this;
 }
 
@@ -808,13 +808,15 @@ inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
   } else if (val_.size() > rhs.val_.size()) {
     for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
       if (val_[i]) {
-        return true;
+        return false;
       }
     }
   } 
   for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
     if (val_[i] < rhs.val_[i]) {
       return true;
+    } else if (val_[i] > rhs.val_[i]) {
+      return false;
     }
   }
   return false;
@@ -831,16 +833,18 @@ inline bool BitsBase<T>::operator<=(const BitsBase& rhs) const {
   } else if (val_.size() > rhs.val_.size()) {
     for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
       if (val_[i]) {
-        return true;
+        return false;
       }
     }
   } 
   for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
-    if (val_[i] <= rhs.val_[i]) {
+    if (val_[i] < rhs.val_[i]) {
       return true;
+    } else if (val_[i] > rhs.val_[i]) {
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 template <typename T>
