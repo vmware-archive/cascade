@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
 #include <iostream>
 #include <stdint.h>
 #include <type_traits>
@@ -855,8 +856,50 @@ inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
 
 template <typename T>
 inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
-  (void) is;
-  (void) base;
+  // Input Buffer:
+  std::vector<uint8_t> buf;
+  uint8_t c;
+  while (is >> c) {
+    if (isalpha(c)) {
+      buf.push_back(c-'a'+10);
+    } else {
+      buf.push_back(c-'0');
+    }
+  }  
+
+  // Reset internal state
+  shrink_to_bool(false);
+  // TODO... set signed to false?
+
+  // How many bits do we generate per character?
+  const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
+
+  // Walk over the buffer from lowest to highest order (that's in reverse)
+  size_t idx = 0;
+  size_t total = 0;
+  for (int i = buf.size()-1; i >= 0; --i) {
+    // Append bits
+    val_.back() |= (buf[i] << idx);
+    idx += step;
+    total += step;
+    extend_to(total);
+    // Easy case: Step divides words evenly
+    if (idx == bits_per_word()) {
+      idx = 0;
+      continue;
+    }
+    // Hard case: Bit overflow
+    if (idx > bits_per_word()) {
+      idx %= bits_per_word();
+      val_.back() |= (buf[i] >> (step-idx));
+      continue;
+    }
+  }
+
+  // Trim trailing 0s
+  while (!get(size_-1)) {
+    shrink_to(size_-1);
+  }
 }
 
 template <typename T>
@@ -897,7 +940,7 @@ inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
       // Extract mask bits 
       buf.push_back((val_[i] >> idx) & mask);
       idx += step;
-      // Easy case: Step divides words evently 
+      // Easy case: Step divides words evenly 
       if (idx == bits_per_word()) {
         idx = 0;
         break;
