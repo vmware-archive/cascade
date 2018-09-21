@@ -857,9 +857,11 @@ template <typename T>
 inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
   // Input Buffer:
   std::vector<uint8_t> buf;
-  uint8_t c;
-  while (is >> c) {
-    if (isalpha(c)) {
+  while (true) {
+    auto c = is.get();
+    if (isspace(c) || is.eof()) {
+      break;
+    } else if (isalpha(c)) {
       buf.push_back(c-'a'+10);
     } else {
       buf.push_back(c-'0');
@@ -895,8 +897,8 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
     }
   }
 
-  // Trim trailing 0s
-  while (!get(size_-1)) {
+  // Trim trailing 0s (but leave at least one if this number is zero!)
+  while ((size_ > 1) && !get(size_-1)) {
     shrink_to(size_-1);
   }
 }
@@ -905,8 +907,11 @@ template <typename T>
 inline void BitsBase<T>::read_10(std::istream& is) {
   // Input Buffer:
   std::vector<uint8_t> buf;
-  uint8_t c;
-  while (is >> c) {
+  while (true) {
+    auto c = is.get();
+    if (isspace(c) || is.eof()) {
+      break;
+    }
     buf.push_back(c-'0');
   }
 
