@@ -675,6 +675,9 @@ inline BitsBase<T>& BitsBase<T>::slice(size_t idx) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::slice(size_t msb, size_t lsb) {
+  assert(msb < size());
+  assert(msb >= lsb);
+
   // Corner Case: Is this range 1 bit?
   if (msb == lsb) {
     return slice(msb);
@@ -686,16 +689,53 @@ inline BitsBase<T>& BitsBase<T>::slice(size_t msb, size_t lsb) {
 
 template <typename T>
 inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t idx) {
-  return get(0) == rhs.get(idx);
+  assert(idx < size_);
+  return get(idx) == rhs.get(0);
 }
 
 template <typename T>
 inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t msb, size_t lsb) {
-  (void) rhs;
-  (void) msb;
-  (void) lsb;
-  // TODO!!!!!!
-  return false;
+  assert(msb < size_);
+  assert(msb >= lsb);
+
+  // Corner Case: Is this a single bit range?
+  if (msb == lsb) {
+    return eq(rhs, msb);
+  }
+
+  // Compute the size of this slice 
+  const auto slice = msb - lsb + 1;
+  // How many full words does it span and what's left over at the end?
+  const auto fspan = slice / bits_per_word();
+  const auto lover = slice % bits_per_word();
+  // Compute indices and offsets
+  const auto lower = lsb / bits_per_word();
+  const auto loff = lsb % bits_per_word();
+  const auto uoff = bits_per_word() - loff;
+
+  // Common Case: Full word comparison
+  for (size_t i = 0; i < fspan; ++i) {
+    auto word = (val_[lower+i] >> loff);
+    if (loff > 0) {
+      word |= (val_[lower+i+1] << uoff);
+    } 
+    if (word != rhs.val_[i]) {
+      return false;
+    } 
+  }
+
+  // Nothing to do if there are no leftovers:
+  if (lover == 0) {
+    return true;
+  }
+
+  // Edge Case: Compare the remaining bits
+  auto word = (val_[lower+fspan] >> loff);
+  if ((loff > 0) && ((lower+fspan+1) < val_.size())) {
+    word |= (val_[lower+fspan+1] << uoff);
+  } 
+  const auto mask = (T(1) << lover) - 1;
+  return (word & mask) == (rhs.val_[fspan] & mask);
 }
 
 template <typename T>
@@ -753,18 +793,58 @@ inline BitsBase<T>& BitsBase<T>::assign(const BitsBase& rhs) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::assign(size_t idx, const BitsBase& rhs) {
-  set(idx, rhs.val_[0] & 1);
+  assert(idx < size_);
+  set(idx, rhs.val_[0] & T(1));
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
+  assert(msb < size_);
+  assert(msb >= lsb);
+
   // Corner case: Is this range one bit?
   if (msb == lsb) {
     assign(msb, rhs);
   }
 
-  // TODO!!!!!!
+  // Compute the size of this slice 
+  const auto slice = msb - lsb + 1;
+  // How many full words does it span and what's left over at the end?
+  const auto fspan = slice / bits_per_word();
+  const auto lover = slice % bits_per_word();
+  // Compute indices and offsets
+  const auto lower = lsb / bits_per_word();
+  const auto loff = lsb % bits_per_word();
+  const auto uoff = bits_per_word() - loff;
+  const auto mask = (T(1) << loff) - 1;
+
+  // Common Case: Copy entire words
+  for (size_t i = 0; i < fspan; ++i) {
+    val_[lower+i] &= mask;
+    val_[lower+i] |= (rhs.val_[i] << loff);
+    if (loff > 0) {
+      val_[lower+i+1] &= ~mask;
+      val_[lower+i+1] |= (rhs.val_[i] >> uoff);
+    } 
+  }
+
+  // Nothing to do if there are no leftovers
+  if (lover == 0) {
+    return *this;
+  }
+
+  // Edge Case: Copy the remaining bits
+  const auto lmask = (T(1) << lover) - 1;
+  val_[lower+fspan] &= ~(lmask << loff);
+  val_[lower+fspan] |= ((rhs.val_[fspan] & lmask) << loff);
+
+  if ((lover + loff) > bits_per_word()) {
+    const auto delta = lover + loff - bits_per_word();
+    const auto hmask = (T(1) << delta) - 1;
+    val_[lower+fspan+1] &= ~hmask;
+    val_[lower+fspan+1] |= ((rhs.val_[fspan] >> (lover-delta)) & hmask);
+  }
 
   return *this;
 }
@@ -800,19 +880,19 @@ inline bool BitsBase<T>::operator!=(const BitsBase& rhs) const {
 template <typename T>
 inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
   if (val_.size() < rhs.val_.size()) {
-    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+    for (size_t i = val_.size(), ie = rhs.val_.size(); i < ie; ++i) {
       if (rhs.val_[i]) {
         return true;
       }
     }
   } else if (val_.size() > rhs.val_.size()) {
-    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+    for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
       if (val_[i]) {
         return false;
       }
     }
   } 
-  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+  for (int i = std::min(val_.size(), rhs.val_.size())-1; i >= 0; --i) {
     if (val_[i] < rhs.val_[i]) {
       return true;
     } else if (val_[i] > rhs.val_[i]) {
@@ -825,19 +905,19 @@ inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
 template <typename T>
 inline bool BitsBase<T>::operator<=(const BitsBase& rhs) const {
   if (val_.size() < rhs.val_.size()) {
-    for (int i = rhs.val_.size(), ie = val_.size(); i >= ie; --i) {
+    for (size_t i = val_.size(), ie = rhs.val_.size(); i < ie; ++i) {
       if (rhs.val_[i]) {
         return true;
       }
     }
   } else if (val_.size() > rhs.val_.size()) {
-    for (int i = val_.size(), ie = rhs.val_.size(); i >= ie; --i) {
+    for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
       if (val_[i]) {
         return false;
       }
     }
   } 
-  for (int i = std::min(val_.size(), rhs.val_.size()); i >= 0; --i) {
+  for (int i = std::min(val_.size(), rhs.val_.size())-1; i >= 0; --i) {
     if (val_[i] < rhs.val_[i]) {
       return true;
     } else if (val_[i] > rhs.val_[i]) {
@@ -884,7 +964,7 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
   size_t total = 0;
   for (int i = buf.size()-1; i >= 0; --i) {
     // Append bits
-    val_.back() |= (buf[i] << idx);
+    val_.back() |= (T(buf[i]) << idx);
     idx += step;
     total += step;
     extend_to(total);
@@ -1106,8 +1186,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
   const auto mask = (T(1) << bamt) - 1;
 
   // Work our way up until top goes out of range
-  int w = 0;
-  for (int t = w+delta, te = val_.size(); t < te; ++w, ++t) {
+  size_t w = 0;
+  for (size_t t = w+delta, te = val_.size(); t < te; ++w, ++t) {
     if (bamt == 0) {
       val_[w] = val_[t];
     } else {
@@ -1121,7 +1201,7 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
     val_[w++] = (bamt == 0) ? 0 : (val_.back() >> bamt);
   }
   // Everything else is zero or padded 1s
-  for (int we = val_.size(); w < we; ++w) {
+  for (size_t we = val_.size(); w < we; ++w) {
     val_[w] = hob ? -1 : 0;
   }
 
