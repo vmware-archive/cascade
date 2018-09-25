@@ -682,7 +682,9 @@ inline BitsBase<T>& BitsBase<T>::slice(size_t msb, size_t lsb) {
   if (msb == lsb) {
     return slice(msb);
   }
-  bitwise_sxr_const(lsb, false);
+  if (lsb > 0) {
+    bitwise_sxr_const(lsb, false);
+  }
   shrink_to(msb-lsb+1);
   return *this;
 }
@@ -778,13 +780,9 @@ inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::assign(const BitsBase& rhs) {
-  // Copy as many words as appear in both bits
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] = rhs.val_[i];
-  }
-  // If this bits is longer, pad out zeros
-  for (size_t i = rhs.val_.size(), ie = val_.size(); i < ie; ++i) {
-    val_[i] = 0;
+  // Copy words
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] = i < rhs.val_.size() ? rhs.val_[i] : 0;
   }
   // Trim just in case the bits have different sizes
   trim();
@@ -1135,6 +1133,8 @@ inline void BitsBase<T>::dec_inc(std::vector<uint8_t>& s) const {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
+  assert(samt > 0);
+
   // This algorithm works from highest to lowest order, one word at a time
   // word: The current word we're looking at
   // top/bottom: The words that will be shifted into word; word can equal top
@@ -1170,6 +1170,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
+  assert(samt > 0);
+
   // This algorithm works from lowest to highest order, one word at a time
   // word: The current word we're looking at
   // top/bottom: The words that will be shifted into word; word can equal bottom
