@@ -264,7 +264,8 @@ inline size_t BitsBase<T>::deserialize(std::istream& is) {
   uint32_t header;
   is.read((char*)&header, 4);
 
-  extend_to(header & 0x7fffffff);
+  shrink_to_bool(false);
+  resize(header & 0x7fffffff);
   signed_ = header & 0x80000000;
 
   for (auto& v : val_) {
@@ -280,12 +281,13 @@ inline size_t BitsBase<T>::deserialize(std::istream& is) {
 
 template <typename T>
 inline size_t BitsBase<T>::serialize(std::ostream& os) const {
-  const uint32_t header = size_ | (signed_ ? 0x8000000 : 0);
+  const uint32_t header = size_ | (signed_ ? 0x80000000 : 0);
   os.write((char*)&header, 4);
 
   for (auto v : val_) {
     for (size_t i = 0; i < bytes_per_word(); ++i) {
-      os.write((char*)&v, 1);
+      uint8_t b = v & 0xff;
+      os.write((char*)&b, 1);
       v >>= 8;
     }
   }
