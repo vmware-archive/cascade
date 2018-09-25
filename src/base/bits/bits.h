@@ -36,6 +36,7 @@
 #include <cctype>
 #include <iostream>
 #include <stdint.h>
+#include <string>
 #include <type_traits>
 #include <vector>
 #include "src/base/serial/serializable.h"
@@ -174,14 +175,14 @@ class BitsBase : public Serializable {
     void write_2_8_16(std::ostream& os, size_t base) const;
     // Writes a number in base 10
     void write_10(std::ostream& os) const;
-    // Halves a decimal value, stored with msb in index 0
-    void dec_halve(std::vector<uint8_t>& s) const;
-    // Returns true if a decimal value, stored with msb in index 0 is 0
-    bool dec_zero(const std::vector<uint8_t>& s) const;
-    // Doubles a decimal value, stored with lsb in index 0
-    void dec_double(std::vector<uint8_t>& s) const;
-    // Increments a decimal value, stored with lsb in index 0
-    void dec_inc(std::vector<uint8_t>& s) const;
+    // Halves a decimal value, stored as a string
+    void dec_halve(std::string& s) const;
+    // Returns true if a decimal value, stored as a string is 0
+    bool dec_zero(const std::string& s) const;
+    // Doubles a decimal value, stored as a string in reverse order
+    void dec_double(std::string& s) const;
+    // Increments a decimal value, stored as a string in reverse order
+    void dec_inc(std::string& s) const;
 
     // Shift helpers 
     BitsBase& bitwise_sll_const(size_t samt);
@@ -958,17 +959,8 @@ inline bool BitsBase<T>::operator>=(const BitsBase& rhs) const {
 template <typename T>
 inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
   // Input Buffer:
-  std::vector<uint8_t> buf;
-  while (true) {
-    auto c = is.get();
-    if (isspace(c) || is.eof()) {
-      break;
-    } else if (isalpha(c)) {
-      buf.push_back(c-'a'+10);
-    } else {
-      buf.push_back(c-'0');
-    }
-  }  
+  std::string s;
+  is >> s;
 
   // Reset internal state
   shrink_to_bool(false);
@@ -976,14 +968,16 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
 
   // How many bits do we generate per character? Resize internal storage.
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-  extend_to(step * buf.size());
+  extend_to(step * s.length());
 
   // Walk over the buffer from lowest to highest order (that's in reverse)
   size_t word = 0;
   size_t idx = 0;
-  for (int i = buf.size()-1; i >= 0; --i) {
+  for (int i = s.length()-1; i >= 0; --i) {
+    // Convert character to bits
+    const T bits = isalpha(s[i]) ? (s[i]-'a'+10) : (s[i]-'0');
     // Copy bits into storage and bump idx.
-    val_[word] |= (T(buf[i]) << idx);
+    val_[word] |= (bits << idx);
     idx += step;
     // Keep going if there's still room in this word, otherwise on to the next
     if (idx < bits_per_word()) {
@@ -997,7 +991,7 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
     }
     // Hard Case: Bit overflow
     idx -= bits_per_word();
-    val_[word] |= (buf[i] >> (step-idx));
+    val_[word] |= (bits >> (step-idx));
   }
 
   // Trim trailing 0s (but leave at least one if this number is zero!)
@@ -1009,14 +1003,8 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
 template <typename T>
 inline void BitsBase<T>::read_10(std::istream& is) {
   // Input Buffer:
-  std::vector<uint8_t> buf;
-  while (true) {
-    auto c = is.get();
-    if (isspace(c) || is.eof()) {
-      break;
-    }
-    buf.push_back(c-'0');
-  }
+  std::string s;
+  is >> s;
 
   // Reset interal state
   shrink_to_bool(false);
@@ -1024,10 +1012,10 @@ inline void BitsBase<T>::read_10(std::istream& is) {
 
   // Halve decimal string until it becomes zero. Add 1s when least significant
   // digit is odd, 0s otherwise
-  for (size_t i = 1; !dec_zero(buf); ++i) {
+  for (size_t i = 1; !dec_zero(s); ++i) {
     extend_to(i);
-    set(i-1, buf.back() % 2); 
-    dec_halve(buf);
+    set(i-1, (s.back()-'0') % 2); 
+    dec_halve(s);
   }
 }
 
@@ -1086,9 +1074,7 @@ inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
 template <typename T>
 inline void BitsBase<T>::write_10(std::ostream& os) const {
   // Output Buffer (lsb in index 0):
-  std::vector<uint8_t> buf;
-  buf.push_back(0);
-
+  std::string buf = "0";
   // Walk binary string from highest to lowest.
   // Double result each time, add 1s as they appear.
   for (int i = size_-1; i >= 0; --i) {
@@ -1097,26 +1083,27 @@ inline void BitsBase<T>::write_10(std::ostream& os) const {
       dec_inc(buf);
     }
   }
-  // Print the result
-  for (int i = buf.size()-1; i >= 0; --i) {
-    os << (int)buf[i];
+  // Print the result in reverse
+  for (int i = buf.length()-1; i >= 0; --i) {
+    os << buf[i];
   }
 }
 
 template <typename T>
-inline void BitsBase<T>::dec_halve(std::vector<uint8_t>& s) const {
+inline void BitsBase<T>::dec_halve(std::string& s) const {
   auto next_carry = 0;
-  for (size_t i = 0, ie = s.size(); i < ie; ++i) {
+  for (size_t i = 0, ie = s.length(); i < ie; ++i) {
+    const auto val = s[i] - '0';
     auto carry = next_carry;
-    next_carry = (s[i] % 2) ? 5 : 0;
-    s[i] = s[i] / 2 + carry;
+    next_carry = (val % 2) ? 5 : 0;
+    s[i] = (val / 2 + carry) + '0';
   }
 }
 
 template <typename T>
-inline bool BitsBase<T>::dec_zero(const std::vector<uint8_t>& s) const {
-  for (const auto& v : s) {
-    if (v) {
+inline bool BitsBase<T>::dec_zero(const std::string& s) const {
+  for (auto c : s) {
+    if (c != '0') {
       return false;
     }
   }
@@ -1124,32 +1111,34 @@ inline bool BitsBase<T>::dec_zero(const std::vector<uint8_t>& s) const {
 }
 
 template <typename T>
-inline void BitsBase<T>::dec_double(std::vector<uint8_t>& s) const {
+inline void BitsBase<T>::dec_double(std::string& s) const {
   auto carry = 0;
   for (size_t i = 0, ie = s.size(); i < ie; ++i) {
-    s[i] = 2 * s[i] + carry;
-    if (s[i] >= 10) {
-      s[i] -= 10;
+    auto val = s[i] - '0';
+    val = 2 * val + carry;
+    if (val >= 10) {
+      s[i] = '0' + (val - 10);
       carry = 1;
     } else {
+      s[i] = '0' + val;
       carry = 0;
     }
   }
   if (carry) {
-    s.push_back(1);
+    s.push_back('1');
   }
 }
 
 template <typename T>
-inline void BitsBase<T>::dec_inc(std::vector<uint8_t>& s) const {
+inline void BitsBase<T>::dec_inc(std::string& s) const {
   for (size_t i = 0, ie = s.size(); i < ie; ++i) {
-    if (++s[i] == 10) {
-      s[i] = 0;
+    if (++s[i] == ('0'+10)) {
+      s[i] = '0';
     } else {
       return;
     }
   }
-  s.push_back(1);
+  s.push_back('1');
 }
 
 template <typename T>
