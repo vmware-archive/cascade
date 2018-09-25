@@ -333,7 +333,7 @@ template <typename T>
 inline void BitsBase<T>::resize(size_t n) {
   if (n < size_) {
     shrink_to(n);
-  } else {
+  } else if (n > size_) {
     extend_to(n);
   }
 }
@@ -343,8 +343,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_and(const BitsBase& rhs) {
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] &= rhs.val_[i];
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] &= (i < rhs.val_.size() ? rhs.val_[i] : T(0));
   }
   return *this;
 }
@@ -354,8 +354,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_or(const BitsBase& rhs) {
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] |= rhs.val_[i];
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] |= (i < rhs.val_.size() ? rhs.val_[i] : T(0));
   }
   return *this;
 }
@@ -365,8 +365,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_xor(const BitsBase& rhs) {
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] ^= rhs.val_[i];
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] ^= (i < rhs.val_.size() ? rhs.val_[i] : T(0));
   }
   return *this;
 }
@@ -376,9 +376,9 @@ inline BitsBase<T>& BitsBase<T>::bitwise_xnor(const BitsBase& rhs) {
   if (rhs.size_ > size_) {
     extend_to(rhs.size_);
   }
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] ^= rhs.val_[i];
-    val_[i] = ~val_[i];
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] ^= (i < rhs.val_.size() ? rhs.val_[i] : T(0));
+    val_[i] = ~(i < rhs.val_.size() ? val_[i] : T(0));
   }
   // Careful: We can introduce trailing 1s here
   trim();
@@ -420,8 +420,8 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sar(const BitsBase& rhs) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::bitwise_not() {
-  for (auto& v : val_) {
-    v = ~v;
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] = ~val_[i];
   }
   // Careful: We can introduce trailing 1s here
   trim();
@@ -442,7 +442,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_plus(const BitsBase& rhs) {
 
   T carry = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    const T sum = val_[i] + rhs.val_[i] + carry;
+    const T sum = val_[i] + (i < rhs.val_.size() ? rhs.val_[i] : T(0)) + carry;
     if (carry) {
       carry = (sum <= val_[i]) ? 1 : 0; 
     } else {
@@ -471,7 +471,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_minus(const BitsBase& rhs) {
 
   T carry = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    const T dif = val_[i] - rhs.val_[i] - carry;
+    const T dif = val_[i] - (i < rhs.val_.size() ? rhs.val_[i] : T(0)) - carry;
     if (carry) {
       carry = (dif >= val_[i]) ? 1 : 0; 
     } else {
@@ -501,7 +501,7 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
   for (size_t ri = 0; ri < N; ++ri) {
     for (size_t bi = 0; bi <= ri; ++bi) {
       size_t ai = ri - bi;
-      tot += (BigT(val_[ai]) * BigT(rhs.val_[bi]));
+      tot += (BigT(val_[ai]) * BigT(bi < rhs.val_.size() ? rhs.val_[bi] : 0));
     }
     product[ri] = (T)tot;
     tot >>= bits_per_word();
@@ -590,7 +590,7 @@ inline BitsBase<T>& BitsBase<T>::logical_gte(const BitsBase& rhs) {
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::reduce_and() {
   for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
-    if (val_[0] != T(-1)) {
+    if (val_[i] != T(-1)) {
       shrink_to_bool(false);
       return *this;
     }
@@ -613,8 +613,8 @@ inline BitsBase<T>& BitsBase<T>::reduce_nand() {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::reduce_or() {
-  for (const auto& v : val_) {
-    if (v) {
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    if (val_[i]) {
       shrink_to_bool(true);
       return *this;
     }
@@ -633,8 +633,8 @@ inline BitsBase<T>& BitsBase<T>::reduce_nor() {
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::reduce_xor() {
   size_t cnt = 0;
-  for (const auto& v : val_) {
-    cnt += __builtin_popcount(v);
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    cnt += __builtin_popcount(val_[i]);
   }
   shrink_to_bool(cnt % 2);
   return *this;
@@ -675,7 +675,7 @@ inline BitsBase<T>& BitsBase<T>::slice(size_t idx) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::slice(size_t msb, size_t lsb) {
-  assert(msb < size());
+  assert(msb < size_);
   assert(msb >= lsb);
 
   // Corner Case: Is this range 1 bit?
@@ -765,7 +765,7 @@ inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-  const auto b = (val_[widx] >> bidx) & 1;
+  const auto b = (val_[widx] >> bidx) & T(1);
 
   if (!b) {
     val_[widx] |= (T(1) << bidx);
