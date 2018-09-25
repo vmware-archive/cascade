@@ -733,11 +733,12 @@ inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t msb, size_t lsb) {
 
   // Common Case: Full word comparison
   for (size_t i = 0; i < fspan; ++i) {
+    const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
     auto word = (val_[lower+i] >> loff);
     if (loff > 0) {
       word |= (val_[lower+i+1] << uoff);
     } 
-    if (word != rhs.val_[i]) {
+    if (word != rval) {
       return false;
     } 
   }
@@ -749,11 +750,12 @@ inline bool BitsBase<T>::eq(const BitsBase& rhs, size_t msb, size_t lsb) {
 
   // Edge Case: Compare the remaining bits
   auto word = (val_[lower+fspan] >> loff);
+  const auto rval = fspan < rhs.val_.size() ? rhs.val_[fspan] : T(0);
   if ((loff > 0) && ((lower+fspan+1) < val_.size())) {
     word |= (val_[lower+fspan+1] << uoff);
   } 
   const auto mask = (T(1) << lover) - 1;
-  return (word & mask) == (rhs.val_[fspan] & mask);
+  return (word & mask) == (rval & mask);
 }
 
 template <typename T>
@@ -835,11 +837,12 @@ inline BitsBase<T>& BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& 
 
   // Common Case: Copy entire words
   for (size_t i = 0; i < fspan; ++i) {
+    const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
     val_[lower+i] &= mask;
-    val_[lower+i] |= (rhs.val_[i] << loff);
+    val_[lower+i] |= (rval << loff);
     if (loff > 0) {
       val_[lower+i+1] &= ~mask;
-      val_[lower+i+1] |= (rhs.val_[i] >> uoff);
+      val_[lower+i+1] |= (rval >> uoff);
     } 
   }
 
@@ -850,14 +853,15 @@ inline BitsBase<T>& BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& 
 
   // Edge Case: Copy the remaining bits
   const auto lmask = (T(1) << lover) - 1;
+  const auto rval = fspan < rhs.val_.size() ? rhs.val_[fspan] : T(0);
   val_[lower+fspan] &= ~(lmask << loff);
-  val_[lower+fspan] |= ((rhs.val_[fspan] & lmask) << loff);
+  val_[lower+fspan] |= ((rval & lmask) << loff);
 
   if ((lover + loff) > bits_per_word()) {
     const auto delta = lover + loff - bits_per_word();
     const auto hmask = (T(1) << delta) - 1;
     val_[lower+fspan+1] &= ~hmask;
-    val_[lower+fspan+1] |= ((rhs.val_[fspan] >> (lover-delta)) & hmask);
+    val_[lower+fspan+1] |= ((rval >> (lover-delta)) & hmask);
   }
 
   return *this;
@@ -1244,21 +1248,21 @@ void BitsBase<T>::trim() {
 template <typename T>
 void BitsBase<T>::extend_to(size_t n) {
   const auto words = (n + bits_per_word() - 1) / bits_per_word();
-  val_.resize(words);
+  val_.resize(words, T(0));
   size_ = n;
 }
    
 template <typename T>
 void BitsBase<T>::shrink_to(size_t n) {
   const auto words = (n + bits_per_word() - 1) / bits_per_word();
-  val_.resize(words);
+  val_.resize(words, T(0));
   size_ = n;
   trim();
 }
 
 template <typename T>
 void BitsBase<T>::shrink_to_bool(bool b) {
-  val_.resize(1);
+  val_.resize(1, T(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
 }
