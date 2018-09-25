@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cmath>
 #include <iostream>
 #include <stdint.h>
 #include <string>
@@ -525,8 +526,8 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_divide(const BitsBase& rhs) {
   assert(rhs.val_.size() == 1);
 
   val_[0] /= rhs.val_[0];
-
   trim();
+
   return *this;
 }
 
@@ -540,15 +541,22 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_mod(const BitsBase& rhs) {
   assert(rhs.val_.size() == 1);
 
   val_[0] %= rhs.val_[0];
-
   trim();
+
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_pow(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  // No resizing, the verilog standard requires us to preserve the bit-width of
+  // lhs.
+
+  assert(val_.size() == 1);
+  assert(val_.size() == 1);
+
+  val_[0] = std::pow(val_[0], rhs.val_[0]);
+  trim();
+
   return *this;
 }
 
