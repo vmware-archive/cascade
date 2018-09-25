@@ -974,29 +974,30 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
   shrink_to_bool(false);
   // TODO... set signed to false?
 
-  // How many bits do we generate per character?
+  // How many bits do we generate per character? Resize internal storage.
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
+  extend_to(step * buf.size());
 
   // Walk over the buffer from lowest to highest order (that's in reverse)
+  size_t word = 0;
   size_t idx = 0;
-  size_t total = 0;
   for (int i = buf.size()-1; i >= 0; --i) {
-    // Append bits
-    val_.back() |= (T(buf[i]) << idx);
+    // Copy bits into storage and bump idx.
+    val_[word] |= (T(buf[i]) << idx);
     idx += step;
-    total += step;
-    extend_to(total);
-    // Easy case: Step divides words evenly
+    // Keep going if there's still room in this word, otherwise on to the next
+    if (idx < bits_per_word()) {
+      continue;
+    }
+    ++word;
+    // Easy Case: Step divides words evenly
     if (idx == bits_per_word()) {
       idx = 0;
       continue;
     }
-    // Hard case: Bit overflow
-    if (idx > bits_per_word()) {
-      idx %= bits_per_word();
-      val_.back() |= (buf[i] >> (step-idx));
-      continue;
-    }
+    // Hard Case: Bit overflow
+    idx -= bits_per_word();
+    val_[word] |= (buf[i] >> (step-idx));
   }
 
   // Trim trailing 0s (but leave at least one if this number is zero!)
