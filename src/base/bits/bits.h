@@ -1173,7 +1173,7 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
     }
   }
   // There's one more block to build where bottom is implicitly zero
-  val_[w--] = (bamt == 0) ? 0 : (val_[0] << bamt);
+  val_[w--] = (bamt == 0) ? T(0) : (val_[0] << bamt);
   // Everything else is zero
   for (; w >= 0; --w) {
     val_[w] = T(0);
