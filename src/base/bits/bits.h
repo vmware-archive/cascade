@@ -1176,7 +1176,7 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sll_const(size_t samt) {
   val_[w--] = (bamt == 0) ? 0 : (val_[0] << bamt);
   // Everything else is zero
   for (; w >= 0; --w) {
-    val_[w] = 0;
+    val_[w] = T(0);
   }
 
   // Trim the top and we're done
@@ -1214,13 +1214,13 @@ inline BitsBase<T>& BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith) {
   }
   // There's one more block to build where top is implicitly zero
   if (hob) {
-    val_[w++] = (bamt == 0) ? -1 : ((val_.back() >> bamt) | (mask << mamt));
+    val_[w++] = (bamt == 0) ? T(-1) : ((val_.back() >> bamt) | (mask << mamt));
   } else {
-    val_[w++] = (bamt == 0) ? 0 : (val_.back() >> bamt);
+    val_[w++] = (bamt == 0) ? T(0) : (val_.back() >> bamt);
   }
   // Everything else is zero or padded 1s
   for (size_t we = val_.size(); w < we; ++w) {
-    val_[w] = hob ? -1 : 0;
+    val_[w] = hob ? T(-1) : T(0);
   }
 
   // Trim since we could have introduced trailing 1s
