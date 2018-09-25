@@ -514,15 +514,31 @@ inline BitsBase<T>& BitsBase<T>::arithmetic_multiply(const BitsBase& rhs) {
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_divide(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+
+  assert(val_.size() == 1);
+  assert(rhs.val_.size() == 1);
+
+  val_[0] /= rhs.val_[0];
+
+  trim();
   return *this;
 }
 
 template <typename T>
 inline BitsBase<T>& BitsBase<T>::arithmetic_mod(const BitsBase& rhs) {
-  (void) rhs;
-  // TODO!!!!!!
+  if (rhs.size_ > size_) {
+    extend_to(rhs.size_);
+  }
+
+  assert(val_.size() == 1);
+  assert(rhs.val_.size() == 1);
+
+  val_[0] %= rhs.val_[0];
+
+  trim();
   return *this;
 }
 
