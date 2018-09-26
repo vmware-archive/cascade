@@ -19,7 +19,7 @@ using namespace cascade;
 #define YY_DECL yyParser::symbol_type yyLexer::yylex(Parser* parser)
 #define YY_USER_ACTION parser->loc().columns(yyleng);
 
-std::string strip_num(const char* c, size_t n);
+std::pair<bool, std::string> strip_num(const char* c, size_t n);
 std::string strip_path(const char* c);
 %}
 
@@ -138,9 +138,12 @@ std::string strip_path(const char* c);
 
 %%
 
-std::string strip_num(const char* c, size_t n) {
+std::pair<bool, std::string> strip_num(const char* c, size_t n) {
+  auto is_signed = false;
+
   size_t i = 1;
   if (c[i] == 's' || c[i] == 'S') {
+    is_signed = true;
     ++i;
   }
   ++i;
@@ -152,7 +155,7 @@ std::string strip_num(const char* c, size_t n) {
     }
   }
 
-  return s;
+  return std::make_pair(is_signed, s);
 }
 
 std::string strip_path(const char* c) {

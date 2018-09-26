@@ -367,7 +367,7 @@ string De10Logic::printf(const Many<Expression>* args) {
 
   if (s == nullptr) {
     stringstream ss;
-    Number n(evaluate(*a), Number::UNSIGNED);
+    Number n(evaluate(*a), Number::UNBASED);
     TextPrinter(ss) << &n;
     return ss.str();
   } 

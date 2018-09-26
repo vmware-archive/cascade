@@ -499,7 +499,7 @@ string SwLogic::printf(const Many<Expression>* args) {
 
   if (s == nullptr) {
     stringstream ss;
-    Number temp(Evaluate().get_value(*a), Number::UNSIGNED);
+    Number temp(Evaluate().get_value(*a), Number::UNBASED);
     TextPrinter(ss) << &temp;
     return ss.str();
   } 

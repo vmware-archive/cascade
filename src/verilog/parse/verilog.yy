@@ -142,10 +142,10 @@ cascade::Identifier dummy("__dummy");
 %token <std::string> STRING
 
 %token <std::string> UNSIGNED_NUM
-%token <std::string> DECIMAL_VALUE
-%token <std::string> BINARY_VALUE
-%token <std::string> OCTAL_VALUE
-%token <std::string> HEX_VALUE
+%token <std::pair<bool, std::string>> DECIMAL_VALUE
+%token <std::pair<bool, std::string>> BINARY_VALUE
+%token <std::pair<bool, std::string>> OCTAL_VALUE
+%token <std::pair<bool, std::string>> HEX_VALUE
 
 %token SHIFT 
 %left  SHIFT
@@ -662,7 +662,7 @@ output_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
@@ -738,7 +738,7 @@ reg_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       rd->get_id()->set_source(va->get_lhs()->get_source());
       rd->get_id()->set_line(va->get_lhs()->get_line());
       rd->set_source(parser->source());
@@ -784,7 +784,7 @@ delay3
   ;
 /* TODO delay2 */
 delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 32); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, false); }
   /* TODO | real_number */
   /* TODO | identifier */
   ;
@@ -867,7 +867,7 @@ block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
-      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $4->clone(), new Maybe<Expression>()));
+      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $3, $4->clone(), new Maybe<Expression>()));
     }
     delete $1;
     delete $4;
@@ -1238,7 +1238,7 @@ system_task_enable
   : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3); }
-  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNSIGNED, 1)); }
+  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); }
   | SYS_FINISH OPAREN number CPAREN SCOLON { $$ = new FinishStatement($3); }
   | SYS_WRITE SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
@@ -1361,23 +1361,23 @@ number
 /* TODO real_number */
 /* TODO exp */
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 32); }
-  | DECIMAL_VALUE { $$ = new Number($1, Number::DEC, 32); }
-  | size DECIMAL_VALUE { $$ = new Number($2, Number::DEC, $1); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1, Number::BIN, 32); }
-  | size BINARY_VALUE { $$ = new Number($2, Number::BIN, $1); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1, Number::OCT, 32); }
-  | size OCTAL_VALUE { $$ = new Number($2, Number::OCT, $1); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1, Number::HEX, 32); }
-  | size HEX_VALUE { $$ = new Number($2, Number::HEX, $1); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
   ;
 /* TODO sign */
 size
@@ -1680,7 +1680,7 @@ se_output_declaration
   }
   | OUTPUT REG signed_Q range_Q identifier eq_ce_Q %prec OUTPUT {
     auto t = PortDeclaration::OUTPUT;
-    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
+    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;

@@ -309,6 +309,7 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
   return new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
+    rd->get_signed(),
     rd->get_dim()->accept(this),
     rd->get_val()->accept(this)
   );

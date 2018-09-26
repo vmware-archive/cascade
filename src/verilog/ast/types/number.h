@@ -43,7 +43,7 @@ class Number : public Primary {
   public:
     // Supporting Concepts:
     enum Format {
-      UNSIGNED = 0,
+      UNBASED = 0,
       DEC,
       BIN,
       OCT,
@@ -51,8 +51,8 @@ class Number : public Primary {
     };
   
     // Constructors:
-    Number(const std::string& val, Format format_ = UNSIGNED, size_t size = 0);
-    Number(const Bits& val, Format format = UNSIGNED, size_t size = 0);
+    Number(const std::string& val, Format format_ = UNBASED, size_t size = 0, bool is_signed = false);
+    Number(const Bits& val, Format format = UNBASED);
     ~Number() override = default;
 
     // Node Interface:
@@ -66,11 +66,11 @@ class Number : public Primary {
     LEAF_ATTR(Format, format);
 };
 
-inline Number::Number(const std::string& val, Format format, size_t size) : Primary() {
+inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary() {
   parent_ = nullptr;
   std::stringstream ss(val);
   switch (format) {
-    case UNSIGNED:
+    case UNBASED:
     case DEC:
       val_.read(ss, 10);  
       break;
@@ -90,15 +90,15 @@ inline Number::Number(const std::string& val, Format format, size_t size) : Prim
   if (size > 0) {
     val_.resize(size);
   }
+  if (is_signed) {
+    val_.to_signed();
+  }
   format_ = format;
 }
 
-inline Number::Number(const Bits& val, Format format, size_t size) : Primary() {
+inline Number::Number(const Bits& val, Format format) : Primary() {
   parent_ = nullptr;
   val_ = val;
-  if (size > 0) {
-    val_.resize(size);
-  }
   format_ = format;
 }
 

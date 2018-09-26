@@ -152,11 +152,11 @@ void Printer::visit(const MultipleConcatenation* mc) {
 
 void Printer::visit(const Number* n) {
   *this << Color::BLUE;
-  if (n->get_format() != Number::UNSIGNED) {
+  if (n->get_format() != Number::UNBASED) {
     *this << n->get_val().size() << "'"; 
   }
   switch (n->get_format()) {
-    case Number::UNSIGNED:
+    case Number::UNBASED:
       n->get_val().write(os_, 10);
       break;
     case Number::BIN:
@@ -361,6 +361,9 @@ void Printer::visit(const ParameterDeclaration* pd) {
 void Printer::visit(const RegDeclaration* rd) {
   rd->get_attrs()->accept(this);
   *this << Color::GREEN << "reg" << Color::RESET;
+  if (rd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!rd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     rd->get_dim()->accept(this);

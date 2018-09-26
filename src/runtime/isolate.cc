@@ -116,6 +116,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
   auto res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
+    true,
     new Maybe<RangeExpression>(new RangeExpression(64,0)),
     id->get_val()->null() ?
       new Maybe<Expression>() :
@@ -160,6 +161,7 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
   auto res = new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
+    rd->get_signed(),
     rd->get_dim()->accept(this),
     rd->get_val()->null() ?
       new Maybe<Expression>() :
@@ -239,6 +241,7 @@ ModuleDeclaration* Isolate::get_shell() {
         (Declaration*) new RegDeclaration(
           new Attributes(new Many<AttrSpec>()),
           to_global_id(p),
+          dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
           width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width)),
           dynamic_cast<RegDeclaration*>(p->get_parent())->get_val()->clone()
         ) : 

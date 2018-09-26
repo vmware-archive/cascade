@@ -271,8 +271,11 @@ void Evaluate::edit(GenvarDeclaration* gd) {
 }
 
 void Evaluate::edit(IntegerDeclaration* id) {
-  const auto rhs = !id->get_val()->null() ? get_value(id->get_val()->get()).to_int() : 0;
-  set_value(id->get_id(), Bits(32, rhs));
+  // Integers must be a minimum of 32 bits and are always signed
+  auto rhs = !id->get_val()->null() ? get_value(id->get_val()->get()) : Bits(false);
+  rhs.to_signed();
+  rhs.resize(32);
+  set_value(id->get_id(), rhs);
 }
 
 void Evaluate::edit(LocalparamDeclaration* ld) {
@@ -298,10 +301,14 @@ void Evaluate::edit(RegDeclaration* rd) {
     const auto rng = get_range(rd->get_dim()->get());
     w = rng.first-rng.second+1;
   }
-  set_value(rd->get_id(), Bits(w, 0));
+  Bits rhs(w, 0);
+  if (rd->get_signed()) {
+    rhs.to_signed();
+  }
   if (!rd->get_val()->null()) {
-    assign_value(rd->get_id(), get_value(rd->get_val()->get()), w-1, 0); 
+    rhs.assign(get_value(rd->get_val()->get()));
   } 
+  set_value(rd->get_id(), rhs);
 }
 
 void Evaluate::set_value(const Identifier* id, const Bits& val) {
