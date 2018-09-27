@@ -117,7 +117,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
     true,
-    new Maybe<RangeExpression>(new RangeExpression(64,0)),
+    new Maybe<RangeExpression>(new RangeExpression(32,0)),
     id->get_val()->null() ?
       new Maybe<Expression>() :
       new Maybe<Expression>(new Number(Evaluate().get_value(id->get_val()->get()), Number::HEX))
