@@ -42,7 +42,7 @@ class Expression : public Node {
   public:
     // Constructors:
     Expression();
-    ~Expression() override = default;
+    ~Expression();
 
     // Node Interface:
     Expression* clone() const override = 0;
@@ -53,7 +53,7 @@ class Expression : public Node {
 
   protected:
     friend class Evaluate;
-    DECORATION(Bits, bit_val);
+    DECORATION(Bits*, bit_val);
     DECORATION(bool, needs_update);
 
     friend class Resolve;
@@ -61,7 +61,14 @@ class Expression : public Node {
 };
 
 inline Expression::Expression() : Node() {
+  bit_val_ = nullptr;
   needs_update_ = true;
+}
+
+inline Expression::~Expression() {
+  if (bit_val_ != nullptr) {
+    delete bit_val_;
+  }
 }
 
 } // namespace cascade 

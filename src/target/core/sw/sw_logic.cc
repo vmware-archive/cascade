@@ -55,10 +55,6 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   for (auto mi : *src_->get_items()) {
     Monitor().init(mi);
   }
-  // Load initial values for variables.
-  for (auto l : ModuleInfo(src_).locals()) {
-    Evaluate().init_value(dynamic_cast<const Declaration*>(l->get_parent()));
-  }
 
   // Initial provision for update_pool_:
   update_pool_.resize(1);

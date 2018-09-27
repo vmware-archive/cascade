@@ -324,30 +324,6 @@ void Program::edit(LoopGenerateConstruct* lgc) {
   gen_queue_.push_back(lgc);
 }
 
-void Program::edit(GenvarDeclaration* gd) {
-  Evaluate().init_value(gd);
-}
-
-void Program::edit(IntegerDeclaration* id) {
-  Evaluate().init_value(id);
-}
-
-void Program::edit(LocalparamDeclaration* ld) {
-  Evaluate().init_value(ld);
-}
-
-void Program::edit(NetDeclaration* nd) {
-  Evaluate().init_value(nd);
-}
-
-void Program::edit(ParameterDeclaration* pd) {
-  Evaluate().init_value(pd);
-}
-
-void Program::edit(RegDeclaration* rd) {
-  Evaluate().init_value(rd);
-}
-
 void Program::inline_all(ModuleDeclaration* md) {
   if (!Inline().can_inline(md)) {
     return;

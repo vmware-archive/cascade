@@ -56,9 +56,6 @@ class Evaluate : public Editor {
     // value decorations that are currently stored in the AST.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Decorates the AST with the compile-time initial value that corresponds
-    // to a declaration (or 0 if no initial value is given).
-    void init_value(const Declaration* d);
     // Assigns a value to an identifier. The behavior of this method is
     // undefined if the bit width of val exceeds the width of id.
     void assign_value(const Identifier* id, const Bits& val);
@@ -90,7 +87,8 @@ class Evaluate : public Editor {
 
     // Helper Methods:
     void set_value(const Identifier* id, const Bits& val);
-    void invalidate(const Identifier* id);
+    void flag_changed(const Identifier* id);
+    void init_bits(const Expression* e);
 };
 
 } // namespace cascade

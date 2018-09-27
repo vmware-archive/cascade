@@ -122,7 +122,6 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
       new Maybe<Expression>() :
       new Maybe<Expression>(new Number(Evaluate().get_value(id->get_val()->get()), Number::HEX))
   );
-  Evaluate().init_value(res);
   return res;
 }
 
@@ -137,7 +136,6 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
     new Identifier("__id"),
     new Maybe<Expression>(Resolve().get_full_id(ld->get_id())->clone())
   ));
-  Evaluate().init_value(res);
   return res;
 }
 
@@ -153,7 +151,6 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
     new Identifier("__id"),
     new Maybe<Expression>(Resolve().get_full_id(pd->get_id())->clone())
   ));
-  Evaluate().init_value(res);
   return res;
 }
 
@@ -167,7 +164,6 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
       new Maybe<Expression>() :
       new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_val()->get()), Number::HEX))
   );
-  Evaluate().init_value(res);
   return res;
 }
 
