@@ -465,12 +465,10 @@ template <typename T>
 inline void BitsBase<T>::arithmetic_minus(BitsBase& res) const {
   assert(size_ == res.size_);
 
+  T carry = 1;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~val_[i];
-  }
-  T carry = 0;
-  for (size_t i = 0, ie = res.val_.size(); i < ie; ++i) {
-    const T sum = res.val_[i] + 1 + carry;
+    const T sum = res.val_[i] + carry;
     carry = (sum < res.val_[i]) ? 1 : 0;
     res.val_[i] = sum;
   }
@@ -1288,10 +1286,12 @@ void BitsBase<T>::extend_to(size_t n) {
   if (is_negative()) {
     val_.back() |= (T(-1) << (size_ % bits_per_word()));
     val_.resize(words, T(-1));
+    size_ = n;
+    trim();
   } else {
     val_.resize(words, T(0));
+    size_ = n;
   }
-  size_ = n;
 }
    
 template <typename T>

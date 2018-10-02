@@ -112,25 +112,27 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 }
 
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
     true,
     new Maybe<RangeExpression>(new RangeExpression(32,0)),
-    id->get_val()->null() ?
-      new Maybe<Expression>() :
-      new Maybe<Expression>(new Number(Evaluate().get_value(id->get_val()->get()), Number::HEX))
+    new Maybe<Expression>(new Number(Evaluate().get_value(id->get_id()), Number::HEX))
   );
   return res;
 }
 
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
     ld->get_dim()->accept(this),
     ld->get_id()->accept(this),
-    new Number(Evaluate().get_value(ld->get_val()), Number::HEX)
+    new Number(Evaluate().get_value(ld->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
@@ -141,12 +143,14 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
 
 ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // Parameter declarations are downgraded to local params
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
     pd->get_dim()->accept(this),
     pd->get_id()->accept(this),
-    new Number(Evaluate().get_value(pd->get_val()), Number::HEX)
+    new Number(Evaluate().get_value(pd->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
@@ -156,14 +160,14 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
 }
 
 ModuleItem* Isolate::build(const RegDeclaration* rd) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
     rd->get_signed(),
     rd->get_dim()->accept(this),
-    rd->get_val()->null() ?
-      new Maybe<Expression>() :
-      new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_val()->get()), Number::HEX))
+    new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_id()), Number::HEX))
   );
   return res;
 }

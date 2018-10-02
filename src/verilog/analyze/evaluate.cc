@@ -34,8 +34,6 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/analyze/resolve.h"
 
-#include "src/verilog/print/term/term_printer.h"
-
 using namespace std;
 
 namespace cascade {
@@ -227,7 +225,8 @@ void Evaluate::edit(MultipleConcatenation* mc) {
 }
 
 void Evaluate::edit(Number* n) {
-  n->bit_val_->assign(n->get_val());
+  // Does nothing. We assigned a value to this expression in init.
+  (void) n;
 }
 
 void Evaluate::edit(String* s) {
@@ -745,13 +744,12 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   if (id->get_val()->null()) {
     return;
   }
-
-  // Integers context determine their width and sign on the rhs
-  id->get_val()->get()->bit_val_->set_signed(id->get_id()->bit_val_->is_signed());
+  // Assignments impose larger sizes but not sign constraints
   if (id->get_val()->get()->bit_val_->size() < 32) {
     id->get_val()->get()->bit_val_->resize(32);
   }
   id->get_val()->accept(this);
+
   // Now that we're context determined, we can perform initial assignment
   id->get_id()->bit_val_->assign(Evaluate().get_value(id->get_val()->get()));
 }
@@ -766,6 +764,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   if (ld->get_dim()->null()) {
     ld->get_id()->bit_val_->resize(ld->get_val()->bit_val_->size());
   }
+
   // Now that we're context determined, we can perform initial assignment
   ld->get_id()->bit_val_->assign(Evaluate().get_value(ld->get_val()));
 }
@@ -785,6 +784,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   if (pd->get_dim()->null()) {
     pd->get_id()->bit_val_->resize(pd->get_val()->bit_val_->size());
   }
+
   // Now that we're context determined, we can perform initial assignment
   pd->get_id()->bit_val_->assign(Evaluate().get_value(pd->get_val()));
 }
@@ -794,20 +794,18 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   if (rd->get_val()->null()) {
     return;
   }
-
-  // Assignments impose larger sizes and sign constraints
-  rd->get_val()->get()->bit_val_->set_signed(rd->get_id()->bit_val_->is_signed());
+  // Assignments impose larger sizes but not sign constraints
   if (rd->get_id()->bit_val_->size() > rd->get_val()->get()->bit_val_->size()) {
     rd->get_val()->get()->bit_val_->resize(rd->get_id()->bit_val_->size());
   }
   rd->get_val()->accept(this);
+
   // Now that we're context determined, we can perform initial assignment
   rd->get_id()->bit_val_->assign(Evaluate().get_value(rd->get_val()->get()));
 }
 
 void Evaluate::ContextDetermine::edit(VariableAssign* va) {
-  // Assignments impose larger sizes and sign constraints
-  va->get_rhs()->bit_val_->set_signed(va->get_lhs()->bit_val_->is_signed());
+  // Assignments impose larger sizes but not sign constraints
   if (va->get_lhs()->bit_val_->size() > va->get_rhs()->bit_val_->size()) {
     va->get_rhs()->bit_val_->resize(va->get_lhs()->bit_val_->size());
   }
