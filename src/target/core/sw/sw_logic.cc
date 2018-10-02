@@ -189,7 +189,7 @@ void SwLogic::update() {
       Evaluate().assign_value(r, val);
     } else {
       const auto idx = Evaluate().get_range(id->get_dim()->get());
-      Evaluate().assign_value(r, val, idx.first, idx.second);
+      Evaluate().assign_value(r, idx.first, idx.second, val);
     } 
     notify(r);
   }
@@ -480,7 +480,7 @@ void SwLogic::visit(const VariableAssign* va) {
     Evaluate().assign_value(r, res);
   } else {
     const auto idx = Evaluate().get_range(va->get_lhs()->get_dim()->get());
-    Evaluate().assign_value(r, res, idx.first, idx.second);
+    Evaluate().assign_value(r, idx.first, idx.second, res);
   } 
   notify(r);
 }

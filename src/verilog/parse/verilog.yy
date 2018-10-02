@@ -560,7 +560,7 @@ local_parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       lpd->get_id()->set_source(va->get_lhs()->get_source());
       lpd->get_id()->set_line(va->get_lhs()->get_line());
       lpd->set_source(parser->source());
@@ -576,7 +576,7 @@ local_parameter_declaration
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
       lpd->set_source(parser->source());
       lpd->set_line($2);
       $$->push_back(lpd);
@@ -591,7 +591,7 @@ parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       pd->get_id()->set_source(va->get_lhs()->get_source());
       pd->get_id()->set_line(va->get_lhs()->get_line());
       pd->set_source(parser->source());
@@ -607,7 +607,7 @@ parameter_declaration
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
       pd->set_source(parser->source());
       pd->set_line($2);
       $$->push_back(pd);
@@ -627,7 +627,7 @@ inout_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INOUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(), $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -639,7 +639,7 @@ input_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(),$4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -651,7 +651,7 @@ output_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(), $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -701,7 +701,7 @@ net_declaration
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $3, $4->clone());
       nd->set_source(parser->source());
       nd->set_line($2.first);
       $$->push_back(nd);
@@ -716,7 +716,7 @@ net_declaration
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto va = $6->remove_front();
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $3, $4->clone());
       nd->get_id()->set_source(va->get_lhs()->get_source());
       nd->get_id()->set_line(va->get_lhs()->get_line());
       nd->set_source(parser->source());
@@ -1645,11 +1645,11 @@ statement_S
 
 se_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment %prec PARAMETER {
-    $$ = new ParameterDeclaration($1, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment %prec PARAMETER {
-    $$ = new ParameterDeclaration($1, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, false, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
     delete $4;
   }
   ;
@@ -1661,21 +1661,21 @@ se_port_declaration
 se_inout_declaration
   : INOUT net_type_Q signed_Q range_Q identifier %prec INOUT {
     auto t = PortDeclaration::INOUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_input_declaration
   : INPUT net_type_Q signed_Q range_Q identifier %prec INPUT {
     auto t = PortDeclaration::INPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_output_declaration
   : OUTPUT net_type_Q signed_Q range_Q identifier %prec OUTPUT {
     auto t = PortDeclaration::OUTPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   | OUTPUT REG signed_Q range_Q identifier eq_ce_Q %prec OUTPUT {

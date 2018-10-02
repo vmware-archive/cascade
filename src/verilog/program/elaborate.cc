@@ -120,10 +120,10 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     Evaluate().get_value(lgc->get_cond()).to_bool();
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_update()->get_rhs()))
   ) {
-    // TODO: This localparam logic should move to Canonicalize()
     const auto lpd = new LocalparamDeclaration(
       new Attributes(new Many<AttrSpec>()),
-      new Maybe<RangeExpression>(new RangeExpression(64, 0)),
+      false,
+      new Maybe<RangeExpression>(new RangeExpression(32, 0)),
       itr->clone(), 
       new Number(Evaluate().get_value(itr))
     );

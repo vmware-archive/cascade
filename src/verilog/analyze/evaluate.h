@@ -37,34 +37,30 @@
 
 namespace cascade {
 
-// This class is used to compute the value of an expression in the AST.  It can
-// be used to statically compute the value of compile-time constants (see
-// constant.h).  It can also be used to store values as decorations in the AST
-// to, for example, override the initial value of a register. By doing so, it
-// can also be used to compute runtime-specific value computations based on the
-// state of the AST. This class requires up-to-date resolution decorations (see
-// resolve.h) to function correctly.
+// This class implements the semantics of expression evaluation as described in
+// the 2005 Verilog spec. This class requires up-to-date resolution decorations
+// (see resolve.h) to function correctly.
 
 class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
-    // Returns the value of an expression based on the value decorations that
-    // are currently stored in the AST.
+    // Returns the bit-width of an expression
+    size_t get_width(const Expression* e);
+    // Returns whether an expression is signed or unsigned
+    bool get_signed(const Expression* e);
+
+    // Returns the value of an expression.
     const Bits& get_value(const Expression* e);
-    // Returns the upper and lower ends of a range expression based on the
-    // value decorations that are currently stored in the AST.
+    // Returns upper and lower values for ranges, get_value() twice otherwise.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Assigns a value to an identifier. The behavior of this method is
-    // undefined if the bit width of val exceeds the width of id.
+    // Sets the value of id to val. 
     void assign_value(const Identifier* id, const Bits& val);
-    // Assigns the idx'th bit of val to the 0th bit of id.
-    void assign_value(const Identifier* id, const Bits& val, size_t idx);
-    // Assigns the i-j+1 bits between i and j of val to the i-j+1th bits of id.
-    // The behavior of this method is undefined if the bit width of this range
-    // exceeds the range of id.
-    void assign_value(const Identifier* id, const Bits& val, size_t i, size_t j);
+    // Sets the value of the idx'th bit of id to val.
+    void assign_value(const Identifier* id, size_t idx, const Bits& val);
+    // Sets the slice between i and j in id to the first (i-j+1) bits of val.
+    void assign_value(const Identifier* id, size_t i, size_t j, const Bits& val);
 
   private:
     // Editor Interface:
@@ -76,19 +72,52 @@ class Evaluate : public Editor {
     void edit(MultipleConcatenation* mc) override;
     void edit(Number* n) override;
     void edit(String* s) override;
-    void edit(RangeExpression* re) override;
     void edit(UnaryExpression* ue) override;
-    void edit(GenvarDeclaration* gd) override;
-    void edit(IntegerDeclaration* id) override;
-    void edit(LocalparamDeclaration* ld) override;
-    void edit(NetDeclaration* nd) override; 
-    void edit(ParameterDeclaration* pd) override;
-    void edit(RegDeclaration* rd) override;
 
     // Helper Methods:
-    void set_value(const Identifier* id, const Bits& val);
+    void init(Expression* e);
     void flag_changed(const Identifier* id);
-    void init_bits(const Expression* e);
+
+    // Uses the self-determination to allocate bits, sizes, and types.
+    struct SelfDetermine : public Editor {
+      ~SelfDetermine() override = default;
+      void edit(BinaryExpression* be) override;
+      void edit(ConditionalExpression* ce) override;
+      void edit(NestedExpression* ne) override;
+      void edit(Concatenation* c) override;
+      void edit(Identifier* id) override;
+      void edit(MultipleConcatenation* mc) override;
+      void edit(Number* n) override;
+      void edit(String* s) override;
+      void edit(UnaryExpression* ue) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override; 
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(VariableAssign* va) override;
+    };
+    // Propagates bit-width for context determined operators.
+    struct ContextDetermine : public Editor {
+      ~ContextDetermine() override = default;
+      void edit(BinaryExpression* be) override;
+      void edit(ConditionalExpression* ce) override;
+      void edit(NestedExpression* ne) override;
+      void edit(Concatenation* c) override;
+      void edit(Identifier* id) override;
+      void edit(MultipleConcatenation* mc) override;
+      void edit(Number* n) override;
+      void edit(String* s) override;
+      void edit(UnaryExpression* ue) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override; 
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(VariableAssign* va) override;
+    };
 };
 
 } // namespace cascade

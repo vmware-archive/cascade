@@ -316,6 +316,9 @@ void Printer::visit(const IntegerDeclaration* id) {
 void Printer::visit(const LocalparamDeclaration* ld) {
   ld->get_attrs()->accept(this);
   *this << Color::GREEN << "localparam" << Color::RESET;
+  if (ld->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!ld->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     ld->get_dim()->accept(this);
@@ -332,6 +335,9 @@ void Printer::visit(const NetDeclaration* nd) {
   nd->get_attrs()->accept(this);
   static array<string,1> nts_ {{"wire"}};
   *this << Color::GREEN << nts_[(size_t)nd->get_type()] << Color::RESET;
+  if (nd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!nd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     nd->get_dim()->accept(this);
@@ -346,6 +352,9 @@ void Printer::visit(const NetDeclaration* nd) {
 void Printer::visit(const ParameterDeclaration* pd) {
   pd->get_attrs()->accept(this);
   *this << Color::GREEN << "parameter" << Color::RESET;
+  if (pd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!pd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     pd->get_dim()->accept(this);

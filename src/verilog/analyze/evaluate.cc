@@ -34,12 +34,24 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/analyze/resolve.h"
 
+#include "src/verilog/print/term/term_printer.h"
+
 using namespace std;
 
 namespace cascade {
 
+size_t Evaluate::get_width(const Expression* e) {
+  init(const_cast<Expression*>(e));
+  return e->bit_val_->size();
+}
+
+bool Evaluate::get_signed(const Expression* e) {
+  init(const_cast<Expression*>(e));
+  return e->bit_val_->is_signed();
+}
+
 const Bits& Evaluate::get_value(const Expression* e) {
-  init_bits(e);
+  init(const_cast<Expression*>(e));
   if (e->needs_update_) {
     const_cast<Expression*>(e)->accept(this);
     const_cast<Expression*>(e)->needs_update_ = false;
@@ -68,101 +80,100 @@ pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
 }
 
 void Evaluate::assign_value(const Identifier* id, const Bits& val) {
-  init_bits(id);
-  if (*id->bit_val_ != val) {
+  init(const_cast<Identifier*>(id));
+  if (!id->bit_val_->eq(val)) {
     const_cast<Identifier*>(id)->bit_val_->assign(val);
     flag_changed(id);
   }
 }
 
-void Evaluate::assign_value(const Identifier* id, const Bits& val, size_t idx) {
-  init_bits(id);
-  if (!const_cast<Bits*>(id->bit_val_)->eq(val, idx)) {
+void Evaluate::assign_value(const Identifier* id, size_t idx, const Bits& val) {
+  init(const_cast<Identifier*>(id));
+  if (!id->bit_val_->eq(idx, val)) {
     const_cast<Identifier*>(id)->bit_val_->assign(idx, val);
     flag_changed(id);
   }
 }
 
-void Evaluate::assign_value(const Identifier* id, const Bits& val, size_t i, size_t j) {
-  init_bits(id);
-  if (!const_cast<Bits*>(id->bit_val_)->eq(val, i, j)) {
+void Evaluate::assign_value(const Identifier* id, size_t i, size_t j, const Bits& val) {
+  init(const_cast<Identifier*>(id));
+  if (!id->bit_val_->eq(i, j, val)) {
     const_cast<Identifier*>(id)->bit_val_->assign(i, j, val);
     flag_changed(id);
   }
 }
 
 void Evaluate::edit(BinaryExpression* be) {
-  *be->bit_val_ = get_value(be->get_lhs());
   switch (be->get_op()) {
     case BinaryExpression::PLUS:
-      be->bit_val_->arithmetic_plus(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_plus(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::MINUS:
-      be->bit_val_->arithmetic_minus(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_minus(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::TIMES:
-      be->bit_val_->arithmetic_multiply(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_multiply(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::DIV:
-      be->bit_val_->arithmetic_divide(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_divide(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::MOD:
-      be->bit_val_->arithmetic_mod(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_mod(get_value(be->get_rhs()), *be->bit_val_);
       break;
+    // NOTE: These are equivalent insofar as we don't support x and z
     case BinaryExpression::EEEQ:
-      // NOTE: These are equivalent only insofar as we don't support x and z
     case BinaryExpression::EEQ:
-      be->bit_val_->logical_eq(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_eq(get_value(be->get_rhs()), *be->bit_val_);
       break;
+    // NOTE: These are equivalent insofar as we don't support x and z
     case BinaryExpression::BEEQ:
-      // NOTE: These are equivalent only insofar as we don't support x and z
     case BinaryExpression::BEQ:
-      be->bit_val_->logical_ne(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_ne(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::AAMP:
-      be->bit_val_->logical_and(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_and(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::PPIPE:
-      be->bit_val_->logical_or(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_or(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::TTIMES:
-      be->bit_val_->arithmetic_pow(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).arithmetic_pow(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::LT:
-      be->bit_val_->logical_lt(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_lt(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::LEQ:
-      be->bit_val_->logical_lte(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_lte(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::GT:
-      be->bit_val_->logical_gt(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_gt(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::GEQ:
-      be->bit_val_->logical_gte(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).logical_gte(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::AMP:
-      be->bit_val_->bitwise_and(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_and(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::PIPE:
-      be->bit_val_->bitwise_or(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_or(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::CARAT:
-      be->bit_val_->bitwise_xor(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_xor(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::TCARAT:
-      be->bit_val_->bitwise_xnor(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_xnor(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::LLT:
-      be->bit_val_->bitwise_sll(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_sll(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::LLLT:
-      be->bit_val_->bitwise_sal(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_sal(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::GGT:
-      be->bit_val_->bitwise_slr(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_slr(get_value(be->get_rhs()), *be->bit_val_);
       break;
     case BinaryExpression::GGGT:
-      be->bit_val_->bitwise_sar(get_value(be->get_rhs()));
+      get_value(be->get_lhs()).bitwise_sar(get_value(be->get_rhs()), *be->bit_val_);
       break;
 
     default:
@@ -173,50 +184,50 @@ void Evaluate::edit(BinaryExpression* be) {
 
 void Evaluate::edit(ConditionalExpression* ce) {
   if (get_value(ce->get_cond()).to_bool()) {
-    *ce->bit_val_ = get_value(ce->get_lhs());
+    ce->bit_val_->assign(get_value(ce->get_lhs()));
   } else {
-    *ce->bit_val_ = get_value(ce->get_rhs());
+    ce->bit_val_->assign(get_value(ce->get_rhs()));
   }
 }
 
 void Evaluate::edit(NestedExpression* ne) {
-  *ne->bit_val_ = get_value(ne->get_expr());
+  ne->bit_val_->assign(get_value(ne->get_expr()));
 }
 
 void Evaluate::edit(Concatenation* c) {
   auto i = c->get_exprs()->begin();
-  *c->bit_val_ = get_value(*i++);
+  c->bit_val_->assign(get_value(*i++));
   for (auto ie = c->get_exprs()->end(); i != ie; ++i) {
-    c->bit_val_->concat(get_value(*i));
+    c->bit_val_->concat( get_value(*i));
   }
 }
 
 void Evaluate::edit(Identifier* id) {
+  // Nothing to do if this is a self-reference
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);
-
-  // Nothing to do if this is a self-reference
   if (r == id) {
     return;
   }
-  // Otherwise copy and slice as necessary
-  *id->bit_val_ = get_value(r);
-  if (!id->get_dim()->null()) {
+  // Otherwise copy or slice 
+  if (id->get_dim()->null()) {
+    id->bit_val_->assign(get_value(r));
+  } else {
     const auto range = get_range(id->get_dim()->get());
-    id->bit_val_->slice(range.first, range.second);
+    id->bit_val_->assign(get_value(r), range.first, range.second);
   }
 }
 
 void Evaluate::edit(MultipleConcatenation* mc) {
   const auto lhs = get_value(mc->get_expr()).to_int();
-  *mc->bit_val_ = get_value(mc->get_concat());
+  mc->bit_val_->assign(get_value(mc->get_concat()));
   for (size_t i = 1; i < lhs; ++i) {
     mc->bit_val_->concat(*mc->get_concat()->bit_val_);
   }
 }
 
 void Evaluate::edit(Number* n) {
-  *n->bit_val_ = n->get_val();
+  n->bit_val_->assign(n->get_val());
 }
 
 void Evaluate::edit(String* s) {
@@ -225,44 +236,37 @@ void Evaluate::edit(String* s) {
   (void) s;
 }
 
-void Evaluate::edit(RangeExpression* re) {
-  // Control should never reach here.
-  assert(false);
-  (void) re;
-}
-
 void Evaluate::edit(UnaryExpression* ue) {
-  *ue->bit_val_ = get_value(ue->get_lhs());
   switch (ue->get_op()) {
     case UnaryExpression::PLUS:
-      ue->bit_val_->arithmetic_plus();
+      get_value(ue->get_lhs()).arithmetic_plus(*ue->bit_val_);
       break;
     case UnaryExpression::MINUS:
-      ue->bit_val_->arithmetic_minus();
+      get_value(ue->get_lhs()).arithmetic_minus(*ue->bit_val_);
       break;
     case UnaryExpression::BANG:
-      ue->bit_val_->logical_not();
+      get_value(ue->get_lhs()).logical_not(*ue->bit_val_);
       break;
     case UnaryExpression::TILDE:
-      ue->bit_val_->bitwise_not();
+      get_value(ue->get_lhs()).bitwise_not(*ue->bit_val_);
       break;
     case UnaryExpression::AMP:
-      ue->bit_val_->reduce_and();
+      get_value(ue->get_lhs()).reduce_and(*ue->bit_val_);
       break;
     case UnaryExpression::TAMP:
-      ue->bit_val_->reduce_nand();
+      get_value(ue->get_lhs()).reduce_nand(*ue->bit_val_);
       break;
     case UnaryExpression::PIPE:
-      ue->bit_val_->reduce_or();
+      get_value(ue->get_lhs()).reduce_or(*ue->bit_val_);
       break;
     case UnaryExpression::TPIPE:
-      ue->bit_val_->reduce_nor();
+      get_value(ue->get_lhs()).reduce_nor(*ue->bit_val_);
       break;
     case UnaryExpression::CARAT:
-      ue->bit_val_->reduce_xor();
+      get_value(ue->get_lhs()).reduce_xor(*ue->bit_val_);
       break;
     case UnaryExpression::TCARAT:
-      ue->bit_val_->reduce_xnor();
+      get_value(ue->get_lhs()).reduce_xnor(*ue->bit_val_);
       break;
     default:
       assert(false);
@@ -270,54 +274,72 @@ void Evaluate::edit(UnaryExpression* ue) {
   }
 }
 
-void Evaluate::edit(GenvarDeclaration* gd) {
-  set_value(gd->get_id(), Bits(32, 0));
-}
-
-void Evaluate::edit(IntegerDeclaration* id) {
-  // Integers must be a minimum of 32 bits and are always signed
-  auto rhs = !id->get_val()->null() ? get_value(id->get_val()->get()) : Bits(false);
-  rhs.to_signed();
-  rhs.resize(32);
-  set_value(id->get_id(), rhs);
-}
-
-void Evaluate::edit(LocalparamDeclaration* ld) {
-  set_value(ld->get_id(), get_value(ld->get_val()));
-}
-
-void Evaluate::edit(NetDeclaration* nd) {
-  size_t w = 1;
-  if (!nd->get_dim()->null()) {
-    const auto rng = get_range(nd->get_dim()->get());
-    w = rng.first-rng.second+1;
+void Evaluate::init(Expression* e) {
+  // Nothing to do if this expression has bits allocated for it.
+  if (e->bit_val_ != nullptr) {
+    return;
   }
-  set_value(nd->get_id(), Bits(w, 0));
-}
 
-void Evaluate::edit(ParameterDeclaration* pd) {
-  set_value(pd->get_id(), get_value(pd->get_val()));
-}
-
-void Evaluate::edit(RegDeclaration* rd) {
-  size_t w = 1;
-  if (!rd->get_dim()->null()) {
-    const auto rng = get_range(rd->get_dim()->get());
-    w = rng.first-rng.second+1;
-  }
-  Bits rhs(w, 0);
-  if (rd->get_signed()) {
-    rhs.to_signed();
-  }
-  if (!rd->get_val()->null()) {
-    rhs.assign(get_value(rd->get_val()->get()));
+  // Walk up the AST until we find something other than an expression.  Our
+  // goal is to allocate bits for all expressions in this subtree. 
+  // 
+  // We're going to treat anything that appears on the right hand side of an
+  // assignment as a subtree. Notably, we're also going to treat expressions
+  // inside of identifier and id subscripts, declaration subscripts, and the
+  // multiplier in multiple concatenations as subtrees. This will simplify some
+  // things in a few places where we'll want to compute a final
+  // context-determined value during self-determination.
+  Node* root = nullptr;
+  for (root = e; ; root = root->get_parent()) {
+    // Continuous, non-blocking, or blocking assigns
+    if (dynamic_cast<VariableAssign*>(root->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    // Parameter declarations
+    else if (dynamic_cast<LocalparamDeclaration*>(root->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    else if (dynamic_cast<ParameterDeclaration*>(root->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    // Multiple Concatenation
+    else if (dynamic_cast<MultipleConcatenation*>(root->get_parent())) {
+      break;
+    }
+    // Subscripts inside of ids
+    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Id*>(root->get_parent()->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    // Subscripts inside of identifiers
+    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Identifier*>(root->get_parent()->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    // Ranges inside of declarations 
+    else if (dynamic_cast<Maybe<RangeExpression>*>(root->get_parent()) && dynamic_cast<Declaration*>(root->get_parent()->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    // Variables inside of declarations
+    else if (dynamic_cast<Declaration*>(root->get_parent())) {
+      root = root->get_parent();
+      break;
+    }
+    else if (!dynamic_cast<Expression*>(root->get_parent())) {
+      break;
+    }
   } 
-  set_value(rd->get_id(), rhs);
-}
 
-void Evaluate::set_value(const Identifier* id, const Bits& val) {
-  *const_cast<Identifier*>(id)->bit_val_ = val;
-  flag_changed(id);
+  // Use rules of self-determination to allocate bits, sizes, and signs
+  SelfDetermine sd;
+  root->accept(&sd);
+  // Use the rules of context-determination to update sizes in some cases
+  ContextDetermine cd;
+  root->accept(&cd);
 }
 
 void Evaluate::flag_changed(const Identifier* id) {
@@ -327,21 +349,472 @@ void Evaluate::flag_changed(const Identifier* id) {
   }
 }
 
-void Evaluate::init_bits(const Expression* e) {
-  // Nothing to do if we already have storage for this expression
-  if (e->bit_val_ != nullptr) {
+void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
+  Editor::edit(be);
+
+  size_t w = 0;
+  bool s = false;
+  switch (be->get_op()) {
+    case BinaryExpression::PLUS:
+    case BinaryExpression::MINUS:
+    case BinaryExpression::TIMES:
+    case BinaryExpression::DIV:
+    case BinaryExpression::MOD:
+      s = be->get_lhs()->bit_val_->is_signed() && be->get_rhs()->bit_val_->is_signed();
+      w = max(be->get_lhs()->bit_val_->size(), be->get_rhs()->bit_val_->size());
+      break;
+    case BinaryExpression::AMP:
+    case BinaryExpression::PIPE:
+    case BinaryExpression::CARAT:
+    case BinaryExpression::TCARAT:
+      w = max(be->get_lhs()->bit_val_->size(), be->get_rhs()->bit_val_->size());
+      s = false;
+      break;
+    case BinaryExpression::EEEQ:
+    case BinaryExpression::BEEQ:
+    case BinaryExpression::EEQ:
+    case BinaryExpression::BEQ:
+    case BinaryExpression::GT:
+    case BinaryExpression::GEQ:
+    case BinaryExpression::LT:
+    case BinaryExpression::LEQ:
+    case BinaryExpression::AAMP:
+    case BinaryExpression::PPIPE:
+      w = 1;
+      s = false;
+      break;
+    case BinaryExpression::GGT:
+    case BinaryExpression::LLT:
+    case BinaryExpression::TTIMES:
+    case BinaryExpression::GGGT:
+    case BinaryExpression::LLLT:
+      w = be->get_lhs()->bit_val_->size();
+      s = false;
+      break;
+    default:
+      assert(false);
+  }
+  be->bit_val_ = new Bits(w, 0);
+  be->bit_val_->set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
+  Editor::edit(ce);
+
+  // TODO: Are we sure that this is the right calculus for sign?  I haven't
+  // been able to find anything to this point in the spec.
+  bool s = ce->get_lhs()->bit_val_->is_signed() && ce->get_rhs()->bit_val_->is_signed();
+  size_t w = max(ce->get_lhs()->bit_val_->size(), ce->get_rhs()->bit_val_->size());
+  ce->bit_val_ = new Bits(w, 0);
+  ce->bit_val_->set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(NestedExpression* ne) {
+  Editor::edit(ne);
+
+  size_t w = ne->get_expr()->bit_val_->size();
+  bool s = ne->get_expr()->bit_val_->is_signed();
+  ne->bit_val_ = new Bits(w, 0);
+  ne->bit_val_->set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(Concatenation* c) {
+  Editor::edit(c);
+
+  size_t w = 0;
+  for (auto e : *c->get_exprs()) {
+    w += e->bit_val_->size();
+  }
+  c->bit_val_ = new Bits(w, 0);
+  c->bit_val_->set_signed(false);
+}
+
+void Evaluate::SelfDetermine::edit(Identifier* id) {
+  // Don't descend on dim. We treat it as a separate subtree.
+  // TODO: Why do we seem to need this, then?
+  id->get_dim()->accept(this);
+
+  size_t w = 0;
+  bool s = false;
+  if (id->get_dim()->null()) {
+    const auto r = Resolve().get_resolution(id);
+    assert(r != nullptr);
+    w = Evaluate().get_width(r);
+    s = Evaluate().get_signed(r);
+  } else if (auto re = dynamic_cast<RangeExpression*>(id->get_dim()->get())) {
+    const auto lower = Evaluate().get_value(re->get_lower()).to_int();
+    if (re->get_type() == RangeExpression::CONSTANT) {
+      const auto upper = Evaluate().get_value(re->get_upper()).to_int();
+      w = upper-lower+1;
+    } else {
+      w = lower;
+    }
+    s = false;
+  } else {
+    w = 1;
+    s = false;
+  }
+  id->bit_val_ = new Bits(w, 0);
+  id->bit_val_->set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
+  // Don't descend on expr, this is a separate expression tree.
+  mc->get_concat()->accept(this);
+
+  size_t w = Evaluate().get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_->size();
+  mc->bit_val_ = new Bits(w, 0);
+  mc->bit_val_->set_signed(false);
+}
+
+void Evaluate::SelfDetermine::edit(Number* n) {
+  // Copying the underlying value of n sets value, width, and sign
+  n->bit_val_ = new Bits(n->get_val());
+}
+
+void Evaluate::SelfDetermine::edit(String* s) {
+  // TODO: Support for this language feature
+  assert(false);
+  (void) s;
+}
+
+void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
+  Editor::edit(ue);
+
+  size_t w = 0;
+  auto s = false;
+  switch (ue->get_op()) {
+    case UnaryExpression::PLUS:
+    case UnaryExpression::MINUS:
+      w = ue->get_lhs()->bit_val_->size();
+      s = ue->get_lhs()->bit_val_->is_signed();
+      break;
+    case UnaryExpression::TILDE:
+      w = ue->get_lhs()->bit_val_->size();
+      s = false;
+      break;
+    case UnaryExpression::AMP:
+    case UnaryExpression::TAMP:
+    case UnaryExpression::PIPE:
+    case UnaryExpression::TPIPE:
+    case UnaryExpression::CARAT:
+    case UnaryExpression::TCARAT:
+    case UnaryExpression::BANG:
+      w = 1;
+      s = false;
+      break;
+    default:
+     assert(false); 
+  }
+  ue->bit_val_ = new Bits(w, 0);
+  ue->bit_val_->set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
+  // Don't descend on id, we handle it below
+
+  // Genvars are materialized as localparams and follow the same rules.  For
+  // lack of information in this declaration though, we have to assume 32 bit
+  // unsigned. It's not like it even matters. Nothing should ever try to
+  // dereference this value.
+  gd->get_id()->bit_val_ = new Bits(32, 0);
+  gd->get_id()->bit_val_->set_signed(false);
+}
+
+void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
+  // Don't descend on id, we handle it below
+  id->get_val()->accept(this);
+
+  // Integers must be a minimum of 32 bits and are always signed
+  id->get_id()->bit_val_ = new Bits(32, 0);
+  id->get_id()->bit_val_->set_signed(true);
+
+  // Hold off on initial assignment here. We may be doing some size extending
+  // in context-determination. We'll want to wait until then to compute the
+  // value of this variable.
+}
+
+void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
+  // Don't descend on id or dim (id we handle below, dim is a separate subtree)
+  ld->get_val()->accept(this);
+
+  // Start out with a basic allocation of bits
+  ld->get_id()->bit_val_ = new Bits(false);
+  // Parameter declaration may override size and sign
+  ld->get_id()->bit_val_->set_signed(ld->get_signed());
+  if (!ld->get_dim()->null()) {
+    const auto rng = Evaluate().get_range(ld->get_dim()->get());
+    ld->get_id()->bit_val_->resize(rng.first-rng.second+1);
+  } 
+
+  // Hold off on initial assignment here. We may be doing some size extending
+  // in context-determination. We'll want to wait until then to compute the
+  // value of this variable.
+}
+
+void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
+  // Don't descend on id or dim (id we handle below, dim is a separate subtree)
+  nd->get_ctrl()->accept(this);
+
+  size_t w = 1;
+  if (!nd->get_dim()->null()) {
+    const auto rng = Evaluate().get_range(nd->get_dim()->get());
+    w = rng.first-rng.second+1;
+  }
+  nd->get_id()->bit_val_ = new Bits(w, 0);
+  nd->get_id()->bit_val_->set_signed(nd->get_signed());
+
+  // For whatever reason, we've chosen to materialize net declarations as
+  // declarations followed by continuous assigns. So there's no initial value
+  // to worry about here.
+}
+
+void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
+  // Don't descend on id or dim (id we handle below, dim is a separate subtree)
+  pd->get_val()->accept(this);
+
+  // Start out with a basic allocation of bits
+  pd->get_id()->bit_val_ = new Bits(false);
+  // Parameter declaration may override size and sign
+  pd->get_id()->bit_val_->set_signed(pd->get_signed());
+  if (!pd->get_dim()->null()) {
+    const auto rng = Evaluate().get_range(pd->get_dim()->get());
+    pd->get_id()->bit_val_->resize(rng.first-rng.second+1);
+  }
+
+  // Hold off on initial assignment here. We may be doing some size extending
+  // in context-determination. We'll want to wait until then to compute the
+  // value of this variable.
+}
+
+void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
+  // Don't descend on id or dim (id we handle below, dim is a separate subtree)
+  rd->get_val()->accept(this);
+
+  size_t w = 1;
+  if (!rd->get_dim()->null()) {
+    const auto rng = Evaluate().get_range(rd->get_dim()->get());
+    w = rng.first-rng.second+1;
+  }
+  rd->get_id()->bit_val_ = new Bits(w, 0);
+  rd->get_id()->bit_val_->set_signed(rd->get_signed());
+
+  // Hold off on initial assignment here. We may be doing some size extending
+  // in context-determination. We'll want to wait until then to compute the
+  // value of this variable.
+}
+
+void Evaluate::SelfDetermine::edit(VariableAssign* va) {
+  // There's nothing special to be done here. All the weird magic for
+  // assignments happens in context determination.
+  Editor::edit(va);
+}
+
+void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
+  size_t w = 0;
+  bool s = false;
+  switch (be->get_op()) {
+    case BinaryExpression::PLUS:
+    case BinaryExpression::MINUS:
+    case BinaryExpression::TIMES:
+    case BinaryExpression::DIV:
+    case BinaryExpression::MOD:
+    case BinaryExpression::AMP:
+    case BinaryExpression::PIPE:
+    case BinaryExpression::CARAT:
+    case BinaryExpression::TCARAT:
+      // Both operands are context dependent
+      be->get_lhs()->bit_val_->set_signed(be->bit_val_->is_signed());
+      be->get_lhs()->bit_val_->resize(be->bit_val_->size());
+      be->get_rhs()->bit_val_->set_signed(be->bit_val_->is_signed());
+      be->get_rhs()->bit_val_->resize(be->bit_val_->size());
+      break;
+    case BinaryExpression::EEEQ:
+    case BinaryExpression::BEEQ:
+    case BinaryExpression::EEQ:
+    case BinaryExpression::BEQ:
+    case BinaryExpression::GT:
+    case BinaryExpression::GEQ:
+    case BinaryExpression::LT:
+    case BinaryExpression::LEQ:
+      // Operands are sort-of context dependent. They affect each other
+      // independently of what's going on here.
+      w = max(Evaluate().get_width(be->get_lhs()), Evaluate().get_width(be->get_rhs()));
+      s = Evaluate().get_signed(be->get_lhs()) && Evaluate().get_signed(be->get_rhs());
+      be->get_lhs()->bit_val_->set_signed(s);
+      be->get_lhs()->bit_val_->resize(w);
+      be->get_rhs()->bit_val_->set_signed(s);
+      be->get_rhs()->bit_val_->resize(w);
+      break;
+    case BinaryExpression::AAMP:
+    case BinaryExpression::PPIPE:
+      // Both operands are self-determined
+      break;
+    case BinaryExpression::GGT:
+    case BinaryExpression::LLT:
+    case BinaryExpression::TTIMES:
+    case BinaryExpression::GGGT:
+    case BinaryExpression::LLLT:
+      // The right-hand side of these expressions is self-determined
+      be->get_lhs()->bit_val_->set_signed(be->bit_val_->is_signed());
+      be->get_lhs()->bit_val_->resize(be->bit_val_->size());
+      break;
+    default:
+      assert(false);
+  }
+
+  Editor::edit(be);        
+}
+
+void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
+  // Conditions are self-determined
+  ce->get_lhs()->bit_val_->set_signed(ce->bit_val_->is_signed());
+  ce->get_lhs()->bit_val_->resize(ce->bit_val_->size());
+  ce->get_rhs()->bit_val_->set_signed(ce->bit_val_->is_signed());
+  ce->get_rhs()->bit_val_->resize(ce->bit_val_->size());
+
+  Editor::edit(ce);
+}
+
+void Evaluate::ContextDetermine::edit(NestedExpression* ne) {
+  ne->get_expr()->bit_val_->set_signed(ne->bit_val_->is_signed());
+  ne->get_expr()->bit_val_->resize(ne->bit_val_->size());
+  
+  Editor::edit(ne);
+}
+
+void Evaluate::ContextDetermine::edit(Concatenation* c) {
+  // Pass on through. All operands are self-determined.
+  Editor::edit(c);
+}
+
+void Evaluate::ContextDetermine::edit(Identifier* id) {
+  // Nothing to do here. The only expressions we can reach from here are subscripts,
+  // which we treat as separate subtrees.
+  // TODO: Why do we seem to need this, then?
+  id->get_dim()->accept(this);
+  (void) id;
+}
+
+void Evaluate::ContextDetermine::edit(MultipleConcatenation* mc) {
+  // Don't descend on expr, this is a separate expression tree.
+  mc->get_concat()->accept(this);
+}
+
+void Evaluate::ContextDetermine::edit(Number* n) {
+  // Nothing left to do here. This is a primary with no nested expressions.
+  (void) n;
+}
+
+void Evaluate::ContextDetermine::edit(String* s) {
+  // Nothing left to do here. This is a primary with no nested expressions.
+  (void) s;
+}
+
+void Evaluate::ContextDetermine::edit(UnaryExpression* ue) {
+  switch (ue->get_op()) {
+    case UnaryExpression::PLUS:
+    case UnaryExpression::MINUS:
+    case UnaryExpression::TILDE:
+      ue->get_lhs()->bit_val_->set_signed(ue->bit_val_->is_signed());
+      ue->get_lhs()->bit_val_->resize(ue->bit_val_->size());
+      break;
+    case UnaryExpression::AMP:
+    case UnaryExpression::TAMP:
+    case UnaryExpression::PIPE:
+    case UnaryExpression::TPIPE:
+    case UnaryExpression::CARAT:
+    case UnaryExpression::TCARAT:
+    case UnaryExpression::BANG:
+      // All operands are self-determined
+      break;
+    default:
+     assert(false); 
+  }
+
+  Editor::edit(ue);
+}
+
+void Evaluate::ContextDetermine::edit(GenvarDeclaration* gd) {
+  // There's nothing left to do here. There's no rhs to worry about.
+  (void) gd;
+}
+
+void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) { 
+  // Nothing to do if there's no assignment happening here
+  if (id->get_val()->null()) {
     return;
   }
 
-  // Allocate bits
-  const_cast<Expression*>(e)->bit_val_ = new Bits(false);
-  // TODO: Set size and signedness appropriately
-
-  // If this is a declaration, initialize its value
-  const auto d = e->get_parent();
-  if (dynamic_cast<const Identifier*>(e) && dynamic_cast<const Declaration*>(d)) {
-    d->accept(this);
+  // Integers context determine their width and sign on the rhs
+  id->get_val()->get()->bit_val_->set_signed(id->get_id()->bit_val_->is_signed());
+  if (id->get_val()->get()->bit_val_->size() < 32) {
+    id->get_val()->get()->bit_val_->resize(32);
   }
+  id->get_val()->accept(this);
+  // Now that we're context determined, we can perform initial assignment
+  id->get_id()->bit_val_->assign(Evaluate().get_value(id->get_val()->get()));
+}
+
+void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
+  // Parameters don't impose constraints on their rhs
+  ld->get_val()->accept(this);
+  // But they inherit size and width from their rhs unless otherwise specified
+  if (!ld->get_signed()) {
+    ld->get_id()->bit_val_->set_signed(ld->get_val()->bit_val_->is_signed());
+  }
+  if (ld->get_dim()->null()) {
+    ld->get_id()->bit_val_->resize(ld->get_val()->bit_val_->size());
+  }
+  // Now that we're context determined, we can perform initial assignment
+  ld->get_id()->bit_val_->assign(Evaluate().get_value(ld->get_val()));
+}
+
+void Evaluate::ContextDetermine::edit(NetDeclaration* nd) { 
+  // There's nothing left to do here. There's no rhs to worry about.
+  (void) nd;
+}
+
+void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
+  // Parameters don't impose constraints on their rhs
+  pd->get_val()->accept(this);
+  // But they inherit size and width from their rhs unless otherwise specified
+  if (!pd->get_signed()) {
+    pd->get_id()->bit_val_->set_signed(pd->get_val()->bit_val_->is_signed());
+  }
+  if (pd->get_dim()->null()) {
+    pd->get_id()->bit_val_->resize(pd->get_val()->bit_val_->size());
+  }
+  // Now that we're context determined, we can perform initial assignment
+  pd->get_id()->bit_val_->assign(Evaluate().get_value(pd->get_val()));
+}
+
+void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
+  // Nothing to do if there's no assignment happening here
+  if (rd->get_val()->null()) {
+    return;
+  }
+
+  // Assignments impose larger sizes and sign constraints
+  rd->get_val()->get()->bit_val_->set_signed(rd->get_id()->bit_val_->is_signed());
+  if (rd->get_id()->bit_val_->size() > rd->get_val()->get()->bit_val_->size()) {
+    rd->get_val()->get()->bit_val_->resize(rd->get_id()->bit_val_->size());
+  }
+  rd->get_val()->accept(this);
+  // Now that we're context determined, we can perform initial assignment
+  rd->get_id()->bit_val_->assign(Evaluate().get_value(rd->get_val()->get()));
+}
+
+void Evaluate::ContextDetermine::edit(VariableAssign* va) {
+  // Assignments impose larger sizes and sign constraints
+  va->get_rhs()->bit_val_->set_signed(va->get_lhs()->bit_val_->is_signed());
+  if (va->get_lhs()->bit_val_->size() > va->get_rhs()->bit_val_->size()) {
+    va->get_rhs()->bit_val_->resize(va->get_lhs()->bit_val_->size());
+  }
+  va->get_rhs()->accept(this);
+
+  // We're context determined, but these assignments happen dynamically.
+  // Nothing more to do here.
 }
 
 } // namespace cascade

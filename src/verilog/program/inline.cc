@@ -165,6 +165,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     } else if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
       auto ld = new LocalparamDeclaration(
         new Attributes(new Many<AttrSpec>()),
+        pd->get_signed(),
         pd->get_dim()->clone(),
         pd->get_id()->clone(),
         pd->get_val()->clone()
@@ -225,6 +226,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto pd = new ParameterDeclaration(
           new Attributes(new Many<AttrSpec>()),
+          ld->get_signed(),
           ld->get_dim()->clone(),
           ld->get_id()->clone(),
           ld->get_val()->clone()

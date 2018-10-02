@@ -57,7 +57,7 @@ bool EqId::operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) 
   if (e1->null() && e2->null()) {
     return true;
   } else if (!e1->null() && !e2->null()) {
-    return Evaluate().get_value(e1->get()) == Evaluate().get_value(e2->get());
+    return Evaluate().get_value(e1->get()).to_int() == Evaluate().get_value(e2->get()).to_int();
   } else {
     return false;
   }
@@ -83,7 +83,7 @@ bool LtId::operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) 
   if (e1->null() && e2->null()) {
     return false;
   } else if (!e1->null() && !e2->null()) {
-    return Evaluate().get_value(e1->get()) < Evaluate().get_value(e2->get());
+    return Evaluate().get_value(e1->get()).to_int() < Evaluate().get_value(e2->get()).to_int();
   } else {
     return e1->null();
   } 

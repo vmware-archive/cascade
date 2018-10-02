@@ -49,28 +49,31 @@ class NetDeclaration : public Declaration {
     };
 
     // Constructors:
-    NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, Maybe<RangeExpression>* dim__);
+    NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
-    NODE(NetDeclaration, TREE(attrs), LEAF(type), TREE(ctrl), TREE(id), TREE(dim))
+    NODE(NetDeclaration, TREE(attrs), LEAF(type), TREE(ctrl), TREE(id), LEAF(signed), TREE(dim))
     // Get/Set:
     LEAF_GET_SET(type)
     TREE_GET_SET(ctrl)
+    LEAF_GET_SET(signed)
     TREE_GET_SET(dim)
 
   private:
     LEAF_ATTR(Type, type);
     TREE_ATTR(Maybe<DelayControl>*, ctrl);
+    LEAF_ATTR(bool, signed);
     TREE_ATTR(Maybe<RangeExpression>*, dim);
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, Maybe<RangeExpression>* dim__) : Declaration() {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   LEAF_SETUP(type);
   TREE_SETUP(ctrl);
   TREE_SETUP(id);
+  LEAF_SETUP(signed);
   TREE_SETUP(dim);
 }
 
@@ -79,6 +82,7 @@ inline NetDeclaration::~NetDeclaration() {
   LEAF_TEARDOWN(type);
   TREE_TEARDOWN(ctrl);
   TREE_TEARDOWN(id);
+  LEAF_TEARDOWN(signed);
   TREE_TEARDOWN(dim);
 }
 

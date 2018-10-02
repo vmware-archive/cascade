@@ -43,23 +43,26 @@ namespace cascade {
 class LocalparamDeclaration : public Declaration {
   public:
     // Constructors:
-    LocalparamDeclaration(Attributes* attrs__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__);
     ~LocalparamDeclaration() override;
 
     // Node Interface:
-    NODE(LocalparamDeclaration, TREE(attrs), TREE(dim), TREE(id), TREE(val))
+    NODE(LocalparamDeclaration, TREE(attrs), LEAF(signed), TREE(dim), TREE(id), TREE(val))
     // Get/Set:
+    LEAF_GET_SET(signed)
     TREE_GET_SET(dim)
     TREE_GET_SET(val)
 
   private:
     TREE_ATTR(Maybe<RangeExpression>*, dim);
+    LEAF_ATTR(bool, signed);
     TREE_ATTR(Expression*, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__) : Declaration() {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
+  LEAF_SETUP(signed);
   TREE_SETUP(dim);
   TREE_SETUP(id);
   TREE_SETUP(val);
@@ -67,6 +70,7 @@ inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Maybe<R
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
   TREE_TEARDOWN(attrs);
+  LEAF_TEARDOWN(signed);
   TREE_TEARDOWN(dim);
   TREE_TEARDOWN(id);
   TREE_TEARDOWN(val);

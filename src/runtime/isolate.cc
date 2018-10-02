@@ -128,6 +128,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   auto res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
+    ld->get_signed(),
     ld->get_dim()->accept(this),
     ld->get_id()->accept(this),
     new Number(Evaluate().get_value(ld->get_val()), Number::HEX)
@@ -143,6 +144,7 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // Parameter declarations are downgraded to local params
   auto res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
+    pd->get_signed(),
     pd->get_dim()->accept(this),
     pd->get_id()->accept(this),
     new Number(Evaluate().get_value(pd->get_val()), Number::HEX)
@@ -246,6 +248,7 @@ ModuleDeclaration* Isolate::get_shell() {
           NetDeclaration::WIRE,
           new Maybe<DelayControl>(),
           to_global_id(p),
+          dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
           width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width))
         )
     );

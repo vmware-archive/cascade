@@ -90,9 +90,7 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
   if (size > 0) {
     val_.resize(size);
   }
-  if (is_signed) {
-    val_.to_signed();
-  }
+  val_.set_signed(is_signed);
   format_ = format;
 }
 
