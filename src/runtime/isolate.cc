@@ -35,7 +35,6 @@
 #include <string>
 #include "src/base/bits/bits.h"
 #include "src/runtime/data_plane.h"
-#include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
@@ -227,7 +226,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
     const auto r = info.is_read(p);
     const auto w = info.is_write(p);
-    const auto width = BitWidth().get_width(p);
+    const auto width = Evaluate().get_width(p);
 
     // TODO: Is this logic correct? When should a global read/write be promoted
     // to a register and when should it remain a net?

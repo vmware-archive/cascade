@@ -61,7 +61,6 @@ OBJ=\
 	src/ui/term/term_view.o\
 	src/ui/web/web_ui.o\
 	\
-	src/verilog/analyze/bit_width.o\
 	src/verilog/analyze/constant.o\
 	src/verilog/analyze/evaluate.o\
 	src/verilog/analyze/indices.o\

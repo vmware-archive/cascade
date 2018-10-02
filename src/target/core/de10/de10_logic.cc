@@ -36,7 +36,6 @@
 #include "src/target/interface.h"
 #include "src/target/state.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/print/text/text_printer.h"
@@ -261,7 +260,7 @@ bool De10Logic::open_loop_enabled() const {
   if (info.inputs().size() != 1) {
     return false;
   }
-  if (BitWidth().get_width(*info.inputs().begin()) != 1) {
+  if (Evaluate().get_width(*info.inputs().begin()) != 1) {
     return false;
   }
   if (!info.outputs().empty()) {
@@ -299,7 +298,7 @@ void De10Logic::visit(const WriteStatement* ws) {
 void De10Logic::insert(const Identifier* id, bool materialized) {
   assert(var_table_.find(id) == var_table_.end());
 
-  const auto w = BitWidth().get_width(id);
+  const auto w = Evaluate().get_width(id);
   const auto words = (w + 31) / 32;
   var_table_[id] = {next_index_, words, materialized, Bits(w, 0)};
 

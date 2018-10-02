@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include "src/target/core/de10/boxer.h"
 #include "src/target/core/de10/quartus_client.h"
-#include "src/verilog/analyze/bit_width.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 
@@ -130,7 +130,7 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
   auto pad_addr = virtual_base_ + ((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK);
   const auto out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
-  const auto w = BitWidth().get_width(out);
+  const auto w = Evaluate().get_width(out);
   delete md;
 
   return new De10Pad(interface, id, w, pad_addr);

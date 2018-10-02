@@ -31,7 +31,7 @@
 #include "src/verilog/transform/de_alias.h"
 
 #include <cassert>
-#include "src/verilog/analyze/bit_width.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -114,7 +114,7 @@ const Identifier* DeAlias::AliasTable::resolve(const Identifier* id) {
     return id;
   }
   // TODO: Give up if these two variables are different widths
-  if (BitWidth().get_width(aitr->first) != BitWidth().get_width(aitr->second)) {
+  if (Evaluate().get_width(aitr->first) != Evaluate().get_width(aitr->second)) {
     return id;
   }
 
