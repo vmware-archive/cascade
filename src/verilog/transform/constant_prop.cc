@@ -46,6 +46,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
 Expression* ConstantProp::rewrite(BinaryExpression* be) {
   if (Constant().is_constant_genvar(be)) {
     auto res = new Number(Evaluate().get_value(be), Number::HEX);
+    Evaluate().invalidate(be);
     Resolve().invalidate(be);
     return res;
   }
@@ -66,6 +67,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
         ce->set_rhs(new Identifier("ignore"));
       }
     }
+    Evaluate().invalidate(ce);
     Resolve().invalidate(ce);
     return res;
   }
@@ -75,6 +77,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
 Expression* ConstantProp::rewrite(NestedExpression* ne) {
   if (Constant().is_constant_genvar(ne)) {
     auto res = new Number(Evaluate().get_value(ne), Number::HEX);
+    Evaluate().invalidate(ne);
     Resolve().invalidate(ne);
     return res;
   }
@@ -84,6 +87,7 @@ Expression* ConstantProp::rewrite(NestedExpression* ne) {
 Expression* ConstantProp::rewrite(Concatenation* c) {
   if (Constant().is_constant_genvar(c)) {
     auto res = new Number(Evaluate().get_value(c), Number::HEX);
+    Evaluate().invalidate(c);
     Resolve().invalidate(c);
     return res;
   }
@@ -96,6 +100,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
   }
   if (Constant().is_constant_genvar(i)) {
     auto res = new Number(Evaluate().get_value(i), Number::HEX);
+    Evaluate().invalidate(i);
     Resolve().invalidate(i);
     return res;
   }
@@ -105,6 +110,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
 Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
   if (Constant().is_constant_genvar(mc)) {
     auto res = new Number(Evaluate().get_value(mc), Number::HEX);
+    Evaluate().invalidate(mc);
     Resolve().invalidate(mc);
     return res;
   }
@@ -115,6 +121,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
   if (Constant().is_constant_genvar(re)) {
     const auto rng = Evaluate().get_range(re);
     auto res = new RangeExpression(rng.first+1, rng.second);
+    Evaluate().invalidate(re);
     Resolve().invalidate(re);
     return res;
   }
@@ -124,6 +131,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
 Expression* ConstantProp::rewrite(UnaryExpression* ue) {
   if (Constant().is_constant_genvar(ue)) {
     auto res = new Number(Evaluate().get_value(ue), Number::HEX);
+    Evaluate().invalidate(ue);
     Resolve().invalidate(ue);
     return res;
   }

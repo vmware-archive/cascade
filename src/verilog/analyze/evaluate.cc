@@ -101,6 +101,12 @@ void Evaluate::assign_value(const Identifier* id, size_t i, size_t j, const Bits
   }
 }
 
+void Evaluate::invalidate(const Expression* e) {
+  const auto root = get_root(e);
+  Invalidate i;
+  const_cast<Node*>(root)->accept(&i);
+}
+
 void Evaluate::edit(BinaryExpression* be) {
   switch (be->get_op()) {
     case BinaryExpression::PLUS:
@@ -273,72 +279,70 @@ void Evaluate::edit(UnaryExpression* ue) {
   }
 }
 
+const Node* Evaluate::get_root(const Expression* e) const {
+  // Walk up the AST until we find something other than an expression.  Our
+  // goal is to find the root of the expression subtree containing e.
+  // 
+  // We treat assignments as subtrees. We also treat expressions inside of
+  // identifier and id subscripts, declaration subscripts, and the multiplier
+  // in multiple concatenations as subtrees. This will simplify some things in
+  // a few places where we'll want to compute a final context-determined value
+  // during self-determination.
+  const Node* root = nullptr;
+  for (root = e; ; root = root->get_parent()) {
+    // Continuous, non-blocking, or blocking assigns
+    if (dynamic_cast<VariableAssign*>(root->get_parent())) {
+      return root->get_parent();
+    }
+    // Parameter declarations
+    else if (dynamic_cast<LocalparamDeclaration*>(root->get_parent())) {
+      return root->get_parent();
+    }
+    else if (dynamic_cast<ParameterDeclaration*>(root->get_parent())) {
+      return root->get_parent();
+    }
+    // Multiple Concatenation
+    else if (dynamic_cast<MultipleConcatenation*>(root->get_parent())) {
+      return root;
+    }
+    // Subscripts inside of ids
+    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Id*>(root->get_parent()->get_parent())) {
+      return root->get_parent();
+    }
+    // Subscripts inside of identifiers
+    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Identifier*>(root->get_parent()->get_parent())) {
+      return root->get_parent();
+    }
+    // Ranges inside of declarations 
+    else if (dynamic_cast<Maybe<RangeExpression>*>(root->get_parent()) && dynamic_cast<Declaration*>(root->get_parent()->get_parent())) {
+      return root->get_parent();
+    }
+    // Variables inside of declarations
+    else if (dynamic_cast<Declaration*>(root->get_parent())) {
+      return root->get_parent();
+    }
+    else if (!dynamic_cast<Expression*>(root->get_parent())) {
+      return root;
+    }
+  } 
+  assert(false);
+  return nullptr;
+}
+
 void Evaluate::init(Expression* e) {
   // Nothing to do if this expression has bits allocated for it.
   if (e->bit_val_ != nullptr) {
     return;
   }
 
-  // Walk up the AST until we find something other than an expression.  Our
-  // goal is to allocate bits for all expressions in this subtree. 
-  // 
-  // We're going to treat anything that appears on the right hand side of an
-  // assignment as a subtree. Notably, we're also going to treat expressions
-  // inside of identifier and id subscripts, declaration subscripts, and the
-  // multiplier in multiple concatenations as subtrees. This will simplify some
-  // things in a few places where we'll want to compute a final
-  // context-determined value during self-determination.
-  Node* root = nullptr;
-  for (root = e; ; root = root->get_parent()) {
-    // Continuous, non-blocking, or blocking assigns
-    if (dynamic_cast<VariableAssign*>(root->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    // Parameter declarations
-    else if (dynamic_cast<LocalparamDeclaration*>(root->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    else if (dynamic_cast<ParameterDeclaration*>(root->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    // Multiple Concatenation
-    else if (dynamic_cast<MultipleConcatenation*>(root->get_parent())) {
-      break;
-    }
-    // Subscripts inside of ids
-    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Id*>(root->get_parent()->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    // Subscripts inside of identifiers
-    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Identifier*>(root->get_parent()->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    // Ranges inside of declarations 
-    else if (dynamic_cast<Maybe<RangeExpression>*>(root->get_parent()) && dynamic_cast<Declaration*>(root->get_parent()->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    // Variables inside of declarations
-    else if (dynamic_cast<Declaration*>(root->get_parent())) {
-      root = root->get_parent();
-      break;
-    }
-    else if (!dynamic_cast<Expression*>(root->get_parent())) {
-      break;
-    }
-  } 
-
+  // Find the root of this subtree
+  const auto root = get_root(e);
   // Use rules of self-determination to allocate bits, sizes, and signs
   SelfDetermine sd;
-  root->accept(&sd);
+  const_cast<Node*>(root)->accept(&sd);
   // Use the rules of context-determination to update sizes in some cases
   ContextDetermine cd;
-  root->accept(&cd);
+  const_cast<Node*>(root)->accept(&cd);
 }
 
 void Evaluate::flag_changed(const Identifier* id) {
@@ -346,6 +350,119 @@ void Evaluate::flag_changed(const Identifier* id) {
   for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
     (*i)->needs_update_ = true;
   }
+}
+
+void Evaluate::Invalidate::edit(BinaryExpression* be) {
+  if (be->bit_val_ != nullptr) {
+    delete be->bit_val_;
+    be->bit_val_ = nullptr;
+    be->needs_update_ = true;
+  }
+  Editor::edit(be);
+}
+
+void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
+  if (ce->bit_val_ != nullptr) {
+    delete ce->bit_val_;
+    ce->bit_val_ = nullptr;
+    ce->needs_update_ = true;
+  }
+  Editor::edit(ce);
+}
+
+void Evaluate::Invalidate::edit(NestedExpression* ne) {
+  if (ne->bit_val_ != nullptr) {
+    delete ne->bit_val_;
+    ne->bit_val_ = nullptr;
+    ne->needs_update_ = true;
+  }
+  Editor::edit(ne);
+}
+
+void Evaluate::Invalidate::edit(Concatenation* c) {
+  if (c->bit_val_ != nullptr) {
+    delete c->bit_val_;
+    c->bit_val_ = nullptr;
+    c->needs_update_ = true;
+  }
+  Editor::edit(c);
+}
+
+void Evaluate::Invalidate::edit(Identifier* id) {
+  if (id->bit_val_ != nullptr) {
+    delete id->bit_val_;
+    id->bit_val_ = nullptr;
+    id->needs_update_ = true;
+  }
+  // Don't descend into a different subtree
+}
+
+void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
+  if (mc->bit_val_ != nullptr) {
+    delete mc->bit_val_;
+    mc->bit_val_ = nullptr;
+    mc->needs_update_ = true;
+  }
+  // Don't descend into a different subtree
+  mc->get_concat()->accept(this);
+}
+
+void Evaluate::Invalidate::edit(Number* n) {
+  if (n->bit_val_ != nullptr) {
+    delete n->bit_val_;
+    n->bit_val_ = nullptr;
+    n->needs_update_ = true;
+  }
+}
+
+void Evaluate::Invalidate::edit(String* s) {
+  // TODO: Support for this language feature
+  assert(false);
+  (void) s;
+}
+
+void Evaluate::Invalidate::edit(UnaryExpression* ue) {
+  if (ue->bit_val_ != nullptr) {
+    delete ue->bit_val_;
+    ue->bit_val_ = nullptr;
+    ue->needs_update_ = false;
+  }
+  Editor::edit(ue);
+}
+
+void Evaluate::Invalidate::edit(GenvarDeclaration* gd) {
+  Editor::edit(gd);
+}
+
+void Evaluate::Invalidate::edit(IntegerDeclaration* id) {
+  Editor::edit(id);
+}
+
+void Evaluate::Invalidate::edit(LocalparamDeclaration* ld) {
+  // Don't descend into a different subtree
+  ld->get_id()->accept(this);
+  ld->get_val()->accept(this);
+}
+
+void Evaluate::Invalidate::edit(NetDeclaration* nd) { 
+  // Don't descend into a different subtree
+  nd->get_id()->accept(this);
+}
+
+void Evaluate::Invalidate::edit(ParameterDeclaration* pd) {
+  // Don't descend into a different subtree
+  pd->get_id()->accept(this);
+  pd->get_val()->accept(this);
+}
+
+void Evaluate::Invalidate::edit(RegDeclaration* rd) {
+  // Don't descend into a different subtree
+  rd->get_id()->accept(this);
+  rd->get_val()->accept(this);
+}
+
+void Evaluate::Invalidate::edit(VariableAssign* va) {
+  Editor::edit(va);
 }
 
 void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
@@ -430,8 +547,6 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
 
 void Evaluate::SelfDetermine::edit(Identifier* id) {
   // Don't descend on dim. We treat it as a separate subtree.
-  // TODO: Why do we seem to need this, then?
-  id->get_dim()->accept(this);
 
   size_t w = 0;
   bool s = false;
@@ -690,8 +805,6 @@ void Evaluate::ContextDetermine::edit(Concatenation* c) {
 void Evaluate::ContextDetermine::edit(Identifier* id) {
   // Nothing to do here. The only expressions we can reach from here are subscripts,
   // which we treat as separate subtrees.
-  // TODO: Why do we seem to need this, then?
-  id->get_dim()->accept(this);
   (void) id;
 }
 

@@ -62,6 +62,9 @@ class Evaluate : public Editor {
     // Sets the slice between i and j in id to the first (i-j+1) bits of val.
     void assign_value(const Identifier* id, size_t i, size_t j, const Bits& val);
 
+    // Invalidates bits, size, and type for this subtree
+    void invalidate(const Expression* e);
+
   private:
     // Editor Interface:
     void edit(BinaryExpression* be) override;
@@ -75,9 +78,30 @@ class Evaluate : public Editor {
     void edit(UnaryExpression* ue) override;
 
     // Helper Methods:
+    const Node* get_root(const Expression* e) const;
     void init(Expression* e);
     void flag_changed(const Identifier* id);
 
+    // Invalidates bit, size, and type info for the expressions in this subtree
+    struct Invalidate : public Editor {
+      ~Invalidate() override = default;
+      void edit(BinaryExpression* be) override;
+      void edit(ConditionalExpression* ce) override;
+      void edit(NestedExpression* ne) override;
+      void edit(Concatenation* c) override;
+      void edit(Identifier* id) override;
+      void edit(MultipleConcatenation* mc) override;
+      void edit(Number* n) override;
+      void edit(String* s) override;
+      void edit(UnaryExpression* ue) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override; 
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(VariableAssign* va) override;
+    };
     // Uses the self-determination to allocate bits, sizes, and types.
     struct SelfDetermine : public Editor {
       ~SelfDetermine() override = default;

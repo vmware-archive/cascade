@@ -152,27 +152,24 @@ void Printer::visit(const MultipleConcatenation* mc) {
 
 void Printer::visit(const Number* n) {
   *this << Color::BLUE;
-  if (n->get_format() != Number::UNBASED) {
-    *this << n->get_val().size() << "'"; 
-  }
   switch (n->get_format()) {
     case Number::UNBASED:
       n->get_val().write(os_, 10);
       break;
     case Number::BIN:
-      *this << "b";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sb" : "b");
       n->get_val().write(os_, 2);
       break;
     case Number::OCT:
-      *this << "o";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "so" : "o");
       n->get_val().write(os_, 8);
       break;
     case Number::HEX:
-      *this << "h";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sh" : "h");
       n->get_val().write(os_, 16);
       break;
     default:
-      *this << "d";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sd" : "d");
       n->get_val().write(os_, 10);
       break;
   } 

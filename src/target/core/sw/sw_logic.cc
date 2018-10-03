@@ -490,57 +490,44 @@ string SwLogic::printf(const Many<Expression>* args) {
     return "";
   }
 
+  stringstream ss;
   auto a = args->begin();
-  auto s = dynamic_cast<String*>(*a);
 
+  auto s = dynamic_cast<String*>(*a);
   if (s == nullptr) {
-    stringstream ss;
-    Number temp(Evaluate().get_value(*a), Number::UNBASED);
-    TextPrinter(ss) << &temp;
+    Evaluate().get_value(*a).write(ss, 10);
     return ss.str();
   } 
 
-  stringstream ss;
   for (size_t i = 0, j = 0; ; i = j+2) {
     j = s->get_readable_val().find_first_of('%', i);
     TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
     if (j == string::npos) {
       break;
     }
-
     if (++a == args->end()) {
       continue;
     }
-    stringstream temp;
     switch (s->get_readable_val()[j+1]) {
       case 'b':
-      case 'B': {
-        Number n(Evaluate().get_value(*a), Number::BIN);
-        TextPrinter(temp) << &n;
+      case 'B': 
+        Evaluate().get_value(*a).write(ss, 2);
         break;
-      }
       case 'd':
-      case 'D': {
-        Number n(Evaluate().get_value(*a), Number::DEC);
-        TextPrinter(temp) << &n;
+      case 'D':
+        Evaluate().get_value(*a).write(ss, 10);
         break;
-      }
       case 'h':
-      case 'H': {
-        Number n(Evaluate().get_value(*a), Number::HEX);
-        TextPrinter(temp) << &n;
+      case 'H': 
+        Evaluate().get_value(*a).write(ss, 16);
         break;
-      }
       case 'o':
-      case 'O': {
-        Number n(Evaluate().get_value(*a), Number::OCT);
-        TextPrinter(temp) << &n;
+      case 'O': 
+        Evaluate().get_value(*a).write(ss, 8);
         break;
-      }
       default: 
         assert(false);
     }
-    ss << temp.str().substr(temp.str().find_first_of('\'')+2);
   }
   return ss.str();
 }
