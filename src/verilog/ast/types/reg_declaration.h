@@ -49,7 +49,7 @@ class RegDeclaration : public Declaration {
     // Node Interface:
     NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), TREE(dim), TREE(val))
     // Get/Set:
-    LEAF_GET_SET(signed);
+    LEAF_GET_SET(signed)
     TREE_GET_SET(dim)
     TREE_GET_SET(val)
 

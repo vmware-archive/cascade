@@ -56,8 +56,8 @@ class Node {
 
     // Get/Set:
     GET(parent);
-    LEAF_GET_SET(source);
-    LEAF_GET_SET(line);
+    LEAF_GET_SET(source)
+    LEAF_GET_SET(line)
 
   private:
     friend class Monitor;

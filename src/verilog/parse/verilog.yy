@@ -319,7 +319,7 @@ cascade::Identifier dummy("__dummy");
 %type <Number*> octal_number
 %type <Number*> binary_number
 %type <Number*> hex_number
-%type <uint64_t> size
+%type <size_t> size
 
 /* A.8.8 Strings */
 %type <String*> string_
