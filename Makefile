@@ -91,11 +91,6 @@ OBJ=\
 	src/verilog/transform/constant_prop.o\
 	src/verilog/transform/de_alias.o
 
-### Target-Specific source binaries
-ifeq ($(UNAME), Darwin)
-	OBJ += ext/memorymapping/src/fmemopen.o
-endif
-
 ### Test binaries
 TEST_OBJ=\
 	test/harness.o\
@@ -155,8 +150,6 @@ ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
 	${CXX} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
-ext/memorymapping/src/fmemopen.o: ext/memorymapping/src/fmemopen.c
-	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter ${GTEST_INC} ${INC} -c $< -o $@
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
 	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
