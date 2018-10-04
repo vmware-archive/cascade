@@ -40,6 +40,7 @@
 #include "src/target/compiler.h"
 #include "src/target/core/de10/de10_compiler.h"
 #include "src/target/core/de10/quartus_client.h"
+#include "src/target/core/sw/sw_compiler.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/ui/combinator/maybe_view.h"
 #include "src/ui/stream/stream_controller.h"
@@ -183,11 +184,14 @@ int main(int argc, char** argv) {
   lc->set_runtime(runtime);
   auto dc = new De10Compiler();
   dc->set_quartus_client(qc);
+  auto sc = new SwCompiler();
+  sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
   auto c = new Compiler();
   c->set_runtime(runtime);
   c->set_num_jit_threads(64);
   c->set_local_compiler(lc);
   c->set_de10_compiler(dc);
+  c->set_sw_compiler(sc);
   runtime->set_compiler(c);
   runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
   runtime->disable_inlining(disable_inlining.value());

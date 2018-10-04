@@ -30,6 +30,7 @@
 
 #include "src/target/core/sw/sw_compiler.h"
 
+#include "src/base/stream/incstream.h"
 #include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
@@ -41,9 +42,15 @@ using namespace std;
 namespace cascade {
 
 SwCompiler::SwCompiler() : CoreCompiler() { 
+  set_include_dirs("");
   set_led(nullptr, nullptr);
   set_pad(nullptr, nullptr);
   set_reset(nullptr, nullptr);
+}
+
+SwCompiler& SwCompiler::set_include_dirs(const std::string& s) {
+  include_dirs_ = s;
+  return *this;
 }
 
 SwCompiler& SwCompiler::set_led(Bits* b, mutex* l) {
@@ -111,8 +118,9 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   auto file = md->get_attrs()->get<String>("__file");
   auto count = md->get_attrs()->get<Number>("__count");
   if (file != nullptr) {
-    auto c = count == nullptr ? 1 : count->get_val().to_int();
-    fifo->set_file(file->get_readable_val(), c);
+    const auto c = count == nullptr ? 1 : count->get_val().to_int();
+    const auto f = incstream(include_dirs_).find(file->get_readable_val());
+    fifo->set_file(f == "" ? file->get_readable_val() : f, c);
   }
 
   // Set up input output connections
@@ -202,7 +210,8 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
   // Set backup file if __file annotation was provided
   auto file = md->get_attrs()->get<String>("__file");
   if (file != nullptr) {
-    mem->set_file(file->get_readable_val()); 
+    const auto f = incstream(include_dirs_).find(file->get_readable_val());
+    mem->set_file(f == "" ? file->get_readable_val() : f); 
   }
 
   // Set up input output connections
