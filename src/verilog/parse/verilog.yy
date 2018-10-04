@@ -1418,6 +1418,8 @@ hierarchical_identifier
       }
       auto lid = $$->get_ids()->back();
       lid->get_isel()->replace($$->get_dim()->get()->clone());
+      lid->get_isel()->get()->set_source($$->get_dim()->get()->get_source());
+      lid->get_isel()->get()->set_line($$->get_dim()->get()->get_line());
       $$->get_dim()->replace(nullptr);
     }
     const auto id = new Id($3, new Maybe<Expression>());

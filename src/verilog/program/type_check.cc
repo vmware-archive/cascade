@@ -238,7 +238,7 @@ void TypeCheck::warn(const string& s, const Node* n) {
   } else {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
-  TextPrinter(ss) << s;
+  TextPrinter(ss) << s << ": " << n;
   Loggable::warn(ss.str());
 }
 
@@ -249,7 +249,7 @@ void TypeCheck::error(const string& s, const Node* n) {
   } else {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
-  TextPrinter(ss) << s;
+  TextPrinter(ss) << s << ": " << n;
   Loggable::error(ss.str());
 }
 
@@ -271,6 +271,14 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
+  // RECURSE: ids and dim
+  id->get_ids()->accept(this);
+  id->get_dim()->accept(this);
+  // EXIT:  Resolution won't work if either of these checks failed.
+  if (Loggable::error()) {
+    return;
+  }
+
   // CHECK: Reference to undefined identifier
   const auto r = Resolve().get_resolution(id);
   if (r == nullptr) {
@@ -296,9 +304,6 @@ void TypeCheck::visit(const Identifier* id) {
       error("Illegal reference to genvar outside of a loop generate construct", id);
     }
   }
-
-  // RECURSE: ids and dim
-  id->get_ids()->accept(this);
 }
 
 void TypeCheck::visit(const GenerateBlock* gb) {
