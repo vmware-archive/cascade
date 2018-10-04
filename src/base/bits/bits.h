@@ -205,10 +205,10 @@ class BitsBase : public Serializable {
     constexpr size_t bytes_per_word() const;
 };
 
-#if __UINTPTR_WIDTH__ == 32
-using Bits = BitsBase<uint32_t, uint64_t, int32_t>;
-#else
+#ifdef __LP64__
 using Bits = BitsBase<uint64_t, __uint128_t, int64_t>;
+#else
+using Bits = BitsBase<uint32_t, uint64_t, int32_t>;
 #endif
 
 template <typename T, typename BT, typename ST>
