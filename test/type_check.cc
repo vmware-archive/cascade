@@ -160,6 +160,12 @@ TEST(type_check, fail_instantiation_6) {
 TEST(type_check, fail_instantiation_7) {
   run_typecheck("minimal", "data/test/type_check/fail/instantiation_7.v", true);
 }
+TEST(type_check, fail_issue_13a) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_13a.v", true);
+}
+TEST(type_check, fail_issue_13b) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_13b.v", true);
+}
 TEST(type_check, fail_issue_226) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_226.v", true);
 }
