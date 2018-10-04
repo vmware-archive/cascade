@@ -523,9 +523,13 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
-  const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
-  const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
-  res.val_[0] = l / r;
+  if (signed_ && rhs.signed_) {
+    const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
+    const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
+    res.val_[0] = l / r;
+  } else {
+    res.val_[0] = val_[0] / rhs.val_[0];
+  }
 
   res.trim();
 }
@@ -538,9 +542,13 @@ inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& r
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
-  const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
-  const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
-  res.val_[0] = l % r;
+  if (signed_ && rhs.signed_) {
+    const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
+    const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
+    res.val_[0] = l % r;
+  } else {
+    res.val_[0] = val_[0] % rhs.val_[0];
+  }
 
   res.trim();
 }
