@@ -16,12 +16,6 @@ PERF=\
 INC=-I. -I./ext/cl
 LIB=-lgmp -lncurses -lpthread
 
-### Target-specific constants
-ifeq ($(UNAME), Darwin)
-	CC_OPT += -D_DARWIN_C_SOURCE 
-	CXX_OPT += -D_DARWIN_C_SOURCE
-endif
-
 ### Constants: gtest
 GTEST_ROOT_DIR=ext/googletest/googletest
 GTEST_BUILD_DIR=${GTEST_ROOT_DIR}/build

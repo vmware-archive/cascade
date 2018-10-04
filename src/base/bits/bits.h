@@ -46,17 +46,21 @@ namespace cascade {
 
 // This class is the fundamental representation of a bit string. 
 
-template <typename T>
+template <size_t N>
 class BitsBase : public Serializable {
   private:
+    typedef
+      typename std::conditional<N == 8, uint8_t,
+      typename std::conditional<N == 16, uint16_t,
+      typename std::conditional<N == 32, uint32_t, uint64_t>::type>::type>::type T;
     typedef 
-      typename std::conditional<sizeof(T) == 1, uint16_t,
-      typename std::conditional<sizeof(T) == 2, uint32_t,
-      typename std::conditional<sizeof(T) == 4, uint64_t, __uint128_t>::type>::type>::type BigT;
+      typename std::conditional<N == 8, uint16_t,
+      typename std::conditional<N == 16, uint32_t,
+      typename std::conditional<N == 32, uint64_t, __uint128_t>::type>::type>::type BigT;
     typedef 
-      typename std::conditional<sizeof(T) == 1, int8_t,
-      typename std::conditional<sizeof(T) == 2, int16_t,
-      typename std::conditional<sizeof(T) == 4, int32_t, int64_t>::type>::type>::type SignedT;
+      typename std::conditional<N == 8, int8_t,
+      typename std::conditional<N == 16, int16_t,
+      typename std::conditional<N == 32, int32_t, int64_t>::type>::type>::type SignedT;
 
   public:
     // Constructors:
@@ -139,14 +143,12 @@ class BitsBase : public Serializable {
 
     // Comparison Operators:
     // Check for equality, no assumptions made with respect to sizes
-    // TODO: Sign extension for first version
     bool eq(const BitsBase& rhs) const;
     bool eq(size_t idx, const BitsBase& rhs) const;
     bool eq(size_t msb, size_t lsb, const BitsBase& rhs) const;
 
     // Assignment Operators:
     // Assign bits, no assumption made with respect to sizes
-    // TODO: Sign extension for first version
     void assign(const BitsBase& rhs);
     void assign(size_t idx, const BitsBase& rhs);
     void assign(size_t msb, size_t lsb, const BitsBase& rhs);
@@ -217,36 +219,36 @@ class BitsBase : public Serializable {
     constexpr size_t bytes_per_word() const;
 };
 
-using Bits8 = BitsBase<uint8_t>;
-using Bits16 = BitsBase<uint16_t>;
-using Bits32 = BitsBase<uint32_t>;
-using Bits64 = BitsBase<uint64_t>;
-using Bits = Bits64;
+using Bits8 = BitsBase<8>;
+using Bits16 = BitsBase<16>;
+using Bits32 = BitsBase<32>;
+using Bits64 = BitsBase<64>;
+using Bits = BitsBase<__UINTPTR_WIDTH__>;
 
-template <typename T>
-inline BitsBase<T>::BitsBase() {
+template <size_t N>
+inline BitsBase<N>::BitsBase() {
   val_.push_back(0);
   size_ = 1;
   signed_ = false;
 }
 
-template <typename T>
-inline BitsBase<T>::BitsBase(bool b) {
+template <size_t N>
+inline BitsBase<N>::BitsBase(bool b) {
   val_.push_back(b ? T(1) : T(0));
   size_ = 1;
   signed_ = false;
 }
 
-template <typename T>
-inline BitsBase<T>::BitsBase(size_t n, T val) : BitsBase() { 
+template <size_t N>
+inline BitsBase<N>::BitsBase(size_t n, T val) : BitsBase() { 
   assert(n > 0);
   extend_to(n);
   val_[0] = val;
   trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::read(std::istream& is, size_t base) {
+template <size_t N>
+inline void BitsBase<N>::read(std::istream& is, size_t base) {
   switch (base) {
     case 2:
     case 8:
@@ -259,8 +261,8 @@ inline void BitsBase<T>::read(std::istream& is, size_t base) {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::write(std::ostream& os, size_t base) const {
+template <size_t N>
+inline void BitsBase<N>::write(std::ostream& os, size_t base) const {
   switch (base) {
     case 2:
     case 8:
@@ -273,8 +275,8 @@ inline void BitsBase<T>::write(std::ostream& os, size_t base) const {
   }
 }
 
-template <typename T>
-inline size_t BitsBase<T>::deserialize(std::istream& is) {
+template <size_t N>
+inline size_t BitsBase<N>::deserialize(std::istream& is) {
   uint32_t header;
   is.read((char*)&header, 4);
 
@@ -293,8 +295,8 @@ inline size_t BitsBase<T>::deserialize(std::istream& is) {
   return 4 + val_.size() * bytes_per_word();
 }
 
-template <typename T>
-inline size_t BitsBase<T>::serialize(std::ostream& os) const {
+template <size_t N>
+inline size_t BitsBase<N>::serialize(std::ostream& os) const {
   const uint32_t header = size_ | (signed_ ? 0x80000000 : 0);
   os.write((char*)&header, 4);
 
@@ -309,24 +311,37 @@ inline size_t BitsBase<T>::serialize(std::ostream& os) const {
   return 4 + val_.size() * bytes_per_word();
 }
 
-template <typename T>
+template <size_t N>
 template <typename B>
-inline B BitsBase<T>::read_word(size_t n) {
-  (void) n;
-  // TODO!!!!!!
-  return 0;
+inline B BitsBase<N>::read_word(size_t n) {
+  assert(sizeof(B) < sizeof(T));
+
+  const auto b_per_word = sizeof(T) / sizeof(B);
+  const auto idx = n / b_per_word;
+  const auto off = n % b_per_word;
+
+  assert(idx < val_.size());
+  return (off == 0) ? (val_[idx] & B(-1)) : ((val_[idx] >> (8*sizeof(B)*off))) & B(-1);
 }
 
-template <typename T>
+template <size_t N>
 template <typename B>
-inline void BitsBase<T>::write_word(size_t n, B b) {
-  (void) n;
-  (void) b;
-  // TODO!!!!!!
+inline void BitsBase<N>::write_word(size_t n, B b) {
+  assert(sizeof(B) < sizeof(T));
+
+  const auto b_per_word = sizeof(T) / sizeof(B);
+  const auto idx = n / b_per_word;
+  const auto off = n % b_per_word;
+
+  assert(idx < val_.size());
+  const auto mask = ~(B(-1) << (8*sizeof(B)*off));
+  val_[idx] &= mask;
+  val_[idx] |= (b << (8*sizeof(B)*off));
+  trim();
 }
 
-template <typename T>
-inline bool BitsBase<T>::to_bool() const {
+template <size_t N>
+inline bool BitsBase<N>::to_bool() const {
   for (const auto& v : val_) {
     if (v) {
       return true;
@@ -335,19 +350,19 @@ inline bool BitsBase<T>::to_bool() const {
   return false;
 }
 
-template <typename T>
-inline T BitsBase<T>::to_int() const {
+template <size_t N>
+inline typename BitsBase<N>::T BitsBase<N>::to_int() const {
   assert(size_ <= bits_per_word());
   return val_[0];
 }
 
-template <typename T>
-inline size_t BitsBase<T>::size() const {
+template <size_t N>
+inline size_t BitsBase<N>::size() const {
   return size_;
 }
 
-template <typename T>
-inline void BitsBase<T>::resize(size_t n) {
+template <size_t N>
+inline void BitsBase<N>::resize(size_t n) {
   if (n < size_) {
     shrink_to(n);
   } else if (n > size_) {
@@ -355,18 +370,18 @@ inline void BitsBase<T>::resize(size_t n) {
   }
 }
 
-template <typename T>
-inline bool BitsBase<T>::is_signed() const {
+template <size_t N>
+inline bool BitsBase<N>::is_signed() const {
   return signed_;
 }
 
-template <typename T>
-inline void BitsBase<T>::set_signed(bool s) {
+template <size_t N>
+inline void BitsBase<N>::set_signed(bool s) {
   signed_ = s;
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_and(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_and(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
@@ -374,8 +389,8 @@ inline void BitsBase<T>::bitwise_and(const BitsBase& rhs, BitsBase& res) const {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_or(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_or(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
@@ -383,8 +398,8 @@ inline void BitsBase<T>::bitwise_or(const BitsBase& rhs, BitsBase& res) const {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_xor(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_xor(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
@@ -392,8 +407,8 @@ inline void BitsBase<T>::bitwise_xor(const BitsBase& rhs, BitsBase& res) const {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_xnor(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_xnor(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
@@ -402,32 +417,32 @@ inline void BitsBase<T>::bitwise_xnor(const BitsBase& rhs, BitsBase& res) const 
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_sll(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_sll(const BitsBase& rhs, BitsBase& res) const {
   const auto samt = rhs.to_int();
   bitwise_sll_const(samt, res);
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_sal(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_sal(const BitsBase& rhs, BitsBase& res) const {
   // Equivalent to sll
   bitwise_sll(rhs, res);
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_slr(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_slr(const BitsBase& rhs, BitsBase& res) const {
   const auto samt = rhs.to_int();
   bitwise_sxr_const(samt, false, res);
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_sar(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_sar(const BitsBase& rhs, BitsBase& res) const {
   const auto samt = rhs.to_int();
   bitwise_sxr_const(samt, true, res);
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_not(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_not(BitsBase& res) const {
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     const auto l = i < val_.size() ? val_[i] : T(0);
@@ -436,16 +451,16 @@ inline void BitsBase<T>::bitwise_not(BitsBase& res) const {
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_plus(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_plus(BitsBase& res) const {
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i];
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
@@ -461,8 +476,8 @@ inline void BitsBase<T>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) con
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_minus(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_minus(BitsBase& res) const {
   assert(size_ == res.size_);
 
   T carry = 1;
@@ -475,8 +490,8 @@ inline void BitsBase<T>::arithmetic_minus(BitsBase& res) const {
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
@@ -492,18 +507,18 @@ inline void BitsBase<T>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) co
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
   // This is the optimized space algorithm described in wiki's multiplication
   // algorithm article. The code is simplified here, as we can assume that both
-  // inputs and the result are capped at N words. 
+  // inputs and the result are capped at S words. 
 
-  const auto N = val_.size();
+  const auto S = val_.size();
   BigT tot = 0;
-  for (size_t ri = 0; ri < N; ++ri) {
+  for (size_t ri = 0; ri < S; ++ri) {
     for (size_t bi = 0; bi <= ri; ++bi) {
       size_t ai = ri - bi;
       tot += BigT(val_[ai]) * BigT(rhs.val_[bi]);
@@ -514,8 +529,8 @@ inline void BitsBase<T>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res)
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
   // TODO: This only words for single word inputs
 
   assert(size_ == rhs.size_);
@@ -529,8 +544,8 @@ inline void BitsBase<T>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) c
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
   // TODO: This only words for single word inputs
 
   assert(size_ == rhs.size_);
@@ -544,8 +559,8 @@ inline void BitsBase<T>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) cons
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::arithmetic_pow(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::arithmetic_pow(const BitsBase& rhs, BitsBase& res) const {
   // TODO: There's a lot wrong here:
   // 1. We're not respecting verilog semantics (wrt sign and result)
   // 2. This only works for single word inputs
@@ -559,62 +574,62 @@ inline void BitsBase<T>::arithmetic_pow(const BitsBase& rhs, BitsBase& res) cons
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_and(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_and(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (to_bool() && rhs.to_bool()) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_or(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_or(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (to_bool() || rhs.to_bool()) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_not(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_not(BitsBase& res) const {
   res.val_[0] = to_bool() ? T(0) : T(1);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_eq(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_eq(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this == rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_ne(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_ne(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this != rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_lt(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_lt(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this < rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_lte(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_lte(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this <= rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_gt(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_gt(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this > rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::logical_gte(const BitsBase& rhs, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::logical_gte(const BitsBase& rhs, BitsBase& res) const {
   res.val_[0] = (*this >= rhs) ? T(1) : T(0);
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_and(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_and(BitsBase& res) const {
   // Logical operations always yield unsigned results
   for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
     if (val_[i] != T(-1)) {
@@ -634,14 +649,14 @@ inline void BitsBase<T>::reduce_and(BitsBase& res) const {
   return;
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_nand(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_nand(BitsBase& res) const {
   reduce_and(res);
   res.val_[0] = res.val_[0] ? T(0) : T(1);
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_or(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_or(BitsBase& res) const {
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     if (val_[i]) {
       res.val_[0] = T(1);
@@ -653,14 +668,14 @@ inline void BitsBase<T>::reduce_or(BitsBase& res) const {
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_nor(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_nor(BitsBase& res) const {
   reduce_or(res);
   res.val_[0] = res.val_[0] ? T(0) : T(1);
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_xor(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_xor(BitsBase& res) const {
   size_t cnt = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     cnt += __builtin_popcount(val_[i]);
@@ -669,14 +684,14 @@ inline void BitsBase<T>::reduce_xor(BitsBase& res) const {
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::reduce_xnor(BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::reduce_xnor(BitsBase& res) const {
   reduce_xor(res);
   res.val_[0] = res.val_[0] ? T(0) : T(1);
 }
 
-template <typename T>
-inline bool BitsBase<T>::eq(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::eq(const BitsBase& rhs) const {
   size_t i = 0;
   for (size_t ie = val_.size()-1; i < ie; ++i) {
     const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
@@ -695,14 +710,14 @@ inline bool BitsBase<T>::eq(const BitsBase& rhs) const {
   } 
 }
 
-template <typename T>
-inline bool BitsBase<T>::eq(size_t idx, const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::eq(size_t idx, const BitsBase& rhs) const {
   assert(idx < size_);
   return get(idx) == rhs.get(0);
 }
 
-template <typename T>
-inline bool BitsBase<T>::eq(size_t msb, size_t lsb, const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::eq(size_t msb, size_t lsb, const BitsBase& rhs) const {
   // Corner Case: Is this a single bit range?
   if (msb == lsb) {
     return eq(msb, rhs);
@@ -747,8 +762,8 @@ inline bool BitsBase<T>::eq(size_t msb, size_t lsb, const BitsBase& rhs) const {
   return (word & mask) == (rval & mask);
 }
 
-template <typename T>
-inline void BitsBase<T>::assign(const BitsBase& rhs) {
+template <size_t N>
+inline void BitsBase<N>::assign(const BitsBase& rhs) {
   const auto rsize = rhs.val_.size();
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     val_[i] = i < rsize ? rhs.val_[i] : T(0);
@@ -756,14 +771,14 @@ inline void BitsBase<T>::assign(const BitsBase& rhs) {
   trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::assign(size_t idx, const BitsBase& rhs) {
+template <size_t N>
+inline void BitsBase<N>::assign(size_t idx, const BitsBase& rhs) {
   assert(idx < size_);
   set(idx, rhs.get(0));
 }
 
-template <typename T>
-inline void BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
+template <size_t N>
+inline void BitsBase<N>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
   // Corner case: Is this range one bit?
   if (msb == lsb) {
     return assign(msb, rhs);
@@ -812,16 +827,16 @@ inline void BitsBase<T>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::assign(const BitsBase& rhs, size_t idx) {
+template <size_t N>
+inline void BitsBase<N>::assign(const BitsBase& rhs, size_t idx) {
   val_[0] = idx < rhs.size() ? rhs.get(idx) : T(0);
   for (size_t i = 1, ie = val_.size(); i < ie; ++i) {
     val_[i] = T(0);
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::assign(const BitsBase& rhs, size_t msb, size_t lsb) {
+template <size_t N>
+inline void BitsBase<N>::assign(const BitsBase& rhs, size_t msb, size_t lsb) {
   // Corner Case: Is this range 1 bit?
   if (msb == lsb) {
     return assign(rhs, msb);
@@ -862,24 +877,24 @@ inline void BitsBase<T>::assign(const BitsBase& rhs, size_t msb, size_t lsb) {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::concat(const BitsBase& rhs) {
+template <size_t N>
+inline void BitsBase<N>::concat(const BitsBase& rhs) {
   bitwise_sll_const(rhs.size_, *this);
   for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
     val_[i] |= rhs.val_[i];
   }
 }
 
-template <typename T>
-inline bool BitsBase<T>::get(size_t idx) const {
+template <size_t N>
+inline bool BitsBase<N>::get(size_t idx) const {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
   return val_[widx] & (T(1) << bidx);
 }
 
-template <typename T>
-inline BitsBase<T>& BitsBase<T>::set(size_t idx, bool b) {
+template <size_t N>
+inline BitsBase<N>& BitsBase<N>::set(size_t idx, bool b) {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
@@ -892,8 +907,8 @@ inline BitsBase<T>& BitsBase<T>::set(size_t idx, bool b) {
   return *this;
 }
 
-template <typename T>
-inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
+template <size_t N>
+inline BitsBase<N>& BitsBase<N>::flip(size_t idx) {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
@@ -908,8 +923,8 @@ inline BitsBase<T>& BitsBase<T>::flip(size_t idx) {
   return *this;
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator==(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator==(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     if (val_[i] != rhs.val_[i]) {
@@ -919,13 +934,13 @@ inline bool BitsBase<T>::operator==(const BitsBase& rhs) const {
   return true;
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator!=(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator!=(const BitsBase& rhs) const {
   return !(*this == rhs);
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator<(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
   if (is_signed() && rhs.is_signed()) {
@@ -948,8 +963,8 @@ inline bool BitsBase<T>::operator<(const BitsBase& rhs) const {
   return false;
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator<=(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator<=(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
   if (is_signed() && rhs.is_signed()) {
@@ -972,18 +987,18 @@ inline bool BitsBase<T>::operator<=(const BitsBase& rhs) const {
   return true;
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator>(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator>(const BitsBase& rhs) const {
   return !(*this <= rhs);
 }
 
-template <typename T>
-inline bool BitsBase<T>::operator>=(const BitsBase& rhs) const {
+template <size_t N>
+inline bool BitsBase<N>::operator>=(const BitsBase& rhs) const {
   return !(*this < rhs);
 }
 
-template <typename T>
-inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
+template <size_t N>
+inline void BitsBase<N>::read_2_8_16(std::istream& is, size_t base) {
   // Input Buffer:
   std::string s;
   is >> s;
@@ -1026,8 +1041,8 @@ inline void BitsBase<T>::read_2_8_16(std::istream& is, size_t base) {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::read_10(std::istream& is) {
+template <size_t N>
+inline void BitsBase<N>::read_10(std::istream& is) {
   // Input Buffer:
   std::string s;
   is >> s;
@@ -1045,8 +1060,8 @@ inline void BitsBase<T>::read_10(std::istream& is) {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
+template <size_t N>
+inline void BitsBase<N>::write_2_8_16(std::ostream& os, size_t base) const {
   // Output Buffer:
   std::vector<uint8_t> buf;
 
@@ -1097,8 +1112,8 @@ inline void BitsBase<T>::write_2_8_16(std::ostream& os, size_t base) const {
 }
 
 
-template <typename T>
-inline void BitsBase<T>::write_10(std::ostream& os) const {
+template <size_t N>
+inline void BitsBase<N>::write_10(std::ostream& os) const {
   // If this number is negative, switch to positive value
   Bits temp = *this;
   if (temp.is_negative()) {
@@ -1122,8 +1137,8 @@ inline void BitsBase<T>::write_10(std::ostream& os) const {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::dec_halve(std::string& s) const {
+template <size_t N>
+inline void BitsBase<N>::dec_halve(std::string& s) const {
   auto next_carry = 0;
   for (size_t i = 0, ie = s.length(); i < ie; ++i) {
     const auto val = s[i] - '0';
@@ -1133,8 +1148,8 @@ inline void BitsBase<T>::dec_halve(std::string& s) const {
   }
 }
 
-template <typename T>
-inline bool BitsBase<T>::dec_zero(const std::string& s) const {
+template <size_t N>
+inline bool BitsBase<N>::dec_zero(const std::string& s) const {
   for (auto c : s) {
     if (c != '0') {
       return false;
@@ -1143,8 +1158,8 @@ inline bool BitsBase<T>::dec_zero(const std::string& s) const {
   return true;
 }
 
-template <typename T>
-inline void BitsBase<T>::dec_double(std::string& s) const {
+template <size_t N>
+inline void BitsBase<N>::dec_double(std::string& s) const {
   auto carry = 0;
   for (size_t i = 0, ie = s.size(); i < ie; ++i) {
     auto val = s[i] - '0';
@@ -1162,8 +1177,8 @@ inline void BitsBase<T>::dec_double(std::string& s) const {
   }
 }
 
-template <typename T>
-inline void BitsBase<T>::dec_inc(std::string& s) const {
+template <size_t N>
+inline void BitsBase<N>::dec_inc(std::string& s) const {
   for (size_t i = 0, ie = s.size(); i < ie; ++i) {
     if (++s[i] == ('0'+10)) {
       s[i] = '0';
@@ -1174,8 +1189,8 @@ inline void BitsBase<T>::dec_inc(std::string& s) const {
   s.push_back('1');
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_sll_const(size_t samt, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_sll_const(size_t samt, BitsBase& res) const {
   assert(size_ == res.size_);
   
   // Easy Case: We're not actually shifting
@@ -1217,8 +1232,8 @@ inline void BitsBase<T>::bitwise_sll_const(size_t samt, BitsBase& res) const {
   res.trim();
 }
 
-template <typename T>
-inline void BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith, BitsBase& res) const {
+template <size_t N>
+inline void BitsBase<N>::bitwise_sxr_const(size_t samt, bool arith, BitsBase& res) const {
   assert(size_ == res.size_);
 
   // Easy Case: We're not actually shifting
@@ -1267,8 +1282,8 @@ inline void BitsBase<T>::bitwise_sxr_const(size_t samt, bool arith, BitsBase& re
   res.trim();
 }
 
-template <typename T>
-void BitsBase<T>::trim() {
+template <size_t N>
+void BitsBase<N>::trim() {
   // How many bits do we care about in the top word?
   const auto trailing = size_ % bits_per_word();
   // Zero means we're full
@@ -1280,8 +1295,8 @@ void BitsBase<T>::trim() {
   val_.back() &= mask;
 }
     
-template <typename T>
-void BitsBase<T>::extend_to(size_t n) {
+template <size_t N>
+void BitsBase<N>::extend_to(size_t n) {
   const auto words = (n + bits_per_word() - 1) / bits_per_word();
   if (is_negative()) {
     val_.back() |= (T(-1) << (size_ % bits_per_word()));
@@ -1294,34 +1309,34 @@ void BitsBase<T>::extend_to(size_t n) {
   }
 }
    
-template <typename T>
-void BitsBase<T>::shrink_to(size_t n) {
+template <size_t N>
+void BitsBase<N>::shrink_to(size_t n) {
   const auto words = (n + bits_per_word() - 1) / bits_per_word();
   val_.resize(words, T(0));
   size_ = n;
   trim();
 }
 
-template <typename T>
-void BitsBase<T>::shrink_to_bool(bool b) {
+template <size_t N>
+void BitsBase<N>::shrink_to_bool(bool b) {
   val_.resize(1, T(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
   signed_ = false;
 }
 
-template <typename T>
-bool BitsBase<T>::is_negative() const {
+template <size_t N>
+bool BitsBase<N>::is_negative() const {
   return signed_ && get(size_-1);
 }
 
-template <typename T>
-constexpr size_t BitsBase<T>::bits_per_word() const {
+template <size_t N>
+constexpr size_t BitsBase<N>::bits_per_word() const {
   return 8 * bytes_per_word();
 }
 
-template <typename T>
-constexpr size_t BitsBase<T>::bytes_per_word() const {
+template <size_t N>
+constexpr size_t BitsBase<N>::bytes_per_word() const {
   return sizeof(T);
 }
 
