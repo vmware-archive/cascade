@@ -14,7 +14,7 @@ PERF=\
 	-march=native -fno-exceptions -fno-stack-protector \
 	-Ofast -DNDEBUG
 INC=-I. -I./ext/cl
-LIB=-lgmp -lncurses -lpthread
+LIB=-lncurses -lpthread
 
 ### Constants: gtest
 GTEST_ROOT_DIR=ext/googletest/googletest

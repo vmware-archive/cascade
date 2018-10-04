@@ -14,6 +14,7 @@ Index
     5. [DE10 Backend](#de10-backend)
 3. [Verilog Support](#verilog-support)
 4. [Standard Library](#standard-library)
+5. [Troubleshooting](#troubleshooting)
 
 Dependencies
 =====
@@ -68,8 +69,9 @@ ITEM OK
 Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
-*** Referenece to unresolved identifier >>> y <<< 
->>>
+*** Typechecker Error:
+  > In final line of user input:
+    Referenece to unresolved identifier
 ```
 Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, Cascade will produce an error message and the remainder of your text will be ignored. If you type multiple statements, anything which compiles successfully before the error is encountered cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error.
 ```verilog
@@ -219,3 +221,5 @@ Assuming the system is able to successfully connect to the de10, you will be pre
 
 ### Standard Library
 (Coming soon.)
+
+### Troubleshooting
