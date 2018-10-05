@@ -197,16 +197,20 @@ void Printer::visit(const UnaryExpression* ue) {
 }
 
 void Printer::visit(const GenerateBlock* gb) {
-  *this << Color::GREEN << "begin" << Color::RESET;
+  const auto surround = gb->get_scope() || (gb->get_items()->size() > 1) || !gb->get_id()->null();
+  if (surround) {
+    *this << Color::GREEN << "begin" << Color::RESET;
+  }
   if (!gb->get_id()->null()) {
     *this << Color::RED << " : " << Color::RESET;
     gb->get_id()->accept(this);
   }
   os_.tab();
-  *this << "\n";
-  gb->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  gb->get_items()->accept(this, [this]{*this << "\n";}, []{});
   os_.untab();
-  *this << Color::GREEN << "end " << Color::RESET;
+  if (surround) {
+    *this << Color::GREEN << "end " << Color::RESET;
+  }
 }
 
 void Printer::visit(const Id* id) {

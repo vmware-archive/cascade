@@ -137,6 +137,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
         )),
         new Maybe<Expression>()
       )),
+      true,
       new Many<ModuleItem>(lpd)
     );
     block->get_items()->concat(lgc->get_block()->get_items()->clone());
@@ -216,14 +217,14 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock
   if (b->null() || !b->get()->get_id()->null()) {
     return;
   }
-  // Also nothing to do if this is a directly nested block
+  // Also nothing to do if this is a directly nested block without begin/ends
   if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent()->get_parent())) {
     const auto only_item = block->get_items()->size() == 1;
     const auto pp = block->get_parent()->get_parent();
     const auto nested_if = dynamic_cast<IfGenerateClause*>(pp);
     const auto nested_else = dynamic_cast<IfGenerateConstruct*>(pp);
     const auto nested_case = dynamic_cast<CaseGenerateItem*>(pp);
-    if (only_item && (nested_if || nested_else || nested_case)) {
+    if (!block->get_scope() && only_item && (nested_if || nested_else || nested_case)) {
       return;
     }
   }

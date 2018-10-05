@@ -179,6 +179,7 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
   }
   return new GenerateBlock(
     gb->get_id()->accept(this),
+    gb->get_scope(),
     items
   );
 }

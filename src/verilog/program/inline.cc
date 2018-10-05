@@ -193,6 +193,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       new Number("1"),
       new Maybe<GenerateBlock>(new GenerateBlock(
         new Maybe<Identifier>(mi->get_iid()->clone()),
+        true,
         inline_src
       ))
     ),
