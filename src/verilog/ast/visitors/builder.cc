@@ -190,6 +190,13 @@ Id* Builder::build(const Id* i) {
   );
 }
 
+IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
+  return new IfGenerateClause(
+    igc->get_if()->accept(this),
+    igc->get_then()->accept(this)
+  );
+}
+
 ModuleDeclaration* Builder::build(const ModuleDeclaration* md) {
   auto ports = new Many<ArgAssign>();
   for (auto p : *md->get_ports()) {
@@ -220,8 +227,7 @@ ModuleItem* Builder::build(const AlwaysConstruct* ac) {
 ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
   return new IfGenerateConstruct(
     igc->get_attrs()->accept(this),
-    igc->get_if()->accept(this),
-    igc->get_then()->accept(this),
+    igc->get_clauses()->accept(this),
     igc->get_else()->accept(this)
   );
 }

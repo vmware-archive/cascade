@@ -59,6 +59,7 @@ class Node;
     class UnaryExpression;
   class GenerateBlock;
   class Id;
+  class IfGenerateClause;
   class ModuleDeclaration;
   class ModuleItem;
     class Construct;

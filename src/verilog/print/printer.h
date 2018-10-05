@@ -63,6 +63,7 @@ class Printer : public Visitor {
     void visit(const UnaryExpression* ue) override;
     void visit(const GenerateBlock* gb) override;
     void visit(const Id* i) override;
+    void visit(const IfGenerateclause* igc) override;
     void visit(const ModuleDeclaration* md) override;
     void visit(const AlwaysConstruct* ac) override;
     void visit(const IfGenerateConstruct* igc) override;

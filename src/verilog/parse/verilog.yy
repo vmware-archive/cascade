@@ -1020,10 +1020,19 @@ conditional_generate_construct
   ;
 if_generate_construct
   : IF OPAREN expression CPAREN generate_block_or_null %prec SHIFT { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()),$3,$5,new Maybe<GenerateBlock>());
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()),$3,$5,$7);
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
+    if (!$7->null() && ($7->get()->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->front())) {
+      auto igc = dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->remove_front());
+      delete $7;
+      while (!igc->get_clauses()->empty()) {
+        $$->get_clauses()->push_back(igc->get_clauses()->remove_front());
+      }
+      $$->swap_else(igc->get_else());
+      delete igc;
+    }    
   }
   ;
 case_generate_construct

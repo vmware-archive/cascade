@@ -86,6 +86,11 @@ void Visitor::visit(const Identifier* i) {
   i->get_dim()->accept(this);
 }
 
+void Visitor::visit(const IfGenerateClause* igc) {
+  igc->get_if()->accept(this);
+  igc->get_then()->accept(this);
+}
+
 void Visitor::visit(const MultipleConcatenation* mc) {
   mc->get_expr()->accept(this);
   mc->get_concat()->accept(this);
@@ -130,8 +135,7 @@ void Visitor::visit(const AlwaysConstruct* ac) {
 
 void Visitor::visit(const IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
-  igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->get_clauses()->accept(this);
   igc->get_else()->accept(this);
 }
 
