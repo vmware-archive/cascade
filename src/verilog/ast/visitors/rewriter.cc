@@ -133,6 +133,12 @@ Id* Rewriter::rewrite(Id* i) {
   return i;
 }
 
+IfGenerateClause* Rewriter::rewrite(IfGenerateClause* igc) {
+  igc->get_if()->accept(this);
+  igc->get_then()->accept(this);
+  return igc;
+}
+
 ModuleDeclaration* Rewriter::rewrite(ModuleDeclaration* md) {
   md->get_attrs()->accept(this);
   md->get_id()->accept(this);
@@ -148,8 +154,7 @@ ModuleItem* Rewriter::rewrite(AlwaysConstruct* ac) {
 
 ModuleItem* Rewriter::rewrite(IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
-  igc->conditional_replace_if(igc->get_if()->accept(this));
-  igc->get_then()->accept(this);
+  igc->conditional_replace_clauses(igc->get_clauses()->accept(this));
   igc->get_else()->accept(this);
   return igc;
 }

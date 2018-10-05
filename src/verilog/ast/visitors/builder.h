@@ -61,6 +61,7 @@ struct Builder {
   virtual Expression* build(const UnaryExpression* ue);
   virtual GenerateBlock* build(const GenerateBlock* gb);
   virtual Id* build(const Id* i);
+  virtual IfGenerateClause* build(const IfGenerateClause* igc);
   virtual ModuleDeclaration* build(const ModuleDeclaration* md);
   virtual ModuleItem* build(const AlwaysConstruct* ac);
   virtual ModuleItem* build(const IfGenerateConstruct* igc);

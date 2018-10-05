@@ -1020,10 +1020,28 @@ conditional_generate_construct
   ;
 if_generate_construct
   : IF OPAREN expression CPAREN generate_block_or_null %prec SHIFT { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()),$3,$5,new Maybe<GenerateBlock>());
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()),$3,$5,$7);
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
+    // Was the remainder of this parse an empty block?
+    if ($7->null()) {
+      // Nothing to do.
+    }
+    // Was it an unscoped if/then?
+    else if (!$7->get()->get_scope() && ($7->get()->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->front())) {
+      auto igc = dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->remove_front());
+      delete $7;
+      while (!igc->get_clauses()->empty()) {
+        $$->get_clauses()->push_back(igc->get_clauses()->remove_front());
+      }
+      $$->swap_else(igc->get_else());
+      delete igc;
+    }
+    // Everything else is just an else block
+    else {
+      $$->replace_else($7);
+    }
   }
   ;
 case_generate_construct
@@ -1051,10 +1069,10 @@ case_generate_item
   ; 
 generate_block
   : module_or_generate_item { 
-    $$ = new GenerateBlock(new Maybe<Identifier>(), $1); 
+    $$ = new GenerateBlock(new Maybe<Identifier>(), false, $1); 
   }
   | BEGIN_ generate_block_id_Q module_or_generate_item_S END { 
-    $$ = new GenerateBlock($2,$3);   
+    $$ = new GenerateBlock($2, true, $3);   
   }
   ;
 generate_block_or_null

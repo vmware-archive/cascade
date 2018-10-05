@@ -194,16 +194,20 @@ void Printer::visit(const UnaryExpression* ue) {
 }
 
 void Printer::visit(const GenerateBlock* gb) {
-  *this << Color::GREEN << "begin" << Color::RESET;
+  const auto surround = gb->get_scope() || (gb->get_items()->size() > 1) || !gb->get_id()->null();
+  if (surround) {
+    *this << Color::GREEN << "begin" << Color::RESET;
+  }
   if (!gb->get_id()->null()) {
     *this << Color::RED << " : " << Color::RESET;
     gb->get_id()->accept(this);
   }
   os_.tab();
-  *this << "\n";
-  gb->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  gb->get_items()->accept(this, [this]{*this << "\n";}, []{});
   os_.untab();
-  *this << Color::GREEN << "end " << Color::RESET;
+  if (surround) {
+    *this << Color::GREEN << "end " << Color::RESET;
+  }
 }
 
 void Printer::visit(const Id* id) {
@@ -213,6 +217,14 @@ void Printer::visit(const Id* id) {
     id->get_isel()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
+}
+
+void Printer::visit(const IfGenerateClause* igc) {
+  *this << Color::GREEN << "if " << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  igc->get_if()->accept(this);
+  *this << Color::RED << ") " << Color::RESET;
+  igc->get_then()->accept(this);
 }
 
 void Printer::visit(const ModuleDeclaration* md) {
@@ -237,11 +249,13 @@ void Printer::visit(const IfGenerateConstruct* igc) {
   if (!igc->get_attrs()->get_as()->empty()) {
     *this << "\n";
   }
-  *this << Color::GREEN << "if " << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  igc->get_if()->accept(this);
-  *this << Color::RED << ") " << Color::RESET;
-  igc->get_then()->accept(this);
+  auto c = igc->get_clauses()->begin();
+  (*c)->accept(this);
+  ++c;
+  for (auto ce = igc->get_clauses()->end(); c != ce; ++c) {
+    *this << Color::GREEN << "else " << Color::RESET;
+    (*c)->accept(this);
+  }
   if (!igc->get_else()->null()) {
     *this << Color::GREEN << "else " << Color::RESET;
     igc->get_else()->accept(this);

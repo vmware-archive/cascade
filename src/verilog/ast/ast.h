@@ -49,6 +49,7 @@
 #include "src/verilog/ast/types/unary_expression.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/id.h"
+#include "src/verilog/ast/types/if_generate_clause.h"
 #include "src/verilog/ast/types/module_declaration.h"
 #include "src/verilog/ast/types/always_construct.h"
 #include "src/verilog/ast/types/if_generate_construct.h"
