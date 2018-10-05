@@ -407,7 +407,9 @@ void ModuleInfo::visit(const CaseGenerateConstruct* cgc) {
 }
 
 void ModuleInfo::visit(const IfGenerateConstruct* igc) {
-  igc->get_if()->accept(this);
+  for (auto c : *igc->get_clauses()) {
+    c->get_if()->accept(this);
+  }
   if (Elaborate().is_elaborated(igc)) {
     Elaborate().get_elaboration(igc)->accept(this);
   }

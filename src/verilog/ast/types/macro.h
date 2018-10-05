@@ -181,6 +181,7 @@
   friend class UnaryExpression; \
   friend class GenerateBlock; \
   friend class Id; \
+  friend class IfGenerateClause; \
   friend class ModuleDeclaration; \
   friend class AlwaysConstruct; \
   friend class IfGenerateConstruct; \

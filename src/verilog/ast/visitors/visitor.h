@@ -60,6 +60,7 @@ struct Visitor {
   virtual void visit(const UnaryExpression* ue);
   virtual void visit(const GenerateBlock* gb);
   virtual void visit(const Id* i);
+  virtual void visit(const IfGenerateClause* igc);
   virtual void visit(const ModuleDeclaration* md);
   virtual void visit(const AlwaysConstruct* ac);
   virtual void visit(const IfGenerateConstruct* igc);

@@ -189,16 +189,19 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   // Update inline decorations
   auto igc = new IfGenerateConstruct(
     attrs,
-    new Number("1"),
-    new Maybe<GenerateBlock>(new GenerateBlock(
-      new Maybe<Identifier>(mi->get_iid()->clone()),
-      inline_src
-    )),
+    new IfGenerateClause(
+      new Number("1"),
+      new Maybe<GenerateBlock>(new GenerateBlock(
+        new Maybe<Identifier>(mi->get_iid()->clone()),
+        true,
+        inline_src
+      ))
+    ),
     new Maybe<GenerateBlock>()
   );
   mi->inline_ = igc;
   igc->parent_ = mi;
-  mi->inline_->gen_ = mi->inline_->get_then();
+  mi->inline_->gen_ = mi->inline_->get_clauses()->front()->get_then();
 
   // This module is now in an inconsistent state. Invalidate its module info
   // and invalidate the scope that contains the newly inlined code.
@@ -220,7 +223,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   // parameter delcarations, and delete the connections.
   const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
-    auto item = mi->inline_->get_then()->get()->get_items()->remove_front();
+    auto item = mi->inline_->get_clauses()->front()->get_then()->get()->get_items()->remove_front();
     if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto pd = new ParameterDeclaration(
@@ -253,7 +256,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   }
   // Release any references to the remainder of the code. These are the assign
   // statements that we introduced in place of the instantiation. 
-  for (auto i : *mi->inline_->get_then()->get()->get_items()) {
+  for (auto i : *mi->inline_->get_clauses()->front()->get_then()->get()->get_items()) {
     Resolve().invalidate(i);
   }
 

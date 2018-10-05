@@ -28,51 +28,44 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
-#define CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
+#ifndef CASCADE_SRC_VERILOG_AST_IF_GENERATE_CLAUSE_H
+#define CASCADE_SRC_VERILOG_AST_IF_GENERATE_CLAUSE_H
 
 #include <cassert>
-#include "src/verilog/ast/types/identifier.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
-#include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/scope.h"
+#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
-class GenerateBlock : public Node, public Scope {
+class IfGenerateClause : public Node {
   public:
     // Constructors:
-    GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__);
-    ~GenerateBlock() override;
+    IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__);
+    ~IfGenerateClause() override;
 
     // Node Interface:
-    NODE(GenerateBlock, TREE(id), LEAF(scope), TREE(items))
+    NODE(IfGenerateClause, TREE(if), TREE(then))
     // Get/Set:
-    TREE_GET_SET(id)
-    LEAF_GET_SET(scope)
-    TREE_GET_SET(items)
+    TREE_GET_SET(if)
+    TREE_GET_SET(then)
 
   private:
-    TREE_ATTR(Maybe<Identifier>*, id);
-    LEAF_ATTR(bool, scope);
-    TREE_ATTR(Many<ModuleItem>*, items);
+    TREE_ATTR(Expression*, if);
+    TREE_ATTR(Maybe<GenerateBlock>*, then);
 };
 
-inline GenerateBlock::GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
+inline IfGenerateClause::IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(id);
-  LEAF_SETUP(scope);
-  TREE_SETUP(items);
-  next_supdate_ = 0;
+  TREE_SETUP(if);
+  TREE_SETUP(then);
 }
 
-inline GenerateBlock::~GenerateBlock() {
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(scope);
-  TREE_TEARDOWN(items);
+inline IfGenerateClause::~IfGenerateClause() {
+  TREE_TEARDOWN(if);
+  TREE_TEARDOWN(then);
 }
 
 } // namespace cascade 

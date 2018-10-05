@@ -117,6 +117,11 @@ void Editor::edit(Id* i) {
   i->get_isel()->accept(this);
 }
 
+void Editor::edit(IfGenerateClause* igc) {
+  igc->get_if()->accept(this);
+  igc->get_then()->accept(this);
+}
+
 void Editor::edit(ModuleDeclaration* md) {
   md->get_attrs()->accept(this);
   md->get_id()->accept(this);
@@ -130,8 +135,7 @@ void Editor::edit(AlwaysConstruct* ac) {
 
 void Editor::edit(IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
-  igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->get_clauses()->accept(this);
   igc->get_else()->accept(this);
 }
 

@@ -60,6 +60,7 @@ struct Editor {
   virtual void edit(UnaryExpression* ue);
   virtual void edit(GenerateBlock* gb);
   virtual void edit(Id* i);
+  virtual void edit(IfGenerateClause* igc);
   virtual void edit(ModuleDeclaration* md);
   virtual void edit(AlwaysConstruct* ac);
   virtual void edit(IfGenerateConstruct* igc);

@@ -62,6 +62,7 @@ struct Rewriter {
   virtual Expression* rewrite(UnaryExpression* ue);
   virtual GenerateBlock* rewrite(GenerateBlock* gb);
   virtual Id* rewrite(Id* i);
+  virtual IfGenerateClause* rewrite(IfGenerateClause* igc);
   virtual ModuleDeclaration* rewrite(ModuleDeclaration* md);
   virtual ModuleItem* rewrite(AlwaysConstruct* ac);
   virtual ModuleItem* rewrite(IfGenerateConstruct* igc);

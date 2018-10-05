@@ -179,6 +179,7 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
   }
   return new GenerateBlock(
     gb->get_id()->accept(this),
+    gb->get_scope(),
     items
   );
 }
@@ -187,6 +188,13 @@ Id* Builder::build(const Id* i) {
   return new Id(
     i->get_sid(),
     i->get_isel()->accept(this)
+  );
+}
+
+IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
+  return new IfGenerateClause(
+    igc->get_if()->accept(this),
+    igc->get_then()->accept(this)
   );
 }
 
@@ -220,8 +228,7 @@ ModuleItem* Builder::build(const AlwaysConstruct* ac) {
 ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
   return new IfGenerateConstruct(
     igc->get_attrs()->accept(this),
-    igc->get_if()->accept(this),
-    igc->get_then()->accept(this),
+    igc->get_clauses()->accept(this),
     igc->get_else()->accept(this)
   );
 }
