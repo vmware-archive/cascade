@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_COMPILER_H
 
 #include <mutex>
-#include "src/base/bits/bits.h"
+#include <string>
 #include "src/target/core/sw/sw_clock.h"
 #include "src/target/core/sw/sw_fifo.h"
 #include "src/target/core/sw/sw_led.h"
@@ -49,6 +49,7 @@ class SwCompiler : public CoreCompiler {
     SwCompiler();
     ~SwCompiler() override = default;
 
+    SwCompiler& set_include_dirs(const std::string& s);
     SwCompiler& set_led(Bits* b, std::mutex* l);
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
@@ -63,6 +64,8 @@ class SwCompiler : public CoreCompiler {
     SwMemory* compile_memory(Interface* interface, ModuleDeclaration* md) override;
     SwPad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
     SwReset* compile_reset(Interface* interface, ModuleDeclaration* md) override;
+
+    std::string include_dirs_;
 
     Bits* led_;
     Bits* pad_;

@@ -47,6 +47,7 @@ class incstream : public std::ifstream {
     incstream(const std::string& dirs);
     virtual ~incstream() = default;
 
+    std::string find(const std::string& path) const;
     bool open(const std::string& path);
 
   private:
@@ -62,6 +63,17 @@ inline incstream::incstream() : std::ifstream() {
 inline incstream::incstream(const std::string& dirs) : std::ifstream() {
   read_dirs(".");
   read_dirs(dirs);
+}
+
+inline std::string incstream::find(const std::string& path) const {
+  for (const auto& d : dirs_) {
+    const auto file = d + "/" + path;
+    std::ifstream ifs(file);
+    if (ifs.is_open()) {
+      return file;
+    }
+  }
+  return "";
 }
 
 inline bool incstream::open(const std::string& path) {
