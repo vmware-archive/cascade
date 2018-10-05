@@ -212,13 +212,28 @@ void Elaborate::ordered_params(ModuleInstantiation* mi) {
 
 void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock>* b) {
   cgc->gen_ = b;  
-  if (!b->null() && b->get()->get_id()->null()) {
-    b->get()->get_id()->replace(get_name(cgc));
+  // Nothing to do if this block was already named
+  if (b->null() || !b->get()->get_id()->null()) {
+    return;
   }
+  // Also nothing to do if this is a directly nested block
+  if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent()->get_parent())) {
+    const auto only_item = block->get_items()->size() == 1;
+    const auto pp = block->get_parent()->get_parent();
+    const auto nested_if = dynamic_cast<IfGenerateClause*>(pp);
+    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(pp);
+    const auto nested_case = dynamic_cast<CaseGenerateItem*>(pp);
+    if (only_item && (nested_if || nested_else || nested_case)) {
+      return;
+    }
+  }
+  // Otherwise, attach the next name for this scope
+  b->get()->get_id()->replace(get_name(cgc));
 }
 
 Identifier* Elaborate::get_name(GenerateConstruct* gc) {
-  next_name_ = 0;
+  // Automatically generated genblk ids begin with genblk1
+  next_name_ = 1;
   here_ = gc;
 
   Navigate nav(gc);
