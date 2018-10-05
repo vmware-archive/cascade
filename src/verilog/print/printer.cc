@@ -224,11 +224,6 @@ void Printer::visit(const IfGenerateClause* igc) {
   igc->get_if()->accept(this);
   *this << Color::RED << ") " << Color::RESET;
   igc->get_then()->accept(this);
-  if (!igc->get_else()->null()) {
-    *this << Color::GREEN << "else " << Color::RESET;
-    igc->get_else()->accept(this);
-  }
-
 }
 
 void Printer::visit(const ModuleDeclaration* md) {
@@ -253,11 +248,13 @@ void Printer::visit(const IfGenerateConstruct* igc) {
   if (!igc->get_attrs()->get_as()->empty()) {
     *this << "\n";
   }
-  *this << Color::GREEN << "if " << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  igc->get_if()->accept(this);
-  *this << Color::RED << ") " << Color::RESET;
-  igc->get_then()->accept(this);
+  auto c = igc->get_clauses()->begin();
+  (*c)->accept(this);
+  ++c;
+  for (auto ce = igc->get_clauses()->end(); c != ce; ++c) {
+    *this << Color::GREEN << "else " << Color::RESET;
+    (*c)->accept(this);
+  }
   if (!igc->get_else()->null()) {
     *this << Color::GREEN << "else " << Color::RESET;
     igc->get_else()->accept(this);

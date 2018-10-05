@@ -185,11 +185,13 @@ void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
     return;
   }
   // CHECK: Constant guard expression 
-  if (!Constant().is_constant(igc->get_if())) {
-    error("If generate construct requires constant expression as guard", igc->get_if());
+  for (auto c : *igc->get_clauses()) {
+    if (!Constant().is_constant(c->get_if())) {
+      error("If generate construct requires constant expression as guard", c->get_if());
+    }
+    // RECURSE: condition
+    c->get_if()->accept(this);
   }
-  // RECURSE: condition
-  igc->get_if()->accept(this);
 }
 
 void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {

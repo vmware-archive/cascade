@@ -1024,6 +1024,7 @@ if_generate_construct
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
     $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
+    // Was the remainder of this expression an if/else?
     if (!$7->null() && ($7->get()->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->front())) {
       auto igc = dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->remove_front());
       delete $7;
@@ -1032,7 +1033,11 @@ if_generate_construct
       }
       $$->swap_else(igc->get_else());
       delete igc;
-    }    
+    }
+    // Or was it just an else? 
+    else if (!$7->null()) {
+      $$->replace_else($7);
+    }
   }
   ;
 case_generate_construct

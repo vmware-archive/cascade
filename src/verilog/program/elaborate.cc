@@ -98,11 +98,13 @@ Maybe<GenerateBlock>* Elaborate::elaborate(IfGenerateConstruct* igc) {
   if (igc->gen_ != nullptr) {
     return igc->gen_;
   }
-  if (Evaluate().get_value(igc->get_if()).to_bool()) {
-    elaborate(igc, igc->get_then());
-  } else {
-    elaborate(igc, igc->get_else());
-  }
+  for (auto c : *igc->get_clauses()) {
+    if (Evaluate().get_value(c->get_if()).to_bool()) {
+      elaborate(igc, c->get_then());
+      return igc->gen_;
+    }
+  } 
+  elaborate(igc, igc->get_else());
   return igc->gen_;
 }
 
