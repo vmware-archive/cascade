@@ -84,7 +84,10 @@ class BitsBase : public Serializable {
     void set_signed(bool s);
 
     // Bitwise Operators: 
+    //
     // Apply a bitwise operator to this and rhs and store the result in res.
+    // These methods all assume equivalent bit-width between operands and
+    // destination and so do not perform sign extension.
     void bitwise_and(const BitsBase& rhs, BitsBase& res) const;
     void bitwise_or(const BitsBase& rhs, BitsBase& res) const;
     void bitwise_xor(const BitsBase& rhs, BitsBase& res) const;
@@ -96,7 +99,10 @@ class BitsBase : public Serializable {
     void bitwise_not(BitsBase& res) const;
 
     // Arithmetic Operators:
-    // Apply an arithmetic operator to this and rhs and store the result in res
+    //
+    // Apply an arithmetic operator to this and rhs and store the result in
+    // res.  These methods all assume equivalent bit-width between operands and
+    // destination and so do not perform sign extension.
     void arithmetic_plus(BitsBase& res) const;
     void arithmetic_plus(const BitsBase& rhs, BitsBase& res) const;
     void arithmetic_minus(BitsBase& res) const;
@@ -107,7 +113,11 @@ class BitsBase : public Serializable {
     void arithmetic_pow(const BitsBase& rhs, BitsBase& res) const;
 
     // Logical Operators:
-    // Apply a logical operator to this and rhs and store the result in res
+    //
+    // Apply a logical operator to this and rhs and store the result in res.
+    // These methods all assume equivalent bit-width between operands and
+    // single bit-width in their destination and so do not perform sign
+    // extension.
     void logical_and(const BitsBase& rhs, BitsBase& res) const;
     void logical_or(const BitsBase& rhs, BitsBase& res) const;
     void logical_not(BitsBase& res) const;
@@ -119,7 +129,10 @@ class BitsBase : public Serializable {
     void logical_gte(const BitsBase& rhs, BitsBase& res) const;
 
     // Reduction Operators:
-    // Apply a reduction operator to this and store the result in res
+    //
+    // Apply a reduction operator to this and store the result in res These
+    // methods all assume single bit-width in their destination and so do not
+    // perform sign extension.
     void reduce_and(BitsBase& res) const;
     void reduce_nand(BitsBase& res) const;
     void reduce_or(BitsBase& res) const;
@@ -128,13 +141,17 @@ class BitsBase : public Serializable {
     void reduce_xnor(BitsBase& res) const;
 
     // Comparison Operators:
-    // Check for equality, no assumptions made with respect to sizes
+    //
+    // Check for equality. These methods make no assumptions made with respect
+    // to sizes and handle sign-extension for rhs as necessary.
     bool eq(const BitsBase& rhs) const;
     bool eq(size_t idx, const BitsBase& rhs) const;
     bool eq(size_t msb, size_t lsb, const BitsBase& rhs) const;
 
     // Assignment Operators:
-    // Assign bits, no assumption made with respect to sizes
+    //
+    // Assign bits. These methods make no assumptions made with respect to
+    // sizes and handle sign-extension for rhs as necessary.
     void assign(const BitsBase& rhs);
     void assign(size_t idx, const BitsBase& rhs);
     void assign(size_t msb, size_t lsb, const BitsBase& rhs);
@@ -198,6 +215,10 @@ class BitsBase : public Serializable {
 
     // Returns true if this is a signed number with high order bit set
     bool is_negative() const;
+
+    // Returns the nth (possibly greater than val_.size()th) word of this value.
+    // Performs sign extension as necessary.
+    T signed_get(size_t n) const;
 
     // Returns the number of bits in a word
     constexpr size_t bits_per_word() const;
@@ -431,8 +452,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_not(BitsBase& res) const {
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    const auto l = i < val_.size() ? val_[i] : T(0);
-    res.val_[i] = ~l;
+    res.val_[i] = ~val_[i];
   }
   res.trim();
 }
@@ -454,9 +474,9 @@ inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& 
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] + rhs.val_[i] + carry;
     if (carry) {
-      carry = (res.val_[i] <= val_[i]) ? T(1) : 0; 
+      carry = (res.val_[i] <= val_[i]) ? T(1) : T(0); 
     } else {
-      carry = (res.val_[i] < val_[i]) ? 1 : 0;
+      carry = (res.val_[i] < val_[i]) ? T(1) : T(0);
     }
   }
   res.trim();
@@ -470,7 +490,7 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~val_[i];
     const T sum = res.val_[i] + carry;
-    carry = (sum < res.val_[i]) ? 1 : 0;
+    carry = (sum < res.val_[i]) ? T(1) : T(0);
     res.val_[i] = sum;
   }
   res.trim();
@@ -485,9 +505,9 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase&
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] - rhs.val_[i] - carry;
     if (carry) {
-      carry = (res.val_[i] >= val_[i]) ? 1 : 0; 
+      carry = (res.val_[i] >= val_[i]) ? T(1) : T(0); 
     } else {
-      carry = (res.val_[i] > val_[i]) ? 1 : 0;
+      carry = (res.val_[i] > val_[i]) ? T(1) : T(0);
     }
   }
   res.trim();
@@ -688,13 +708,13 @@ template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
   size_t i = 0;
   for (size_t ie = val_.size()-1; i < ie; ++i) {
-    const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
+    const auto rval = rhs.signed_get(i);
     if (val_[i] != rval) {
       return false;
     }
   }
 
-  const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
+  const auto rval = rhs.signed_get(i);
   const auto lover = size_ % bits_per_word();
   if (lover == 0) {
     return val_[i] == rval;
@@ -733,7 +753,7 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
   // Common Case: Full word comparison
   for (size_t i = 0; i < span; ++i) {
     auto word = (val_[lower+i] >> loff);
-    const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
+    const auto rval = rhs.signed_get(i);
     if (loff > 0) {
       word |= (val_[lower+i+1] << uoff);
     } 
@@ -748,7 +768,7 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
   }
   // Edge Case: Compare the remaining bits
   auto word = (val_[lower+span] >> loff);
-  const auto rval = span < rhs.val_.size() ? rhs.val_[span] : T(0);
+  const auto rval = rhs.signed_get(span);
   if ((loff > 0) && ((lower+span+1) < val_.size())) {
     word |= (val_[lower+span+1] << uoff);
   } 
@@ -758,9 +778,8 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs) {
-  const auto rsize = rhs.val_.size();
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    val_[i] = i < rsize ? rhs.val_[i] : T(0);
+    val_[i] = rhs.signed_get(i);
   }
   trim();
 }
@@ -794,7 +813,7 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
 
   // Common Case: Copy entire words
   for (size_t i = 0; i < span; ++i) {
-    const auto rval = i < rhs.val_.size() ? rhs.val_[i] : T(0);
+    const auto rval = rhs.signed_get(i);
     val_[lower+i] &= mask;
     val_[lower+i] |= (rval << loff);
     if (loff > 0) {
@@ -809,7 +828,7 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
   }
   // Edge Case: Copy the remaining bits
   const auto lmask = (T(1) << lover) - 1;
-  const auto rval = span < rhs.val_.size() ? rhs.val_[span] : T(0);
+  const auto rval = rhs.signed_get(span);
   val_[lower+span] &= ~(lmask << loff);
   val_[lower+span] |= ((rval & lmask) << loff);
 
@@ -1322,6 +1341,27 @@ void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
 template <typename T, typename BT, typename ST>
 bool BitsBase<T, BT, ST>::is_negative() const {
   return signed_ && get(size_-1);
+}
+
+template <typename T, typename BT, typename ST>
+T BitsBase<T, BT, ST>::signed_get(size_t n) const {
+  // Difficult case: Do we need to sign extend this value?
+  if (n == val_.size()-1) {
+    const auto top = size_ % bits_per_word();
+    if (!is_negative() || (top == 0)) {
+      return val_[n];
+    }
+    const auto mask = ~((T(1) << top) - 1);
+    return val_[n] | mask;
+  }
+  // Easier Case: Do we need to return all 1s or 0s?
+  else if (n >= val_.size()) {
+    return is_negative() ? T(-1) : T(0);
+  }
+  // Easiest Case: Just return what's there
+  else {
+    return val_[n]; 
+  }
 }
 
 template <typename T, typename BT, typename ST>

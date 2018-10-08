@@ -249,8 +249,11 @@ TEST(simple, repeat_1) {
 TEST(simple, repeat_2) {
   run_code("minimal","data/test/simple/repeat_2.v", "666666");
 }
-TEST(simple, sign) {
-  run_code("minimal","data/test/simple/sign.v", "-41431655761-416553221841143165576165532-41");
+TEST(simple, sign_1) {
+  run_code("minimal","data/test/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");
+}
+TEST(simple, sign_2) {
+  run_code("minimal","data/test/simple/sign_2.v", "000");
 }
 //TEST(simple, wait_1) {
 //  run_code("minimal","data/test/simple/wait_1.v", "Hello World");
