@@ -342,7 +342,7 @@ Statement* Boxer::build(const NonblockingAssign* na) {
   const auto lhs = na->get_assign()->get_lhs();
   const auto titr = de_->table_find(Resolve().get_resolution(lhs));
   assert(titr != de_->table_end());
-  assert(titr->second.materialized);
+  assert(titr->second.materialized());
 
   Maybe<Expression>* idx = nullptr;
   if (titr->second.word_size() == 1) {
