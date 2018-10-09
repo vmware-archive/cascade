@@ -133,13 +133,15 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
       continue;
     }
 
-    Maybe<RangeExpression>* re = nullptr;
+    // Note that we use bit_size() here rather than looking at this variable's
+    // declaration in the AST. This is because some of these variables will
+    // appear in expressions inside of system tasks where their bit-width has
+    // been implicitly extended.
+    const auto w = titr->second.bit_size();
     auto is_signed = false;
     if (auto nd = dynamic_cast<const NetDeclaration*>(v->first->get_parent())) {
-      re = nd->get_dim();
       is_signed = nd->get_signed();
     } else if (auto rd = dynamic_cast<const RegDeclaration*>(v->first->get_parent())) {
-      re = rd->get_dim();
       is_signed = rd->get_signed();
     } else {
       assert(false);
@@ -148,8 +150,8 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     if (is_signed) {
       os << " signed";
     }
-    if (!re->null()) {
-      TextPrinter(os) << "[" << re->get()->get_upper() << ":" << re->get()->get_lower() << "]";
+    if (w > 1) {
+      TextPrinter(os) << "[" << (w-1) << ":0]";
     }
     TextPrinter(os) << " " << v->first << " = {";
     for (int i = titr->second.word_size()-1; i >= 0; --i) {
