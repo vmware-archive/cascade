@@ -31,7 +31,6 @@
 #include "src/verilog/analyze/evaluate.h"
 
 #include <cassert>
-#include "src/verilog/ast/ast.h"
 #include "src/verilog/analyze/resolve.h"
 
 using namespace std;

@@ -67,7 +67,7 @@ class BitsBase : public Serializable {
 
     // Block I/O
     template <typename B>
-    B read_word(size_t n);
+    B read_word(size_t n) const;
     template <typename B>
     void write_word(size_t n, B b);
 
@@ -320,7 +320,7 @@ inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
 
 template <typename T, typename BT, typename ST>
 template <typename B>
-inline B BitsBase<T, BT, ST>::read_word(size_t n) {
+inline B BitsBase<T, BT, ST>::read_word(size_t n) const {
   assert(sizeof(B) <= sizeof(T));
 
   // Easy Case:
@@ -1366,8 +1366,7 @@ T BitsBase<T, BT, ST>::signed_get(size_t n) const {
     if (!is_negative() || (top == 0)) {
       return val_[n];
     }
-    const auto mask = ~((T(1) << top) - 1);
-    return val_[n] | mask;
+    return val_[n] | (T(-1) << top);
   }
   // Easier Case: Do we need to return all 1s or 0s?
   else if (n >= val_.size()) {

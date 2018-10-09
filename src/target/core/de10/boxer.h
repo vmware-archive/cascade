@@ -34,6 +34,7 @@
 #include <string>
 #include "src/runtime/ids.h"
 #include "src/verilog/ast/visitors/builder.h"
+#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
@@ -63,8 +64,17 @@ class Boxer : public Builder {
     Statement* build(const FinishStatement* fs) override;
     Statement* build(const WriteStatement* ws) override;
 
-    // Helper Methods:
-    Statement* mangle_systask(size_t id, const Many<Expression>* args);
+    // Sys Task Mangling Helper:
+    class Mangler : public Visitor {
+      public:
+        Mangler(const De10Logic* de);
+        ~Mangler() override = default;
+        Statement* mangle(size_t id, const Node* args);
+      private:
+        void visit(const Identifier* id) override;
+        const De10Logic* de_;
+        SeqBlock* t_;
+    };
 };
 
 } // namespace cascade

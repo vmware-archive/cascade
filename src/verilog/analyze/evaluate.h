@@ -33,6 +33,7 @@
 
 #include <utility>
 #include "src/base/bits/bits.h"
+#include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
@@ -50,6 +51,9 @@ class Evaluate : public Editor {
     // Returns whether an expression is signed or unsigned
     bool get_signed(const Expression* e);
 
+    // Gets the value of a word slice within id.
+    template <typename B>
+    B get_word(const Identifier* id, size_t n);
     // Returns the value of an expression.
     const Bits& get_value(const Expression* e);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
@@ -61,6 +65,10 @@ class Evaluate : public Editor {
     void assign_value(const Identifier* id, size_t idx, const Bits& val);
     // Sets the slice between i and j in id to the first (i-j+1) bits of val.
     void assign_value(const Identifier* id, size_t i, size_t j, const Bits& val);
+
+    // Sets the value a word slice within id.
+    template <typename B>
+    void assign_word(const Identifier* id, size_t n, B b);
 
     // Invalidates bits, size, and type for this subtree
     void invalidate(const Expression* e);
@@ -143,6 +151,19 @@ class Evaluate : public Editor {
       void edit(VariableAssign* va) override;
     };
 };
+
+template <typename B>
+inline B Evaluate::get_word(const Identifier* id, size_t n) {
+  init((Expression*)const_cast<Identifier*>(id));
+  return id->bit_val_->read_word<B>(n);
+}
+
+template <typename B>
+inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {
+  init(const_cast<Identifier*>(id));
+  const_cast<Identifier*>(id)->bit_val_->write_word<B>(n, b);
+  flag_changed(id);
+}
 
 } // namespace cascade
 

@@ -51,13 +51,13 @@ class Core {
     // this module. It is called at most once before this core is torn down.
     virtual State* get_state() = 0;
     // This method must update the value of any stateful elements contained in
-    // this module. It is called exactly once before finalize().
+    // this module. It is called exactly once before resync().
     virtual void set_state(const State* s) = 0;
     // This method must return the values of all inputs connected to this
     // module. It is called at most once before this core is torn down.
     virtual Input* get_input() = 0;
     // This method must update the value of an input connected to this module.
-    // It is called exactly once before finalize().
+    // It is called exactly once before resync().
     virtual void set_input(const Input* i) = 0;
     // Target-specific implementations may override this method to perform
     // last minute initialization prior to beginning execution.
