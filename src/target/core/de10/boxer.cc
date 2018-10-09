@@ -35,6 +35,7 @@
 #include <vector>
 #include "src/base/stream/indstream.h"
 #include "src/target/core/de10/de10_logic.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -133,15 +134,13 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
       continue;
     }
 
-    // Note that we use bit_size() here rather than looking at this variable's
-    // declaration in the AST. This is because some of these variables will
-    // appear in expressions inside of system tasks where their bit-width has
-    // been implicitly extended.
-    const auto w = titr->second.bit_size();
+    Maybe<RangeExpression>* re = nullptr;
     auto is_signed = false;
     if (auto nd = dynamic_cast<const NetDeclaration*>(v->first->get_parent())) {
+      re = nd->get_dim();
       is_signed = nd->get_signed();
     } else if (auto rd = dynamic_cast<const RegDeclaration*>(v->first->get_parent())) {
+      re = rd->get_dim();
       is_signed = rd->get_signed();
     } else {
       assert(false);
@@ -150,8 +149,8 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     if (is_signed) {
       os << " signed";
     }
-    if (w > 1) {
-      TextPrinter(os) << "[" << (w-1) << ":0]";
+    if (!re->null()) {
+      TextPrinter(os) << "[" << re->get()->get_upper() << ":0]";
     }
     TextPrinter(os) << " " << v->first << " = {";
     for (int i = titr->second.word_size()-1; i >= 0; --i) {
@@ -443,8 +442,15 @@ Statement* Boxer::Mangler::mangle(size_t id, const Node* args) {
 void Boxer::Mangler::visit(const Identifier* id) {
   const auto titr = de_->table_find(id);
   assert(titr != de_->table_end());
-  const auto w = titr->second.bit_size();
-       
+
+  // This is a bit nasty. The amount of space we set aside for this argument in
+  // the variable table may exceed its actual bit-width. This is because the
+  // width of the argument may have been implicitly extended if it's part of an
+  // expression. 
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  const auto w = Evaluate().get_width(r);
+
   for (size_t i = 0; i < titr->second.word_size(); ++i) {
     stringstream ss;
     ss << "__var_" << titr->second.index() + i;
@@ -452,17 +458,43 @@ void Boxer::Mangler::visit(const Identifier* id) {
     const auto upper = min(32*(i+1),w)-1;
     const auto lower = 32*i;
 
+    // Create a mask of 32 Sign-extension bits
+    const auto sext = new MultipleConcatenation(
+      new Number("32"),
+      new Concatenation(new Many<Expression>(
+        new Identifier(
+          new Many<Id>(id->get_ids()->front()->clone()),
+          w == 1 ?
+            new Maybe<Expression>() :
+            new Maybe<Expression>(new Number(Bits(32, w-1)))
+        )
+      ))
+    );
+    // Concatenate the rhs with the sign extension bits
+    auto rhs = new Concatenation(new Many<Expression>(sext));
+    if (upper == 0) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()),
+        new Maybe<Expression>()
+      ));
+    } else if (upper == lower) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()), 
+        new Maybe<Expression>(new Number(Bits(32, upper)))
+      ));
+    } else if (upper > lower) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()), 
+        new Maybe<Expression>(new RangeExpression(upper+1, lower))
+      ));
+    } 
+    // Use the concatenation in an assignment, we'll always have enough bits now
     t_->get_stmts()->push_back(new NonblockingAssign(
       new Maybe<TimingControl>(),
       new VariableAssign(
         new Identifier(ss.str()),
-        new Identifier(
-          new Many<Id>(id->get_ids()->front()->clone()),
-      		upper == 0 ? new Maybe<Expression>() :
-            upper == lower ? new Maybe<Expression>(new Number(Bits(32, (uint32_t)upper))) :
-            new Maybe<Expression>(new RangeExpression(upper+1, lower))
-        )
-      )    
+        rhs
+      )
     ));
   }
 }
