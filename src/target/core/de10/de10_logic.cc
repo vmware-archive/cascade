@@ -415,11 +415,10 @@ const Bits& De10Logic::evaluate(const Expression* e) {
     assert(itr != var_table_.end());
     read(&itr->second); 
     return itr->second.val;
-  } else {
-    // No support for non-primary expressions.
-    assert(false);
-    return Evaluate().get_value(e);
-  }
+  } 
+  // No support for non-primary expressions.
+  assert(false);
+  return Evaluate().get_value(e);
 }
 
 } // namespace cascade

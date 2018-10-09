@@ -321,29 +321,44 @@ inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
 template <typename T, typename BT, typename ST>
 template <typename B>
 inline B BitsBase<T, BT, ST>::read_word(size_t n) {
-  assert(sizeof(B) < sizeof(T));
+  assert(sizeof(B) <= sizeof(T));
 
+  // Easy Case:
+  if (sizeof(B) == sizeof(T)) {
+    assert(n < val_.size());
+    return val_[n];
+  }
+
+  // Hard Case:
   const auto b_per_word = sizeof(T) / sizeof(B);
   const auto idx = n / b_per_word;
   const auto off = n % b_per_word;
 
   assert(idx < val_.size());
-  return (off == 0) ? (val_[idx] & B(-1)) : ((val_[idx] >> (8*sizeof(B)*off))) & B(-1);
+  return val_[idx] >> (8*sizeof(B)*off);
 }
 
 template <typename T, typename BT, typename ST>
 template <typename B>
 inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
-  assert(sizeof(B) < sizeof(T));
+  assert(sizeof(B) <= sizeof(T));
 
+  // Easy Case:
+  if (sizeof(B) == sizeof(T)) {
+    assert(n < val_.size());
+    val_[n] = b;
+  }
+
+  // Hard Case:
   const auto b_per_word = sizeof(T) / sizeof(B);
   const auto idx = n / b_per_word;
   const auto off = n % b_per_word;
 
   assert(idx < val_.size());
-  const auto mask = ~(B(-1) << (8*sizeof(B)*off));
+  const T bmask = B(-1);
+  const auto mask = ~(bmask << (8*sizeof(B)*off));
   val_[idx] &= mask;
-  val_[idx] |= (b << (8*sizeof(B)*off));
+  val_[idx] |= (T(b) << (8*sizeof(B)*off));
   trim();
 }
 
