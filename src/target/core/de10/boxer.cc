@@ -134,14 +134,20 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     }
 
     Maybe<RangeExpression>* re = nullptr;
+    auto is_signed = false;
     if (auto nd = dynamic_cast<const NetDeclaration*>(v->first->get_parent())) {
       re = nd->get_dim();
+      is_signed = nd->get_signed();
     } else if (auto rd = dynamic_cast<const RegDeclaration*>(v->first->get_parent())) {
       re = rd->get_dim();
+      is_signed = rd->get_signed();
     } else {
       assert(false);
     }
     os << "wire";
+    if (is_signed) {
+      os << " signed";
+    }
     if (!re->null()) {
       TextPrinter(os) << "[" << re->get()->get_upper() << ":" << re->get()->get_lower() << "]";
     }
