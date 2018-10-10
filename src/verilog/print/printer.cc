@@ -152,27 +152,24 @@ void Printer::visit(const MultipleConcatenation* mc) {
 
 void Printer::visit(const Number* n) {
   *this << Color::BLUE;
-  if (n->get_format() != Number::UNSIGNED) {
-    *this << n->get_val().size() << "'"; 
-  }
   switch (n->get_format()) {
-    case Number::UNSIGNED:
+    case Number::UNBASED:
       n->get_val().write(os_, 10);
       break;
     case Number::BIN:
-      *this << "b";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sb" : "b");
       n->get_val().write(os_, 2);
       break;
     case Number::OCT:
-      *this << "o";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "so" : "o");
       n->get_val().write(os_, 8);
       break;
     case Number::HEX:
-      *this << "h";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sh" : "h");
       n->get_val().write(os_, 16);
       break;
     default:
-      *this << "d";
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sd" : "d");
       n->get_val().write(os_, 10);
       break;
   } 
@@ -330,6 +327,9 @@ void Printer::visit(const IntegerDeclaration* id) {
 void Printer::visit(const LocalparamDeclaration* ld) {
   ld->get_attrs()->accept(this);
   *this << Color::GREEN << "localparam" << Color::RESET;
+  if (ld->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!ld->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     ld->get_dim()->accept(this);
@@ -346,6 +346,9 @@ void Printer::visit(const NetDeclaration* nd) {
   nd->get_attrs()->accept(this);
   static array<string,1> nts_ {{"wire"}};
   *this << Color::GREEN << nts_[(size_t)nd->get_type()] << Color::RESET;
+  if (nd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!nd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     nd->get_dim()->accept(this);
@@ -360,6 +363,9 @@ void Printer::visit(const NetDeclaration* nd) {
 void Printer::visit(const ParameterDeclaration* pd) {
   pd->get_attrs()->accept(this);
   *this << Color::GREEN << "parameter" << Color::RESET;
+  if (pd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!pd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     pd->get_dim()->accept(this);
@@ -375,6 +381,9 @@ void Printer::visit(const ParameterDeclaration* pd) {
 void Printer::visit(const RegDeclaration* rd) {
   rd->get_attrs()->accept(this);
   *this << Color::GREEN << "reg" << Color::RESET;
+  if (rd->get_signed()) {
+    *this << Color::GREEN << " signed" << Color::RESET;
+  }
   if (!rd->get_dim()->null()) {
     *this << Color::RED << "[" << Color::RESET;
     rd->get_dim()->accept(this);

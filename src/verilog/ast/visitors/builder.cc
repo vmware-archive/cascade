@@ -287,6 +287,7 @@ ModuleItem* Builder::build(const IntegerDeclaration* id) {
 ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
+    ld->get_signed(),
     ld->get_dim()->accept(this),
     ld->get_id()->accept(this),
     ld->get_val()->accept(this)
@@ -299,6 +300,7 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
     nd->get_type(),
     nd->get_ctrl()->accept(this),
     nd->get_id()->accept(this),
+    nd->get_signed(),
     nd->get_dim()->accept(this)
   );
 }
@@ -306,6 +308,7 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
 ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
     pd->get_attrs()->accept(this),
+    pd->get_signed(),
     pd->get_dim()->accept(this),
     pd->get_id()->accept(this),
     pd->get_val()->accept(this)
@@ -316,6 +319,7 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
   return new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
+    rd->get_signed(),
     rd->get_dim()->accept(this),
     rd->get_val()->accept(this)
   );

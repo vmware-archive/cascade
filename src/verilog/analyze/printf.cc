@@ -28,78 +28,61 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_NUMBER_H
-#define CASCADE_SRC_VERILOG_AST_NUMBER_H
+#include "src/verilog/analyze/printf.h"
 
-#include <cassert>
 #include <sstream>
-#include <string>
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/primary.h"
+#include "src/verilog/analyze/evaluate.h"
+#include "src/verilog/print/text/text_printer.h"
+
+using namespace std;
 
 namespace cascade {
 
-class Number : public Primary {
-  public:
-    // Supporting Concepts:
-    enum Format {
-      UNBASED = 0,
-      DEC,
-      BIN,
-      OCT,
-      HEX
-    };
-  
-    // Constructors:
-    Number(const std::string& val, Format format_ = UNBASED, size_t size = 0, bool is_signed = false);
-    Number(const Bits& val, Format format = UNBASED);
-    ~Number() override = default;
-
-    // Node Interface:
-    NODE(Number, LEAF(val), LEAF(format))
-    // Get/Set:
-    LEAF_GET_SET(val)
-    LEAF_GET_SET(format)
-
-  private:
-    LEAF_ATTR(Bits, val);
-    LEAF_ATTR(Format, format);
-};
-
-inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary() {
-  parent_ = nullptr;
-  std::stringstream ss(val);
-  switch (format) {
-    case UNBASED:
-    case DEC:
-      val_.read(ss, 10);  
-      break;
-    case BIN:
-      val_.read(ss, 2);
-      break;
-    case OCT:
-      val_.read(ss, 8);
-      break;
-    case HEX:
-      val_.read(ss, 16);
-      break;
-    default:
-      assert(false);
-      break;
+string Printf::format(const Many<Expression>* args) {
+  if (args->empty()) {
+    return "";
   }
-  if (size > 0) {
-    val_.resize(size);
-  }
-  val_.set_signed(is_signed);
-  format_ = format;
-}
 
-inline Number::Number(const Bits& val, Format format) : Primary() {
-  parent_ = nullptr;
-  val_ = val;
-  format_ = format;
+  stringstream ss;
+  auto a = args->begin();
+
+  auto s = dynamic_cast<String*>(*a);
+  if (s == nullptr) {
+    Evaluate().get_value(*a).write(ss, 10);
+    return ss.str();
+  } 
+
+  for (size_t i = 0, j = 0; ; i = j+2) {
+    j = s->get_readable_val().find_first_of('%', i);
+    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
+    if (j == string::npos) {
+      break;
+    }
+    if (++a == args->end()) {
+      continue;
+    }
+    switch (s->get_readable_val()[j+1]) {
+      case 'b':
+      case 'B': 
+        Evaluate().get_value(*a).write(ss, 2);
+        break;
+      case 'd':
+      case 'D':
+        Evaluate().get_value(*a).write(ss, 10);
+        break;
+      case 'h':
+      case 'H': 
+        Evaluate().get_value(*a).write(ss, 16);
+        break;
+      case 'o':
+      case 'O': 
+        Evaluate().get_value(*a).write(ss, 8);
+        break;
+      default: 
+        assert(false);
+    }
+  }
+  return ss.str();
 }
 
 } // namespace cascade
-
-#endif

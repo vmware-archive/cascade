@@ -115,7 +115,12 @@ void DataPlane::write(VId id, const Bits* bits) {
   assert(id < readers_.size());
   assert(id < write_buf_.size());
 
-  if (write_buf_[id] == *bits) {
+  // We want to check two things here:
+  // 1. Are the sizes the same (we're inserting things into the dataplane with
+  //    default constructed values).
+  // 2. Assuming the sizes are the same, meaning something was written here, is
+  //    the value the same?
+  if ((write_buf_[id].size() == bits->size()) && (write_buf_[id] == *bits)) {
     return;
   } 
   write_buf_[id] = *bits;

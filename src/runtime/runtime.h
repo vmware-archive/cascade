@@ -37,13 +37,13 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include "src/base/bits/bits.h"
 #include "src/base/thread/asynchronous.h"
 #include "src/runtime/ids.h"
 #include "src/verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
-class Bits;
 class Compiler;
 class DataPlane;
 class Isolate;

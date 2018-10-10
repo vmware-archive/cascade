@@ -65,8 +65,7 @@ void toggle_rst(Bits& rst, mutex& rst_lock) {
 void draw_pad(Bits& pad, mutex& pad_lock, int row, int col) {
   lock_guard<mutex> lg(pad_lock);
   for (int i = 0; i < 4; ++i) {
-    auto temp = pad;
-    const auto p = temp.slice(i).to_bool() ? '_' : '-';
+    const auto p = pad.get(i) ? '_' : '-';
     attron(COLOR_PAIR(2));
     mvprintw(row/2+1, col/2+2*i-4, "%c ", p);
     attroff(COLOR_PAIR(2));
@@ -84,8 +83,7 @@ void draw_rst(Bits& rst, mutex& rst_lock, int row, int col) {
 void draw_led(Bits& led, mutex& led_lock, int row, int col) {
   lock_guard<mutex> lg(led_lock);
   for (int i = 0; i < 8; ++i) {
-    auto temp = led;
-    const auto l = temp.slice(i).to_bool();
+    const auto l = led.get(i);
     const auto cl = l ? 1 : 2;
     const auto ch = l ? '*' : '.';
     attron(COLOR_PAIR(cl));

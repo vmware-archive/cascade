@@ -31,7 +31,7 @@
 #include "src/target/core_compiler.h"
 
 #include <sstream>
-#include "src/verilog/analyze/bit_width.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 
@@ -125,7 +125,7 @@ bool CoreCompiler::check_io(const ModuleDeclaration* md, size_t is, size_t os) c
       return false;
     }
   } else {
-    if ((ModuleInfo(md).inputs().size() == 1) && (BitWidth().get_width(*ModuleInfo(md).inputs().begin()) > is)) {
+    if ((ModuleInfo(md).inputs().size() == 1) && (Evaluate().get_width(*ModuleInfo(md).inputs().begin()) > is)) {
       return false;
     } else if (ModuleInfo(md).inputs().size() > 1) {
       return false;
@@ -136,7 +136,7 @@ bool CoreCompiler::check_io(const ModuleDeclaration* md, size_t is, size_t os) c
       return false;
     }
   } else {
-    if ((ModuleInfo(md).outputs().size() == 1) && (BitWidth().get_width(*ModuleInfo(md).outputs().begin()) > os)) {
+    if ((ModuleInfo(md).outputs().size() == 1) && (Evaluate().get_width(*ModuleInfo(md).outputs().begin()) > os)) {
       return false;
     } else if (ModuleInfo(md).outputs().size() > 1) {
       return false;

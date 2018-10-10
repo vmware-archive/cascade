@@ -35,7 +35,6 @@
 #include <string>
 #include "src/base/bits/bits.h"
 #include "src/runtime/data_plane.h"
-#include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
@@ -113,59 +112,63 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 }
 
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
-    new Maybe<RangeExpression>(new RangeExpression(64,0)),
-    id->get_val()->null() ?
-      new Maybe<Expression>() :
-      new Maybe<Expression>(new Number(Evaluate().get_value(id->get_val()->get()), Number::HEX))
+    true,
+    new Maybe<RangeExpression>(new RangeExpression(32,0)),
+    new Maybe<Expression>(new Number(Evaluate().get_value(id->get_id()), Number::HEX))
   );
-  Evaluate().init_value(res);
   return res;
 }
 
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
+    ld->get_signed(),
     ld->get_dim()->accept(this),
     ld->get_id()->accept(this),
-    new Number(Evaluate().get_value(ld->get_val()), Number::HEX)
+    new Number(Evaluate().get_value(ld->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
     new Maybe<Expression>(Resolve().get_full_id(ld->get_id())->clone())
   ));
-  Evaluate().init_value(res);
   return res;
 }
 
 ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // Parameter declarations are downgraded to local params
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
+    pd->get_signed(),
     pd->get_dim()->accept(this),
     pd->get_id()->accept(this),
-    new Number(Evaluate().get_value(pd->get_val()), Number::HEX)
+    new Number(Evaluate().get_value(pd->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
     new Maybe<Expression>(Resolve().get_full_id(pd->get_id())->clone())
   ));
-  Evaluate().init_value(res);
   return res;
 }
 
 ModuleItem* Isolate::build(const RegDeclaration* rd) {
+  // Careful: We don't want what's on the rhs of the assignment, we want the
+  // value of the identifier, which may have different sign/size.
   auto res = new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
+    rd->get_signed(),
     rd->get_dim()->accept(this),
-    rd->get_val()->null() ?
-      new Maybe<Expression>() :
-      new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_val()->get()), Number::HEX))
+    new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_id()), Number::HEX))
   );
-  Evaluate().init_value(res);
   return res;
 }
 
@@ -227,7 +230,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
     const auto r = info.is_read(p);
     const auto w = info.is_write(p);
-    const auto width = BitWidth().get_width(p);
+    const auto width = Evaluate().get_width(p);
 
     // TODO: Is this logic correct? When should a global read/write be promoted
     // to a register and when should it remain a net?
@@ -239,6 +242,7 @@ ModuleDeclaration* Isolate::get_shell() {
         (Declaration*) new RegDeclaration(
           new Attributes(new Many<AttrSpec>()),
           to_global_id(p),
+          dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
           width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width)),
           dynamic_cast<RegDeclaration*>(p->get_parent())->get_val()->clone()
         ) : 
@@ -247,6 +251,7 @@ ModuleDeclaration* Isolate::get_shell() {
           NetDeclaration::WIRE,
           new Maybe<DelayControl>(),
           to_global_id(p),
+          dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
           width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width))
         )
     );

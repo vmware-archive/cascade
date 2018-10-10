@@ -35,6 +35,7 @@
 #include <vector>
 #include "src/base/stream/indstream.h"
 #include "src/target/core/de10/de10_logic.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -75,11 +76,11 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     
   os << "// Variable Table:" << endl;
   for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
-    if (!t->second.materialized) {
+    if (!t->second.materialized()) {
       continue;
     }
-    for (size_t i = 0, ie = t->second.size; i < ie; ++i) {
-      os << "reg[31:0] __var_" << (t->second.index+i) << " /* TODO... = <initial value> */;";
+    for (size_t i = 0, ie = t->second.word_size(); i < ie; ++i) {
+      os << "reg[31:0] __var_" << (t->second.index()+i) << ";";
       if (de->open_loop_enabled() && (t->first == de->open_loop_clock())) {
         os << " // Open loop clock";
       }
@@ -99,8 +100,8 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     TextPrinter(os) << rd << "\n";
     delete rd;
   }
-  os << "reg[" << (de_->table_size()-1) << ":0] __update_mask = 0;" << endl;
-  os << "reg[" << (de_->table_size()-1) << ":0] __next_update_mask = 0;" << endl;
+  os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __update_mask = 0;" << endl;
+  os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __next_update_mask = 0;" << endl;
   os << endl;
 
   // Declare intermediate state for systasks. This is where we will store
@@ -129,25 +130,31 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   for (auto v = de_->map_begin(), ve = de_->map_end(); v != ve; ++v) {
     const auto titr = de_->table_find(v->first);
     assert(titr != de_->table_end());
-    if (!titr->second.materialized) {
+    if (!titr->second.materialized()) {
       continue;
     }
 
     Maybe<RangeExpression>* re = nullptr;
+    auto is_signed = false;
     if (auto nd = dynamic_cast<const NetDeclaration*>(v->first->get_parent())) {
       re = nd->get_dim();
+      is_signed = nd->get_signed();
     } else if (auto rd = dynamic_cast<const RegDeclaration*>(v->first->get_parent())) {
       re = rd->get_dim();
+      is_signed = rd->get_signed();
     } else {
       assert(false);
     }
     os << "wire";
+    if (is_signed) {
+      os << " signed";
+    }
     if (!re->null()) {
-      TextPrinter(os) << "[" << re->get()->get_upper() << ":" << re->get()->get_lower() << "]";
+      TextPrinter(os) << "[" << re->get()->get_upper() << ":0]";
     }
     TextPrinter(os) << " " << v->first << " = {";
-    for (int i = titr->second.size-1; i >= 0; --i) {
-       os << "__var_" << (titr->second.index+i);
+    for (int i = titr->second.word_size()-1; i >= 0; --i) {
+       os << "__var_" << (titr->second.index()+i);
        if (i > 0) {
         os << ",";
        }
@@ -180,7 +187,7 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   // mode.
 
   os << "// Update Logic:" << endl;
-  os << "wire[" << (de_->table_size()-1) << ":0] __update_queue = __update_mask ^ __next_update_mask;" << endl;
+  os << "wire[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __update_queue = __update_mask ^ __next_update_mask;" << endl;
   os << "wire __there_are_updates = |__update_queue;" << endl;
   os << "wire __apply_updates = (__read && (__vid == " << de->update_idx() << ")) | (__there_are_updates && (__open_loop > 0));" << endl;
   os << "always @(posedge __clk) begin" << endl;
@@ -231,11 +238,11 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   os.tab();
   for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
     // Ignore variables that weren't materialized or correspond to sys tasks
-    if (!t->second.materialized || (Resolve().get_resolution(t->first) != t->first)) {
+    if (!t->second.materialized() || (Resolve().get_resolution(t->first) != t->first)) {
       continue;
     }
-    const auto w = t->second.val.size();
-    for (size_t i = 0; i < t->second.size; ++i) {
+    const auto w = t->second.bit_size();
+    for (size_t i = 0; i < t->second.word_size(); ++i) {
       stringstream sub;
       const auto upper = min(32*(i+1),w)-1;
       const auto lower = 32*i;
@@ -246,13 +253,13 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
       } else {
         sub << "[" << lower << "]";
       }
-      os << "__var_" << (t->second.index+i) << " <= ";
+      os << "__var_" << (t->second.index()+i) << " <= ";
       if (de->open_loop_enabled() && (t->first == de->open_loop_clock())) {
         TextPrinter(os) << "__open_loop_tick ? {31'b0, ~" << t->first << "} : ";
       } 
-      os << "(__read && (__vid == " << (t->second.index+i) << ")) ? __in : ";
+      os << "(__read && (__vid == " << (t->second.index()+i) << ")) ? __in : ";
       if (info.is_stateful(t->first)) {
-        TextPrinter(os) << " (__apply_updates && __update_queue[" << (t->second.index+i) << "]) ? " << t->first << "_next" << sub.str() << " : ";
+        TextPrinter(os) << " (__apply_updates && __update_queue[" << (t->second.index()+i) << "]) ? " << t->first << "_next" << sub.str() << " : ";
       }
       TextPrinter(os) << t->first << sub.str() << ";";
       os << endl;
@@ -274,14 +281,14 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   os << de_->sys_task_idx() << ": __out = __task_queue;" << endl;
   os << de_->open_loop_idx() << ": __out = __open_loop_itrs;" << endl;
   for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
-    if (t->second.materialized) {
-      for (size_t i = 0; i < t->second.size; ++i) {
-        os << (t->second.index+i) << ": __out = __var_" << (t->second.index+i) << ";" << endl;
+    if (t->second.materialized()) {
+      for (size_t i = 0; i < t->second.word_size(); ++i) {
+        os << (t->second.index()+i) << ": __out = __var_" << (t->second.index()+i) << ";" << endl;
       } 
       continue;
     }
-    const auto w = t->second.val.size();
-    for (size_t i = 0; i < t->second.size; ++i) {
+    const auto w = t->second.bit_size();
+    for (size_t i = 0; i < t->second.word_size(); ++i) {
       stringstream sub;
       const auto upper = min(32*(i+1),w)-1;
       const auto lower = 32*i;
@@ -292,7 +299,7 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
       } else {
         sub << "[" << lower << "]";
       }
-      TextPrinter(os) << (t->second.index+i) << ": __out = " << t->first << sub.str() << ";\n";
+      TextPrinter(os) << (t->second.index()+i) << ": __out = " << t->first << sub.str() << ";\n";
     }
   }
   os << "default: __out = 0;" << endl;
@@ -312,6 +319,18 @@ Attributes* Boxer::build(const Attributes* as) {
   // Quartus doesn't have full support for annotations. At this point, we can just delete them.
   (void) as;
   return new Attributes(new Many<AttrSpec>());
+}
+
+ModuleItem* Boxer::build(const InitialConstruct* ic) {
+  // If we're seeing a non-ignored initial block here, it's a problem.  These
+  // should have been handled in software.
+  const auto ign = ic->get_attrs()->get<String>("__ignore"); 
+  (void) ign;
+  assert(ign != nullptr);
+  assert(ign->eq("true"));
+ 
+  // Delete this code
+  return nullptr; 
 }
 
 ModuleItem* Boxer::build(const RegDeclaration* rd) {
@@ -342,13 +361,13 @@ Statement* Boxer::build(const NonblockingAssign* na) {
   const auto lhs = na->get_assign()->get_lhs();
   const auto titr = de_->table_find(Resolve().get_resolution(lhs));
   assert(titr != de_->table_end());
-  assert(titr->second.materialized);
+  assert(titr->second.materialized());
 
   Maybe<Expression>* idx = nullptr;
-  if (titr->second.size == 1) {
-    idx = new Maybe<Expression>(new Number(Bits(32, titr->second.index)));
+  if (titr->second.word_size() == 1) {
+    idx = new Maybe<Expression>(new Number(Bits(32, (uint32_t)titr->second.index())));
   } else {
-    idx = new Maybe<Expression>(new RangeExpression(titr->second.index+titr->second.size, titr->second.index));
+    idx = new Maybe<Expression>(new RangeExpression(titr->second.index()+titr->second.word_size(), titr->second.index()));
   }
 
   // Replace the original assignment with an assignment to a temporary variable
@@ -385,80 +404,117 @@ Statement* Boxer::build(const NonblockingAssign* na) {
 }
 
 Statement* Boxer::build(const DisplayStatement* ds) {
-  return mangle_systask(task_id_++, ds->get_args());
+  return Mangler(de_).mangle(task_id_++, ds->get_args());
 }
 
 Statement* Boxer::build(const FinishStatement* fs) {
-  (void) fs;
-  return mangle_systask(task_id_++, nullptr);
+  return Mangler(de_).mangle(task_id_++, fs->get_arg());
 }
 
 Statement* Boxer::build(const WriteStatement* ws) {
-  return mangle_systask(task_id_++, ws->get_args());
+  return Mangler(de_).mangle(task_id_++, ws->get_args());
 }
 
-Statement* Boxer::mangle_systask(size_t id, const Many<Expression>* args) {
-  // Create empty blocks for true and false branches (we'll never populate the
-  // false branch)
-  const auto t = new SeqBlock(
+Boxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
+  de_ = de;
+  t_ = nullptr;
+}
+
+Statement* Boxer::Mangler::mangle(size_t id, const Node* args) {
+  // Create blocks for true and false (we won't populate the false branch)
+  t_ = new SeqBlock(
     new Maybe<Identifier>(),
     new Many<Declaration>(),
     new Many<Statement>()
   );
-  const auto f = t->clone();
-
-  // Insert an assignment to the task mask
-  t->get_stmts()->push_back(new NonblockingAssign(
+  const auto f = t_->clone();
+  // Insert an assignment to the task mask for this task id
+  t_->get_stmts()->push_back(new NonblockingAssign(
     new Maybe<TimingControl>(),
     new VariableAssign(
       new Identifier(
         new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-        new Maybe<Expression>(new Number(Bits(32, id)))
+        new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
           new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-          new Maybe<Expression>(new Number(Bits(32, id)))
+          new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
         )
       )
     )    
   ));
-
-  // Latch the values of any args attached to this function
-  if (args != nullptr) {
-    for (auto a : *args) {
-      if (auto v = dynamic_cast<const Identifier*>(a)) {
-        const auto titr = de_->table_find(v);
-        assert(titr != de_->table_end());
-        const auto w = titr->second.val.size();
-       
-        for (size_t i = 0; i < titr->second.size; ++i) {
-          stringstream ss;
-          ss << "__var_" << titr->second.index + i;
-
-          const auto upper = min(32*(i+1),w)-1;
-          const auto lower = 32*i;
-
-          t->get_stmts()->push_back(new NonblockingAssign(
-            new Maybe<TimingControl>(),
-            new VariableAssign(
-              new Identifier(ss.str()),
-              new Identifier(
-                new Many<Id>(v->get_ids()->front()->clone()),
-		upper == 0 ? new Maybe<Expression>() :
-                upper == lower ? new Maybe<Expression>(new Number(Bits(32, upper))) :
-                  new Maybe<Expression>(new RangeExpression(upper+1, lower))
-              )
-            )    
-          ));
-        }
-      }
-    }
-  }
-
+  // Descend on args and latch the values of any identifiers in this list
+  args->accept(this);
   // Return a conditional statement in place of the original assignment
-  return new ConditionalStatement(new Identifier("__live"), t, f);
+  return new ConditionalStatement(new Identifier("__live"), t_, f);
+}
+
+void Boxer::Mangler::visit(const Identifier* id) {
+  const auto titr = de_->table_find(id);
+  assert(titr != de_->table_end());
+
+  // This is a bit nasty. The amount of space we set aside for this argument in
+  // the variable table may exceed its actual bit-width. This is because the
+  // width of the argument may have been implicitly extended if it's part of an
+  // expression. 
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  const auto w = Evaluate().get_width(r);
+
+  for (size_t i = 0; i < titr->second.word_size(); ++i) {
+    stringstream ss;
+    ss << "__var_" << titr->second.index() + i;
+
+    const auto upper = min(32*(i+1),w)-1;
+    const auto lower = 32*i;
+
+    // Create a sign extension mask: all zeros for unsigned values, 32 copies
+    // of id's highest order bit for signed values.
+    Expression* sext = nullptr;
+    if (Evaluate().get_signed(id)) {
+      sext = new MultipleConcatenation(
+        new Number("32"),
+        new Concatenation(new Many<Expression>(
+          new Identifier(
+            new Many<Id>(id->get_ids()->front()->clone()),
+            w == 1 ?
+              new Maybe<Expression>() :
+              new Maybe<Expression>(new Number(Bits(32, w-1)))
+          )
+        ))
+      );
+    } else {
+      sext = new Number(Bits(32, 0), Number::HEX);
+    }
+    // Concatenate the rhs with the sign extension bits
+    auto rhs = new Concatenation(new Many<Expression>(sext));
+    if (upper == 0) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()),
+        new Maybe<Expression>()
+      ));
+    } else if (upper == lower) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()), 
+        new Maybe<Expression>(new Number(Bits(32, upper)))
+      ));
+    } else if (upper > lower) {
+      rhs->get_exprs()->push_back(new Identifier(
+        new Many<Id>(id->get_ids()->front()->clone()), 
+        new Maybe<Expression>(new RangeExpression(upper+1, lower))
+      ));
+    } 
+    // Attach the concatenation to an assignment, we'll always have enough bits now
+    t_->get_stmts()->push_back(new NonblockingAssign(
+      new Maybe<TimingControl>(),
+      new VariableAssign(
+        new Identifier(ss.str()),
+        rhs
+      )
+    ));
+  }
 }
 
 } // namespace cascade

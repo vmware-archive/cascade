@@ -31,7 +31,6 @@
 #include "src/verilog/program/type_check.h"
 
 #include <sstream>
-#include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
@@ -296,7 +295,7 @@ void TypeCheck::visit(const Identifier* id) {
     if (rng.first < rng.second) {
       error("No support for little-endian range", id);
     }
-    if ((r != nullptr) && (rng.first >= BitWidth().get_width(r))) {
+    if ((r != nullptr) && (rng.first >= Evaluate().get_width(r))) {
       error("Upper end of range exceeds variable width", id);
     }
   }

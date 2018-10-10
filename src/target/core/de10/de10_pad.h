@@ -42,7 +42,7 @@ namespace cascade {
 
 class De10Pad : public Pad {
   public:
-    De10Pad(Interface* interface, VId out, size_t size, uint8_t* pad_addr); 
+    De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr); 
     ~De10Pad() override = default;
 
     State* get_state() override;
@@ -61,11 +61,11 @@ class De10Pad : public Pad {
   private:
     VId out_;
     size_t size_;
-    uint8_t* pad_addr_;
+    volatile uint8_t* pad_addr_;
     bool there_are_updates_;
 };
 
-inline De10Pad::De10Pad(Interface* interface, VId out, size_t size, uint8_t* pad_addr) : Pad(interface) {
+inline De10Pad::De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr) : Pad(interface) {
   out_ = out;
   size_ = size;
   pad_addr_ = pad_addr;

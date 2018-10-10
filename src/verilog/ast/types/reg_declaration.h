@@ -43,24 +43,27 @@ namespace cascade {
 class RegDeclaration : public Declaration {
   public:
     // Constructors:
-    RegDeclaration(Attributes* attrs__, Identifier* id__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__);
     ~RegDeclaration() override;
 
     // Node Interface:
-    NODE(RegDeclaration, TREE(attrs), TREE(id), TREE(dim), TREE(val))
+    NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), TREE(dim), TREE(val))
     // Get/Set:
+    LEAF_GET_SET(signed)
     TREE_GET_SET(dim)
     TREE_GET_SET(val)
 
   private:
+    LEAF_ATTR(bool, signed);
     TREE_ATTR(Maybe<RangeExpression>*, dim);
     TREE_ATTR(Maybe<Expression>*, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__) : Declaration() {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   TREE_SETUP(id);
+  LEAF_SETUP(signed);
   TREE_SETUP(dim);
   TREE_SETUP(val);
 }
@@ -68,6 +71,7 @@ inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, May
 inline RegDeclaration::~RegDeclaration() {
   TREE_TEARDOWN(attrs);
   TREE_TEARDOWN(id);
+  LEAF_TEARDOWN(signed);
   TREE_TEARDOWN(dim);
   TREE_TEARDOWN(val);
 }

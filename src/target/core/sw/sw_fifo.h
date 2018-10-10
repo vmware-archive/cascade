@@ -199,9 +199,9 @@ inline State* SwFifo::get_state() {
 
   auto s = new State();
   s->insert(++id, Bits(32, ifs_.is_open() ? (uint32_t)ifs_.tellg() : 0));
-  s->insert(++id, Bits(32, count_));
-  s->insert(++id, Bits(32, head_));
-  s->insert(++id, Bits(32, tail_));
+  s->insert(++id, Bits(32, (uint32_t)count_));
+  s->insert(++id, Bits(32, (uint32_t)head_));
+  s->insert(++id, Bits(32, (uint32_t)tail_));
   for (const auto& b : fifo_) {
     s->insert(++id, b.first);
   }

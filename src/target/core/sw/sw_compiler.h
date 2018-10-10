@@ -44,8 +44,6 @@
 
 namespace cascade {
 
-class Bits;
-
 class SwCompiler : public CoreCompiler {
   public:
     SwCompiler();

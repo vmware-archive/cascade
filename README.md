@@ -14,13 +14,14 @@ Index
     5. [DE10 Backend](#de10-backend)
 3. [Verilog Support](#verilog-support)
 4. [Standard Library](#standard-library)
+5. [FAQ](#faq)
 
 Dependencies
 =====
 Cascade should build successfully on both OSX and Ubuntu. Third-party dependencies can be retrieved using either ```apt-get``` (Ubuntu) or ```port``` (OSX). Please contact the developers if you discover a dependency which is not shown below.
 
 ```
-$ sudo (apt-get|port) install ccache cmake flex bison libgmp3-dev 
+$ sudo (apt-get|port) install ccache cmake flex bison ncurses
 ```
 
 Building Cascade
@@ -29,7 +30,7 @@ Building Cascade
 ```
 $ git clone --recursive https://github.com/vmware/cascade cascade
 ```
-2. Build
+2. Build the code (this process has been tested on OSX 10.12/10.14 and Ubuntu 16.04)
 ```
 $ cd cascade/
 $ make
@@ -68,8 +69,9 @@ ITEM OK
 Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
-*** Referenece to unresolved identifier >>> y <<< 
->>>
+*** Typechecker Error:
+  > In final line of user input:
+    Referenece to unresolved identifier
 ```
 Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. If any part of this process fails, Cascade will produce an error message and the remainder of your text will be ignored. If you type multiple statements, anything which compiles successfully before the error is encountered cannot be undone. Below, ```x``` and ```y``` are declared successfully, but the redeclaration of ```x``` produces an error.
 ```verilog
@@ -219,3 +221,9 @@ Assuming the system is able to successfully connect to the de10, you will be pre
 
 ### Standard Library
 (Coming soon.)
+
+### FAQ
+
+Q. flex fails during build with error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
+    
+A. This is most likely due to the version of flex you are using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.

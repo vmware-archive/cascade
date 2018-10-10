@@ -198,9 +198,9 @@ inline Input* SwMemory::get_input() {
   auto i = new Input();
   i->insert(clock_id_, Bits(1, clock_));
   i->insert(wen_id_, Bits(1, wen_));
-  i->insert(raddr1_id_, Bits(32, raddr1_));
-  i->insert(raddr2_id_, Bits(32, raddr2_));
-  i->insert(waddr_id_, Bits(32, waddr_));
+  i->insert(raddr1_id_, Bits(32, (uint32_t)raddr1_));
+  i->insert(raddr2_id_, Bits(32, (uint32_t)raddr2_));
+  i->insert(waddr_id_, Bits(32, (uint32_t)waddr_));
   i->insert(wdata_id_, wdata_);
   return i;
 }

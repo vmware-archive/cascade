@@ -123,14 +123,6 @@ class Program : public Editor, public Loggable {
     void edit(IfGenerateConstruct* igc) override;
     void edit(LoopGenerateConstruct* lgc) override;
 
-    // Value Initialization Boundaries:
-    void edit(GenvarDeclaration* gd) override;
-    void edit(IntegerDeclaration* id) override;
-    void edit(LocalparamDeclaration* ld) override;
-    void edit(NetDeclaration* nd) override;
-    void edit(ParameterDeclaration* pd) override;
-    void edit(RegDeclaration* rd) override;
-
     // Inlining Helpers:
     void inline_all(ModuleDeclaration* md);
     void outline_all(ModuleDeclaration* md);

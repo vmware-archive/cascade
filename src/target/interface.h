@@ -40,8 +40,6 @@ namespace cascade {
 // This module encapsulates the mechanism by which a core communicates values
 // and system task executions back to the runtime.
 
-class Bits;
-
 class Interface {
   public:
     Interface();

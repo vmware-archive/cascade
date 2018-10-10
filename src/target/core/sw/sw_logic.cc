@@ -33,15 +33,14 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <sstream>
 #include "src/target/core/sw/monitor.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/printf.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/term/term_printer.h"
 #include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
@@ -55,11 +54,6 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   for (auto mi : *src_->get_items()) {
     Monitor().init(mi);
   }
-  // Load initial values for variables.
-  for (auto l : ModuleInfo(src_).locals()) {
-    Evaluate().init_value(dynamic_cast<const Declaration*>(l->get_parent()));
-  }
-
   // Initial provision for update_pool_:
   update_pool_.resize(1);
 }
@@ -193,7 +187,7 @@ void SwLogic::update() {
       Evaluate().assign_value(r, val);
     } else {
       const auto idx = Evaluate().get_range(id->get_dim()->get());
-      Evaluate().assign_value(r, val, idx.first, idx.second);
+      Evaluate().assign_value(r, idx.first, idx.second, val);
     } 
     notify(r);
   }
@@ -430,7 +424,7 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
 
 void SwLogic::visit(const DisplayStatement* ds) {
   if (!silent_) {
-    interface()->display(printf(ds->get_args()));
+    interface()->display(Printf().format(ds->get_args()));
     there_were_tasks_ = true;
   }
   notify(ds);
@@ -446,7 +440,7 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const WriteStatement* ws) {
   if (!silent_) {
-    interface()->write(printf(ws->get_args()));
+    interface()->write(Printf().format(ws->get_args()));
     there_were_tasks_ = true;
   }
   notify(ws);
@@ -484,69 +478,9 @@ void SwLogic::visit(const VariableAssign* va) {
     Evaluate().assign_value(r, res);
   } else {
     const auto idx = Evaluate().get_range(va->get_lhs()->get_dim()->get());
-    Evaluate().assign_value(r, res, idx.first, idx.second);
+    Evaluate().assign_value(r, idx.first, idx.second, res);
   } 
   notify(r);
-}
-
-string SwLogic::printf(const Many<Expression>* args) {
-  if (args->empty()) {
-    return "";
-  }
-
-  auto a = args->begin();
-  auto s = dynamic_cast<String*>(*a);
-
-  if (s == nullptr) {
-    stringstream ss;
-    Number temp(Evaluate().get_value(*a), Number::UNSIGNED);
-    TextPrinter(ss) << &temp;
-    return ss.str();
-  } 
-
-  stringstream ss;
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == string::npos) {
-      break;
-    }
-
-    if (++a == args->end()) {
-      continue;
-    }
-    stringstream temp;
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': {
-        Number n(Evaluate().get_value(*a), Number::BIN);
-        TextPrinter(temp) << &n;
-        break;
-      }
-      case 'd':
-      case 'D': {
-        Number n(Evaluate().get_value(*a), Number::DEC);
-        TextPrinter(temp) << &n;
-        break;
-      }
-      case 'h':
-      case 'H': {
-        Number n(Evaluate().get_value(*a), Number::HEX);
-        TextPrinter(temp) << &n;
-        break;
-      }
-      case 'o':
-      case 'O': {
-        Number n(Evaluate().get_value(*a), Number::OCT);
-        TextPrinter(temp) << &n;
-        break;
-      }
-      default: 
-        assert(false);
-    }
-    ss << temp.str().substr(temp.str().find_first_of('\'')+2);
-  }
-  return ss.str();
 }
 
 void SwLogic::log(const string& op, const Node* n) {

@@ -142,10 +142,10 @@ cascade::Identifier dummy("__dummy");
 %token <std::string> STRING
 
 %token <std::string> UNSIGNED_NUM
-%token <std::string> DECIMAL_VALUE
-%token <std::string> BINARY_VALUE
-%token <std::string> OCTAL_VALUE
-%token <std::string> HEX_VALUE
+%token <std::pair<bool, std::string>> DECIMAL_VALUE
+%token <std::pair<bool, std::string>> BINARY_VALUE
+%token <std::pair<bool, std::string>> OCTAL_VALUE
+%token <std::pair<bool, std::string>> HEX_VALUE
 
 %token SHIFT 
 %left  SHIFT
@@ -319,7 +319,7 @@ cascade::Identifier dummy("__dummy");
 %type <Number*> octal_number
 %type <Number*> binary_number
 %type <Number*> hex_number
-%type <uint64_t> size
+%type <size_t> size
 
 /* A.8.8 Strings */
 %type <String*> string_
@@ -560,7 +560,7 @@ local_parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       lpd->get_id()->set_source(va->get_lhs()->get_source());
       lpd->get_id()->set_line(va->get_lhs()->get_line());
       lpd->set_source(parser->source());
@@ -576,7 +576,7 @@ local_parameter_declaration
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
       lpd->set_source(parser->source());
       lpd->set_line($2);
       $$->push_back(lpd);
@@ -591,7 +591,7 @@ parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       pd->get_id()->set_source(va->get_lhs()->get_source());
       pd->get_id()->set_line(va->get_lhs()->get_line());
       pd->set_source(parser->source());
@@ -607,7 +607,7 @@ parameter_declaration
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
       pd->set_source(parser->source());
       pd->set_line($2);
       $$->push_back(pd);
@@ -627,7 +627,7 @@ inout_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INOUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(), $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -639,7 +639,7 @@ input_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(),$4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -651,7 +651,7 @@ output_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(),$5->remove_front(), $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
@@ -662,7 +662,7 @@ output_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
       if (va->get_rhs() == &dummy) {
         va->set_rhs(dummy.clone());
@@ -701,7 +701,7 @@ net_declaration
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $3, $4->clone());
       nd->set_source(parser->source());
       nd->set_line($2.first);
       $$->push_back(nd);
@@ -716,7 +716,7 @@ net_declaration
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto va = $6->remove_front();
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $3, $4->clone());
       nd->get_id()->set_source(va->get_lhs()->get_source());
       nd->get_id()->set_line(va->get_lhs()->get_line());
       nd->set_source(parser->source());
@@ -738,7 +738,7 @@ reg_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       rd->get_id()->set_source(va->get_lhs()->get_source());
       rd->get_id()->set_line(va->get_lhs()->get_line());
       rd->set_source(parser->source());
@@ -784,7 +784,7 @@ delay3
   ;
 /* TODO delay2 */
 delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 64); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, false); }
   /* TODO | real_number */
   /* TODO | identifier */
   ;
@@ -867,7 +867,7 @@ block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
-      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $4->clone(), new Maybe<Expression>()));
+      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $3, $4->clone(), new Maybe<Expression>()));
     }
     delete $1;
     delete $4;
@@ -1256,7 +1256,7 @@ system_task_enable
   : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3); }
-  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number("0", Number::UNSIGNED, 1)); }
+  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); }
   | SYS_FINISH OPAREN number CPAREN SCOLON { $$ = new FinishStatement($3); }
   | SYS_WRITE SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
@@ -1379,23 +1379,23 @@ number
 /* TODO real_number */
 /* TODO exp */
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNSIGNED, 64); }
-  | DECIMAL_VALUE { $$ = new Number($1, Number::DEC, 64); }
-  | size DECIMAL_VALUE { $$ = new Number($2, Number::DEC, $1); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1, Number::BIN, 64); }
-  | size BINARY_VALUE { $$ = new Number($2, Number::BIN, $1); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1, Number::OCT, 64); }
-  | size OCTAL_VALUE { $$ = new Number($2, Number::OCT, $1); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1, Number::HEX, 64); }
-  | size HEX_VALUE { $$ = new Number($2, Number::HEX, $1); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
   ;
 /* TODO sign */
 size
@@ -1665,11 +1665,11 @@ statement_S
 
 se_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment %prec PARAMETER {
-    $$ = new ParameterDeclaration($1, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment %prec PARAMETER {
-    $$ = new ParameterDeclaration($1, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, false, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
     delete $4;
   }
   ;
@@ -1681,26 +1681,26 @@ se_port_declaration
 se_inout_declaration
   : INOUT net_type_Q signed_Q range_Q identifier %prec INOUT {
     auto t = PortDeclaration::INOUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_input_declaration
   : INPUT net_type_Q signed_Q range_Q identifier %prec INPUT {
     auto t = PortDeclaration::INPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_output_declaration
   : OUTPUT net_type_Q signed_Q range_Q identifier %prec OUTPUT {
     auto t = PortDeclaration::OUTPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $4);
+    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   | OUTPUT REG signed_Q range_Q identifier eq_ce_Q %prec OUTPUT {
     auto t = PortDeclaration::OUTPUT;
-    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
+    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;

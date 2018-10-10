@@ -14,13 +14,7 @@ PERF=\
 	-march=native -fno-exceptions -fno-stack-protector \
 	-Ofast -DNDEBUG
 INC=-I. -I./ext/cl
-LIB=-lgmp -lncurses -lpthread
-
-### Target-specific constants
-ifeq ($(UNAME), Darwin)
-	CC_OPT += -D_DARWIN_C_SOURCE 
-	CXX_OPT += -D_DARWIN_C_SOURCE
-endif
+LIB=-lncurses -lpthread
 
 ### Constants: gtest
 GTEST_ROOT_DIR=ext/googletest/googletest
@@ -61,12 +55,12 @@ OBJ=\
 	src/ui/term/term_view.o\
 	src/ui/web/web_ui.o\
 	\
-	src/verilog/analyze/bit_width.o\
 	src/verilog/analyze/constant.o\
 	src/verilog/analyze/evaluate.o\
 	src/verilog/analyze/indices.o\
 	src/verilog/analyze/module_info.o\
 	src/verilog/analyze/navigate.o\
+	src/verilog/analyze/printf.o\
 	src/verilog/analyze/read_set.o\
 	src/verilog/analyze/resolve.o\
 	\
@@ -91,11 +85,6 @@ OBJ=\
 	\
 	src/verilog/transform/constant_prop.o\
 	src/verilog/transform/de_alias.o
-
-### Target-Specific source binaries
-ifeq ($(UNAME), Darwin)
-	OBJ += ext/memorymapping/src/fmemopen.o
-endif
 
 ### Test binaries
 TEST_OBJ=\
@@ -156,10 +145,8 @@ ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
 	${CXX} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
-ext/memorymapping/src/fmemopen.o: ext/memorymapping/src/fmemopen.c
-	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter ${GTEST_INC} ${INC} -c $< -o $@
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
-	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
+	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
 	${CXX} ${CXX_OPT} -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc

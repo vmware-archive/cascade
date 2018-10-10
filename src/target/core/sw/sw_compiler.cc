@@ -31,7 +31,6 @@
 #include "src/target/core/sw/sw_compiler.h"
 
 #include "src/base/stream/incstream.h"
-#include "src/verilog/analyze/bit_width.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
@@ -159,7 +158,7 @@ SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   if (!ModuleInfo(md).inputs().empty()) {
     const auto in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
-    const auto w = BitWidth().get_width(in);
+    const auto w = Evaluate().get_width(in);
     delete md;
     return new SwLed(interface, id, w, led_, led_lock_);
   } else {
@@ -251,7 +250,7 @@ SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
 
   const auto out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
-  const auto w = BitWidth().get_width(out);
+  const auto w = Evaluate().get_width(out);
   delete md;
   
   return new SwPad(interface, id, w, pad_, pad_lock_);

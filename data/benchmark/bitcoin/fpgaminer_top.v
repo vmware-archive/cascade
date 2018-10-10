@@ -90,7 +90,7 @@ module fpgaminer_top (osc_clk);
   // On the first count (cnt==0), load data from previous stage (no feedback)
   // on 1..LOOP-1, take feedback from current stage
   // This reduces the throughput by a factor of (LOOP), but also reduces the design size by the same amount
-  assign feedback_next = (LOOP == 1) ? 1'b0 : (cnt_next != {(LOOP_LOG2){1'b0}});
+  assign feedback_next = (LOOP == 1) ? 1'b0 : (cnt_next != 0);
   assign nonce_next = feedback_next ? nonce : (nonce + 32'd1);
 
   always @ (posedge hash_clk)

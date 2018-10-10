@@ -555,14 +555,14 @@ string Runtime::format_freq(uint64_t f) const {
 }
 
 void Runtime::crash_dump(ostream& os) {
-  TermPrinter(os) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY" << Color::RESET;
-  TermPrinter(os) << Color::RED << "SEE BEST-EFFORT STATE DUMP BELOW" << Color::RESET;
-  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "THIS PROCESS SHOULD FINISH QUICKLY AND PRINT THE PHRASE \"END STATE DUMP\"" << Color::RESET;
-  TermPrinter(os) << Color::RED << "BEFORE RETURNING CONTROL TO THE TERMINAL. IF YOU DO NOT SEE THIS MESSAGE" << Color::RESET;
-  TermPrinter(os) << Color::RED << "IT IS SAFE TO ASSUME THAT CASCADE HAS HUNG AND CANNOT CONTINUE." << Color::RESET;
-  TermPrinter(os) << Color::RED << "\n\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "PLEASE FORWARD THIS REPORT ALONG WITH ANY ADDITIONAL INFORMATION TO THE" << Color::RESET;
+  TermPrinter(os) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "SEE BEST-EFFORT STATE DUMP BELOW\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "THIS PROCESS SHOULD FINISH QUICKLY AND PRINT THE PHRASE \"END STATE DUMP\"\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "BEFORE RETURNING CONTROL TO THE TERMINAL. IF YOU DO NOT SEE THIS MESSAGE\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "IT IS SAFE TO ASSUME THAT CASCADE HAS HUNG AND CANNOT CONTINUE.\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "\n" << Color::RESET;
+  TermPrinter(os) << Color::RED << "PLEASE FORWARD THIS REPORT ALONG WITH ANY ADDITIONAL INFORMATION TO THE\n" << Color::RESET;
   TermPrinter(os) << Color::RED << "CASCADE DEVELOPER MAILING LIST." << Color::RESET;
 
   TermPrinter(os) << "\n\n" << Color::RED << "PROGRAM DECLARATIONS" << Color::RESET;

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 
-#include <string>
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
@@ -42,12 +41,25 @@ namespace cascade {
 
 class De10Logic : public Logic, public Visitor {
   public:
-    // Struct Definitions:
-    struct VarInfo {
-      size_t index;      // Starting index in variable table
-      size_t size;       // Size in 32-bit words
-      bool materialized; // Was new storage allocated for this variable on the fpga?
-      Bits val;          // Variable image in this engine
+    class VarInfo {
+      public:
+        VarInfo(const Identifier* id, size_t idx, bool materialized);
+
+        // Where is this variable located in the AST?
+        const Identifier* id() const;
+        // Was this variable allocated state on the FPGA? 
+        bool materialized() const;
+        // What index in the variable table does this variable start at?
+        size_t index() const;
+        // How many bits wide is this variable?
+        size_t bit_size() const;
+        // How many 32-bit entries in the variable table does it span?
+        size_t word_size() const;
+
+      private:
+        const Identifier* id_;
+        size_t idx_;
+        bool materialized_;
     };
 
     // Typedefs:
@@ -55,7 +67,7 @@ class De10Logic : public Logic, public Visitor {
     typedef std::unordered_map<const Identifier*, VarInfo>::const_iterator table_iterator;
 
     // Constructors:
-    De10Logic(Interface* interface, ModuleDeclaration* md, uint8_t* addr);
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -79,7 +91,6 @@ class De10Logic : public Logic, public Visitor {
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
     // Iterators over ast id to data plane id conversion:
-    map_iterator map_find(const Identifier* id) const;
     map_iterator map_begin() const;
     map_iterator map_end() const;
 
@@ -101,40 +112,55 @@ class De10Logic : public Logic, public Visitor {
     const Identifier* open_loop_clock() const;
 
   private:
-    // Source Management:
+    // Program Source:
     ModuleDeclaration* src_;
+
+    // FPGA Memory Map:
+    volatile uint8_t* addr_;
+
+    // Variable Table:
+    std::unordered_map<const Identifier*, VarInfo> var_table_;
     size_t next_index_;
+
+    // Variable Indicies:
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
     std::vector<const SystemTaskEnableStatement*> tasks_;
 
-    // Connectivity State:
-    uint8_t* addr_;
-
-    // Program State:
-    std::unordered_map<const Identifier*, VarInfo> var_table_;
-    uint32_t task_queue_;
+    // Execution State:
+    bool there_were_tasks_;
 
     // Visitor Interface:
     void visit(const DisplayStatement* ds) override;
     void visit(const FinishStatement* fs) override;
     void visit(const WriteStatement* ws) override;
 
-    // Record bookkeeping information for this variable.
+    // Variable Table Building Helper:
     void insert(const Identifier* id, bool materialized);
 
     // I/O Helpers:
-    void read(VarInfo* vi);
-    void write(const VarInfo* vi, const Bits* b);
+    void read(const VarInfo& vi);
+    void write(const VarInfo& vi, const Bits& b);
     
     // Evaluate / Update Helpers:
     void handle_outputs();
     void handle_tasks();
 
-    // Printf Logic:
-    std::string printf(const Many<Expression>* args);
-    const Bits& evaluate(const Expression* e);
+    // Inserts the identifiers in an AST subtree into the variable table.
+    struct Inserter : public Visitor {
+      Inserter(De10Logic* de);
+      ~Inserter() override = default;
+      void visit(const Identifier* id) override;
+      De10Logic* de_;
+    };
+    // Synchronizes the values for the identifiers in an AST subtree.
+    struct Sync : public Visitor {
+      Sync(De10Logic* de);
+      ~Sync() override = default;
+      void visit(const Identifier* id) override;
+      De10Logic* de_;
+    };
 };
 
 } // namespace cascade

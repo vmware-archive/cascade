@@ -45,7 +45,7 @@ namespace cascade {
  
 class De10Gpio : public Gpio {
   public:
-    De10Gpio(Interface* interface, VId in, uint8_t* gpio_addr); 
+    De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr); 
     ~De10Gpio() override = default;
 
     State* get_state() override;
@@ -60,10 +60,10 @@ class De10Gpio : public Gpio {
 
   private:
     VId in_;
-    uint8_t* gpio_addr_;
+    volatile uint8_t* gpio_addr_;
 };
 
-inline De10Gpio::De10Gpio(Interface* interface, VId in, uint8_t* gpio_addr) : Gpio(interface) {
+inline De10Gpio::De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr) : Gpio(interface) {
   in_ = in;
   gpio_addr_ = gpio_addr;
 }

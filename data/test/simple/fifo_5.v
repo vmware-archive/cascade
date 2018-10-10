@@ -1,7 +1,7 @@
 wire[4:0] rdata;
 wire empty;
 
-reg[5:0] sum = 0;
+reg[31:0] sum = 0;
 
 (*__target="sw", __file="data/test/simple/fifo_4.data", __count=2*)
 Fifo#(1,4) fifo(

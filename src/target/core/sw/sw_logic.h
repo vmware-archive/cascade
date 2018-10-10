@@ -47,10 +47,12 @@ class SwLogic : public Logic, public Visitor {
     SwLogic(Interface* interface, ModuleDeclaration* md);
     ~SwLogic() override;
 
+    // Configuration Logic:
     SwLogic& set_read(const Identifier* id, VId vid);
     SwLogic& set_write(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
 
+    // Core Interface:
     State* get_state() override;
     void set_state(const State* s) override;
     Input* get_input() override;
@@ -107,9 +109,6 @@ class SwLogic : public Logic, public Visitor {
     void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;
-
-    // Printf Logic:
-    std::string printf(const Many<Expression>* args);
 
     // Debug Printing:
     void log(const std::string& op, const Node* n);
