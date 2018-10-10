@@ -33,15 +33,14 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <sstream>
 #include "src/target/core/sw/monitor.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/printf.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/term/term_printer.h"
 #include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
@@ -55,7 +54,6 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   for (auto mi : *src_->get_items()) {
     Monitor().init(mi);
   }
-
   // Initial provision for update_pool_:
   update_pool_.resize(1);
 }
@@ -426,7 +424,7 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
 
 void SwLogic::visit(const DisplayStatement* ds) {
   if (!silent_) {
-    interface()->display(printf(ds->get_args()));
+    interface()->display(Printf().format(ds->get_args()));
     there_were_tasks_ = true;
   }
   notify(ds);
@@ -442,7 +440,7 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const WriteStatement* ws) {
   if (!silent_) {
-    interface()->write(printf(ws->get_args()));
+    interface()->write(Printf().format(ws->get_args()));
     there_were_tasks_ = true;
   }
   notify(ws);
@@ -483,53 +481,6 @@ void SwLogic::visit(const VariableAssign* va) {
     Evaluate().assign_value(r, idx.first, idx.second, res);
   } 
   notify(r);
-}
-
-string SwLogic::printf(const Many<Expression>* args) {
-  if (args->empty()) {
-    return "";
-  }
-
-  stringstream ss;
-  auto a = args->begin();
-
-  auto s = dynamic_cast<String*>(*a);
-  if (s == nullptr) {
-    Evaluate().get_value(*a).write(ss, 10);
-    return ss.str();
-  } 
-
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == string::npos) {
-      break;
-    }
-    if (++a == args->end()) {
-      continue;
-    }
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': 
-        Evaluate().get_value(*a).write(ss, 2);
-        break;
-      case 'd':
-      case 'D':
-        Evaluate().get_value(*a).write(ss, 10);
-        break;
-      case 'h':
-      case 'H': 
-        Evaluate().get_value(*a).write(ss, 16);
-        break;
-      case 'o':
-      case 'O': 
-        Evaluate().get_value(*a).write(ss, 8);
-        break;
-      default: 
-        assert(false);
-    }
-  }
-  return ss.str();
 }
 
 void SwLogic::log(const string& op, const Node* n) {

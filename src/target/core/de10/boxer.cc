@@ -458,18 +458,24 @@ void Boxer::Mangler::visit(const Identifier* id) {
     const auto upper = min(32*(i+1),w)-1;
     const auto lower = 32*i;
 
-    // Create a mask of 32 Sign-extension bits
-    const auto sext = new MultipleConcatenation(
-      new Number("32"),
-      new Concatenation(new Many<Expression>(
-        new Identifier(
-          new Many<Id>(id->get_ids()->front()->clone()),
-          w == 1 ?
-            new Maybe<Expression>() :
-            new Maybe<Expression>(new Number(Bits(32, w-1)))
-        )
-      ))
-    );
+    // Create a sign extension mask: all zeros for unsigned values, 32 copies
+    // of id's highest order bit for signed values.
+    Expression* sext = nullptr;
+    if (Evaluate().get_signed(id)) {
+      sext = new MultipleConcatenation(
+        new Number("32"),
+        new Concatenation(new Many<Expression>(
+          new Identifier(
+            new Many<Id>(id->get_ids()->front()->clone()),
+            w == 1 ?
+              new Maybe<Expression>() :
+              new Maybe<Expression>(new Number(Bits(32, w-1)))
+          )
+        ))
+      );
+    } else {
+      sext = new Number(Bits(32, 0));
+    }
     // Concatenate the rhs with the sign extension bits
     auto rhs = new Concatenation(new Many<Expression>(sext));
     if (upper == 0) {
@@ -488,7 +494,7 @@ void Boxer::Mangler::visit(const Identifier* id) {
         new Maybe<Expression>(new RangeExpression(upper+1, lower))
       ));
     } 
-    // Use the concatenation in an assignment, we'll always have enough bits now
+    // Attach the concatenation to an assignment, we'll always have enough bits now
     t_->get_stmts()->push_back(new NonblockingAssign(
       new Maybe<TimingControl>(),
       new VariableAssign(

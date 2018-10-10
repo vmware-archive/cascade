@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 
-#include <string>
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
@@ -42,7 +41,6 @@ namespace cascade {
 
 class De10Logic : public Logic, public Visitor {
   public:
-    // TODO: Explain what this class does
     class VarInfo {
       public:
         VarInfo(const Identifier* id, size_t idx, bool materialized);
@@ -117,6 +115,9 @@ class De10Logic : public Logic, public Visitor {
     // Program Source:
     ModuleDeclaration* src_;
 
+    // FPGA Memory Map:
+    uint8_t* addr_;
+
     // Variable Table:
     std::unordered_map<const Identifier*, VarInfo> var_table_;
     size_t next_index_;
@@ -127,20 +128,15 @@ class De10Logic : public Logic, public Visitor {
     std::vector<std::pair<VId, VarInfo*>> outputs_;
     std::vector<const SystemTaskEnableStatement*> tasks_;
 
-    // Connectivity State:
-    uint8_t* addr_;
-
-    // Program State:
-    uint32_t task_queue_;
+    // Execution State:
+    bool there_were_tasks_;
 
     // Visitor Interface:
-    //
-    // These methods are used to identify system tasks and to insert
-    // entries into the variable table for each of their arguments.
     void visit(const DisplayStatement* ds) override;
     void visit(const FinishStatement* fs) override;
     void visit(const WriteStatement* ws) override;
-    // Appends a new element to the end of the variable table
+
+    // Variable Table Building Helper:
     void insert(const Identifier* id, bool materialized);
 
     // I/O Helpers:
@@ -151,18 +147,14 @@ class De10Logic : public Logic, public Visitor {
     void handle_outputs();
     void handle_tasks();
 
-    // Printf Logic:
-    std::string printf(const Many<Expression>* args);
-
-    // Inserts materialized variables for the identifiers in an AST subtree.
+    // Inserts the identifiers in an AST subtree into the variable table.
     struct Inserter : public Visitor {
       Inserter(De10Logic* de);
       ~Inserter() override = default;
       void visit(const Identifier* id) override;
       De10Logic* de_;
     };
-
-    // Synchronizes the variables for the identifiers in an AST subtree.
+    // Synchronizes the values for the identifiers in an AST subtree.
     struct Sync : public Visitor {
       Sync(De10Logic* de);
       ~Sync() override = default;

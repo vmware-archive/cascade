@@ -38,6 +38,7 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/printf.h"
 #include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
@@ -75,8 +76,8 @@ size_t De10Logic::VarInfo::word_size() const {
 
 De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, uint8_t* addr) : Logic(interface), Visitor() { 
   src_ = src;
-  next_index_ = 0;
   addr_ = addr;
+  next_index_ = 0;
   src_->accept(this);
 }
 
@@ -190,8 +191,8 @@ void De10Logic::set_input(const Input* i) {
 }
 
 void De10Logic::resync() {
-  // Read the value of the task mask and go live
-  task_queue_ = IDX_READ(sys_task_idx());
+  // Reset the task queue and go live
+  IDX_WRITE(sys_task_idx(), 0);
   IDX_WRITE(live_idx(), 1);
 }
 
@@ -221,7 +222,7 @@ void De10Logic::update() {
 }
 
 bool De10Logic::there_were_tasks() const {
-  return task_queue_ != 0;
+  return there_were_tasks_;
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
@@ -355,79 +356,36 @@ void De10Logic::handle_outputs() {
 }
 
 void De10Logic::handle_tasks() {
-  // If there's nothing in the task queue, we're done
-  task_queue_ = IDX_READ(sys_task_idx());
-  if (task_queue_ == 0) {
+  // By default, we'll assume there were no tasks
+  there_were_tasks_ = false;
+  auto task_queue = IDX_READ(sys_task_idx());
+  if (task_queue == 0) {
     return;
   }
-  // Empty the task queue
-  for (size_t i = 0; task_queue_ != 0; task_queue_ >>= 1, ++i) {
-    if ((task_queue_ & 0x1) == 0) {
+
+  // There were tasks after all; we need to empty the queue
+  there_were_tasks_ = true;
+  for (size_t i = 0; task_queue != 0; task_queue >>= 1, ++i) {
+    if ((task_queue & 0x1) == 0) {
       continue;
     }
-    const auto task = tasks_[i];
-    if (const auto ds = dynamic_cast<const DisplayStatement*>(task)) {
-      interface()->display(printf(ds->get_args()));
-    } else if (const auto fs = dynamic_cast<const FinishStatement*>(task)) {
+    if (const auto ds = dynamic_cast<const DisplayStatement*>(tasks_[i])) {
+      Sync sync(this);
+      ds->get_args()->accept(&sync);
+      interface()->display(Printf().format(ds->get_args()));
+    } else if (const auto fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
       interface()->finish(fs->get_arg()->get_val().to_int());
-    } else if (const auto ws = dynamic_cast<const WriteStatement*>(task)) {
-      interface()->write(printf(ws->get_args()));
+    } else if (const auto ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
+      Sync sync(this);
+      ws->get_args()->accept(&sync);
+      interface()->write(Printf().format(ws->get_args()));
     } else {
       assert(false);
     }
   }
+
   // Reset the task mask
   IDX_WRITE(sys_task_idx(), 0);
-}
-
-string De10Logic::printf(const Many<Expression>* args) {
-  if (args->empty()) {
-    return "";
-  }
-
-  Sync sync(this);
-  args->accept(&sync);
-
-  stringstream ss;
-  auto a = args->begin();
-
-  auto s = dynamic_cast<String*>(*a);
-  if (s == nullptr) {
-    Evaluate().get_value(*a).write(ss, 10);
-    return ss.str();
-  } 
-
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == string::npos) {
-      break;
-    }
-    if (++a == args->end()) {
-      continue;
-    }
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': 
-        Evaluate().get_value(*a).write(ss, 2);
-        break;
-      case 'd':
-      case 'D': 
-        Evaluate().get_value(*a).write(ss, 10);
-        break;
-      case 'h':
-      case 'H': 
-        Evaluate().get_value(*a).write(ss, 16);
-        break;
-      case 'o':
-      case 'O': 
-        Evaluate().get_value(*a).write(ss, 8);
-        break;
-      default: 
-        assert(false);
-    }
-  }
-  return ss.str();
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
