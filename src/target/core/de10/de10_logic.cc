@@ -334,7 +334,7 @@ void De10Logic::insert(const Identifier* id, bool materialized) {
 void De10Logic::read(const VarInfo& vi) {
   // Move bits from fpga into local storage one word at a time
   for (size_t idx = vi.index(), n = 0, ne = vi.word_size(); n < ne; ++idx, ++n) {
-    const auto word = IDX_READ(idx);
+    const volatile auto word = IDX_READ(idx);
     Evaluate().assign_word<uint32_t>(vi.id(), n, word);
   }
 }
@@ -358,7 +358,7 @@ void De10Logic::handle_outputs() {
 void De10Logic::handle_tasks() {
   // By default, we'll assume there were no tasks
   there_were_tasks_ = false;
-  auto task_queue = IDX_READ(sys_task_idx());
+  volatile auto task_queue = IDX_READ(sys_task_idx());
   if (task_queue == 0) {
     return;
   }
