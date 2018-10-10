@@ -474,7 +474,7 @@ void Boxer::Mangler::visit(const Identifier* id) {
         ))
       );
     } else {
-      sext = new Number(Bits(32, 0));
+      sext = new Number(Bits(32, 0), Number::HEX);
     }
     // Concatenate the rhs with the sign extension bits
     auto rhs = new Concatenation(new Many<Expression>(sext));
