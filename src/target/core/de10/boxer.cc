@@ -100,8 +100,8 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
     TextPrinter(os) << rd << "\n";
     delete rd;
   }
-  os << "reg[" << (de_->table_size()-1) << ":0] __update_mask = 0;" << endl;
-  os << "reg[" << (de_->table_size()-1) << ":0] __next_update_mask = 0;" << endl;
+  os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __update_mask = 0;" << endl;
+  os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __next_update_mask = 0;" << endl;
   os << endl;
 
   // Declare intermediate state for systasks. This is where we will store
@@ -187,7 +187,7 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   // mode.
 
   os << "// Update Logic:" << endl;
-  os << "wire[" << (de_->table_size()-1) << ":0] __update_queue = __update_mask ^ __next_update_mask;" << endl;
+  os << "wire[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __update_queue = __update_mask ^ __next_update_mask;" << endl;
   os << "wire __there_are_updates = |__update_queue;" << endl;
   os << "wire __apply_updates = (__read && (__vid == " << de->update_idx() << ")) | (__there_are_updates && (__open_loop > 0));" << endl;
   os << "always @(posedge __clk) begin" << endl;
@@ -319,6 +319,18 @@ Attributes* Boxer::build(const Attributes* as) {
   // Quartus doesn't have full support for annotations. At this point, we can just delete them.
   (void) as;
   return new Attributes(new Many<AttrSpec>());
+}
+
+ModuleItem* Boxer::build(const InitialConstruct* ic) {
+  // If we're seeing a non-ignored initial block here, it's a problem.  These
+  // should have been handled in software.
+  const auto ign = ic->get_attrs()->get<String>("__ignore"); 
+  (void) ign;
+  assert(ign != nullptr);
+  assert(ign->eq("true"));
+ 
+  // Delete this code
+  return nullptr; 
 }
 
 ModuleItem* Boxer::build(const RegDeclaration* rd) {

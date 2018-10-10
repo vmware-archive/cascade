@@ -57,6 +57,7 @@ class Boxer : public Builder {
 
     // Builder Interface:
     Attributes* build(const Attributes* as) override; 
+    ModuleItem* build(const InitialConstruct* ic) override;
     ModuleItem* build(const RegDeclaration* rd) override;
     ModuleItem* build(const PortDeclaration* pd) override;
     Statement* build(const NonblockingAssign* na) override;
