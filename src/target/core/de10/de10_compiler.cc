@@ -55,10 +55,10 @@ constexpr auto LOG_PIO_BASE = 0x00040000;
 De10Compiler::De10Compiler() : CoreCompiler() { 
   fd_ = open("/dev/mem", (O_RDWR | O_SYNC));
   if (fd_ == -1) {
-    virtual_base_ = (volatile uint8_t*)MAP_FAILED;
+    virtual_base_ = (volatile uint32_t*)MAP_FAILED;
     return;
   }
-  virtual_base_ = (volatile uint8_t*)mmap(NULL, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE);
+  virtual_base_ = (volatile uint32_t*)mmap(NULL, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE);
   if (virtual_base_ == MAP_FAILED) {
     return;
   }
@@ -91,7 +91,7 @@ De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md
     return nullptr;
   }
 
-  auto led_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + GPIO_PIO_BASE) & HW_REGS_MASK));
+  auto led_addr = (volatile uint32_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + GPIO_PIO_BASE) & HW_REGS_MASK));
   if (!ModuleInfo(md).inputs().empty()) {
     const auto in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
@@ -109,7 +109,7 @@ De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  auto led_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LED_PIO_BASE) & HW_REGS_MASK));
+  auto led_addr = (volatile uint32_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LED_PIO_BASE) & HW_REGS_MASK));
   if (!ModuleInfo(md).inputs().empty()) {
     const auto in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
@@ -127,7 +127,7 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  auto pad_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK));
+  auto pad_addr = (volatile uint32_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK));
   const auto out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
   const auto w = Evaluate().get_width(out);
@@ -140,7 +140,7 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   ModuleInfo info(md);
 
   // Create a new core with address identity based on module id
-  auto addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + 4*to_mid(md->get_id()));
+  auto addr = (volatile uint32_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + 4*to_mid(md->get_id()));
   auto de = new De10Logic(interface, md, addr);
 
   // Register inputs, state, and outputs

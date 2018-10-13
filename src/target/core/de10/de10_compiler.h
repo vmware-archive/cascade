@@ -54,7 +54,7 @@ class De10Compiler : public CoreCompiler {
   private:
     // Memory Mapped State:
     int fd_;
-    volatile uint8_t* virtual_base_;
+    volatile uint32_t* virtual_base_;
 
     // Quartus Compilation Client:
     QuartusClient* qc_;

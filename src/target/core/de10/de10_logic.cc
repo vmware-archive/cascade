@@ -43,8 +43,7 @@
 
 using namespace std;
 
-#define IDX_READ(idx) DE10_READ((uint8_t*)(((idx) << 8) | (size_t)addr_))
-#define IDX_WRITE(idx, val) DE10_WRITE((uint8_t*)(((idx) << 8) | (size_t)addr_), (val))
+#define MANGLE(addr, idx) ((volatile uint32_t*)(((idx) << 8) | (size_t)addr))
 
 namespace cascade {
 
@@ -74,7 +73,7 @@ size_t De10Logic::VarInfo::word_size() const {
   return (bit_size() + 31) / 32;
 }
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint32_t* addr) : Logic(interface), Visitor() { 
   src_ = src;
   addr_ = addr;
   next_index_ = 0;
@@ -192,8 +191,8 @@ void De10Logic::set_input(const Input* i) {
 
 void De10Logic::resync() {
   // Reset the task queue and go live
-  IDX_WRITE(sys_task_idx(), 0);
-  IDX_WRITE(live_idx(), 1);
+  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
+  DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
 void De10Logic::read(VId id, const Bits* b) {
@@ -210,12 +209,12 @@ void De10Logic::evaluate() {
 
 bool De10Logic::there_are_updates() const {
   // Read there_are_updates flag
-  return IDX_READ(there_are_updates_idx());
+  return DE10_READ(MANGLE(addr_, there_are_updates_idx()));
 }
 
 void De10Logic::update() {
   // Throw the update trigger
-  IDX_WRITE(update_idx(), 1);
+  DE10_WRITE(MANGLE(addr_, update_idx()), 1);
   // Read outputs and handle tasks
   handle_outputs();
   handle_tasks();
@@ -232,11 +231,11 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
 
   // Go into open loop mode and handle tasks when we return. No need
   // to handle outputs. This methods assumes that we don't have any.
-  IDX_WRITE(open_loop_idx(), itr);
+  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
   handle_tasks();
 
   // Return the number of iterations that we ran for
-  return IDX_READ(open_loop_idx());
+  return DE10_READ(MANGLE(addr_, open_loop_idx()));
 }
 
 De10Logic::map_iterator De10Logic::map_begin() const {
@@ -334,7 +333,7 @@ void De10Logic::insert(const Identifier* id, bool materialized) {
 void De10Logic::read(const VarInfo& vi) {
   // Move bits from fpga into local storage one word at a time
   for (size_t idx = vi.index(), n = 0, ne = vi.word_size(); n < ne; ++idx, ++n) {
-    const volatile auto word = IDX_READ(idx);
+    const volatile auto word = DE10_READ(MANGLE(addr_, idx));
     Evaluate().assign_word<uint32_t>(vi.id(), n, word);
   }
 }
@@ -343,8 +342,8 @@ void De10Logic::write(const VarInfo& vi, const Bits& b) {
   // Move bits to fpga one word at a time, skipping the local storage.
   // If an when we need a value we'll read it out of the fpga first.
   for (size_t idx = vi.index(), n = 0, ne = vi.word_size(); n < ne; ++idx, ++n) {
-    const auto word = b.read_word<uint32_t>(n);
-    IDX_WRITE(idx, word);
+    const volatile auto word = b.read_word<uint32_t>(n);
+    DE10_WRITE(MANGLE(addr_, idx), word);
   }
 }
 
@@ -358,7 +357,7 @@ void De10Logic::handle_outputs() {
 void De10Logic::handle_tasks() {
   // By default, we'll assume there were no tasks
   there_were_tasks_ = false;
-  volatile auto task_queue = IDX_READ(sys_task_idx());
+  volatile auto task_queue = DE10_READ(MANGLE(addr_, sys_task_idx()));
   if (task_queue == 0) {
     return;
   }
@@ -385,7 +384,7 @@ void De10Logic::handle_tasks() {
   }
 
   // Reset the task mask
-  IDX_WRITE(sys_task_idx(), 0);
+  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
@@ -406,7 +405,6 @@ void De10Logic::Sync::visit(const Identifier* id) {
   de_->read(vinfo->second);
 }
 
-#undef IDX_READ
-#undef IDX_WRITE
+#undef MANGLE
 
 } // namespace cascade

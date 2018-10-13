@@ -108,6 +108,15 @@ void QuartusClient::sync() {
   os << "wire[7:0] __vid = s0_address[13:6];" << endl;
   os << "wire[5:0] __mid = s0_address[5:0];" << endl;
 
+  os << "// Common wait logic:" << endl;
+  os << "wire curr_rw = s0_read | s0_write;" << endl;
+  os << "reg  prev_rw = 1;" << endl;
+  os << "always @(posedge clk) begin" << endl;
+  os.tab();
+  os << "prev_rw <= curr_rw;" << endl;
+  os.untab();
+  os << "end" << endl;
+
   os << "// Module Instantiations:" << endl;
   for (const auto& s : src_) {
     os << "wire[31:0] m" << s.first << "_out;" << endl;
@@ -124,19 +133,25 @@ void QuartusClient::sync() {
     os << ");" << endl;
   }
 
-  os << "// Output Control Logic:" << endl;
+  os << "// Output Demuxing:" << endl;
+  os << "wire readdata;";
+  os << "wire waitrequest;";
   os << "always @(*) begin" << endl;
   os.tab();
   os << "case (__mid)" << endl;
   os.tab();
   for (const auto& s : src_) {
-    os << s.first << ": begin s0_readdata = m" << s.first << "_out; s0_waitrequest = m" << s.first << "_wait; end" << endl;
+    os << s.first << ": begin readdata = m" << s.first << "_out; waitrequest = m" << s.first << "_wait; end" << endl;
   }
-  os << "default: begin s0_readdata = 0; s0_waitrequest = 0; end" << endl;
+  os << "default: begin readdata = 0; waitrequest = 0; end" << endl;
   os.untab();
   os << "endcase" << endl;
   os.untab();
   os << "end" << endl;
+
+  os << "// Output Logic:" << endl;
+  os << "assign s0_readdata = readdata;" << endl;
+  os << "assign s0_waitrequest = (~prev_rw & curr_rw) | waitrequest;" << endl;
 
   os.untab();
   os << "endmodule";

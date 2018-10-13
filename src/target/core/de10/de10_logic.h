@@ -67,7 +67,7 @@ class De10Logic : public Logic, public Visitor {
     typedef std::unordered_map<const Identifier*, VarInfo>::const_iterator table_iterator;
 
     // Constructors:
-    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr);
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint32_t* addr);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -116,7 +116,7 @@ class De10Logic : public Logic, public Visitor {
     ModuleDeclaration* src_;
 
     // FPGA Memory Map:
-    volatile uint8_t* addr_;
+    volatile uint32_t* addr_;
 
     // Variable Table:
     std::unordered_map<const Identifier*, VarInfo> var_table_;

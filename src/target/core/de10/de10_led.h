@@ -45,7 +45,7 @@ namespace cascade {
  
 class De10Led : public Led {
   public:
-    De10Led(Interface* interface, VId in, volatile uint8_t* led_addr); 
+    De10Led(Interface* interface, VId in, volatile uint32_t* led_addr); 
     ~De10Led() override = default;
 
     State* get_state() override;
@@ -60,10 +60,10 @@ class De10Led : public Led {
 
   private:
     VId in_;
-    volatile uint8_t* led_addr_;
+    volatile uint32_t* led_addr_;
 };
 
-inline De10Led::De10Led(Interface* interface, VId in, volatile uint8_t* led_addr) : Led(interface) {
+inline De10Led::De10Led(Interface* interface, VId in, volatile uint32_t* led_addr) : Led(interface) {
   in_ = in;
   led_addr_ = led_addr;
 }
