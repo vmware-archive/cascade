@@ -43,7 +43,7 @@
 
 using namespace std;
 
-#define MANGLE(addr, idx) ((volatile uint32_t*)(((idx) << 8) | (size_t)addr))
+#define MANGLE(addr, idx) ((volatile uint8_t*)(((idx) << 8) | (size_t)addr))
 
 namespace cascade {
 
@@ -73,7 +73,7 @@ size_t De10Logic::VarInfo::word_size() const {
   return (bit_size() + 31) / 32;
 }
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint32_t* addr) : Logic(interface), Visitor() { 
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
   src_ = src;
   addr_ = addr;
   next_index_ = 0;
