@@ -38,7 +38,6 @@
 #include "src/target/engine.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/target/interface/remote/remote_compiler.h"
-#include "src/target/masker.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 
@@ -112,7 +111,7 @@ Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
 }
 
 Engine* Compiler::compile(ModuleDeclaration* md) {
-  if (is_stub(md)) {
+  if (StubCheck().check(md)) {
     delete md;
     return new Engine();
   }
@@ -170,7 +169,7 @@ Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
   const auto l2 = md->get_attrs()->get<String>("__loc2");
 
   // Check: Is this a stub, an std module, was jit compilation requested?  
-  const auto jit = std->eq("logic") && !is_stub(md) && (t2 != nullptr || l2 != nullptr);
+  const auto jit = std->eq("logic") && !StubCheck().check(md) && (t2 != nullptr || l2 != nullptr);
 
   // If we're jit compiling, we'll need a second copy of the source and we'll
   // need to adjust the annotations.
@@ -212,35 +211,42 @@ Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
   return e;
 }
 
-bool Compiler::SysTaskCheck::check(const Node* n) {
-  res_ = false;
-  n->accept(this);
-  return res_;
-}
-
-void Compiler::SysTaskCheck::visit(const InitialConstruct* ic) {
-  (void) ic;
-  res_ = true;
-}
-
-void Compiler::SysTaskCheck::visit(const DisplayStatement* ds) {
-  (void) ds;
-  res_ = true;
-}
-
-void Compiler::SysTaskCheck::visit(const FinishStatement* fs) {
-  (void) fs;
-  res_ = true;
-}
-
-void Compiler::SysTaskCheck::visit(const WriteStatement* ws) {
-  (void) ws;
-  res_ = true;
-}
-
-bool Compiler::is_stub(const ModuleDeclaration* md) const {
+bool Compiler::StubCheck::check(const ModuleDeclaration* md) {
   ModuleInfo mi(md);
-  return mi.inputs().empty() && mi.outputs().empty() && !SysTaskCheck().check(md);
+  if (!mi.inputs().empty() || !mi.outputs().empty()) {
+    return false;
+  }
+  stub_ = true;
+  md->accept(this);
+  return stub_;
+}
+
+void Compiler::StubCheck::visit(const InitialConstruct* ic) {
+  (void) ic;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const DisplayStatement* ds) {
+  (void) ds;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const FinishStatement* fs) {
+  (void) fs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const WriteStatement* ws) {
+  (void) ws;
+  stub_ = false;
+}
+
+void Compiler::Masker::mask(ModuleDeclaration* md) {
+  md->get_items()->accept(this);
+}
+
+void Compiler::Masker::edit(InitialConstruct* ic) {
+  ic->get_attrs()->set_or_replace("__ignore", new String("true"));
 }
 
 } // namespace cascade

@@ -33,6 +33,7 @@
 
 #include "src/base/thread/thread_pool.h"
 #include "src/verilog/ast/ast_fwd.h"
+#include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -84,21 +85,28 @@ class Compiler {
     Runtime* rt_;
     ThreadPool pool_;
 
-    // Helper Class: Checks Modules for system tasks and initial constructs
-    class SysTaskCheck : public Visitor {
+    // Checks whether a module is a stub, that is, whether it contains system
+    // tasks or initial constructs, or it has non-empty input or output sets.
+    class StubCheck : public Visitor {
       public:
-        ~SysTaskCheck() override = default;
-        bool check(const Node* n);
+        ~StubCheck() override = default;
+        bool check(const ModuleDeclaration* md);
       private:
-        bool res_;
+        bool stub_;
         void visit(const InitialConstruct* ic) override;
         void visit(const DisplayStatement* ds) override;
         void visit(const FinishStatement* fs) override;
         void visit(const WriteStatement* ws) override;
     };    
 
-    // Compilation Helpers:
-    bool is_stub(const ModuleDeclaration* md) const;
+    // Annotates initial statements with ignore comments
+    class Masker : public Editor {
+      public:
+        ~Masker() override = default;
+        void mask(ModuleDeclaration* md);
+      private:
+        void edit(InitialConstruct* ic) override;
+    };
 };
 
 } // namespace cascade
