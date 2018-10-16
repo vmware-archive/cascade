@@ -96,7 +96,7 @@ void QuartusClient::sync() {
   os << "input wire        s0_read," << endl;
   os << "input wire        s0_write," << endl;
   os << endl;
-  os << "output  reg[31:0] s0_readdata," << endl;
+  os << "output reg [31:0] s0_readdata," << endl;
   os << "input  wire[31:0] s0_writedata," << endl;
   os << endl;
   os << "output reg        s0_waitrequest" << endl;
@@ -124,17 +124,27 @@ void QuartusClient::sync() {
     os << ");" << endl;
   }
 
-  os << "// Output Control Logic:" << endl;
+  os << "// Output Demuxing:" << endl;
+  os << "reg[31:0] rd;" << endl;
+  os << "reg wr;";
   os << "always @(*) begin" << endl;
   os.tab();
   os << "case (__mid)" << endl;
   os.tab();
   for (const auto& s : src_) {
-    os << s.first << ": begin s0_readdata = m" << s.first << "_out; s0_waitrequest = m" << s.first << "_wait; end" << endl;
+    os << s.first << ": begin rd = m" << s.first << "_out; wr = m" << s.first << "_wait; end" << endl;
   }
-  os << "default: begin s0_readdata = 0; s0_waitrequest = 0; end" << endl;
+  os << "default: begin rd = 0; wr = 0; end" << endl;
   os.untab();
   os << "endcase" << endl;
+  os.untab();
+  os << "end" << endl;
+
+  os << "// Output Logic:" << endl;
+  os << "always @(posedge clk) begin" << endl;
+  os.tab();
+  os << "s0_waitrequest <= (s0_read | s0_write) ? wr : 1'b1;" << endl;
+  os << "s0_readdata <= rd;" << endl;
   os.untab();
   os << "end" << endl;
 
