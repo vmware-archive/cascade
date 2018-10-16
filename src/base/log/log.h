@@ -37,16 +37,19 @@
 namespace cascade {
 
 // This class is used to attach logging facilities to objects with complex
-// behavior. It allows the user to attach messages, warnings,  and errors and
+// behavior. It allows the user to record messages, warnings, and errors and
 // inspect their values at a later time.
 
-class Loggable {
+class Log {
   public:
     typedef std::vector<std::string>::const_iterator log_iterator;
     typedef std::vector<std::string>::const_iterator error_iterator;
     typedef std::vector<std::string>::const_iterator warn_iterator;
 
-    virtual ~Loggable() = default;
+    void log(const std::string& s);
+    void error(const std::string& s);
+    void warn(const std::string& s);
+    void clear();
 
     bool log() const;
     log_iterator log_begin() const;
@@ -60,86 +63,66 @@ class Loggable {
     warn_iterator warn_begin() const;
     warn_iterator warn_end() const;
 
-  protected:
-    void clear_logs();
-    void copy_logs(const Loggable& rhs);
-
-    void log(const std::string& s);
-    void error(const std::string& s);
-    void warn(const std::string& s);
-
   private:
     std::vector<std::string> logs_;
     std::vector<std::string> errors_;
     std::vector<std::string> warns_;
 };
 
-inline bool Loggable::log() const {
-  return !logs_.empty();
+inline void Log::log(const std::string& s) {
+  logs_.push_back(s);
+} 
+
+inline void Log::error(const std::string& s) {
+  errors_.push_back(s);
+} 
+
+inline void Log::warn(const std::string& s) {
+  warns_.push_back(s);
 }
 
-inline Loggable::log_iterator Loggable::log_begin() const {
-  return logs_.begin();
-}
-
-inline Loggable::log_iterator Loggable::log_end() const {
-  return logs_.end();
-}
-  
-inline bool Loggable::error() const {
-  return !errors_.empty();
-}
-
-inline Loggable::error_iterator Loggable::error_begin() const {
-  return errors_.begin();
-}
-
-inline Loggable::error_iterator Loggable::error_end() const {
-  return errors_.end();
-}
-  
-inline bool Loggable::warning() const {
-  return !warns_.empty();
-}
-
-inline Loggable::warn_iterator Loggable::warn_begin() const {
-  return warns_.begin();
-}
-
-inline Loggable::warn_iterator Loggable::warn_end() const {
-  return warns_.end();
-}
- 
-inline void Loggable::clear_logs() {
+inline void Log::clear() {
   logs_.clear();
   errors_.clear();
   warns_.clear();
 }
 
-inline void Loggable::copy_logs(const Loggable& rhs) {
-  for (auto i = rhs.log_begin(), ie = rhs.log_end(); i != ie; ++i) {
-    log(*i);
-  }
-  for (auto i = rhs.error_begin(), ie = rhs.error_end(); i != ie; ++i) {
-    error(*i);
-  }
-  for (auto i = rhs.warn_begin(), ie = rhs.warn_end(); i != ie; ++i) {
-    warn(*i);
-  }
+inline bool Log::log() const {
+  return !logs_.empty();
 }
 
-inline void Loggable::log(const std::string& s) {
-  logs_.push_back(s);
-} 
-
-inline void Loggable::error(const std::string& s) {
-  errors_.push_back(s);
-} 
-
-inline void Loggable::warn(const std::string& s) {
-  warns_.push_back(s);
+inline Log::log_iterator Log::log_begin() const {
+  return logs_.begin();
 }
 
+inline Log::log_iterator Log::log_end() const {
+  return logs_.end();
+}
+  
+inline bool Log::error() const {
+  return !errors_.empty();
+}
+
+inline Log::error_iterator Log::error_begin() const {
+  return errors_.begin();
+}
+
+inline Log::error_iterator Log::error_end() const {
+  return errors_.end();
+}
+  
+inline bool Log::warning() const {
+  return !warns_.empty();
+}
+
+inline Log::warn_iterator Log::warn_begin() const {
+  return warns_.begin();
+}
+
+inline Log::warn_iterator Log::warn_end() const {
+  return warns_.end();
+}
+ 
 } // namespace cascade 
 
 #endif

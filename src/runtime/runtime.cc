@@ -237,7 +237,7 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     const auto pres = parser_->parse(is); 
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
-    if (parser_->error()) {
+    if (parser_->get_log().error()) {
       if (is_term) {
         is.ignore(numeric_limits<streamsize>::max(), '\n');
       }
@@ -304,7 +304,7 @@ bool Runtime::eval_include(String* s) {
 bool Runtime::eval_decl(ModuleDeclaration* md) {
   program_->declare(md);
   log_checker_warns();
-  if (program_->error()) {
+  if (program_->get_log().error()) {
     log_checker_errors();
     return false;
   }
@@ -315,7 +315,7 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
 bool Runtime::eval_item(ModuleItem* mi) {
   program_->eval(mi); 
   log_checker_warns();
-  if (program_->error()) {
+  if (program_->get_log().error()) {
     log_checker_errors();
     return false;
   }
@@ -489,7 +489,7 @@ void Runtime::log_parse_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
+  for (auto e = parser_->get_log().error_begin(), ee = parser_->get_log().error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;
@@ -500,7 +500,7 @@ void Runtime::log_parse_errors() {
 }
 
 void Runtime::log_checker_warns() {
-  if (program_->warn_begin() == program_->warn_end()) {
+  if (program_->get_log().warn_begin() == program_->get_log().warn_end()) {
     return;
   }
 
@@ -509,7 +509,7 @@ void Runtime::log_checker_warns() {
 
   indstream is(ss);
   is.tab();
-  for (auto w = program_->warn_begin(), we = program_->warn_end(); w != we; ++w) {
+  for (auto w = program_->get_log().warn_begin(), we = program_->get_log().warn_end(); w != we; ++w) {
     is << "\n> ";
     is.tab();
     is << *w;
@@ -525,7 +525,7 @@ void Runtime::log_checker_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = program_->error_begin(), ee = program_->error_end(); e != ee; ++e) {
+  for (auto e = program_->get_log().error_begin(), ee = program_->get_log().error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;

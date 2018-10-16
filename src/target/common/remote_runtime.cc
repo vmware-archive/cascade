@@ -204,7 +204,7 @@ Engine* RemoteRuntime::compile(Connection* conn) {
   Parser p;
   auto md = dynamic_cast<ModuleDeclaration*>(p.parse(in_buf_).first);
   in_buf_.clear();
-  if (p.error() || md == nullptr) {
+  if (p.get_log().error() || md == nullptr) {
     return nullptr;
   }
   return compiler_->compile(md);

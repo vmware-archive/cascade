@@ -32,17 +32,17 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_TYPE_CHECK_H
 
 #include <string>
-#include "src/base/log/loggable.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
+class Log;
 class Program;
 
-class TypeCheck : public Loggable, public Visitor {
+class TypeCheck : public Visitor {
   public:
     // Constructors:
-    TypeCheck(const Program* program);
+    TypeCheck(const Program* program, Log* log);
     ~TypeCheck() override = default;
 
     // Configuration Interface:
@@ -62,6 +62,7 @@ class TypeCheck : public Loggable, public Visitor {
   private:
     // Program Reference:
     const Program* program_;
+    Log* log_;
 
     // Configuration Flags:
     bool deactivated_;

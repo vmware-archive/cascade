@@ -71,7 +71,7 @@ void run_parse(const string& path, bool expected) {
 
   Parser p;
   p.parse(ifs);
-  EXPECT_EQ(p.error(), expected);
+  EXPECT_EQ(p.get_log().error(), expected);
 }
 
 void run_typecheck(const string& march, const string& path, bool expected) {

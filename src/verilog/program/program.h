@@ -32,14 +32,14 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_PROGRAM_H
 
 #include <vector>
-#include "src/base/log/loggable.h"
+#include "src/base/log/log.h"
 #include "src/base/undo/undo_map.h"
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
 
-class Program : public Editor, public Loggable {
+class Program : public Editor {
   public:
     // Iterators:
     typedef typename ManagedUndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId>::const_iterator decl_iterator;
@@ -76,6 +76,9 @@ class Program : public Editor, public Loggable {
     // Top-level Source Interface:
     const ModuleDeclaration* src() const;
 
+    // Log Interface:
+    const Log& get_log() const;
+
     // Declaration Iterators:
     decl_iterator root_decl() const;
     decl_iterator decl_find(const Identifier* id) const;
@@ -108,6 +111,9 @@ class Program : public Editor, public Loggable {
     bool local_only_;
     bool expand_insts_;
     bool expand_gens_;
+
+    // Error Log:
+    Log log_;
 
     // Elaboration Helpers:
     void elaborate(Node* n);
