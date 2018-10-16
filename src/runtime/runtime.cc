@@ -465,11 +465,13 @@ void Runtime::open_loop_scheduler() {
 
   // Update open loop iterations based on our target
   const auto delta = now - then;
+  auto next = open_loop_itrs_;
   if ((delta < open_loop_target_) && (open_loop_itrs_ == itrs)) {
-    open_loop_itrs_ <<= 1;
-  } else if ((delta > open_loop_target_) && (open_loop_itrs_ > 1)) {
-    open_loop_itrs_ >>= 1;
+    next <<= 1;
+  } else if (delta > open_loop_target_) {
+    next >>= 1;
   }
+  open_loop_itrs_ = next > 0 ? next : open_loop_itrs_;
 }
 
 void Runtime::reference_scheduler() {

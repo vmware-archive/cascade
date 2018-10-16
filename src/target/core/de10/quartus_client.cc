@@ -125,24 +125,26 @@ void QuartusClient::sync() {
   }
 
   os << "// Output Demuxing:" << endl;
-  os << "wire wr;";
+  os << "reg[31:0] rd;" << endl;
+  os << "reg wr;";
   os << "always @(*) begin" << endl;
   os.tab();
   os << "case (__mid)" << endl;
   os.tab();
   for (const auto& s : src_) {
-    os << s.first << ": begin s0_readdata = m" << s.first << "_out; wr = m" << s.first << "_wait; end" << endl;
+    os << s.first << ": begin rd = m" << s.first << "_out; wr = m" << s.first << "_wait; end" << endl;
   }
-  os << "default: begin s0_readdata = 0; wr = 0; end" << endl;
+  os << "default: begin rd = 0; wr = 0; end" << endl;
   os.untab();
   os << "endcase" << endl;
   os.untab();
   os << "end" << endl;
 
-  os << "// Wait Logic:" << endl;
+  os << "// Output Logic:" << endl;
   os << "always @(posedge clk) begin" << endl;
   os.tab();
-  os << "s0_waitrequest <= ~s0_waitrequest ? 1'b1 : ((s0_read | s0_write) & ~wr);" << endl;
+  os << "s0_waitrequest <= (s0_read | s0_write) ? wr : 1'b1;" << endl;
+  os << "s0_readdata <= rd;" << endl;
   os.untab();
   os << "end" << endl;
 
