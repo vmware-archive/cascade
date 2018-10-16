@@ -187,8 +187,6 @@ int main(int argc, char** argv) {
   auto sc = new SwCompiler();
   sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
   auto c = new Compiler();
-  c->set_runtime(runtime);
-  c->set_num_jit_threads(64);
   c->set_local_compiler(lc);
   c->set_de10_compiler(dc);
   c->set_sw_compiler(sc);

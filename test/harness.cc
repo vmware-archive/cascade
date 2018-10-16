@@ -80,7 +80,6 @@ void run_typecheck(const string& march, const string& path, bool expected) {
   auto lc = new LocalCompiler();
   lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_runtime(&runtime);
   c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();
@@ -109,7 +108,6 @@ void run_code(const string& march, const string& path, const string& expected) {
   auto lc = new LocalCompiler();
   lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_runtime(&runtime);
   c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();
@@ -139,7 +137,6 @@ void run_mips(const string& march, const string& path, const string& expected) {
   auto lc = new LocalCompiler();
   lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_runtime(&runtime);
   c->set_local_compiler(lc);
   runtime.set_include_dirs("data/test/mips32/sc/");
   runtime.set_compiler(c);
@@ -167,7 +164,6 @@ void run_regex(const string& march, const string& regex, const string& input, co
   auto lc = new LocalCompiler();
   lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_runtime(&runtime);
   c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();

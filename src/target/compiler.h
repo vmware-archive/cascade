@@ -31,6 +31,8 @@
 #ifndef CASCADE_SRC_TARGET_COMPILER_H
 #define CASCADE_SRC_TARGET_COMPILER_H
 
+#include <mutex>
+#include <string>
 #include "src/base/thread/thread_pool.h"
 #include "src/verilog/ast/ast_fwd.h"
 #include "src/verilog/ast/visitors/editor.h"
@@ -54,10 +56,6 @@ class Compiler {
     Compiler();
     ~Compiler();
 
-    // Configuration Interface:
-    Compiler& set_runtime(Runtime* rt);
-    Compiler& set_num_jit_threads(size_t n);
-
     // Core Compiler Configuration:
     Compiler& set_de10_compiler(De10Compiler* c);
     Compiler& set_proxy_compiler(ProxyCompiler* c);
@@ -68,8 +66,25 @@ class Compiler {
     Compiler& set_remote_compiler(RemoteCompiler* c);
 
     // Compilation Interface:
+    // 
+    // Compiles a module declaration into a new engine. Returns nullptr if
+    // compilation was aborted (either due to premature termination or error).
+    // In the case of error, the thread safe interface will indicate what
+    // happened.
     Engine* compile(ModuleDeclaration* md);
-    Engine* compile_and_replace(Engine* e, ModuleDeclaration* md);
+    // Compiles a module declaration into a new engine, transfers the runtime
+    // state of a preexisting engine into the new engine, and then swaps the
+    // identities of the two engines (effectively updating the compilation
+    // state of the original engine). This method may also use the runtime's
+    // interrupt interface to schedule a slower compilation and an asynchronous
+    // jit update to the engine at a later time. In the event of an error, the
+    // thread safe interface will indicate what happened.
+    void compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md);
+
+    // Thread-Safe Error Interface:
+    void error(const std::string& s);
+    bool error();
+    std::string what();
 
   private:
     // Core Compilers:
@@ -82,11 +97,15 @@ class Compiler {
     RemoteCompiler* remote_compiler_;
 
     // JIT State:
-    Runtime* rt_;
     ThreadPool pool_;
 
-    // Checks whether a module is a stub, that is, whether it contains system
-    // tasks or initial constructs, or it has non-empty input or output sets.
+    // Error State:
+    std::mutex lock_;
+    std::string what_;
+
+    // Helper Class: Checks whether a module is a stub, that is, whether it
+    // contains system tasks or initial constructs, or it has non-empty input
+    // or output sets.
     class StubCheck : public Visitor {
       public:
         ~StubCheck() override = default;
@@ -98,8 +117,7 @@ class Compiler {
         void visit(const FinishStatement* fs) override;
         void visit(const WriteStatement* ws) override;
     };    
-
-    // Annotates initial statements with ignore comments
+    // Helper Class: Annotates initial statements with ignore comments
     class Masker : public Editor {
       public:
         ~Masker() override = default;

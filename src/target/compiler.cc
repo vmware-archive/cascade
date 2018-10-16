@@ -53,8 +53,11 @@ Compiler::Compiler() {
   local_compiler_ = new LocalCompiler();
   remote_compiler_ = new RemoteCompiler();
 
-  rt_ = nullptr;
-  set_num_jit_threads(1);
+  // We only really need two jit threads, one for the current background job,
+  // and a second to preempt it if necessary before it finishes.
+  pool_.stop_now();
+  pool_.set_num_threads(2);
+  pool_.run();
 }
 
 Compiler::~Compiler() {
@@ -66,18 +69,6 @@ Compiler::~Compiler() {
 
   delete local_compiler_;
   delete remote_compiler_;
-}
-
-Compiler& Compiler::set_runtime(Runtime* rt) {
-  rt_ = rt;
-  return *this;
-}
-
-Compiler& Compiler::set_num_jit_threads(size_t n) {
-  pool_.stop_now();
-  pool_.set_num_threads(n);
-  pool_.run();
-  return *this;
 }
 
 Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
@@ -134,21 +125,20 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   } else if (target->eq("sw")) {
     cc = sw_compiler_;
   } else {
-    // TODO: error(unrecognized target)
+    error("Unable to compile module with unsupported target type " + target->get_readable_val());
     delete md;
     return nullptr;
   }
 
   auto i = ic->compile(md);
   if (i == nullptr) {
-    // TODO: error(unable to compile interface)
+    // No need to attach an error message here, ic will already have done so if necessary.
     delete md;
     return nullptr;
   }
-
   auto c = cc->compile(i, md);
   if (c == nullptr) {
-    // TODO: error(unable to compile core)
+    // No need to attach an error message here, cc will already have done so if necessary.
     delete i;
     return nullptr;
   }
@@ -156,13 +146,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   return new Engine(cc, c, ic, i);
 }
 
-Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
-  // This method requires interaction with the runtime.
-  if (rt_ == nullptr) {
-    delete md;
-    return nullptr;
-  }
-
+void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
   // Lookup annotations 
   const auto std = md->get_attrs()->get<String>("__std");
   const auto t2 = md->get_attrs()->get<String>("__target2");
@@ -184,31 +168,49 @@ Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
     }
   }
 
-  // Fast Path. Compile and replace the original engine.
+  // Fast Path. Compile and replace the original engine.  If an error occurred,
+  // then simply preserve the original message. If compilation was aborted
+  // without explanation, that's an error that requires explanation.
   auto e_fast = compile(md);
-  if (e_fast == nullptr) {
-    return nullptr;
+  if (error()) {
+    return;
+  } else if (e_fast == nullptr) {
+    return error("An unhandled error occurred during module compilation");
   }
   e->replace_with(e_fast);
-  rt_->schedule_all_active();
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
-  // results in a safe runtime window when it's done.
+  // results in a safe runtime window when it's done. Note that we schedule an
+  // interrupt regardless. This is to trigger an interaction with the runtime
+  // even if only just for the sake of catching an error.
   if (jit) {
-    pool_.insert(new ThreadPool::Job([this, e, md2]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
       Masker().mask(md2);
       auto e_slow = compile(md2);
-      if (e_slow == nullptr) {
-        rt_->fatal(0, "Unable to materialize logic for second-pass jit compilation");
-      } else {
-        rt_->schedule_interrupt([e, e_slow]{
-          e->replace_with(e_slow);
-        });
-      }
+      rt->schedule_interrupt([this, e, e_slow]{
+        // Nothing to do if compilation failed or was aborted
+        if (error() || (e_slow == nullptr)) {
+          return;
+        } 
+        e->replace_with(e_slow);
+      });
     }));
   }
+}
 
-  return e;
+void Compiler::error(const string& s) {
+  lock_guard<mutex> lg(lock_);
+  what_ = (what_ == "") ? s : what_;
+}
+
+bool Compiler::error() {
+  lock_guard<mutex> lg(lock_);
+  return what_ != "";
+}
+
+string Compiler::what() {
+  lock_guard<mutex> lg(lock_);
+  return what_;
 }
 
 bool Compiler::StubCheck::check(const ModuleDeclaration* md) {

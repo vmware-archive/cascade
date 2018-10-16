@@ -34,15 +34,16 @@
 #include <forward_list>
 #include <stddef.h>
 #include <vector>
-#include "src/runtime/data_plane.h"
 #include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
 class Compiler;
+class DataPlane;
 class Engine;
 class Isolate;
+class Runtime;
 
 class Module {
   public:
@@ -63,11 +64,11 @@ class Module {
     };
 
     // Constructors:
-    Module(const ModuleDeclaration* psrc, DataPlane* dp, Isolate* isolate, Compiler* compiler);
+    Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolate* isolate, Compiler* compiler);
     ~Module();
 
     // Runtime Interface:
-    bool synchronize(size_t n);
+    void synchronize(size_t n);
 
     // Hierarchy Interface:
     iterator begin();
@@ -97,6 +98,7 @@ class Module {
     };
 
     // Runtime State:
+    Runtime* rt_;
     DataPlane* dp_;
     Isolate* isolate_;
     Compiler* compiler_;
