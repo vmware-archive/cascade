@@ -54,8 +54,6 @@ auto& port = StrArg<uint32_t>::create("--port")
   .usage("<int>")
   .description("Port to run quartus server on")
   .initial(9900);
-auto& reuse_sof = FlagArg::create("--reuse_sof")
-  .description("Debugging option; ignore source and reuse sof from previous compilation");
 
 } // namespace
 
@@ -79,9 +77,13 @@ int main(int argc, char** argv) {
   qs->path(path.value());
   qs->usb(usb.value());
   qs->port(port.value());
-  qs->reuse_sof(reuse_sof.value());
-  qs->run();
-  qs->wait_for_stop();
+
+  if (!qs->check()) {
+    cout << "Unable to locate core quartus components!" << endl;
+  } else {
+    qs->run();
+    qs->wait_for_stop();
+  }
   delete qs;
 
   cout << "Goodbye!" << endl;

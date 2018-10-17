@@ -28,61 +28,45 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/quartus_client.h"
+#include "src/target/core/de10/program_boxer.h"
 
-#include <cctype>
 #include <sstream>
-#include <string>
-#include <unistd.h>
-#include "src/base/socket/socket.h"
 #include "src/base/stream/indstream.h"
+#include "src/verilog/ast/ast.h"
+#include "src/target/core/de10/de10_logic.h"
+#include "src/target/core/de10/module_boxer.h"
 
 using namespace std;
 
 namespace cascade {
 
-QuartusClient::QuartusClient() : Asynchronous() { 
-  set_batch_window(3);
-  set_host("localhost"); 
-  set_port(9900);
+bool ProgramBoxer::push(MId mid, const ModuleDeclaration* md, const De10Logic* de) {
+  // Count the number of lines in this module. Code size increases monotonically, which
+  // means it should function sufficiently as a sequence number.
+  const auto seq = md->get_items()->size();
 
-  refresh_requested_ = false;
-  error_ = true;
-}
-
-QuartusClient& QuartusClient::set_batch_window(size_t bw) {
-  batch_window_ = bw;
-  return *this;
-}
-
-QuartusClient& QuartusClient::set_host(const string& host) {
-  host_ = host;
-  return *this;
-}
-
-QuartusClient& QuartusClient::set_port(uint32_t port) {
-  port_ = port;
-  return *this;
-}
-
-bool QuartusClient::refresh(MId id, const string& src) {
-  unique_lock<mutex> ul(lock_);
-
-  // Update source, flag refresh request, and wait until it's been serviced
-  src_[id] = src;
-  for (refresh_requested_ = true; !error_ && refresh_requested_;) { 
-    cv_.wait(ul);
+  // Reject push requests for code which is older than the repository.  
+  auto itr = repo_.find(mid);
+  if (itr != repo_.end()) {
+    const auto rseq = itr->second.first;
+    if (seq < rseq) {
+      return false;
+    }
   }
-  return !error_;
+
+  // This request is fresh. box the logic and insert it into the repository. 
+  const auto bmd = ModuleBoxer().box(mid, md, de);
+  repo_.insert(make_pair(mid, make_pair(seq, bmd)));
+  return true;
 }
 
-void QuartusClient::sync() {
+string ProgramBoxer::get() const {
   stringstream ss;
   indstream os(ss);
 
   // Module Declarations
-  for (const auto& s : src_) {
-    os << s.second << endl;
+  for (const auto& s : repo_) {
+    os << s.second.second << endl;
     os << endl;
   }
 
@@ -109,7 +93,7 @@ void QuartusClient::sync() {
   os << "wire[5:0] __mid = s0_address[5:0];" << endl;
 
   os << "// Module Instantiations:" << endl;
-  for (const auto& s : src_) {
+  for (const auto& s : repo_) {
     os << "wire[31:0] m" << s.first << "_out;" << endl;
     os << "wire       m" << s.first << "_wait;" << endl;
     os << "M" << s.first << " m" << s.first << "(" << endl;
@@ -131,7 +115,7 @@ void QuartusClient::sync() {
   os.tab();
   os << "case (__mid)" << endl;
   os.tab();
-  for (const auto& s : src_) {
+  for (const auto& s : repo_) {
     os << s.first << ": begin rd = m" << s.first << "_out; wr = m" << s.first << "_wait; end" << endl;
   }
   os << "default: begin rd = 0; wr = 0; end" << endl;
@@ -151,35 +135,7 @@ void QuartusClient::sync() {
   os.untab();
   os << "endmodule";
 
-  // Send to server; block on ACK
-  Socket sock;
-  sock.connect(host_, port_);
-  if (sock.error()) {
-    error_ = true;
-    return;
-  }
-
-  uint32_t len = ss.str().length();
-  sock.send(len);
-  sock.send(ss.str().c_str(), len);
-  sock.recv(error_);
-}
-
-void QuartusClient::run_logic() {
-  for (error_ = false, refresh_requested_ = false; !error_ && !stop_requested(); sleep(batch_window_)) {
-    lock_guard<mutex> lg(lock_);
-    if (!refresh_requested_) {
-      continue;
-    }
-    sync();
-    refresh_requested_ = false;
-    cv_.notify_all();
-  }
-  {
-    lock_guard<mutex> lg(lock_);
-    error_ = true;
-    cv_.notify_all();
-  }
+  return ss.str();
 }
 
 } // namespace cascade

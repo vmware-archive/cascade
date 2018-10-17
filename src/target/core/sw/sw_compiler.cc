@@ -70,9 +70,8 @@ SwCompiler& SwCompiler::set_reset(Bits* b, mutex* l) {
   return *this;
 }
 
-void SwCompiler::teardown(Core* c) {
+void SwCompiler::abort() {
   // Does nothing.
-  (void) c;
 }
 
 SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {

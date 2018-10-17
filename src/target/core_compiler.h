@@ -57,9 +57,9 @@ class CoreCompiler {
     // indicate an aborted compilation. This method dispatches control to the
     // protected methods below based on the value of the __std annotation. 
     Core* compile(Interface* interface, ModuleDeclaration* md);
-    // This method must teardown any exogenous state associated with an engine
-    // core.  Access to an engine core once it has been torn down is undefined.
-    virtual void teardown(Core* core) = 0;
+    // This method must force any invocations of compile() to stop running
+    // and return nullptr in a 'reasonably short' amount of time.
+    virtual void abort() = 0;
 
   protected:
     // These methods may be overriden to provide a target-specific

@@ -50,7 +50,7 @@ class ProxyCompiler : public CoreCompiler {
     ProxyCompiler();
     ~ProxyCompiler() override;
 
-    void teardown(Core* core) override;
+    void abort() override;
 
   private:
     std::unordered_map<std::string, Connection*> conns_;
@@ -98,7 +98,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
   Rpc res;
   conn->recv_rpc(res);
 
-  if (res.type_ == Rpc.ERROR) {
+  if (res.type_ == Rpc::ERROR) {
     // TODO: Forward error messages from remote runtime to here
     error("An unhandled error occured during compilation in the remote runtime");
     return nullptr;

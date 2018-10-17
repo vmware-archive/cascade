@@ -46,7 +46,7 @@ class RemoteCompiler : public InterfaceCompiler {
     RemoteCompiler& set_buffer(bufstream* buf);
 
     RemoteInterface* compile(ModuleDeclaration* md) override;
-    void teardown(Interface* interface) override;  
+    void abort() override;  
 
   private:
     bufstream* buf_;
@@ -70,9 +70,8 @@ inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
   return new RemoteInterface(buf_);
 }
 
-inline void RemoteCompiler::teardown(Interface* interface) {
+inline void RemoteCompiler::abort() {
   // Does nothing.
-  (void) interface;
 }
 
 } // namespace cascade

@@ -28,56 +28,28 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_BOXER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_BOXER_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
+#define CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
 
 #include <string>
+#include <unordered_map>
 #include "src/runtime/ids.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "src/verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
 class De10Logic;
 
-class Boxer : public Builder {
+class ProgramBoxer {
   public:
-    Boxer();
-    ~Boxer() override = default;
-
-    std::string box(MId id, const ModuleDeclaration* md, const De10Logic* de);
+    bool push(MId id, const ModuleDeclaration* md, const De10Logic* de);
+    std::string get() const;
 
   private:
-    // Source Management:
-    const ModuleDeclaration* md_;
-    const De10Logic* de_;
-
-    // System task management:
-    size_t task_id_;
-
-    // Builder Interface:
-    Attributes* build(const Attributes* as) override; 
-    ModuleItem* build(const InitialConstruct* ic) override;
-    ModuleItem* build(const RegDeclaration* rd) override;
-    ModuleItem* build(const PortDeclaration* pd) override;
-    Statement* build(const NonblockingAssign* na) override;
-    Statement* build(const DisplayStatement* ds) override;
-    Statement* build(const FinishStatement* fs) override;
-    Statement* build(const WriteStatement* ws) override;
-
-    // Sys Task Mangling Helper:
-    class Mangler : public Visitor {
-      public:
-        Mangler(const De10Logic* de);
-        ~Mangler() override = default;
-        Statement* mangle(size_t id, const Node* args);
-      private:
-        void visit(const Identifier* id) override;
-        const De10Logic* de_;
-        SeqBlock* t_;
-    };
+    std::unordered_map<MId, std::pair<size_t, std::string>> repo_;
 };
 
 } // namespace cascade
 
 #endif
+

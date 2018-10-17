@@ -54,7 +54,7 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
-    void teardown(Core* c) override;
+    void abort() override;
 
   private:
     SwClock* compile_clock(Interface* interface, ModuleDeclaration* md) override;

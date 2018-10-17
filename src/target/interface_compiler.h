@@ -56,10 +56,9 @@ class InterfaceCompiler {
     // or nullptr to indicate an aborted compilation. In the event of an error,
     // this method must call the error() method to explain what happened. 
     virtual Interface* compile(ModuleDeclaration* md) = 0;
-    // This method must teardown any exogenous state associated with an
-    // interface core.  Access to an interface once it has been torn down is
-    // undefined.
-    virtual void teardown(Interface* interface) = 0;
+    // This method must force any invocations of compile() to stop running
+    // and return nullptr in a 'reasonably short' amount of time.
+    virtual void abort() = 0;
 
   protected:
     // Logs an error message explaining why the most recent compilation failed.

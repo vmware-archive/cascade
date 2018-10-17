@@ -46,9 +46,8 @@ ProxyCompiler::~ProxyCompiler() {
   }
 }
 
-void ProxyCompiler::teardown(Core* core) {
-  // Does nothing
-  (void) core;
+void ProxyCompiler::abort() {
+  // TODO: Invoke a remote abort
 }
 
 Clock* ProxyCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {

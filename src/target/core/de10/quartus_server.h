@@ -45,13 +45,13 @@ class QuartusServer : public Asynchronous {
     QuartusServer& path(const std::string& path);
     QuartusServer& usb(const std::string& usb);
     QuartusServer& port(uint32_t port);
-    QuartusServer& reuse_sof(bool rs);
+
+    bool check() const;
 
   private:
     std::string path_;
     std::string usb_;
     uint32_t port_;
-    bool reuse_sof_;
 
     bufstream buf_;
 

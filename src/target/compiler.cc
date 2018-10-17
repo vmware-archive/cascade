@@ -67,6 +67,13 @@ Compiler::Compiler() {
 }
 
 Compiler::~Compiler() {
+  de10_compiler_->abort();
+  proxy_compiler_->abort();
+  sw_compiler_->abort();
+
+  local_compiler_->abort();
+  remote_compiler_->abort();
+
   pool_.stop_now();
 
   delete de10_compiler_;
@@ -169,7 +176,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     return nullptr;
   }
 
-  return new Engine(cc, c, ic, i);
+  return new Engine(c, i);
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {

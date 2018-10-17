@@ -42,7 +42,6 @@ QuartusServer::QuartusServer() : Asynchronous(), buf_(256) {
   path("");
   usb("");
   port(9900);
-  reuse_sof(false);
 }
 
 QuartusServer& QuartusServer::path(const string& path) {
@@ -60,9 +59,24 @@ QuartusServer& QuartusServer::port(uint32_t port) {
   return *this;
 }
 
-QuartusServer& QuartusServer::reuse_sof(bool rs) {
-  reuse_sof_ = rs;
-  return *this;
+bool QuartusServer::check() const {
+  // Return false if we can't locate any of the necessary quartus components
+  if (System::execute("which qsys-generate") != 0) {
+    return false;
+  }
+  if (System::execute("which quartus_map") != 0) {
+    return false;
+  }
+  if (System::execute("which quartus_fit") != 0) {
+    return false;
+  }
+  if (System::execute("which quartus_asm") != 0) {
+    return false;
+  }
+  if (System::execute("which quartus_pgm") != 0) {
+    return false;
+  }
+  return true;
 }
 
 void QuartusServer::run_logic() {
@@ -102,34 +116,35 @@ void QuartusServer::run_logic() {
     ofs << endl;
     ofs.close();
 
-    if (!reuse_sof_) {
-      if (System::execute(path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-        cout << "Qsys failed!" << endl;
-        client.send(true);
-        continue;
-      } 
-      if (System::execute(path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-        cout << "Synthesis failed!" << endl;
-        client.send(true);
-        continue;
-      } 
-      if (System::execute(path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-        cout << "Optimize failed!" << endl;
-        client.send(true);
-        continue;
-      } 
-      if (System::execute(path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-        cout << "ASM failed!" << endl;
-        client.send(true);
-        continue;
-      } 
-    }    
-    if (System::execute(path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
-      cout << "PROGR failed!" << endl;
-      client.send(true);
+    // Kill any outstanding compilation processes but don't interrupt any
+    // programing jobs.  That could have pretty nasty undefined consequences.
+    System::execute("killall qsys-generate");
+    System::execute("killall quartus_map");
+    System::execute("killall quartus_fit");
+    System::execute("killall quartus_asm");
+
+    // Compile everything.
+    if (System::execute(path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+      client.send(false);
       continue;
     } 
-    client.send(false);
+    if (System::execute(path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      client.send(false);
+      continue;
+    } 
+    if (System::execute(path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      client.send(false);
+      continue;
+    } 
+    if (System::execute(path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      client.send(false);
+      continue;
+    } 
+    if (System::execute(path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
+      client.send(false);
+      continue;
+    }
+    client.send(true);
   }
 }
 

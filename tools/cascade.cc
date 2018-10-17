@@ -39,7 +39,6 @@
 #include "src/runtime/runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/de10/quartus_client.h"
 #include "src/target/core/sw/sw_compiler.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/ui/combinator/maybe_view.h"
@@ -86,11 +85,11 @@ auto& batch_window = StrArg<int>::create("--batch_window")
   .usage("<int>")
   .description("Number of seconds to wait before checking for compilation requests")
   .initial(3);
-auto& quartus_server_host = StrArg<string>::create("--quartus_server_host")
+auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
   .initial("localhost");
-auto& quartus_server_port = StrArg<uint32_t>::create("--quartus_server_port")
+auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .usage("<port>")
   .description("Location of quartus server")
   .initial(9900);
@@ -129,7 +128,6 @@ class Profiler : public Asynchronous {
 };
 
 // Cascade Components:
-QuartusClient* qc = nullptr;
 View* view = nullptr;
 Runtime* runtime = nullptr;
 Controller* controller = nullptr;
@@ -174,16 +172,11 @@ int main(int argc, char** argv) {
   }
 
   // Setup Compiler State
-  qc = new QuartusClient();
-  qc->set_batch_window(batch_window.value());
-  qc->set_host(quartus_server_host.value());
-  qc->set_port(quartus_server_port.value());
-  qc->run();
-
   auto lc = new LocalCompiler();
   lc->set_runtime(runtime);
   auto dc = new De10Compiler();
-  dc->set_quartus_client(qc);
+  dc->set_host(quartus_host.value());
+  dc->set_port(quartus_port.value());
   auto sc = new SwCompiler();
   sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
   auto c = new Compiler();
@@ -218,12 +211,10 @@ int main(int argc, char** argv) {
 
   // Wait for the runtime to stop and then shutdown remaining threads
   runtime->wait_for_stop();
-  qc->stop_now();
   controller->stop_now();
   profiler->stop_now();
 
   // Tear down global state
-  delete qc;
   delete profiler;
   if (ui.value() == "web") {
     delete runtime;

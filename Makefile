@@ -40,10 +40,10 @@ OBJ=\
 	\
 	src/target/common/remote_runtime.o\
 	src/target/compiler.o\
-	src/target/core/de10/boxer.o\
 	src/target/core/de10/de10_compiler.o\
 	src/target/core/de10/de10_logic.o\
-	src/target/core/de10/quartus_client.o\
+	src/target/core/de10/module_boxer.o\
+	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\
 	src/target/core/proxy/proxy_compiler.o\
 	src/target/core/sw/sw_compiler.o\
