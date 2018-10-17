@@ -28,53 +28,26 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
-#define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
-
-#include "src/target/interface/remote/remote_interface.h"
+#include "src/target/compiler.h"
 #include "src/target/interface_compiler.h"
+
+using namespace std;
 
 namespace cascade {
 
-class Connection;
-
-class RemoteCompiler : public InterfaceCompiler {
-  public:
-    RemoteCompiler();
-    ~RemoteCompiler() override = default;
-
-    RemoteCompiler& set_buffer(bufstream* buf);
-
-    RemoteInterface* compile(ModuleDeclaration* md) override;
-    void teardown(Interface* interface) override;  
-
-  private:
-    bufstream* buf_;
-};
-
-inline RemoteCompiler::RemoteCompiler() {
-  set_buffer(nullptr);
+InterfaceCompiler::InterfaceCompiler() {
+  set_compiler(nullptr);
 }
 
-inline RemoteCompiler& RemoteCompiler::set_buffer(bufstream* buf) {
-  buf_ = buf;
+InterfaceCompiler& InterfaceCompiler::set_compiler(Compiler* c) {
+  compiler_ = c;
   return *this;
 }
 
-inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
-  (void) md;
-  if (buf_ == nullptr) {
-    error("Unable to compile a remote interface without a reference to a memory buffer");
-    return nullptr;
+void InterfaceCompiler::error(const string& s) {
+  if (compiler_ != nullptr) {
+    compiler_->error(s);
   }
-  return new RemoteInterface(buf_);
-}
-
-inline void RemoteCompiler::teardown(Interface* interface) {
-  // Does nothing.
-  (void) interface;
 }
 
 } // namespace cascade
-
-#endif

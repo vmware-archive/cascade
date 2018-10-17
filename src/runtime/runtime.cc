@@ -538,7 +538,7 @@ void Runtime::log_checker_errors() {
 }
 
 void Runtime::log_compiler_errors() {
-  fatal(0, "*** Compiler Error:\n  > " + compiler_->what());
+  fatal(0, "*** Internal Compiler Error:\n  > " + compiler_->what());
 }
 
 void Runtime::log_ctrl_d() {

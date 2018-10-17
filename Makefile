@@ -49,6 +49,7 @@ OBJ=\
 	src/target/core/sw/sw_compiler.o\
 	src/target/core/sw/sw_logic.o\
 	src/target/core_compiler.o\
+	src/target/interface_compiler.o\
 	\
 	src/ui/stream/stream_controller.o\
 	src/ui/term/term_controller.o\

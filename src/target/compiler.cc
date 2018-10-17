@@ -30,6 +30,7 @@
 
 #include "src/target/compiler.h"
 
+#include <cassert>
 #include "src/runtime/data_plane.h"
 #include "src/runtime/runtime.h"
 #include "src/target/core/de10/de10_compiler.h"
@@ -46,12 +47,17 @@ using namespace std;
 namespace cascade {
 
 Compiler::Compiler() {
-  de10_compiler_ = new De10Compiler();
-  proxy_compiler_ = new ProxyCompiler();
-  sw_compiler_ = new SwCompiler();
+  de10_compiler_ = nullptr;
+  set_de10_compiler(new De10Compiler());
+  proxy_compiler_ = nullptr;
+  set_proxy_compiler(new ProxyCompiler());
+  sw_compiler_ = nullptr;
+  set_sw_compiler(new SwCompiler());
 
-  local_compiler_ = new LocalCompiler();
-  remote_compiler_ = new RemoteCompiler();
+  local_compiler_ = nullptr;
+  set_local_compiler(new LocalCompiler());
+  remote_compiler_ = nullptr;
+  set_remote_compiler(new RemoteCompiler());
 
   // We only really need two jit threads, one for the current background job,
   // and a second to preempt it if necessary before it finishes.
@@ -72,32 +78,52 @@ Compiler::~Compiler() {
 }
 
 Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
-  delete de10_compiler_;
+  assert(c != nullptr);
+  if (de10_compiler_ != nullptr) {
+    delete de10_compiler_;
+  }
   de10_compiler_ = c;
+  de10_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_proxy_compiler(ProxyCompiler* c) {
-  delete proxy_compiler_;
+  assert(c != nullptr);
+  if (proxy_compiler_ != nullptr) {
+    delete proxy_compiler_;
+  }
   proxy_compiler_ = c;
+  proxy_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_sw_compiler(SwCompiler* c) {
-  delete sw_compiler_;
+  assert(c != nullptr);
+  if (sw_compiler_ != nullptr) {
+    delete sw_compiler_;
+  }
   sw_compiler_ = c;
+  sw_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_local_compiler(LocalCompiler* c) {
-  delete local_compiler_;
+  assert(c != nullptr);
+  if (local_compiler_ != nullptr) {
+    delete local_compiler_;
+  }
   local_compiler_ = c;
+  local_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
-  delete remote_compiler_;
+  assert(c != nullptr);
+  if (remote_compiler_ != nullptr) {
+    delete remote_compiler_;
+  }
   remote_compiler_ = c;
+  remote_compiler_->set_compiler(this);
   return *this;
 }
 

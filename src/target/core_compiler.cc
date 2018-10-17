@@ -31,6 +31,7 @@
 #include "src/target/core_compiler.h"
 
 #include <sstream>
+#include "src/target/compiler.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
@@ -38,6 +39,15 @@
 using namespace std;
 
 namespace cascade {
+
+CoreCompiler::CoreCompiler() {
+  set_compiler(nullptr);
+}
+
+CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
+  compiler_ = c;
+  return *this;
+}
 
 Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
   const auto std = md->get_attrs()->get<String>("__std");
@@ -63,50 +73,64 @@ Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
 Clock* CoreCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type clock");
   return nullptr;
 }
 
 Fifo* CoreCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type fifo");
   return nullptr;
 }
 
 Gpio* CoreCompiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type gpio");
   return nullptr;
 }
 
 Led* CoreCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type led");
   return nullptr;
 }
 
 Memory* CoreCompiler::compile_memory(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type memory");
   return nullptr;
 }
 
 Pad* CoreCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type pad");
   return nullptr;
 }
 
 Reset* CoreCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type reset");
   return nullptr;
 }
 
 Logic* CoreCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
+  error("No compiler support available for modules of type logic");
   return nullptr;
 } 
+
+void CoreCompiler::error(const string& s) {
+  if (compiler_ != nullptr) {
+    compiler_->error(s);
+  }
+}
 
 MId CoreCompiler::to_mid(const Identifier* id) const {
   return to_vid(id);

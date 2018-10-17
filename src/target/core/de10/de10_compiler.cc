@@ -86,7 +86,13 @@ void De10Compiler::teardown(Core* c) {
 }
 
 De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
-  if (virtual_base_ == MAP_FAILED || !check_io(md, 8, 8)) {
+  if (virtual_base_ == MAP_FAILED) {
+    error("De10 led compilation failed due to inability to memory map device");
+    delete md;
+    return nullptr;
+  }
+  if (!check_io(md, 8, 8)) {
+    error("Unable to compile a de10 gpio with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -104,7 +110,13 @@ De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md
 }
 
 De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) {
-  if (virtual_base_ == MAP_FAILED || !check_io(md, 8, 8)) {
+  if (virtual_base_ == MAP_FAILED) {
+    error("De10 led compilation failed due to inability to memory map device");
+    delete md;
+    return nullptr;
+  }
+  if (!check_io(md, 8, 8)) {
+    error("Unable to compile a de10 led with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -122,7 +134,13 @@ De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) 
 }
 
 De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
-  if (virtual_base_ == MAP_FAILED || !check_io(md, 0, 4)) {
+  if (virtual_base_ == MAP_FAILED) {
+    error("De10 pad compilation failed due to inability to memory map device");
+    delete md;
+    return nullptr;
+  }
+  if (!check_io(md, 0, 4)) {
+    error("Unable to compile a de10 pad with more than 4 inputs");
     delete md;
     return nullptr;
   }

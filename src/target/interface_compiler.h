@@ -31,28 +31,44 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
 #define CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
 
+#include <string>
 #include "src/verilog/ast/ast_fwd.h"
 
 namespace cascade {
+
+class Compiler;
+class Interface;
 
 // This class encapsulates target-specific logic for generating target-specific
 // instances of module/runtime interfaces. This class is intended to be thread
 // safe.  Target-specific implementations of this class must guarantee
 // reentrancy.
 
-class Interface;
-
 class InterfaceCompiler {
   public:
+    InterfaceCompiler();
     virtual ~InterfaceCompiler() = default;
 
+    // Attaches a reference to the main compiler.
+    InterfaceCompiler& set_compiler(Compiler* compiler);
+
     // Returns a target-specific implementation of a module/runtime interface
-    // or nullptr to indicate either failure or lack of support.
+    // or nullptr to indicate an aborted compilation. In the event of an error,
+    // this method must call the error() method to explain what happened. 
     virtual Interface* compile(ModuleDeclaration* md) = 0;
     // This method must teardown any exogenous state associated with an
     // interface core.  Access to an interface once it has been torn down is
     // undefined.
     virtual void teardown(Interface* interface) = 0;
+
+  protected:
+    // Logs an error message explaining why the most recent compilation failed.
+    // This method is thread safe.
+    void error(const std::string& s);
+
+  private:
+    // Reference to main compiler
+    Compiler* compiler_;
 };
 
 } // namespace cascade
