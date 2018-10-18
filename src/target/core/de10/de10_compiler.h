@@ -31,9 +31,11 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 
+#include <condition_variable>
 #include <mutex>
 #include <stdint.h>
 #include <string>
+#include <unordered_map>
 #include "src/target/core_compiler.h"
 #include "src/target/core/de10/de10_gpio.h"
 #include "src/target/core/de10/de10_led.h"

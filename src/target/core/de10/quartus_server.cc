@@ -38,10 +38,11 @@ using namespace std;
 
 namespace cascade {
 
-QuartusServer::QuartusServer() : Asynchronous(), buf_(256) { 
+QuartusServer::QuartusServer() : Asynchronous(), buf_(256), worker_(this) { 
   path("");
   usb("");
   port(9900);
+  sock_ = nullptr;
 }
 
 QuartusServer& QuartusServer::path(const string& path) {
@@ -61,19 +62,19 @@ QuartusServer& QuartusServer::port(uint32_t port) {
 
 bool QuartusServer::check() const {
   // Return false if we can't locate any of the necessary quartus components
-  if (System::execute("which qsys-generate") != 0) {
+  if (System::execute("ls " + path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("which quartus_map") != 0) {
+  if (System::execute("ls " + path_ + "/bin/quartus_map > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("which quartus_fit") != 0) {
+  if (System::execute("ls " + path_ + "/bin/quartus_fit > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("which quartus_asm") != 0) {
+  if (System::execute("ls " + path_ + "/bin/quartus_asm > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("which quartus_pgm") != 0) {
+  if (System::execute("ls " + path_ + "/bin/quartus_pgm > /dev/null") != 0) {
     return false;
   }
   return true;
@@ -102,50 +103,67 @@ void QuartusServer::run_logic() {
       continue;
     }
 
+    // Set workers done signal, kill any existing quartus jobs,
+    // and wait for the worker to return control here.
+    worker_.request_stop();
+    System::execute("killall java > /dev/null 2>&1");
+    System::execute("killall quartus_map > /dev/null 2>&1");
+    System::execute("killall quartus_fit > /dev/null 2>&1");
+    System::execute("killall quartus_asm > /dev/null 2>&1");
+    worker_.wait_for_stop();
+    
+    // Create a new socket for this request and rerun the worker.
+    // Note that we're not waiting for finish here. Best case, it 
+    // finishes, worst case, we kill it the next time through this
+    // loop in response to the next incoming request.
     const auto fd = ::accept(sock.descriptor(), nullptr, nullptr);
-    Socket client(fd);
-
-    uint32_t size = 0;
-    client.recv(size);
-    buf_.reserve(size);
-    buf_.resize(0);
-    client.recv(buf_.data(), size);
-
-    ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-    ofs.write(buf_.data(), size);
-    ofs << endl;
-    ofs.close();
-
-    // Kill any outstanding compilation processes but don't interrupt any
-    // programing jobs.  That could have pretty nasty undefined consequences.
-    System::execute("killall qsys-generate");
-    System::execute("killall quartus_map");
-    System::execute("killall quartus_fit");
-    System::execute("killall quartus_asm");
-
-    // Compile everything.
-    if (System::execute(path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-      client.send(false);
-      continue;
-    } 
-    if (System::execute(path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      client.send(false);
-      continue;
-    } 
-    if (System::execute(path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      client.send(false);
-      continue;
-    } 
-    if (System::execute(path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      client.send(false);
-      continue;
-    } 
-    if (System::execute(path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
-      client.send(false);
-      continue;
+    if (sock_ != nullptr) {
+      delete sock_;
     }
-    client.send(true);
+    sock_ = new Socket(fd);
+    worker_.run();
   }
+}
+
+QuartusServer::Worker::Worker(QuartusServer* qs) { 
+  qs_ = qs;
+}
+
+void QuartusServer::Worker::run_logic() {
+  uint32_t size = 0;
+  qs_->sock_->recv(size);
+  qs_->buf_.reserve(size);
+  qs_->buf_.resize(0);
+  qs_->sock_->recv(qs_->buf_.data(), size);
+
+
+  ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+  ofs.write(qs_->buf_.data(), size);
+  ofs << endl;
+  ofs.close();
+
+  // A message of length 1 signals that no compilation is necessary.
+  if (size == 1) {
+    return qs_->sock_->send(true);
+  }
+
+  // Compile everything.
+  if (stop_requested() || System::execute(qs_->path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+    return qs_->sock_->send(false);
+  } 
+  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    return qs_->sock_->send(false);
+  } 
+  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    return qs_->sock_->send(false);
+  } 
+  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    return qs_->sock_->send(false);
+  } 
+  if (System::execute(qs_->path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
+    return qs_->sock_->send(false);
+  }
+  qs_->sock_->send(true);
 }
 
 } // namespace cascade

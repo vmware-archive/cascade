@@ -37,6 +37,8 @@
 
 namespace cascade {
 
+class Socket;
+
 class QuartusServer : public Asynchronous {
   public:
     QuartusServer();
@@ -49,13 +51,25 @@ class QuartusServer : public Asynchronous {
     bool check() const;
 
   private:
+    class Worker : public Asynchronous {
+      public:
+        Worker(QuartusServer* qs);
+        ~Worker() = default;
+        void run_logic() override;
+      private:
+        QuartusServer* qs_;
+    };
+
     std::string path_;
     std::string usb_;
     uint32_t port_;
 
+    Socket* sock_;
     bufstream buf_;
+    Worker worker_;
 
     void run_logic() override;
+
 };
 
 } // namespace cascade

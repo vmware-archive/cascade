@@ -60,9 +60,11 @@ Compiler::Compiler() {
   set_remote_compiler(new RemoteCompiler());
 
   // We only really need two jit threads, one for the current background job,
-  // and a second to preempt it if necessary before it finishes.
+  // and a second to preempt it if necessary before it finishes. But since
+  // there's startup and shutdown costs associated with threads, let's double
+  // provision.
   pool_.stop_now();
-  pool_.set_num_threads(2);
+  pool_.set_num_threads(4);
   pool_.run();
 }
 

@@ -87,9 +87,16 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
 }
 
 void De10Compiler::abort() {
+  Socket sock;
+  sock.connect(host_, port_);
+
   // Set the current sequence number to zero to indicate it's time to shutdown 
   { lock_guard<mutex> lg(lock_);
     curr_seq_ = 0;
+    if (!sock.error()) {
+      sock.send(1);
+      sock.send("0", 1);
+    }
   }
   // Notify any outstanding threads to force their shutdown.
   unique_lock<mutex> ul(lock_);
@@ -218,22 +225,31 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
 
   // Critical Section #2
   { unique_lock<mutex> ul(lock_);
-    // The request was successfully, no newer results have come back first, and
-    // we haven't trapped the special sequence number zero.  Notify everyone
-    // that there are new results available.
+    // If the request was successfully, no newer results have come back, and we
+    // haven't trapped the special sequence number zero, update the current
+    // sequence number, and tell everyone to check their exit conditions.
     if (result && (my_seq > curr_seq_) && (curr_seq_ > 0)) {
       curr_seq_ = my_seq; 
-      cv_.notify_all();
     }
-    // Wait loop, check whether the current sequence number is usable, otherwise
-    // go back to sleep until the next notification. The special sequence number
-    // zero is used to force all threads to abort.
+    cv_.notify_all();
+
+    // Exit condition loop: 
     for (; true; cv_.wait(ul)) {
-      if (wait_table_[mid] <= curr_seq_) {
-        return de;
-      } else if (curr_seq_ == 0) {
+      // The special sequence number forces all threads to abort
+      if (curr_seq_ == 0) {
         delete de;
         return nullptr;
+      }
+      // If this thread's entry in the wait table has been replaced, it can
+      // abort as well
+      if (my_seq < wait_table_[mid]) {
+        delete de;
+        return nullptr;
+      }
+      // Otherwise, if we're waiting on a sequence number less than what's been
+      // commited, we can return.
+      if (wait_table_[mid] <= curr_seq_) {
+        return de;
       } 
     } 
   }
