@@ -28,62 +28,57 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_PARSE_PARSER_H
-#define CASCADE_SRC_VERILOG_PARSE_PARSER_H
+#include "src/ui/log/log_view.h"
 
-#include <iostream>
-#include <stack>
-#include <string>
-#include "src/base/log/loggable.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/parse/lexer.h"
-#include "src/verilog/parse/verilog.tab.hh"
+#include <ctime>
+#include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
+#include "src/verilog/program/program.h"
+
+using namespace std;
 
 namespace cascade {
 
-class Parser : public Editor, public Loggable {
-  public:
-    // Constructors:
-    Parser();
-    ~Parser() override = default;
+LogView::LogView(ostream& os) : View(), os_(os) { }
 
-    Parser& debug_lexer(bool debug);
-    Parser& debug_parser(bool debug);
+void LogView::startup(size_t t) {
+  os_ << "STARTUP " << t << " " << time(nullptr) << endl;
+}
 
-    // Location Tracking Interface:
-    void push(const std::string& path);
-    void pop();
+void LogView::shutdown(size_t t) {
+  os_ << "SHUTDOWN " << t << " " << time(nullptr) << endl;
+}
 
-    // Location Querying Interface:
-    const std::string& source() const;
-    size_t line() const;
+void LogView::error(size_t t, const string& s) {
+  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
+}
 
-    // Returns the last string which was parsed
-    const std::string& last_parse() const;
+void LogView::print(size_t t, const string& s) {
+  os_ << "PRINT " << t << " " << time(nullptr) << endl << s << endl;
+}
 
-    // Parser Interface:
-    std::pair<Node*, bool> parse(std::istream& is);
+void LogView::warn(size_t t, const string& s) {
+  os_ << "WARN " << t << " " << time(nullptr) << endl << s << endl;
+}
 
-  private:
-    bool debug_lexer_;
-    friend class yyLexer;
-    yyLexer lexer_;
+void LogView::parse(size_t t, const string& s) {
+  os_ << "PARSE " << t << " " << time(nullptr) << endl << s << endl;
+}
 
-    bool debug_parser_;
-    friend class yyParser;
-    
-    std::stack<std::pair<std::string, location>> loc_;
-    Node* res_;
-    bool eof_;
-    std::string last_parse_;
+void LogView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) p;
+  os_ << "DECL " << t << " " << time(nullptr) << endl;
+  TextPrinter(os_) << md << "\n";
+}
 
-    location& loc();
+void LogView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) p;
+  os_ << "ITEM " << t << " " << time(nullptr) << endl;
+  TextPrinter(os_) << md << "\n";
+}
 
-    void edit(ModuleDeclaration* md) override;
-    void edit(ModuleInstantiation* mi) override;
-};
+void LogView::crash() {
+  os_ << "CRASH " << time(nullptr) << endl;
+}
 
-} // namespace cascade 
-
-#endif
+} // namespace cascade

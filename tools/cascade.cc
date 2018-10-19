@@ -29,6 +29,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <signal.h>
 #include <string>
@@ -42,7 +43,9 @@
 #include "src/target/core/de10/quartus_client.h"
 #include "src/target/core/sw/sw_compiler.h"
 #include "src/target/interface/local/local_compiler.h"
+#include "src/ui/combinator/many_view.h"
 #include "src/ui/combinator/maybe_view.h"
+#include "src/ui/log/log_view.h"
 #include "src/ui/stream/stream_controller.h"
 #include "src/ui/term/term_controller.h"
 #include "src/ui/term/term_view.h"
@@ -95,13 +98,15 @@ auto& quartus_server_port = StrArg<uint32_t>::create("--quartus_server_port")
   .description("Location of quartus server")
   .initial(9900);
 
-__attribute__((unused)) auto& g4 = Group::create("Profiling Options");
+__attribute__((unused)) auto& g4 = Group::create("Logging Options");
 auto& profile_interval = StrArg<int>::create("--profile_interval")
   .usage("<n>")
   .description("Number of milliseconds to wait between profiling events; setting n to zero disables profiling")
   .initial(0);
 auto& batch = FlagArg::create("--batch")
   .description("Deactivate UI; use -e to provide program input");
+auto& enable_logging = FlagArg::create("--enable_logging")
+  .description("Turns on UI logging");
 
 __attribute__((unused)) auto& g5 = Group::create("Optimization Options");
 auto& disable_inlining = FlagArg::create("--disable_inlining")
@@ -130,15 +135,16 @@ class Profiler : public Asynchronous {
 
 // Cascade Components:
 QuartusClient* qc = nullptr;
-View* view = nullptr;
+ManyView* view = nullptr;
 Runtime* runtime = nullptr;
 Controller* controller = nullptr;
-// Profiling Components:
+// Logging Components:
+ofstream* logfile = nullptr;
 Profiler* profiler = nullptr;
 
 void segv_handler(int sig) {
   (void) sig;
-  runtime->crash_dump(cerr);
+  view->crash();
   exit(1);
 }
 
@@ -153,17 +159,23 @@ int main(int argc, char** argv) {
   sigaction(SIGSEGV, &action, nullptr);
 
   // Setup Global MVC State
+  view = new ManyView();
+  if (enable_logging) {
+    logfile = new ofstream("cascade.log", ofstream::app);
+    view->attach(new LogView(*logfile));
+  }
   if (ui.value() == "web") {
-    view = new MaybeView();
+    auto mv = new MaybeView();
     runtime = new Runtime(view);
     auto ui = new WebUi(runtime);
     ui->set_port(web_ui_port.value());
     ui->set_buffer(web_ui_buffer.value());
     ui->set_debug(web_ui_debug.value());
     controller = ui;
-    dynamic_cast<MaybeView*>(view)->attach(dynamic_cast<View*>(ui));
+    mv->attach(dynamic_cast<View*>(ui));
+    view->attach(mv);
   } else {
-    view = new TermView();
+    view->attach(new TermView());
     runtime = new Runtime(view);
     controller = new TermController(runtime);
   }
@@ -205,7 +217,7 @@ int main(int argc, char** argv) {
   if (mis.open("data/march/" + march.value() + ".v")) {
     StreamController(runtime, mis).run_to_completion();
   } else {
-    view->error("Unrecognized march option " + march.value() + "!");
+    view->error(0, "Unrecognized march option " + march.value() + "!");
   }
   // Translate -e to include statement if it was provided
   stringstream ss;
@@ -226,7 +238,6 @@ int main(int argc, char** argv) {
 
   // Tear down global state
   delete qc;
-  delete profiler;
   if (ui.value() == "web") {
     delete runtime;
     delete controller;
@@ -235,6 +246,8 @@ int main(int argc, char** argv) {
     delete runtime;
     delete controller;
   }
+  delete logfile;
+  delete profiler;
 
   cout << "Goodbye!" << endl;
   return 0;

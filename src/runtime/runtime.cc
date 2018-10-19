@@ -136,13 +136,13 @@ void Runtime::eval(istream& is, bool is_term) {
 
 void Runtime::display(const string& s) {
   schedule_interrupt(Interrupt([this, s]{
-    view_->print(s + "\n");
+    view_->print(logical_time_, s + "\n");
   }));
 }
 
 void Runtime::write(const string& s) {
   schedule_interrupt(Interrupt([this, s]{
-    view_->print(s);
+    view_->print(logical_time_, s);
   }));
 }
 
@@ -153,7 +153,7 @@ void Runtime::finish(int arg) {
       ss << "Simulation Time: " << time() << endl;
       ss << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << endl;
       ss << "Clock Frequency: " << overall_frequency() << endl;
-      view_->print(ss.str());
+      view_->print(logical_time_, ss.str());
     } 
     request_stop();
   }));
@@ -161,13 +161,13 @@ void Runtime::finish(int arg) {
 
 void Runtime::error(const string& s) {
   schedule_interrupt(Interrupt([this, s]{
-    view_->error(s);
+    view_->error(logical_time_, s);
   }));
 }
 
 void Runtime::warning(const string& s) {
   schedule_interrupt(Interrupt([this, s]{
-    view_->warn(s);
+    view_->warn(logical_time_, s);
   }));
 }
 
@@ -221,6 +221,7 @@ string Runtime::overall_frequency() const {
 }
 
 void Runtime::run_logic() {
+  view_->startup(logical_time_);
   while (!stop_requested()) {
     if (enable_open_loop_ && !schedule_all_) {
       open_loop_scheduler();
@@ -229,12 +230,14 @@ void Runtime::run_logic() {
     }
   }
   done_simulation();
+  view_->shutdown(logical_time_);
 }
 
 bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
     const auto pres = parser_->parse(is); 
+    view_->parse(logical_time_, parser_->last_parse());
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (parser_->error()) {
@@ -308,7 +311,7 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
-  view_->eval_decl(program_, md);
+  view_->eval_decl(logical_time_, program_, md);
   return true;
 }
 
@@ -319,7 +322,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
     log_checker_errors();
     return false;
   }
-  view_->eval_item(program_, program_->root_elab()->second);
+  view_->eval_item(logical_time_, program_, program_->root_elab()->second);
 
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
@@ -554,46 +557,6 @@ string Runtime::format_freq(uint64_t f) const {
     ss << fixed << f << " Hz";
   }
   return ss.str();
-}
-
-void Runtime::crash_dump(ostream& os) {
-  TermPrinter(os) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "SEE BEST-EFFORT STATE DUMP BELOW\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "THIS PROCESS SHOULD FINISH QUICKLY AND PRINT THE PHRASE \"END STATE DUMP\"\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "BEFORE RETURNING CONTROL TO THE TERMINAL. IF YOU DO NOT SEE THIS MESSAGE\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "IT IS SAFE TO ASSUME THAT CASCADE HAS HUNG AND CANNOT CONTINUE.\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "PLEASE FORWARD THIS REPORT ALONG WITH ANY ADDITIONAL INFORMATION TO THE\n" << Color::RESET;
-  TermPrinter(os) << Color::RED << "CASCADE DEVELOPER MAILING LIST." << Color::RESET;
-
-  TermPrinter(os) << "\n\n" << Color::RED << "PROGRAM DECLARATIONS" << Color::RESET;
-  for (auto i = program_->decl_begin(), ie = program_->decl_end(); i != ie; ++i) {
-    if (i->first->eq("Root")) {
-      continue;
-    }
-    DebugTermPrinter(os) << "\n" << i->second;
-  }
-
-  TermPrinter(os) << "\n\n" << Color::RED << "ELABORATED PROGRAM SOURCE" << Color::RESET;
-  for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
-    TermPrinter(os) << "\n" << "Hierarchical Name: " << i->first;
-    auto p = i->second->get_parent();
-    if ((p != nullptr) && Inline().is_inlined(dynamic_cast<const ModuleInstantiation*>(p))) {
-      TermPrinter(os) << " (inlined)";
-    } else {
-      DebugTermPrinter(os, true, true) << "\n" << i->second;
-    }
-  }
-
-  TermPrinter(os) << "\n\n" << Color::RED << "IR SOURCE" << Color::RESET;
-  for (auto i = root_->begin(), ie = root_->end(); i != ie; ++i) {
-    auto md = (*i)->regenerate_ir_source();
-    TermPrinter(os) << "\n" << md;
-    delete md;
-  }
-
-  TermPrinter(os) << "\n" << Color::RED << "END STATE DUMP" << Color::RESET;
 }
 
 } // namespace cascade

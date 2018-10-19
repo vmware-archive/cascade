@@ -43,12 +43,18 @@ class ManyView : public View {
 
     void attach(View* v);
 
-    void error(const std::string& s) override;
-    void print(const std::string& s) override;
-    void warn(const std::string& s) override;
+    void startup(size_t t) override;
+    void shutdown(size_t t) override;
 
-    void eval_decl(const ModuleDeclaration* md) override;
-    void eval_item(const ModuleDeclaration* md) override;
+    void error(size_t t, const std::string& s) override;
+    void print(size_t t, const std::string& s) override;
+    void warn(size_t t, const std::string& s) override;
+
+    void parse(size_t t, const std::string& s) override;
+    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+
+    void crash() override;
 
   private:
     std::vector<View*> views_;
@@ -66,35 +72,59 @@ inline void ManyView::attach(View* v) {
   views_.push_back(v);
 }
 
-inline void ManyView::error(const std::string& s) {
+inline void ManyView::startup(size_t t) {
   for (auto v : views_) {
-    v->error(s);
+    v->startup(t);
   }
 }
 
-inline void ManyView::print(const std::string& s) {
+inline void ManyView::shutdown(size_t t) {
   for (auto v : views_) {
-    v->print(s);
+    v->shutdown(t);
   }
 }
 
-inline void ManyView::warn(const std::string& s) {
+inline void ManyView::error(size_t t, const std::string& s) {
   for (auto v : views_) {
-    v->warn(s);
+    v->error(t, s);
   }
 }
 
-inline void ManyView::eval_decl(const ModuleDeclaration* md) {
+inline void ManyView::print(size_t t, const std::string& s) {
   for (auto v : views_) {
-    v->eval_decl(s);
+    v->print(t, s);
   }
 }
 
-inline void ManyView::eval_item(const ModuleDeclaration* md) {
+inline void ManyView::warn(size_t t, const std::string& s) {
   for (auto v : views_) {
-    v->eval_item(s);
+    v->warn(t, s);
   }
 }
+
+inline void ManyView::parse(size_t t, const std::string& s) {
+  for (auto v : views_) {
+    v->parse(t, s);
+  }
+}
+
+inline void ManyView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  for (auto v : views_) {
+    v->eval_decl(t, p, md);
+  }
+}
+
+inline void ManyView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  for (auto v : views_) {
+    v->eval_item(t, p, md);
+  }
+}
+
+inline void ManyView::crash() {
+  for (auto v : views_) {
+    v->crash();
+  }
+} 
 
 } // namespace cascade
 

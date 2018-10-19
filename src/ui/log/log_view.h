@@ -28,62 +28,36 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_PARSE_PARSER_H
-#define CASCADE_SRC_VERILOG_PARSE_PARSER_H
+#ifndef CASCADE_SRC_UI_LOG_LOG_VIEW_H
+#define CASCADE_SRC_UI_LOG_LOG_VIEW_H
 
 #include <iostream>
-#include <stack>
-#include <string>
-#include "src/base/log/loggable.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/parse/lexer.h"
-#include "src/verilog/parse/verilog.tab.hh"
+#include "src/ui/view.h"
 
 namespace cascade {
 
-class Parser : public Editor, public Loggable {
+class LogView : public View {
   public:
-    // Constructors:
-    Parser();
-    ~Parser() override = default;
+    LogView(std::ostream& os);
+    ~LogView() override = default;
 
-    Parser& debug_lexer(bool debug);
-    Parser& debug_parser(bool debug);
+    void startup(size_t t) override;
+    void shutdown(size_t t) override;
 
-    // Location Tracking Interface:
-    void push(const std::string& path);
-    void pop();
+    void error(size_t t, const std::string& s) override;
+    void print(size_t t, const std::string& s) override;
+    void warn(size_t t, const std::string& s) override;
 
-    // Location Querying Interface:
-    const std::string& source() const;
-    size_t line() const;
+    void parse(size_t, const std::string& s) override;
+    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
-    // Returns the last string which was parsed
-    const std::string& last_parse() const;
-
-    // Parser Interface:
-    std::pair<Node*, bool> parse(std::istream& is);
+    void crash() override;
 
   private:
-    bool debug_lexer_;
-    friend class yyLexer;
-    yyLexer lexer_;
-
-    bool debug_parser_;
-    friend class yyParser;
-    
-    std::stack<std::pair<std::string, location>> loc_;
-    Node* res_;
-    bool eof_;
-    std::string last_parse_;
-
-    location& loc();
-
-    void edit(ModuleDeclaration* md) override;
-    void edit(ModuleInstantiation* mi) override;
+    std::ostream& os_;
 };
 
-} // namespace cascade 
+} // namespace cascade
 
 #endif
