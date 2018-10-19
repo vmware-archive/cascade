@@ -146,13 +146,6 @@ class Runtime : public Asynchronous {
     // This method is thread-safe and can be invoked at any time.
     std::string overall_frequency() const;
 
-    // Crash Interface:
-    // 
-    // Performs a best-effort attempt at dumping program state. This method is
-    // inherently unsafe and will place the entire enclosing process in an
-    // inconsitent state.  
-    void crash_dump(std::ostream& os);
-
   private:
     // MVC State:
     View* view_;

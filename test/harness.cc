@@ -48,7 +48,8 @@ namespace cascade {
 
 PView::PView(ostream& os) : View(), os_(os) { }
 
-void PView::print(const string& s) {
+void PView::print(size_t t, const string& s) {
+  (void) t;
   os_ << s;
 }
 
@@ -60,7 +61,8 @@ bool EView::error() const {
   return error_;
 }
 
-void EView::error(const string& s) {
+void EView::error(size_t t, const string& s) {
+  (void) t;
   (void) s;
   error_ = true;
 } 

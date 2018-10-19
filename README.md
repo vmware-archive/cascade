@@ -206,15 +206,11 @@ ITEM OK
 Toggling the pads should change the values of the leds.
 
 ### DE10 Backend
-All of the functionality described above is also supported on the terasic de10 soc. Except that instead of mapping compute and leds to virtual components, the system maps them directly onto a real fpga. Try booting up the de10 target by ssh'ing onto the ARM core on the de10 and typing.
+All of the functionality described above is also supported on the terasic de10 soc. Except that instead of mapping compute and leds to virtual components, the system maps them directly onto a real fpga. Try ssh'ing onto the ARM core and restarting Cascade by typing.
 ```
-$ ./bin/de10_target
+$ ./bin/cascade --march de10
 ```
-In order to communicate with this target, restart the system by typing:
-```
-$ ./bin/fpga --march de10
-```
-Assuming the system is able to successfully connect to the de10, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
+Assuming Cascade is able to successfully connect to the fpga fabric, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
 
 ### Verilog Support
 (Coming soon.)

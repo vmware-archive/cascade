@@ -40,6 +40,7 @@ Parser::Parser() : Editor() {
   debug_lexer_ = false;
   debug_parser_ = false;
   push("<top>");
+  last_parse_ = "";
 }
 
 Parser& Parser::debug_lexer(bool debug) {
@@ -69,6 +70,10 @@ size_t Parser::line() const {
   return loc_.top().second.begin.line;
 }
 
+const std::string& Parser::last_parse() const {
+  return last_parse_;
+}
+
 pair<Node*, bool> Parser::parse(istream& is) {
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
@@ -79,6 +84,7 @@ pair<Node*, bool> Parser::parse(istream& is) {
   log_.clear();
   res_ = nullptr;
   eof_ = false;
+  last_parse_ = "";
 
   loc().step();
   parser.parse();

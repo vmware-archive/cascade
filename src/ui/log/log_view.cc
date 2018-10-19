@@ -28,44 +28,57 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_CONTROLLER_H
-#define CASCADE_SRC_UI_CONTROLLER_H
+#include "src/ui/log/log_view.h"
 
-#include "src/runtime/runtime.h"
+#include <ctime>
+#include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
+#include "src/verilog/program/program.h"
+
+using namespace std;
 
 namespace cascade {
 
-class Runtime;
+LogView::LogView(ostream& os) : View(), os_(os) { }
 
-// At the top level, FPGA-JIT is organized according to the MVC design pattern.
-// The user interacts with the program through the controller, observes the
-// results of those interactions through the view, and all major state is
-// stored in the runtime (ie the model). The controller is one of two major
-// threads of control, the other being the runtime.
-
-// Logically, nothing prevents a program from using multiple (n) controllers.
-// In this case, rather than 2, there would be n+1 main threads of control.
-
-class Controller : public Asynchronous {
-  public:
-    Controller(Runtime* rt);
-    virtual ~Controller() = default;
-
-  protected:
-    Runtime* runtime();
-
-  private:
-    Runtime* rt_;
-};
-
-inline Controller::Controller(Runtime* rt) : Asynchronous() {
-  rt_ = rt;
+void LogView::startup(size_t t) {
+  os_ << "STARTUP " << t << " " << time(nullptr) << endl;
 }
 
-inline Runtime* Controller::runtime() {
-  return rt_;
+void LogView::shutdown(size_t t) {
+  os_ << "SHUTDOWN " << t << " " << time(nullptr) << endl;
+}
+
+void LogView::error(size_t t, const string& s) {
+  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::print(size_t t, const string& s) {
+  os_ << "PRINT " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::warn(size_t t, const string& s) {
+  os_ << "WARN " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::parse(size_t t, const string& s) {
+  os_ << "PARSE " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) p;
+  os_ << "DECL " << t << " " << time(nullptr) << endl;
+  TextPrinter(os_) << md << "\n";
+}
+
+void LogView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) p;
+  os_ << "ITEM " << t << " " << time(nullptr) << endl;
+  TextPrinter(os_) << md << "\n";
+}
+
+void LogView::crash() {
+  os_ << "CRASH " << time(nullptr) << endl;
 }
 
 } // namespace cascade
-
-#endif

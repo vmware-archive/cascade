@@ -43,7 +43,7 @@ class PView : public View {
     PView(std::ostream& os);
     ~PView() override = default;
 
-    void print(const std::string& s) override;
+    void print(size_t t, const std::string& s) override;
 
   private:
     std::ostream& os_;
@@ -56,7 +56,7 @@ class EView : public View {
     ~EView() override = default;
 
     bool error() const;
-    void error(const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
   private:
     bool error_;

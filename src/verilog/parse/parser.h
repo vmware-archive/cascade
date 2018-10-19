@@ -59,6 +59,9 @@ class Parser : public Editor {
     const std::string& source() const;
     size_t line() const;
 
+    // Returns the last string which was parsed
+    const std::string& last_parse() const;
+
     // Parser Interface:
     std::pair<Node*, bool> parse(std::istream& is);
 
@@ -78,6 +81,7 @@ class Parser : public Editor {
     std::stack<std::pair<std::string, location>> loc_;
     Node* res_;
     bool eof_;
+    std::string last_parse_;
 
     location& loc();
 

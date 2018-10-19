@@ -28,20 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_COMBINATOR_MANY_VIEW_H
-#define CASCADE_SRC_UI_COMBINATOR_MANY_VIEW_H
+#ifndef CASCADE_SRC_UI_LOG_LOG_VIEW_H
+#define CASCADE_SRC_UI_LOG_LOG_VIEW_H
 
-#include <vector>
+#include <iostream>
 #include "src/ui/view.h"
 
 namespace cascade {
 
-class ManyView : public View {
+class LogView : public View {
   public:
-    ManyView();
-    ~ManyView() override;
-
-    void attach(View* v);
+    LogView(std::ostream& os);
+    ~LogView() override = default;
 
     void startup(size_t t) override;
     void shutdown(size_t t) override;
@@ -50,81 +48,15 @@ class ManyView : public View {
     void print(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
 
-    void parse(size_t t, const std::string& s) override;
+    void parse(size_t, const std::string& s) override;
     void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 
   private:
-    std::vector<View*> views_;
+    std::ostream& os_;
 };
-
-inline ManyView::ManyView() : View() { }
-
-inline ManyView::~ManyView() {
-  for (auto v : views_) {
-    delete v;
-  }
-}
-
-inline void ManyView::attach(View* v) {
-  views_.push_back(v);
-}
-
-inline void ManyView::startup(size_t t) {
-  for (auto v : views_) {
-    v->startup(t);
-  }
-}
-
-inline void ManyView::shutdown(size_t t) {
-  for (auto v : views_) {
-    v->shutdown(t);
-  }
-}
-
-inline void ManyView::error(size_t t, const std::string& s) {
-  for (auto v : views_) {
-    v->error(t, s);
-  }
-}
-
-inline void ManyView::print(size_t t, const std::string& s) {
-  for (auto v : views_) {
-    v->print(t, s);
-  }
-}
-
-inline void ManyView::warn(size_t t, const std::string& s) {
-  for (auto v : views_) {
-    v->warn(t, s);
-  }
-}
-
-inline void ManyView::parse(size_t t, const std::string& s) {
-  for (auto v : views_) {
-    v->parse(t, s);
-  }
-}
-
-inline void ManyView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
-  for (auto v : views_) {
-    v->eval_decl(t, p, md);
-  }
-}
-
-inline void ManyView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
-  for (auto v : views_) {
-    v->eval_item(t, p, md);
-  }
-}
-
-inline void ManyView::crash() {
-  for (auto v : views_) {
-    v->crash();
-  }
-} 
 
 } // namespace cascade
 

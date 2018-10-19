@@ -42,28 +42,32 @@ TermView::TermView() : View() {
   cout << ">>> ";
 }
 
-void TermView::error(const string& s) {
+void TermView::error(size_t t, const string& s) {
+  (void) t;
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }
 
-void TermView::print(const string& s) {
+void TermView::print(size_t t, const string& s) {
+  (void) t;
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << s;
   cout << ">>> ";
   cout.flush();
 }
 
-void TermView::warn(const string& s) {
+void TermView::warn(size_t t, const string& s) {
+  (void) t;
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << Color::YELLOW << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }
 
-void TermView::eval_decl(const Program* p, const ModuleDeclaration* md) {
+void TermView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) p;
   (void) md;
 
@@ -73,13 +77,20 @@ void TermView::eval_decl(const Program* p, const ModuleDeclaration* md) {
   cout.flush();
 }
 
-void TermView::eval_item(const Program* p, const ModuleDeclaration* md) {
+void TermView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) p;
   (void) md;
 
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << Color::GREEN << "ITEM OK" << Color::RESET << "\n";
   cout << ">>> ";
+  cout.flush();
+}
+
+void TermView::crash() {
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY --- PLEASE FORWARD LOG FILE TO DEVELOPERS" << Color::RESET << "\n";
   cout.flush();
 }
 

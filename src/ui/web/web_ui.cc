@@ -100,25 +100,29 @@ WebUi& WebUi::set_debug(bool debug) {
   return *this;
 }
 
-void WebUi::error(const string& s) {
+void WebUi::error(size_t t, const string& s) {
+  (void) t;
   stringstream ss;
   HtmlPrinter(ss) << Color::RED << s << Color::RESET << "\n";
   buffer("log", ss.str(), true, true);
 }
 
-void WebUi::print(const string& s) {
+void WebUi::print(size_t t, const string& s) {
+  (void) t;
   stringstream ss;
   HtmlPrinter(ss) << s;
   buffer("log", ss.str(), true, false);
 }
 
-void WebUi::warn(const string& s) {
+void WebUi::warn(size_t t, const string& s) {
+  (void) t;
   stringstream ss;
   HtmlPrinter(ss) << Color::YELLOW << s << Color::RESET << "\n";
   buffer("log", ss.str(), true, true);
 }
 
-void WebUi::eval_decl(const Program* p, const ModuleDeclaration* md) {
+void WebUi::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) p;
   ok("DECL");
 
@@ -135,7 +139,8 @@ void WebUi::eval_decl(const Program* p, const ModuleDeclaration* md) {
   buffer("eval", ss.str(), false, true);
 }
 
-void WebUi::eval_item(const Program* p, const ModuleDeclaration* md) {
+void WebUi::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) md;
   ok("ITEM");
 
@@ -166,6 +171,10 @@ void WebUi::eval_item(const Program* p, const ModuleDeclaration* md) {
   buffer("eval", ss.str(), false, true);
 }
 
+void WebUi::crash() {
+  error(0, "CASCADE SHUTDOWN UNEXPECTEDLY --- PLEASE FORWARD LOG FILE TO DEVELOPERS");
+}
+
 void WebUi::send_index(struct mg_connection* nc, struct http_message* msg) {
   mg_serve_http(nc, msg, opts_);
 }
@@ -180,7 +189,7 @@ void WebUi::send_buffer(struct mg_connection* nc) {
   if (overflow_ > 0) {
     stringstream ss;
     ss << "Buffer Overflow:" << endl << overflow_ << " results truncated!" << endl;
-    error(ss.str());
+    error(0, ss.str());
     overflow_ = 0;
   }
 
@@ -206,21 +215,21 @@ void WebUi::run_logic() {
 
   auto nc = mg_bind(&mgr, port_.c_str(), ev_handler);
   if (nc == NULL) {
-    tv.error("Unable to start server on port " + port_ + "!");
+    tv.error(0, "Unable to start server on port " + port_ + "!");
     return;
   } 
   mg_set_protocol_http_websocket(nc);
 
   opts_.document_root = doc_root_.c_str();
   opts_.enable_directory_listing = "no";
-  tv.print("Running server out of " + doc_root_ + "\n");
-  tv.print("Server started on port " + port_ + "\n");
+  tv.print(0, "Running server out of " + doc_root_ + "\n");
+  tv.print(0, "Server started on port " + port_ + "\n");
 
   while (!stop_requested()) {
     mg_mgr_poll(&mgr, 1000);
   }
   mg_mgr_free(&mgr);
-  tv.print("Shutting down server\n");
+  tv.print(0, "Shutting down server\n");
 }
 
 void WebUi::buffer(const string& api, const string& val, bool quote, bool force) {
