@@ -51,39 +51,71 @@ class View {
   public:
     virtual ~View() = default;
 
-    // Display an error message
-    virtual void error(const std::string& s);
-    // Display a normal message
-    virtual void print(const std::string& s);
-    // Display a warning message
-    virtual void warn(const std::string& s);
+    // Startup hook
+    virtual void startup(size_t t);
+    // Shutdown hook
+    virtual void shutdown(size_t t);
 
+    // Display an error message
+    virtual void error(size_t t, const std::string& s);
+    // Display a normal message
+    virtual void print(size_t t, const std::string& s);
+    // Display a warning message
+    virtual void warn(size_t t, const std::string& s);
+
+    // A string was parsed
+    virtual void parse(size_t t, const std::string& s);
     // A module declaration was successfully eval'ed.
-    virtual void eval_decl(const Program* p, const ModuleDeclaration* md);
+    virtual void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md);
     // A module item was successfully eval'ed.
-    virtual void eval_item(const Program* p, const ModuleDeclaration* md);
+    virtual void eval_item(size_t t, const Program* p, const ModuleDeclaration* md);
+
+    // The program crashed --- everything has gone up in flames
+    virtual void crash();
 };
 
-inline void View::error(const std::string& s) {
+inline void View::startup(size_t t) {
+  (void) t;
+}
+
+inline void View::shutdown(size_t t) {
+  (void) t;
+}
+
+inline void View::error(size_t t, const std::string& s) {
+  (void) t;
   (void) s;
 }
 
-inline void View::print(const std::string& s) {
+inline void View::print(size_t t, const std::string& s) {
+  (void) t;
   (void) s;
 }
 
-inline void View::warn(const std::string& s) {
+inline void View::warn(size_t t, const std::string& s) {
+  (void) t;
   (void) s;
 }
 
-inline void View::eval_decl(const Program* p, const ModuleDeclaration* md) {
-  (void) md;
+inline void View::parse(size_t t, const std::string& s) {
+  (void) t;
+  (void) s;
+}
+
+inline void View::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) p;
+  (void) md;
 }
 
-inline void View::eval_item(const Program* p, const ModuleDeclaration* md) {
-  (void) md;
+inline void View::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  (void) t;
   (void) p;
+  (void) md;
+}
+
+inline void View::crash() {
+  // Does nothing.
 }
 
 } // namespace cascade

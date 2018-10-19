@@ -41,12 +41,14 @@ class TermView : public View {
     TermView();
     ~TermView() override = default;
 
-    void error(const std::string& s) override;
-    void print(const std::string& s) override;
-    void warn(const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
+    void print(size_t t, const std::string& s) override;
+    void warn(size_t t, const std::string& s) override;
 
-    void eval_decl(const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(const Program* p, const ModuleDeclaration* md) override;
+    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+
+    void crash() override;
 
   private:
     std::mutex lock_;
