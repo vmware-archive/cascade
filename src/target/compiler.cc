@@ -48,16 +48,11 @@ namespace cascade {
 
 Compiler::Compiler() {
   de10_compiler_ = nullptr;
-  set_de10_compiler(new De10Compiler());
   proxy_compiler_ = nullptr;
-  set_proxy_compiler(new ProxyCompiler());
   sw_compiler_ = nullptr;
-  set_sw_compiler(new SwCompiler());
 
   local_compiler_ = nullptr;
-  set_local_compiler(new LocalCompiler());
   remote_compiler_ = nullptr;
-  set_remote_compiler(new RemoteCompiler());
 
   // We only really need two jit threads, one for the current background job,
   // and a second to preempt it if necessary before it finishes. But since
@@ -69,68 +64,76 @@ Compiler::Compiler() {
 }
 
 Compiler::~Compiler() {
-  de10_compiler_->abort();
-  proxy_compiler_->abort();
-  sw_compiler_->abort();
-
-  local_compiler_->abort();
-  remote_compiler_->abort();
+  if (de10_compiler_ != nullptr) {
+    de10_compiler_->abort();
+  }
+  if (proxy_compiler_ != nullptr) {
+    proxy_compiler_->abort();
+  }
+  if (sw_compiler_ != nullptr) {
+    sw_compiler_->abort();
+  }
+  if (local_compiler_ != nullptr) {
+    local_compiler_->abort();
+  }
+  if (remote_compiler_ != nullptr) {
+    remote_compiler_->abort();
+  }
 
   pool_.stop_now();
 
-  delete de10_compiler_;
-  delete proxy_compiler_;
-  delete sw_compiler_;
-
-  delete local_compiler_;
-  delete remote_compiler_;
-}
-
-Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
-  assert(c != nullptr);
   if (de10_compiler_ != nullptr) {
     delete de10_compiler_;
   }
+  if (proxy_compiler_ != nullptr) {
+    delete proxy_compiler_;
+  }
+  if (sw_compiler_ != nullptr) {
+    delete sw_compiler_;
+  }
+  if (local_compiler_ != nullptr) {
+    delete local_compiler_;
+  }
+  if (remote_compiler_ != nullptr) {
+    delete remote_compiler_;
+  }
+}
+
+Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
+  assert(de10_compiler_ == nullptr);
+  assert(c != nullptr);
   de10_compiler_ = c;
   de10_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_proxy_compiler(ProxyCompiler* c) {
+  assert(proxy_compiler_ == nullptr);
   assert(c != nullptr);
-  if (proxy_compiler_ != nullptr) {
-    delete proxy_compiler_;
-  }
   proxy_compiler_ = c;
   proxy_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_sw_compiler(SwCompiler* c) {
+  assert(sw_compiler_ == nullptr);
   assert(c != nullptr);
-  if (sw_compiler_ != nullptr) {
-    delete sw_compiler_;
-  }
   sw_compiler_ = c;
   sw_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_local_compiler(LocalCompiler* c) {
+  assert(local_compiler_ == nullptr);
   assert(c != nullptr);
-  if (local_compiler_ != nullptr) {
-    delete local_compiler_;
-  }
   local_compiler_ = c;
   local_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
+  assert(remote_compiler_ == nullptr);
   assert(c != nullptr);
-  if (remote_compiler_ != nullptr) {
-    delete remote_compiler_;
-  }
   remote_compiler_ = c;
   remote_compiler_->set_compiler(this);
   return *this;
@@ -165,9 +168,20 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     return nullptr;
   }
 
+  if (ic == nullptr) {
+    error("Unable to locate the required interface compiler");
+    delete md;
+    return nullptr;
+  }
   auto i = ic->compile(md);
   if (i == nullptr) {
     // No need to attach an error message here, ic will already have done so if necessary.
+    delete md;
+    return nullptr;
+  }
+
+  if (cc == nullptr) {
+    error("Unable to locate the required core compiler");
     delete md;
     return nullptr;
   }
