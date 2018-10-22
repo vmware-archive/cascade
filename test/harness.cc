@@ -36,6 +36,8 @@
 #include "src/base/system/system.h"
 #include "src/runtime/runtime.h"
 #include "src/target/compiler.h"
+#include "src/target/core/proxy/proxy_compiler.h"
+#include "src/target/core/sw/sw_compiler.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/ui/view.h"
 #include "src/ui/stream/stream_controller.h"
@@ -79,10 +81,14 @@ void run_parse(const string& path, bool expected) {
 void run_typecheck(const string& march, const string& path, bool expected) {
   EView view;
   Runtime runtime(&view);
+  auto pc = new ProxyCompiler();
+  auto sc = new SwCompiler();
   auto lc = new LocalCompiler();
-  lc->set_runtime(&runtime);
+    lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_local_compiler(lc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();
 
@@ -107,10 +113,14 @@ void run_code(const string& march, const string& path, const string& expected) {
   stringstream ss;
   PView view(ss);
   Runtime runtime(&view);
+  auto pc = new ProxyCompiler();
+  auto sc = new SwCompiler();
   auto lc = new LocalCompiler();
-  lc->set_runtime(&runtime);
+    lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_local_compiler(lc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();
 
@@ -136,10 +146,14 @@ void run_mips(const string& march, const string& path, const string& expected) {
   stringstream ss;
   PView view(ss);
   Runtime runtime(&view);
+  auto pc = new ProxyCompiler();
+  auto sc = new SwCompiler();
   auto lc = new LocalCompiler();
-  lc->set_runtime(&runtime);
+    lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_local_compiler(lc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_local_compiler(lc);
   runtime.set_include_dirs("data/test/mips32/sc/");
   runtime.set_compiler(c);
   runtime.run();
@@ -163,10 +177,14 @@ void run_regex(const string& march, const string& regex, const string& input, co
   stringstream ss;
   PView view(ss);
   Runtime runtime(&view);
+  auto pc = new ProxyCompiler();
+  auto sc = new SwCompiler();
   auto lc = new LocalCompiler();
-  lc->set_runtime(&runtime);
+    lc->set_runtime(&runtime);
   auto c = new Compiler();
-  c->set_local_compiler(lc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_local_compiler(lc);
   runtime.set_compiler(c);
   runtime.run();
 
