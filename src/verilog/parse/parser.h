@@ -34,7 +34,7 @@
 #include <iostream>
 #include <stack>
 #include <string>
-#include "src/base/log/loggable.h"
+#include "src/base/log/log.h"
 #include "src/verilog/ast/ast_fwd.h"
 #include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/parse/lexer.h"
@@ -42,7 +42,7 @@
 
 namespace cascade {
 
-class Parser : public Editor, public Loggable {
+class Parser : public Editor {
   public:
     // Constructors:
     Parser();
@@ -65,7 +65,12 @@ class Parser : public Editor, public Loggable {
     // Parser Interface:
     std::pair<Node*, bool> parse(std::istream& is);
 
+    // Log Interface:
+    const Log& get_log() const;
+
   private:
+    Log log_;
+
     bool debug_lexer_;
     friend class yyLexer;
     yyLexer lexer_;

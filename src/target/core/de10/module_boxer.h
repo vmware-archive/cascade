@@ -28,44 +28,52 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_CLIENT_H
-#define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_CLIENT_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_MODULE_BOXER_H
+#define CASCADE_SRC_TARGET_CORE_DE10_MODULE_BOXER_H
 
-#include <condition_variable>
-#include <mutex>
 #include <string>
-#include <unordered_map>
-#include "src/base/thread/asynchronous.h"
 #include "src/runtime/ids.h"
-#include "src/verilog/analyze/indices.h"
+#include "src/verilog/ast/visitors/builder.h"
+#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
-class QuartusClient : public Asynchronous {
+class De10Logic;
+
+class ModuleBoxer : public Builder {
   public:
-    QuartusClient();
-    ~QuartusClient() override = default;
-
-    QuartusClient& set_batch_window(size_t bw);
-    QuartusClient& set_host(const std::string& host);
-    QuartusClient& set_port(uint32_t port);
-
-    bool refresh(MId id, const std::string& src);
+    ~ModuleBoxer() override = default;
+    std::string box(MId id, const ModuleDeclaration* md, const De10Logic* de);
 
   private:
-    size_t batch_window_;
-    std::string host_;
-    uint32_t port_;
+    // Source Management:
+    const ModuleDeclaration* md_;
+    const De10Logic* de_;
 
-    std::mutex lock_;
-    std::condition_variable cv_;
+    // System task management:
+    size_t task_id_;
 
-    bool refresh_requested_;
-    bool error_;
-    std::unordered_map<MId, std::string> src_;
+    // Builder Interface:
+    Attributes* build(const Attributes* as) override; 
+    ModuleItem* build(const InitialConstruct* ic) override;
+    ModuleItem* build(const RegDeclaration* rd) override;
+    ModuleItem* build(const PortDeclaration* pd) override;
+    Statement* build(const NonblockingAssign* na) override;
+    Statement* build(const DisplayStatement* ds) override;
+    Statement* build(const FinishStatement* fs) override;
+    Statement* build(const WriteStatement* ws) override;
 
-    void sync();
-    void run_logic() override;
+    // Sys Task Mangling Helper:
+    class Mangler : public Visitor {
+      public:
+        Mangler(const De10Logic* de);
+        ~Mangler() override = default;
+        Statement* mangle(size_t id, const Node* args);
+      private:
+        void visit(const Identifier* id) override;
+        const De10Logic* de_;
+        SeqBlock* t_;
+    };
 };
 
 } // namespace cascade

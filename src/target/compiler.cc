@@ -30,6 +30,7 @@
 
 #include "src/target/compiler.h"
 
+#include <cassert>
 #include "src/runtime/data_plane.h"
 #include "src/runtime/runtime.h"
 #include "src/target/core/de10/de10_compiler.h"
@@ -38,7 +39,6 @@
 #include "src/target/engine.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/target/interface/remote/remote_compiler.h"
-#include "src/target/masker.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 
@@ -47,72 +47,100 @@ using namespace std;
 namespace cascade {
 
 Compiler::Compiler() {
-  de10_compiler_ = new De10Compiler();
-  proxy_compiler_ = new ProxyCompiler();
-  sw_compiler_ = new SwCompiler();
+  de10_compiler_ = nullptr;
+  proxy_compiler_ = nullptr;
+  sw_compiler_ = nullptr;
 
-  local_compiler_ = new LocalCompiler();
-  remote_compiler_ = new RemoteCompiler();
+  local_compiler_ = nullptr;
+  remote_compiler_ = nullptr;
 
-  rt_ = nullptr;
-  set_num_jit_threads(1);
+  // We only really need two jit threads, one for the current background job,
+  // and a second to preempt it if necessary before it finishes. But since
+  // there's startup and shutdown costs associated with threads, let's double
+  // provision.
+  pool_.stop_now();
+  pool_.set_num_threads(4);
+  pool_.run();
 }
 
 Compiler::~Compiler() {
+  if (de10_compiler_ != nullptr) {
+    de10_compiler_->abort();
+  }
+  if (proxy_compiler_ != nullptr) {
+    proxy_compiler_->abort();
+  }
+  if (sw_compiler_ != nullptr) {
+    sw_compiler_->abort();
+  }
+  if (local_compiler_ != nullptr) {
+    local_compiler_->abort();
+  }
+  if (remote_compiler_ != nullptr) {
+    remote_compiler_->abort();
+  }
+
   pool_.stop_now();
 
-  delete de10_compiler_;
-  delete proxy_compiler_;
-  delete sw_compiler_;
-
-  delete local_compiler_;
-  delete remote_compiler_;
-}
-
-Compiler& Compiler::set_runtime(Runtime* rt) {
-  rt_ = rt;
-  return *this;
-}
-
-Compiler& Compiler::set_num_jit_threads(size_t n) {
-  pool_.stop_now();
-  pool_.set_num_threads(n);
-  pool_.run();
-  return *this;
+  if (de10_compiler_ != nullptr) {
+    delete de10_compiler_;
+  }
+  if (proxy_compiler_ != nullptr) {
+    delete proxy_compiler_;
+  }
+  if (sw_compiler_ != nullptr) {
+    delete sw_compiler_;
+  }
+  if (local_compiler_ != nullptr) {
+    delete local_compiler_;
+  }
+  if (remote_compiler_ != nullptr) {
+    delete remote_compiler_;
+  }
 }
 
 Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
-  delete de10_compiler_;
+  assert(de10_compiler_ == nullptr);
+  assert(c != nullptr);
   de10_compiler_ = c;
+  de10_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_proxy_compiler(ProxyCompiler* c) {
-  delete proxy_compiler_;
+  assert(proxy_compiler_ == nullptr);
+  assert(c != nullptr);
   proxy_compiler_ = c;
+  proxy_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_sw_compiler(SwCompiler* c) {
-  delete sw_compiler_;
+  assert(sw_compiler_ == nullptr);
+  assert(c != nullptr);
   sw_compiler_ = c;
+  sw_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_local_compiler(LocalCompiler* c) {
-  delete local_compiler_;
+  assert(local_compiler_ == nullptr);
+  assert(c != nullptr);
   local_compiler_ = c;
+  local_compiler_->set_compiler(this);
   return *this;
 }
 
 Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
-  delete remote_compiler_;
+  assert(remote_compiler_ == nullptr);
+  assert(c != nullptr);
   remote_compiler_ = c;
+  remote_compiler_->set_compiler(this);
   return *this;
 }
 
 Engine* Compiler::compile(ModuleDeclaration* md) {
-  if (is_stub(md)) {
+  if (StubCheck().check(md)) {
     delete md;
     return new Engine();
   }
@@ -135,42 +163,46 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   } else if (target->eq("sw")) {
     cc = sw_compiler_;
   } else {
-    // TODO: error(unrecognized target)
+    error("Unable to compile module with unsupported target type " + target->get_readable_val());
     delete md;
     return nullptr;
   }
 
+  if (ic == nullptr) {
+    error("Unable to locate the required interface compiler");
+    delete md;
+    return nullptr;
+  }
   auto i = ic->compile(md);
   if (i == nullptr) {
-    // TODO: error(unable to compile interface)
+    // No need to attach an error message here, ic will already have done so if necessary.
     delete md;
     return nullptr;
   }
 
+  if (cc == nullptr) {
+    error("Unable to locate the required core compiler");
+    delete md;
+    return nullptr;
+  }
   auto c = cc->compile(i, md);
   if (c == nullptr) {
-    // TODO: error(unable to compile core)
+    // No need to attach an error message here, cc will already have done so if necessary.
     delete i;
     return nullptr;
   }
 
-  return new Engine(cc, c, ic, i);
+  return new Engine(c, i);
 }
 
-Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
-  // This method requires interaction with the runtime.
-  if (rt_ == nullptr) {
-    delete md;
-    return nullptr;
-  }
-
+void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
   // Lookup annotations 
   const auto std = md->get_attrs()->get<String>("__std");
   const auto t2 = md->get_attrs()->get<String>("__target2");
   const auto l2 = md->get_attrs()->get<String>("__loc2");
 
   // Check: Is this a stub, an std module, was jit compilation requested?  
-  const auto jit = std->eq("logic") && !is_stub(md) && (t2 != nullptr || l2 != nullptr);
+  const auto jit = std->eq("logic") && !StubCheck().check(md) && (t2 != nullptr || l2 != nullptr);
 
   // If we're jit compiling, we'll need a second copy of the source and we'll
   // need to adjust the annotations.
@@ -185,62 +217,87 @@ Engine* Compiler::compile_and_replace(Engine* e, ModuleDeclaration* md) {
     }
   }
 
-  // Fast Path. Compile and replace the original engine.
+  // Fast Path. Compile and replace the original engine.  If an error occurred,
+  // then simply preserve the original message. If compilation was aborted
+  // without explanation, that's an error that requires explanation.
   auto e_fast = compile(md);
-  if (e_fast == nullptr) {
-    return nullptr;
+  if (error()) {
+    return;
+  } else if (e_fast == nullptr) {
+    return error("An unhandled error occurred during module compilation");
   }
   e->replace_with(e_fast);
-  rt_->schedule_all_active();
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
-  // results in a safe runtime window when it's done.
+  // results in a safe runtime window when it's done. Note that we schedule an
+  // interrupt regardless. This is to trigger an interaction with the runtime
+  // even if only just for the sake of catching an error.
   if (jit) {
-    pool_.insert(new ThreadPool::Job([this, e, md2]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
       Masker().mask(md2);
       auto e_slow = compile(md2);
-      if (e_slow == nullptr) {
-        rt_->fatal(0, "Unable to materialize logic for second-pass jit compilation");
-      } else {
-        rt_->schedule_interrupt([e, e_slow]{
-          e->replace_with(e_slow);
-        });
-      }
+      rt->schedule_interrupt([this, e, e_slow]{
+        // Nothing to do if compilation failed or was aborted
+        if (error() || (e_slow == nullptr)) {
+          return;
+        } 
+        e->replace_with(e_slow);
+      });
     }));
   }
-
-  return e;
 }
 
-bool Compiler::SysTaskCheck::check(const Node* n) {
-  res_ = false;
-  n->accept(this);
-  return res_;
+void Compiler::error(const string& s) {
+  lock_guard<mutex> lg(lock_);
+  what_ = (what_ == "") ? s : what_;
 }
 
-void Compiler::SysTaskCheck::visit(const InitialConstruct* ic) {
-  (void) ic;
-  res_ = true;
+bool Compiler::error() {
+  lock_guard<mutex> lg(lock_);
+  return what_ != "";
 }
 
-void Compiler::SysTaskCheck::visit(const DisplayStatement* ds) {
-  (void) ds;
-  res_ = true;
+string Compiler::what() {
+  lock_guard<mutex> lg(lock_);
+  return what_;
 }
 
-void Compiler::SysTaskCheck::visit(const FinishStatement* fs) {
-  (void) fs;
-  res_ = true;
-}
-
-void Compiler::SysTaskCheck::visit(const WriteStatement* ws) {
-  (void) ws;
-  res_ = true;
-}
-
-bool Compiler::is_stub(const ModuleDeclaration* md) const {
+bool Compiler::StubCheck::check(const ModuleDeclaration* md) {
   ModuleInfo mi(md);
-  return mi.inputs().empty() && mi.outputs().empty() && !SysTaskCheck().check(md);
+  if (!mi.inputs().empty() || !mi.outputs().empty()) {
+    return false;
+  }
+  stub_ = true;
+  md->accept(this);
+  return stub_;
+}
+
+void Compiler::StubCheck::visit(const InitialConstruct* ic) {
+  (void) ic;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const DisplayStatement* ds) {
+  (void) ds;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const FinishStatement* fs) {
+  (void) fs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const WriteStatement* ws) {
+  (void) ws;
+  stub_ = false;
+}
+
+void Compiler::Masker::mask(ModuleDeclaration* md) {
+  md->get_items()->accept(this);
+}
+
+void Compiler::Masker::edit(InitialConstruct* ic) {
+  ic->get_attrs()->set_or_replace("__ignore", new String("true"));
 }
 
 } // namespace cascade

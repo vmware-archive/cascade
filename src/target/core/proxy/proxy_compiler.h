@@ -50,7 +50,7 @@ class ProxyCompiler : public CoreCompiler {
     ProxyCompiler();
     ~ProxyCompiler() override;
 
-    void teardown(Core* core) override;
+    void abort() override;
 
   private:
     std::unordered_map<std::string, Connection*> conns_;
@@ -81,7 +81,7 @@ template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
   auto conn = get_conn(md);
   if (conn == nullptr) {
-    // TODO: error(Unable to establish connection with remote host)
+    error("Unable to establish connection with remote runtime");
     delete md;
     return nullptr;
   }
@@ -97,7 +97,13 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
 
   Rpc res;
   conn->recv_rpc(res);
-  return res.type_ == Rpc::ERROR ? nullptr : new ProxyCore<T>(interface, res.id_, conn);
+
+  if (res.type_ == Rpc::ERROR) {
+    // TODO: Forward error messages from remote runtime to here
+    error("An unhandled error occured during compilation in the remote runtime");
+    return nullptr;
+  }
+  return new ProxyCore<T>(interface, res.id_, conn);
 }
 
 } // namespace cascade

@@ -36,10 +36,8 @@
 #include "src/target/core/stub/stub_core.h"
 #include "src/target/core/sw/sw_clock.h"
 #include "src/target/core.h"
-#include "src/target/core_compiler.h"
 #include "src/target/interface/stub/stub_interface.h"
 #include "src/target/interface.h"
-#include "src/target/interface_compiler.h"
 #include "src/target/state.h"
 
 namespace cascade {
@@ -48,7 +46,7 @@ class Engine {
   public:
     // Constructors:
     Engine();
-    Engine(CoreCompiler* cc, Core* core, InterfaceCompiler* ic, Interface* interface);
+    Engine(Core* core, Interface* interface);
     ~Engine();
 
     // Query Interface:
@@ -90,41 +88,29 @@ class Engine {
     void replace_with(Engine* e);
 
   private:
-    CoreCompiler* cc_;
     Core* core_;
-    InterfaceCompiler* ic_;
     Interface* interface_;
 
     bool there_are_reads_;
 };
 
 inline Engine::Engine() {
-  ic_ = nullptr;
   interface_ = new StubInterface();
-  cc_ = nullptr;
   core_ = new StubCore(interface_);
   there_are_reads_ = false;
 }
 
-inline Engine::Engine(CoreCompiler* cc, Core* core, InterfaceCompiler* ic, Interface* interface) {
-  cc_ = cc;
+inline Engine::Engine(Core* core, Interface* interface) {
   core_ = core;
-  ic_ = ic;
   interface_ = interface;
   there_are_reads_ = false;
 }
 
 inline Engine::~Engine() {
   if (core_ != nullptr) {
-    if (cc_ != nullptr) {
-      cc_->teardown(core_);
-    }
     delete core_;
   }
   if (interface_ != nullptr) {
-    if (ic_ != nullptr) {
-      ic_->teardown(interface_);
-    }
     delete interface_;
   }
 }
@@ -250,24 +236,15 @@ inline void Engine::replace_with(Engine* e) {
 
   e->core_->resync();
 
-  if (cc_ != nullptr) {
-    cc_->teardown(core_);
-  }
   delete core_;
-  cc_ = e->cc_;
   core_ = e->core_;
+  e->core_ = nullptr;
 
-  if (ic_ != nullptr) {
-    ic_->teardown(interface_);
-  }
   delete interface_;
-  ic_ = e->ic_;
   interface_ = e->interface_;
+  e->interface_ = nullptr;
 
   there_are_reads_ = e->there_are_reads_;
-
-  e->core_ = nullptr;
-  e->interface_ = nullptr;
   delete e;
 }
 

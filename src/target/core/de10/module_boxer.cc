@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/boxer.h"
+#include "src/target/core/de10/module_boxer.h"
 
 #include <cassert>
 #include <sstream>
@@ -45,9 +45,7 @@ using namespace std;
 
 namespace cascade {
 
-Boxer::Boxer() : Builder() { }
-
-std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de) {
+std::string ModuleBoxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de) {
   md_ = md;
   de_ = de;
 
@@ -315,13 +313,13 @@ std::string Boxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de)
   return ss.str();
 }
 
-Attributes* Boxer::build(const Attributes* as) {
+Attributes* ModuleBoxer::build(const Attributes* as) {
   // Quartus doesn't have full support for annotations. At this point, we can just delete them.
   (void) as;
   return new Attributes(new Many<AttrSpec>());
 }
 
-ModuleItem* Boxer::build(const InitialConstruct* ic) {
+ModuleItem* ModuleBoxer::build(const InitialConstruct* ic) {
   // If we're seeing a non-ignored initial block here, it's a problem.  These
   // should have been handled in software.
   const auto ign = ic->get_attrs()->get<String>("__ignore"); 
@@ -333,20 +331,20 @@ ModuleItem* Boxer::build(const InitialConstruct* ic) {
   return nullptr; 
 }
 
-ModuleItem* Boxer::build(const RegDeclaration* rd) {
+ModuleItem* ModuleBoxer::build(const RegDeclaration* rd) {
   // Stateful variables have been reified to views and can be ignored.
   // Everything else is downgraded to a regular declaration.
   return ModuleInfo(md_).is_stateful(rd->get_id()) ? nullptr : rd->clone();
 }
 
-ModuleItem* Boxer::build(const PortDeclaration* pd) {
+ModuleItem* ModuleBoxer::build(const PortDeclaration* pd) {
   // Stateful variables and inputs have been reified to views and can be ignored.
   // Everything else is downgraded to a regular declaration.
   ModuleInfo info(md_);
   return info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id()) ? nullptr : pd->get_decl()->clone();
 }
 
-Statement* Boxer::build(const NonblockingAssign* na) {
+Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   // Create empty blocks for true and false branches (we'll never populate the
   // false branch)
   const auto t = new SeqBlock(
@@ -403,24 +401,24 @@ Statement* Boxer::build(const NonblockingAssign* na) {
   return new ConditionalStatement(new Identifier("__live"), t, f);
 }
 
-Statement* Boxer::build(const DisplayStatement* ds) {
+Statement* ModuleBoxer::build(const DisplayStatement* ds) {
   return Mangler(de_).mangle(task_id_++, ds->get_args());
 }
 
-Statement* Boxer::build(const FinishStatement* fs) {
+Statement* ModuleBoxer::build(const FinishStatement* fs) {
   return Mangler(de_).mangle(task_id_++, fs->get_arg());
 }
 
-Statement* Boxer::build(const WriteStatement* ws) {
+Statement* ModuleBoxer::build(const WriteStatement* ws) {
   return Mangler(de_).mangle(task_id_++, ws->get_args());
 }
 
-Boxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
+ModuleBoxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
   de_ = de;
   t_ = nullptr;
 }
 
-Statement* Boxer::Mangler::mangle(size_t id, const Node* args) {
+Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* args) {
   // Create blocks for true and false (we won't populate the false branch)
   t_ = new SeqBlock(
     new Maybe<Identifier>(),
@@ -451,7 +449,7 @@ Statement* Boxer::Mangler::mangle(size_t id, const Node* args) {
   return new ConditionalStatement(new Identifier("__live"), t_, f);
 }
 
-void Boxer::Mangler::visit(const Identifier* id) {
+void ModuleBoxer::Mangler::visit(const Identifier* id) {
   const auto titr = de_->table_find(id);
   assert(titr != de_->table_end());
 

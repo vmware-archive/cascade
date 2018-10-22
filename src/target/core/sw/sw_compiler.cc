@@ -70,14 +70,13 @@ SwCompiler& SwCompiler::set_reset(Bits* b, mutex* l) {
   return *this;
 }
 
-void SwCompiler::teardown(Core* c) {
+void SwCompiler::abort() {
   // Does nothing.
-  (void) c;
 }
 
 SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
   if (!check_io(md, 0, 1)) {
-    // TODO error(more than one output provided for clock)
+    error("Unable to compile a software clock with more than one output");
     delete md;
     return nullptr;
   }
@@ -108,6 +107,7 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
     }
   }
   if (depth == 0 || byte_size == 0) {
+    error("Unable to compile a software fifo with depth or byte size equal to zero");
     delete md;
     return nullptr;
   }
@@ -119,8 +119,13 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   if (file != nullptr) {
     const auto c = count == nullptr ? 1 : count->get_val().to_int();
     const auto f = incstream(include_dirs_).find(file->get_readable_val());
-    fifo->set_file(f == "" ? file->get_readable_val() : f, c);
-  }
+    if (f == "") {
+      error("Unable to compile a software fifo with an unresolvable file annotation");
+      delete md;
+      return nullptr;
+    }
+    fifo->set_file(f, c);
+  } 
 
   // Set up input output connections
   for (auto l : info.locals()) {
@@ -150,7 +155,13 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
 }
 
 SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
-  if (led_ == nullptr || !check_io(md, 8, 8)) {
+  if (led_ == nullptr) {
+    error("Unable to compile a software led without a reference to a software fpga");
+    delete md;
+    return nullptr;
+  }
+  if (!check_io(md, 8, 8)) {
+    error("Unable to compile a software led with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -201,6 +212,7 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
     }
   }
   if (addr_size == 0 || byte_size == 0) {
+    error("Unable to compile a software memory with address or data width equal to zero");
     delete md;
     return nullptr;
   }
@@ -243,7 +255,13 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
 }
 
 SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
+  if (pad_ == nullptr) {
+    error("Unable to compile a software pad without a reference to a software fpga");
+    delete md;
+    return nullptr;
+  }
   if (pad_ == nullptr || !check_io(md, 0, 4)) {
+    error("Unable to compile a software pad with more than four inputs");
     delete md;
     return nullptr;
   }
@@ -257,7 +275,13 @@ SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
 }
 
 SwReset* SwCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) {
-  if (reset_ == nullptr || !check_io(md, 0, 1)) {
+  if (pad_ == nullptr) {
+    error("Unable to compile a software reset without a reference to a software fpga");
+    delete md;
+    return nullptr;
+  }
+  if (pad_ == nullptr || !check_io(md, 0, 1)) {
+    error("Unable to compile a software reset with more than one input");
     delete md;
     return nullptr;
   }

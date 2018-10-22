@@ -36,7 +36,9 @@
 #include "src/target/common/remote_runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/de10/quartus_client.h"
+#include "src/target/core/proxy/proxy_compiler.h"
+#include "src/target/core/sw/sw_compiler.h"
+#include "src/target/interface/remote/remote_compiler.h"
 
 using namespace cl;
 using namespace cascade;
@@ -57,16 +59,15 @@ auto& batch_window = StrArg<int>::create("--batch_window")
   .usage("<int>")
   .description("Number of seconds to wait before checking for compilation requests")
   .initial(3);
-auto& quartus_server_host = StrArg<string>::create("--quartus_server_host")
+auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
   .initial("localhost");
-auto& quartus_server_port = StrArg<uint32_t>::create("--quartus_server_port")
+auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .usage("<port>")
   .description("Location of quartus server")
   .initial(9900);
 
-QuartusClient* qc = nullptr;
 RemoteRuntime* runtime = nullptr;
 
 void handler(int sig) {
@@ -83,27 +84,25 @@ int main(int argc, char** argv) {
   action.sa_handler = handler;
   sigaction(SIGINT, &action, nullptr);
 
-  qc = new QuartusClient();
-  qc->set_batch_window(batch_window.value());
-  qc->set_host(quartus_server_host.value());
-  qc->set_port(quartus_server_port.value());
-  qc->run();
-
   auto dc = new De10Compiler();
-  dc->set_quartus_client(qc);
+    dc->set_host(quartus_host.value());
+    dc->set_port(quartus_port.value());
+  auto pc = new ProxyCompiler();
+  auto sc = new SwCompiler();
+  auto rc = new RemoteCompiler();
   auto c = new Compiler();
-  c->set_de10_compiler(dc);
+    c->set_de10_compiler(dc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_remote_compiler(rc);
 
   runtime = new RemoteRuntime();
-  runtime->set_compiler(c);
-  runtime->set_path(path.value());
-  runtime->set_port(port.value());
-  runtime->run();
-  runtime->wait_for_stop();
-  qc->stop_now();
-
+    runtime->set_compiler(c);
+    runtime->set_path(path.value());
+    runtime->set_port(port.value());
+    runtime->run();
+    runtime->wait_for_stop();
   delete runtime;
-  delete qc;
 
   cout << "Goodbye!" << endl;
   return 0;

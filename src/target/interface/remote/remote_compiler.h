@@ -46,7 +46,7 @@ class RemoteCompiler : public InterfaceCompiler {
     RemoteCompiler& set_buffer(bufstream* buf);
 
     RemoteInterface* compile(ModuleDeclaration* md) override;
-    void teardown(Interface* interface) override;  
+    void abort() override;  
 
   private:
     bufstream* buf_;
@@ -63,12 +63,15 @@ inline RemoteCompiler& RemoteCompiler::set_buffer(bufstream* buf) {
 
 inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
   (void) md;
-  return buf_ == nullptr ? nullptr : new RemoteInterface(buf_);
+  if (buf_ == nullptr) {
+    error("Unable to compile a remote interface without a reference to a memory buffer");
+    return nullptr;
+  }
+  return new RemoteInterface(buf_);
 }
 
-inline void RemoteCompiler::teardown(Interface* interface) {
+inline void RemoteCompiler::abort() {
   // Does nothing.
-  (void) interface;
 }
 
 } // namespace cascade

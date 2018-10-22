@@ -40,7 +40,7 @@
 #include "src/runtime/runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/de10/quartus_client.h"
+#include "src/target/core/proxy/proxy_compiler.h"
 #include "src/target/core/sw/sw_compiler.h"
 #include "src/target/interface/local/local_compiler.h"
 #include "src/ui/combinator/many_view.h"
@@ -89,11 +89,11 @@ auto& batch_window = StrArg<int>::create("--batch_window")
   .usage("<int>")
   .description("Number of seconds to wait before checking for compilation requests")
   .initial(3);
-auto& quartus_server_host = StrArg<string>::create("--quartus_server_host")
+auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
   .initial("localhost");
-auto& quartus_server_port = StrArg<uint32_t>::create("--quartus_server_port")
+auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .usage("<port>")
   .description("Location of quartus server")
   .initial(9900);
@@ -134,13 +134,17 @@ class Profiler : public Asynchronous {
 };
 
 // Cascade Components:
-QuartusClient* qc = nullptr;
 ManyView* view = nullptr;
 Runtime* runtime = nullptr;
 Controller* controller = nullptr;
 // Logging Components:
 ofstream* logfile = nullptr;
 Profiler* profiler = nullptr;
+
+void int_handler(int sig) {
+  (void) sig;
+  runtime->fatal(0, "User Interrupt:\n  > Caught Ctrl-C.");
+}
 
 void segv_handler(int sig) {
   (void) sig;
@@ -153,20 +157,26 @@ int main(int argc, char** argv) {
   Simple::read(argc, argv);
 
   // Attach signal handlers
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_handler = segv_handler;
-  sigaction(SIGSEGV, &action, nullptr);
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = segv_handler;
+    sigaction(SIGSEGV, &action, nullptr);
+  }
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = int_handler;
+    sigaction(SIGINT, &action, nullptr);
+  }
 
   // Setup Global MVC State
   view = new ManyView();
+  runtime = new Runtime(view);
   if (enable_logging) {
     logfile = new ofstream("cascade.log", ofstream::app);
     view->attach(new LogView(*logfile));
   }
   if (ui.value() == "web") {
     auto mv = new MaybeView();
-    runtime = new Runtime(view);
     auto ui = new WebUi(runtime);
     ui->set_port(web_ui_port.value());
     ui->set_buffer(web_ui_buffer.value());
@@ -176,40 +186,29 @@ int main(int argc, char** argv) {
     view->attach(mv);
   } else {
     view->attach(new TermView());
-    runtime = new Runtime(view);
     controller = new TermController(runtime);
-  }
-  // Setup Profiler
-  profiler = new Profiler(runtime);
-  if (profile_interval.value() > 0) {
-    profiler->run();
   }
 
   // Setup Compiler State
-  qc = new QuartusClient();
-  qc->set_batch_window(batch_window.value());
-  qc->set_host(quartus_server_host.value());
-  qc->set_port(quartus_server_port.value());
-  qc->run();
-
-  auto lc = new LocalCompiler();
-  lc->set_runtime(runtime);
   auto dc = new De10Compiler();
-  dc->set_quartus_client(qc);
+    dc->set_host(quartus_host.value());
+    dc->set_port(quartus_port.value());
+  auto pc = new ProxyCompiler();
   auto sc = new SwCompiler();
-  sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
+    sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
+  auto lc = new LocalCompiler();
+    lc->set_runtime(runtime);
   auto c = new Compiler();
-  c->set_runtime(runtime);
-  c->set_num_jit_threads(64);
-  c->set_local_compiler(lc);
-  c->set_de10_compiler(dc);
-  c->set_sw_compiler(sc);
-  runtime->set_compiler(c);
-  runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
-  runtime->disable_inlining(disable_inlining.value());
-  runtime->set_open_loop_target(open_loop_target.value());
+    c->set_de10_compiler(dc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+    c->set_local_compiler(lc);
 
-  // Start the runtime 
+  // Start the runtime
+    runtime->set_compiler(c);
+    runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
+    runtime->disable_inlining(disable_inlining.value());
+    runtime->set_open_loop_target(open_loop_target.value());
   runtime->run();
 
   // Parse march configuration
@@ -225,25 +224,28 @@ int main(int argc, char** argv) {
     ss << "include " << input_path.value() << ";";
     StreamController(runtime, ss).run_to_completion();
   }
+
   // Switch over to a live console (unless the --batch flag has been provided)
+  // and turn on profiling (if the --profile flag was provided)
   if (!batch.value()) {
     controller->run();
+  }
+  profiler = new Profiler(runtime);
+  if (profile_interval.value() > 0) {
+    profiler->run();
   }
 
   // Wait for the runtime to stop and then shutdown remaining threads
   runtime->wait_for_stop();
-  qc->stop_now();
   controller->stop_now();
   profiler->stop_now();
 
   // Tear down global state
-  delete qc;
+  delete runtime;
   if (ui.value() == "web") {
-    delete runtime;
     delete controller;
   } else {
     delete view;
-    delete runtime;
     delete controller;
   }
   delete logfile;

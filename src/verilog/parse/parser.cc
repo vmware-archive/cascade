@@ -36,7 +36,7 @@ using namespace std;
 
 namespace cascade {
 
-Parser::Parser() : Editor(), Loggable() { 
+Parser::Parser() : Editor() { 
   debug_lexer_ = false;
   debug_parser_ = false;
   push("<top>");
@@ -81,7 +81,7 @@ pair<Node*, bool> Parser::parse(istream& is) {
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
-  clear_logs();
+  log_.clear();
   res_ = nullptr;
   eof_ = false;
   last_parse_ = "";
@@ -93,6 +93,10 @@ pair<Node*, bool> Parser::parse(istream& is) {
   }
 
   return make_pair(res_, eof_);
+}
+
+const Log& Parser::get_log() const {
+  return log_;
 }
 
 location& Parser::loc() {

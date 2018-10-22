@@ -31,6 +31,7 @@
 #include "src/verilog/program/type_check.h"
 
 #include <sstream>
+#include "src/base/log/log.h"
 #include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
@@ -45,8 +46,10 @@ using namespace std;
 
 namespace cascade {
 
-TypeCheck::TypeCheck(const Program* program) : Loggable(), Visitor() { 
+TypeCheck::TypeCheck(const Program* program, Log* log) : Visitor() { 
   program_ = program;
+  log_ = log;
+
   deactivate(false);
   warn_unresolved(true);
   local_only(true);
@@ -67,7 +70,6 @@ void TypeCheck::local_only(bool val) {
 }
 
 void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
-  clear_logs();
   if (deactivated_) {
     return;
   }
@@ -166,7 +168,6 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
 }
 
 void TypeCheck::pre_elaboration_check(const CaseGenerateConstruct* cgc) {
-  clear_logs();
   if (deactivated_) {
     return;
   }
@@ -179,7 +180,6 @@ void TypeCheck::pre_elaboration_check(const CaseGenerateConstruct* cgc) {
 }
 
 void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
-  clear_logs();
   if (deactivated_) {
     return;
   }
@@ -199,7 +199,6 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
     outermost_loop_ = lgc;
   }
 
-  clear_logs();
   if (!deactivated_) {
     // RECURSE: Iteration space
     lgc->get_init()->accept(this);
@@ -225,7 +224,6 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
 }
 
 void TypeCheck::post_elaboration_check(const Node* n) {
-  clear_logs();
   if (deactivated_) {
     return;
   }
@@ -240,7 +238,7 @@ void TypeCheck::warn(const string& s, const Node* n) {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
   TextPrinter(ss) << s << ": " << n;
-  Loggable::warn(ss.str());
+  log_->warn(ss.str());
 }
 
 void TypeCheck::error(const string& s, const Node* n) {
@@ -251,7 +249,7 @@ void TypeCheck::error(const string& s, const Node* n) {
     TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
   }
   TextPrinter(ss) << s << ": " << n;
-  Loggable::error(ss.str());
+  log_->error(ss.str());
 }
 
 void TypeCheck::multiple_def(const Node* n, const Node* m) {
@@ -268,7 +266,7 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
   } else {
     TextPrinter(ss) << m->get_source() << " on line " << m->get_line() << ".";
   }
-  Loggable::error(ss.str());
+  log_->error(ss.str());
 }
 
 void TypeCheck::visit(const Identifier* id) {
@@ -276,7 +274,7 @@ void TypeCheck::visit(const Identifier* id) {
   id->get_ids()->accept(this);
   id->get_dim()->accept(this);
   // EXIT:  Resolution won't work if either of these checks failed.
-  if (Loggable::error()) {
+  if (log_->error()) {
     return;
   }
 

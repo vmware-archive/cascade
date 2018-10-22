@@ -45,7 +45,7 @@ using namespace std;
 
 namespace cascade {
 
-Program::Program() : Editor(), Loggable() {
+Program::Program() : Editor() {
   root_inst_ = nullptr;
   root_ditr_ = decls_.end();
   root_eitr_ = elabs_.end();
@@ -58,7 +58,7 @@ Program::Program(ModuleDeclaration* md) : Program() {
 
 Program::Program(ModuleDeclaration* md, ModuleInstantiation* mi) : Program() {
   declare(md);
-  if (error()) {
+  if (log_.error()) {
     return;
   }
   eval(mi);
@@ -76,7 +76,7 @@ Program& Program::typecheck(bool tc) {
 }
 
 void Program::declare(ModuleDeclaration* md) {
-  clear_logs();
+  log_.clear();
 
   // Propage default annotations
   if (md->get_attrs()->get_as()->empty() && root_decl() != decl_end()) {
@@ -91,9 +91,9 @@ void Program::declare(ModuleDeclaration* md) {
 
   // Fail on error
   if (decl_find(md->get_id()) != decl_end()) {
-    error("Previous declaration already exists for this module");
+    log_.error("Previous declaration already exists for this module");
   }
-  if (error()) {
+  if (log_.error()) {
     delete md;
     return;
   } 
@@ -109,7 +109,7 @@ void Program::declare(ModuleDeclaration* md) {
 
 void Program::declare_and_instantiate(ModuleDeclaration* md) {
   declare(md);
-  if (error()) {
+  if (log_.error()) {
     return;
   }
 
@@ -127,7 +127,7 @@ void Program::declare_and_instantiate(ModuleDeclaration* md) {
 }
 
 void Program::eval(ModuleItem* mi) {
-  clear_logs();
+  log_.clear();
   if (elab_begin() == elab_end()) {
     eval_root(mi);
   } else {
@@ -149,6 +149,10 @@ void Program::outline_all() {
 
 const ModuleDeclaration* Program::src() const {
   return root_eitr_ == elab_end() ? nullptr : root_eitr_->second;
+}
+
+const Log& Program::get_log() const {
+  return log_;
 }
 
 Program::decl_iterator Program::root_decl() const {
@@ -184,7 +188,7 @@ Program::elab_iterator Program::elab_end() const {
 }
 
 void Program::elaborate(Node* n) {
-  TypeCheck tc(this);
+  TypeCheck tc(this, &log_);
   tc.deactivate(checker_off_);
   tc.warn_unresolved(warn_unresolved_);
   tc.local_only(local_only_);
@@ -193,12 +197,11 @@ void Program::elaborate(Node* n) {
   gen_queue_.clear();
   n->accept(this);
 
-  while (!error() && (!inst_queue_.empty() || !gen_queue_.empty())) {
-    for (size_t i = 0; !error() && i < inst_queue_.size(); ++i) {
+  while (!log_.error() && (!inst_queue_.empty() || !gen_queue_.empty())) {
+    for (size_t i = 0; !log_.error() && i < inst_queue_.size(); ++i) {
       auto mi = inst_queue_[i];
       tc.pre_elaboration_check(mi);
-      copy_logs(tc);
-      if (!error() && expand_insts_) {
+      if (!log_.error() && expand_insts_) {
         Elaborate(this).elaborate(mi)->accept(this);
         if (!Navigate(mi).lost()) {
           Navigate(mi).invalidate();
@@ -220,26 +223,23 @@ void Program::elaborate(Node* n) {
     // instantiation queue. In practice because don't support defparams
     // I don't *think* it makes a difference.
 
-    for (size_t i = 0; !error() && i < gen_queue_.size(); ++i) {
+    for (size_t i = 0; !log_.error() && i < gen_queue_.size(); ++i) {
       auto gc = gen_queue_[i];
       if (auto cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(cgc);
-        copy_logs(tc);
-        if (!error() && expand_gens_) {
+        if (!log_.error() && expand_gens_) {
           Elaborate().elaborate(cgc)->accept(this);
           Navigate(cgc).invalidate();
         }
       } else if (auto igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(igc);
-        copy_logs(tc);
-        if (!error() && expand_gens_) {
+        if (!log_.error() && expand_gens_) {
           Elaborate().elaborate(igc)->accept(this);
           Navigate(igc).invalidate();
         }
       } else if (auto lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(lgc);
-        copy_logs(tc);
-        if (!error() && expand_gens_) {
+        if (!log_.error() && expand_gens_) {
           Elaborate().elaborate(lgc)->accept(this);
           Navigate(lgc).invalidate();
         }
@@ -248,9 +248,8 @@ void Program::elaborate(Node* n) {
     gen_queue_.clear();
   }
 
-  if (!error()) {
+  if (!log_.error()) {
     tc.post_elaboration_check(n);
-    copy_logs(tc);
   }
 }
 
@@ -266,11 +265,11 @@ void Program::eval_root(ModuleItem* mi) {
   elabs_.checkpoint();
   auto inst = dynamic_cast<ModuleInstantiation*>(mi);
   if ((inst == nullptr) || !EqId()(inst->get_mid(), root_decl()->first)) {
-    error("Cannot evaluate code without first instantiating the root module");
+    log_.error("Cannot evaluate code without first instantiating the root module");
   } else {
     elaborate_item(inst);
   }
-  if (error()) {
+  if (log_.error()) {
     elabs_.undo();
     delete mi;
     return;
@@ -288,7 +287,7 @@ void Program::eval_item(ModuleItem* mi) {
   elabs_.checkpoint();
   elaborate_item(mi);
 
-  if (error()) {
+  if (log_.error()) {
     elabs_.undo();
     // Invalidate any references to this module item
     Resolve().invalidate(src->get_items()->back());

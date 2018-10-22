@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <unordered_set>
+#include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
 #include "src/target/compiler.h"
 #include "src/target/engine.h"
@@ -86,7 +87,8 @@ Module::iterator::iterator(Module* m) {
   path_.push_front(m);
 }
 
-Module::Module(const ModuleDeclaration* psrc, DataPlane* dp, Isolate* isolate, Compiler* compiler) {
+Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolate* isolate, Compiler* compiler) {
+  rt_ = rt;
   dp_ = dp;
   isolate_ = isolate;
   compiler_ = compiler;
@@ -111,7 +113,7 @@ Module::~Module() {
   delete engine_;
 }
 
-bool Module::synchronize(size_t n) {
+void Module::synchronize(size_t n) {
   // 1. Invalidate the root source no matter what
   source_out_of_date_ = true;
   // 2. Examine new code and instantiate new modules below the root 
@@ -166,10 +168,10 @@ bool Module::synchronize(size_t n) {
     if (!(*i)->engine_out_of_date_) {
       continue;
     }
-    auto res = compiler_->compile_and_replace((*i)->engine_, (*i)->src_);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
     (*i)->src_ = nullptr;
-    if (res == nullptr) {
-      return false;
+    if (compiler_->error()) {
+      return;
     }
     (*i)->engine_out_of_date_ = false;
   }
@@ -184,8 +186,6 @@ bool Module::synchronize(size_t n) {
       dp_->register_writer((*i)->engine_, gid);
     }
   }
-  // 8. We did it!
-  return true;
 }
 
 Module::iterator Module::begin() {
@@ -250,7 +250,7 @@ void Module::Instantiator::visit(const ModuleInstantiation* mi) {
 }
 
 Module::Module(const ModuleDeclaration* psrc, Module* parent) :
-  Module(psrc, parent->dp_, parent->isolate_, parent->compiler_) {
+  Module(psrc, parent->rt_, parent->dp_, parent->isolate_, parent->compiler_) {
   parent_ = parent;
 }
 

@@ -28,45 +28,26 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_MASKER_H
-#define CASCADE_SRC_TARGET_MASKER_H
+#include "src/target/compiler.h"
+#include "src/target/interface_compiler.h"
 
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/editor.h"
+using namespace std;
 
 namespace cascade {
 
-// TODO: Does this class belong in this directory?
-
-class Masker : public Editor {
-  public:
-    Masker();
-    ~Masker() override = default;
-
-    void mask(ModuleDeclaration* md);
-    void mask(ModuleDeclaration* md, size_t n);
-
-  private:
-    void edit(InitialConstruct* ic) override;
-};
-
-inline Masker::Masker() : Editor() { }
-
-inline void Masker::mask(ModuleDeclaration* md) {
-  mask(md, md->get_items()->size());
+InterfaceCompiler::InterfaceCompiler() {
+  set_compiler(nullptr);
 }
 
-inline void Masker::mask(ModuleDeclaration* md, size_t n) {
-  auto itr = md->get_items()->begin();
-  for (size_t i = 0; i < n; ++i, ++itr) {
-    (*itr)->accept(this);
+InterfaceCompiler& InterfaceCompiler::set_compiler(Compiler* c) {
+  compiler_ = c;
+  return *this;
+}
+
+void InterfaceCompiler::error(const string& s) {
+  if (compiler_ != nullptr) {
+    compiler_->error(s);
   }
 }
 
-inline void Masker::edit(InitialConstruct* ic) {
-  ic->get_attrs()->set_or_replace("__ignore", new String("true"));
-}
-
-} // namespace cascade 
-
-#endif
+} // namespace cascade

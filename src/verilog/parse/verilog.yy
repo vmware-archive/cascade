@@ -1718,7 +1718,7 @@ void yyParser::error(const location_type& l, const std::string& m) {
     ss << "In " << parser->source() << " on line " << l.end.line << ":\n";
   }
   ss << m;
-  parser->error(ss.str());
+  parser->log_.error(ss.str());
 }
 
 } // namespace cascade

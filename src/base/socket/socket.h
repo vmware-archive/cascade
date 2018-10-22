@@ -96,7 +96,7 @@ inline Socket::Socket(int fd) {
 }
 
 inline Socket::~Socket() {
-  if (!error()) {
+  if (fd_ != -1) {
     ::close(fd_);
   }
 }

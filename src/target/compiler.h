@@ -31,8 +31,11 @@
 #ifndef CASCADE_SRC_TARGET_COMPILER_H
 #define CASCADE_SRC_TARGET_COMPILER_H
 
+#include <mutex>
+#include <string>
 #include "src/base/thread/thread_pool.h"
 #include "src/verilog/ast/ast_fwd.h"
+#include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -53,22 +56,37 @@ class Compiler {
     Compiler();
     ~Compiler();
 
-    // Configuration Interface:
-    Compiler& set_runtime(Runtime* rt);
-    Compiler& set_num_jit_threads(size_t n);
-
-    // Core Compiler Configuration:
+    // Non-Tread-Safe Core Compiler Configuration:
+    // These methods must only be called before the first invocation of compile()
     Compiler& set_de10_compiler(De10Compiler* c);
     Compiler& set_proxy_compiler(ProxyCompiler* c);
     Compiler& set_sw_compiler(SwCompiler* c);
 
-    // Interface Compiler Configuration:
+    // Non-Thread-Safe Interface Compiler Configuration:
+    // These methods must only be called before the first invocation of compile()
     Compiler& set_local_compiler(LocalCompiler* c);
     Compiler& set_remote_compiler(RemoteCompiler* c);
 
     // Compilation Interface:
+    // 
+    // Compiles a module declaration into a new engine. Returns nullptr if
+    // compilation was aborted (either due to premature termination or error).
+    // In the case of error, the thread safe interface will indicate what
+    // happened.
     Engine* compile(ModuleDeclaration* md);
-    Engine* compile_and_replace(Engine* e, ModuleDeclaration* md);
+    // Compiles a module declaration into a new engine, transfers the runtime
+    // state of a preexisting engine into the new engine, and then swaps the
+    // identities of the two engines (effectively updating the compilation
+    // state of the original engine). This method may also use the runtime's
+    // interrupt interface to schedule a slower compilation and an asynchronous
+    // jit update to the engine at a later time. In the event of an error, the
+    // thread safe interface will indicate what happened.
+    void compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md);
+
+    // Thread-Safe Error Interface:
+    void error(const std::string& s);
+    bool error();
+    std::string what();
 
   private:
     // Core Compilers:
@@ -81,24 +99,34 @@ class Compiler {
     RemoteCompiler* remote_compiler_;
 
     // JIT State:
-    Runtime* rt_;
     ThreadPool pool_;
 
-    // Helper Class: Checks Modules for system tasks and initial constructs
-    class SysTaskCheck : public Visitor {
+    // Error State:
+    std::mutex lock_;
+    std::string what_;
+
+    // Helper Class: Checks whether a module is a stub, that is, whether it
+    // contains system tasks or initial constructs, or it has non-empty input
+    // or output sets.
+    class StubCheck : public Visitor {
       public:
-        ~SysTaskCheck() override = default;
-        bool check(const Node* n);
+        ~StubCheck() override = default;
+        bool check(const ModuleDeclaration* md);
       private:
-        bool res_;
+        bool stub_;
         void visit(const InitialConstruct* ic) override;
         void visit(const DisplayStatement* ds) override;
         void visit(const FinishStatement* fs) override;
         void visit(const WriteStatement* ws) override;
     };    
-
-    // Compilation Helpers:
-    bool is_stub(const ModuleDeclaration* md) const;
+    // Helper Class: Annotates initial statements with ignore comments
+    class Masker : public Editor {
+      public:
+        ~Masker() override = default;
+        void mask(ModuleDeclaration* md);
+      private:
+        void edit(InitialConstruct* ic) override;
+    };
 };
 
 } // namespace cascade

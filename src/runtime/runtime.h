@@ -123,11 +123,6 @@ class Runtime : public Asynchronous {
     //
     // Schedules an intterupt on the interrupt queue
     void schedule_interrupt(Interrupt int_);
-    // Schedules every module on the active simulation queue before the
-    // beginning of the following time step. Invoking this method is always
-    // safe (if not performant), as if a module has no active events this
-    // amounts to a noop.
-    void schedule_all_active();
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which

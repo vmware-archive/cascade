@@ -37,6 +37,7 @@
 #include "src/target/common/remote_runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/sw/sw_compiler.h"
+#include "src/target/interface/remote/remote_compiler.h"
 
 using namespace cl;
 using namespace cascade;
@@ -116,11 +117,13 @@ int main(int argc, char** argv) {
   mutex rst_lock;
 
   auto sc = new SwCompiler();
-  sc->set_led(&led, &led_lock);
-  sc->set_pad(&pad, &pad_lock);
-  sc->set_reset(&rst, &rst_lock);
+    sc->set_led(&led, &led_lock);
+    sc->set_pad(&pad, &pad_lock);
+    sc->set_reset(&rst, &rst_lock);
+  auto rc = new RemoteCompiler();
   auto c = new Compiler();
-  c->set_sw_compiler(sc);
+    c->set_sw_compiler(sc);
+    c->set_remote_compiler(rc);
 
   auto runtime = new RemoteRuntime();
   runtime->set_compiler(c);

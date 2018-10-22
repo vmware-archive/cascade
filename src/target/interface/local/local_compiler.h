@@ -46,7 +46,7 @@ class LocalCompiler : public InterfaceCompiler {
     LocalCompiler& set_runtime(Runtime* rt);
 
     LocalInterface* compile(ModuleDeclaration* md) override;
-    void teardown(Interface* interface) override;
+    void abort() override;
 
   private:
     Runtime* rt_;
@@ -63,13 +63,15 @@ inline LocalCompiler& LocalCompiler::set_runtime(Runtime* rt) {
 
 inline LocalInterface* LocalCompiler::compile(ModuleDeclaration* md) {
   (void) md;
-  // TODO: error(Missing direct connection to runtime)
-  return rt_ == nullptr ? nullptr : new LocalInterface(rt_);
+  if (rt_ == nullptr) {
+    error("Unable to compile a local interface without a reference to the runtime");
+    return nullptr;
+  }
+  return new LocalInterface(rt_);
 }
 
-inline void LocalCompiler::teardown(Interface* interface) {
+inline void LocalCompiler::abort() {
   // Does nothing.
-  (void) interface;
 }
 
 } // namespace cascade

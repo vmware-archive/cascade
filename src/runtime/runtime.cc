@@ -185,12 +185,6 @@ void Runtime::schedule_interrupt(Interrupt int_) {
   ints_.push_back(int_);
 }
 
-void Runtime::schedule_all_active() {
-  schedule_interrupt(Interrupt([this]{
-    schedule_all_ = true;
-  }));
-}
-
 void Runtime::write(VId id, const Bits* bits) {
   dp_->write(id, bits);
 }
@@ -240,7 +234,7 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     view_->parse(logical_time_, parser_->last_parse());
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
-    if (parser_->error()) {
+    if (parser_->get_log().error()) {
       if (is_term) {
         is.ignore(numeric_limits<streamsize>::max(), '\n');
       }
@@ -252,7 +246,6 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     if (pres.second) {
       if (is_term) {
         log_ctrl_d();
-        finish(0);
       }
       return res;
     }
@@ -307,7 +300,7 @@ bool Runtime::eval_include(String* s) {
 bool Runtime::eval_decl(ModuleDeclaration* md) {
   program_->declare(md);
   log_checker_warns();
-  if (program_->error()) {
+  if (program_->get_log().error()) {
     log_checker_errors();
     return false;
   }
@@ -318,7 +311,7 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
 bool Runtime::eval_item(ModuleItem* mi) {
   program_->eval(mi); 
   log_checker_warns();
-  if (program_->error()) {
+  if (program_->get_log().error()) {
     log_checker_errors();
     return false;
   }
@@ -328,7 +321,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
   // item instantiated within the root.
   const auto src = program_->root_elab()->second;
   if (src->get_items()->empty()) {
-    root_ = new Module(src, dp_, isolate_, compiler_);
+    root_ = new Module(src, this, dp_, isolate_, compiler_);
   } else {
     ++item_evals_;
   }
@@ -336,15 +329,26 @@ bool Runtime::eval_item(ModuleItem* mi) {
 }
 
 void Runtime::rebuild() {
+  // Nothing to do if something went wrong with the compiler after the last
+  // time this method was called. Trigger a fatal interrupt that will be
+  // handled before the next time step.
+  if (compiler_->error()) {
+    return log_compiler_errors();
+  }
+  // Also nothing to do if no items have been eval'ed since the last time this
+  // method was called
+  if (item_evals_ == 0) {
+    return;
+  } 
+
+  // Instantiate and recompile whatever is new.  If something goes wrong
+  // trigger a fatal interrupt that will be handled before the next time step.
   if (!disable_inlining_) {
     program_->inline_all();
   }
-
-  // Instantiate and recompile whatever items were eval'ed in the last
-  // invocation of drain_interrupts().
-  if (!root_->synchronize(item_evals_)) {
-    log_compiler_errors();
-    return finish(0);
+  root_->synchronize(item_evals_);
+  if (compiler_->error()) {
+    return log_compiler_errors();
   } 
 
   // Clear scheduling state
@@ -352,7 +356,6 @@ void Runtime::rebuild() {
   done_logic_.clear();
   clock_ = nullptr;
   inlined_logic_ = nullptr;
-
   // Reconfigure scheduling state and determine whether optimizations are possible
   for (auto m : *root_) {
     if (m->engine()->is_stub()) {
@@ -369,6 +372,7 @@ void Runtime::rebuild() {
       done_logic_.push_back(m);
     }
   }
+  schedule_all_ = true;
   enable_open_loop_ = (logic_.size() == 2) && (clock_ != nullptr) && (inlined_logic_ != nullptr);
 }
 
@@ -408,36 +412,34 @@ void Runtime::done_step() {
 
 void Runtime::drain_interrupts() {
   // Performance Note:
-  //
   // This is an inner loop method, so we shouldn't be grabbing a lock here
   // unless we absolutely have to. This method is only ever called between
   // logical time steps, so there's no reason to worry about an engine
   // scheduling a system task interrupt here. What we do have to worry about
-  // are things like jit threads scheduling engine replacement. 
-  //
-  // In general, we can be rather lax about when these sorts of asynchronous
-  // scheduling events. Does it really matter whether the recompilation happens
-  // this time step or next? Not really. That said, we should crisp up this
-  // service guarantee in the description of the runtime's API.
-
+  // are things like asynchronous jit handoffs.
+  
   // Fast Path: 
   // Leave immediately if there are no interrupts scheduled. This isn't thread
-  // safe, but I *think* the worst we risk is a false negative. And even a
-  // false positive would be sound.
+  // safe, but the only asynchronous events we need to consider here are jit
+  // handoffs. Since the only thing we risk is a false negative, and whether we
+  // handle the handoff now or during next timestep doesn't really matter, this
+  // is fine. 
   if (ints_.empty()) {
     return;
   }
 
   // Slow Path: 
-  // There may be an eval interrupt in here which will require a call to
-  // rebuild(), which itself may generate further interrupts such as a call to
-  // fatal() (wouldn't that be a shame).  
+  // We have at least one interrupt. System tasks are benign, but what could be
+  // here is an eval event (which will require a code rebuild) or a jit handoff
+  // (which in addition to the eval event, could trigger a fatal compiler
+  // error). Since we're already on the slow path here, schedule a call at the
+  // very end of the interrupt queue to first check whether the compiler is in
+  // a sound state (ie, jit handoff hasn't failed) and then to rebuild the
+  // codebase.
   lock_guard<recursive_mutex> lg(int_lock_);
   item_evals_ = 0;
   schedule_interrupt(Interrupt([this]{
-    if (item_evals_ > 0) {
-      rebuild();
-    }
+    rebuild();
   }));
   for (size_t i = 0; i < ints_.size() && !stop_requested(); ++i) {
     ints_[i]();
@@ -492,7 +494,7 @@ void Runtime::log_parse_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = parser_->error_begin(), ee = parser_->error_end(); e != ee; ++e) {
+  for (auto e = parser_->get_log().error_begin(), ee = parser_->get_log().error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;
@@ -503,7 +505,7 @@ void Runtime::log_parse_errors() {
 }
 
 void Runtime::log_checker_warns() {
-  if (program_->warn_begin() == program_->warn_end()) {
+  if (program_->get_log().warn_begin() == program_->get_log().warn_end()) {
     return;
   }
 
@@ -512,7 +514,7 @@ void Runtime::log_checker_warns() {
 
   indstream is(ss);
   is.tab();
-  for (auto w = program_->warn_begin(), we = program_->warn_end(); w != we; ++w) {
+  for (auto w = program_->get_log().warn_begin(), we = program_->get_log().warn_end(); w != we; ++w) {
     is << "\n> ";
     is.tab();
     is << *w;
@@ -528,7 +530,7 @@ void Runtime::log_checker_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = program_->error_begin(), ee = program_->error_end(); e != ee; ++e) {
+  for (auto e = program_->get_log().error_begin(), ee = program_->get_log().error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;
@@ -539,11 +541,11 @@ void Runtime::log_checker_errors() {
 }
 
 void Runtime::log_compiler_errors() {
-  error("*** Compiler Error:\n  > Unable to compile program logic! Shutting down!");
+  fatal(0, "*** Internal Compiler Error:\n  > " + compiler_->what());
 }
 
 void Runtime::log_ctrl_d() {
-  error("*** User Interrupt:\n  > Caught Ctrl-D. Shutting down.");
+  fatal(0, "*** User Interrupt:\n  > Caught Ctrl-D.");
 }
 
 string Runtime::format_freq(uint64_t f) const {
