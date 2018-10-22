@@ -141,6 +141,11 @@ Controller* controller = nullptr;
 ofstream* logfile = nullptr;
 Profiler* profiler = nullptr;
 
+void int_handler(int sig) {
+  (void) sig;
+  runtime->fatal(0, "User Interrupt:\n  > Caught Ctrl-C.");
+}
+
 void segv_handler(int sig) {
   (void) sig;
   view->crash();
@@ -152,10 +157,16 @@ int main(int argc, char** argv) {
   Simple::read(argc, argv);
 
   // Attach signal handlers
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_handler = segv_handler;
-  sigaction(SIGSEGV, &action, nullptr);
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = segv_handler;
+    sigaction(SIGSEGV, &action, nullptr);
+  }
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = int_handler;
+    sigaction(SIGINT, &action, nullptr);
+  }
 
   // Setup Global MVC State
   view = new ManyView();
