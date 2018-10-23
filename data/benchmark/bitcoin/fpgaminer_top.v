@@ -86,11 +86,11 @@ module fpgaminer_top (osc_clk);
   wire [31:0] nonce_next;
   wire feedback_next;
   
-  assign cnt_next =  (LOOP == 1) ? 6'd0 : ((cnt + 6'd1) & (LOOP-1));
+  assign cnt_next =  LOOP == 1 ? 6'd0 : ((cnt + 6'd1) & (LOOP-1));
   // On the first count (cnt==0), load data from previous stage (no feedback)
   // on 1..LOOP-1, take feedback from current stage
   // This reduces the throughput by a factor of (LOOP), but also reduces the design size by the same amount
-  assign feedback_next = (LOOP == 1) ? 1'b0 : (cnt_next != 0);
+  assign feedback_next = LOOP == 1 ? 1'b0 : (cnt_next != 0);
   assign nonce_next = feedback_next ? nonce : (nonce + 32'd1);
 
   always @ (posedge hash_clk)
@@ -107,7 +107,7 @@ module fpgaminer_top (osc_clk);
     // Check to see if the last hash generated is valid.
     // *** This last condition is here only because prior to this point, 
     // *** hash2 is undefined and we don't support x as a value
-    is_golden_ticket <= (hash2[255:255-DIFFICULTY+1] == 0) && !feedback_d1 && (nonce > 32'h81);
+    is_golden_ticket <= hash2[255:255-DIFFICULTY+1] == 0 && !feedback_d1 && (nonce > 32'h81);
     if(is_golden_ticket)
     begin
       // TODO: Find a more compact calculation for this

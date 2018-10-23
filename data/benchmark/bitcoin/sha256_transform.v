@@ -130,7 +130,7 @@ module sha256_transform #(parameter LOOP = 6'd4) (clk, feedback, cnt, rx_state, 
 			else
 				sha256_digester U (
 					.clk(clk),
-					.k(Ks[32*(63-(LOOP*i)-cnt) +: 32]),
+					.k(Ks[32*(63-LOOP*i-cnt) +: 32]),
 					.rx_w(feedback ? W : HASHERS[i-1].W),
 					.rx_state(feedback ? state : HASHERS[i-1].state),
 					.tx_w(W),
