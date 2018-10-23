@@ -139,9 +139,8 @@ cascade::Identifier dummy("__dummy");
 %token SYS_FINISH  "$finish"
 %token SYS_WRITE   "$write"
 
-%token <std::string> INCLUDE
-
 /* Identifiers and Strings */
+%token <std::string> INCLUDE
 %token <std::string> SIMPLE_ID
 %token <std::string> STRING
 
@@ -410,15 +409,11 @@ main
   ;
 
 /* A.1.1 Library Source Text */
-/* TODO library_text */
-/* TODO library_description */
-/* TODO library_declaration */
 include_statement 
   : INCLUDE { $$ = new String($1); }
   ;
 
 /* A.1.2 Verilog Source Text */
-/* TODO description */
 module_declaration
   : attribute_instance_S module_keyword_L identifier module_parameter_port_list
       list_of_ports SCOLON module_item_S
@@ -570,7 +565,6 @@ non_port_module_item
   }
   /* TODO | attribute_instance_S specparam_declaration SCOLON */
   ;
-/* TODO parameter_override */
 
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
@@ -635,7 +629,6 @@ parameter_declaration
     delete $4;
   }
   ;
-/* TODO specparam_declaration */
 parameter_type
   : INTEGER 
   ;
@@ -693,8 +686,7 @@ output_declaration
   /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
   ;
 
-/* A.2.1.3 Type Declarations
-/* TODO event_declaration */
+/* A.2.1.3 Type Declarations */
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
@@ -749,8 +741,6 @@ net_declaration
   }
   /* TODO | ... lots of cases */
   ;
-/* TODO real_declaration */
-/* TODO realtime_declaration */
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
@@ -772,7 +762,6 @@ reg_declaration
     delete $5;
   }
   ;
-/* TODO time_declaration */
 
 /* A.2.2.1 Net and Variable Types */
 net_type
@@ -788,8 +777,6 @@ net_type
   /* TODO | WAND */
   /* TODO | WOR */
   ;
-/* TODO output_variable_type */
-/* TODO real_type */
 variable_type
   : identifier dimension_S { $$ = new VariableAssign($1,&dummy); delete $2; }
   | identifier EQ expression { $$ = new VariableAssign($1, $3); }
@@ -800,7 +787,6 @@ delay3
   : POUND delay_value { $$ = new DelayControl($2); }
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
-/* TODO delay2 */
 delay_value
   : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, false); }
   /* TODO | real_number */
@@ -808,8 +794,6 @@ delay_value
   ;
 
 /* A.2.3 Declaration Lists */
-/* TODO list_of_defparam_assignments */
-/* TODO list_of_event_identifiers */
 list_of_net_decl_assignments
   : net_decl_assignment { $$ = new Many<VariableAssign>($1); }
   | list_of_net_decl_assignments COMMA net_decl_assignment {
@@ -839,8 +823,6 @@ list_of_port_identifiers
     $$->push_back($3);
   }
   ;
-/* TODO list_of_real_identifiers */
-/* TODO list_of_specparam_assignnments */
 list_of_variable_identifiers
   : variable_type { $$ = new Many<VariableAssign>($1); }
   | list_of_variable_identifiers COMMA variable_type {
@@ -856,17 +838,11 @@ list_of_variable_port_identifiers
   }
 
 /* A.2.4 Declaration Assignments */
-/* TODO defparam_assignment */
 net_decl_assignment
   : identifier EQ expression { $$ = new VariableAssign($1,$3); }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
-/* TODO specparam_assignment */
-/* TODO pulse_control_specparam */
-/* TODO error_limit_value */
-/* TODO reject_limit_value */
-/* TODO limit_value */
 
 /* A.2.5 Declaration Ranges */
 dimension
@@ -913,11 +889,9 @@ list_of_block_variable_identifiers
     $$->push_back($3);
   }
   ;
-/* TODO list_of_block_real_identifiers */
 block_variable_type 
   : identifier dimension_S { $$ = $1; delete $2; }
   ;
-/* TODO block_real_type */
 
 /* A.4.1 Module Instantiation */
 module_instantiation 
@@ -1198,7 +1172,6 @@ nonblocking_assignment
     $$ = new NonblockingAssign($3,new VariableAssign($1,$4));
   }
   ;
-/* TODO procedural_continuous_assignments */
 variable_assignment
   : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
   ;
@@ -1244,7 +1217,6 @@ statement_or_null
     $$ = new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()); 
   }
   ;
-/* TODO function_statement */
 
 /* A.6.5 Timing Control Statements */
 delay_control
@@ -1256,14 +1228,12 @@ delay_or_event_control
   | event_control { $$ = $1; }
   /* TODO | repeat (expression) event_control */
   ;
-/* TODO disable_statement */
 event_control
   /* TODO : AT hierarchical_event_identifier */ 
   : AT OPAREN event_expression CPAREN { $$ = new EventControl($3); }
   | AT TIMES { $$ = new EventControl(new Many<Event>()); }
   | AT STAR { $$ = new EventControl(new Many<Event>()); }
   ;
-/* TODO event_trigger */
 event_expression
   : expression {
     $$ = new Many<Event>(new Event(Event::EDGE, $1));
@@ -1341,19 +1311,16 @@ system_task_enable
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3); }
   ;
-/* TODO task_enable */
 
 /* A.8.1 Concatenations */
 concatenation 
   : OCURLY expression_P CCURLY { $$ = new Concatenation($2); }
   ;
-/* TODO module_path_concatenation */
 multiple_concatenation
   : OCURLY expression concatenation CCURLY { $$ = new MultipleConcatenation($2, $3); }
   ;
 
 /* A.8.3 Expressions */
-/* TODO base_expression */
 conditional_expression
   : expression QMARK /*attribute_instance_S*/ expression COLON expression {
     $$ = new ConditionalExpression($1,$3,$5);
@@ -1444,9 +1411,6 @@ mintypmax_expression
   : expression { $$ = $1; }
   /* TODO | expression COLON expression COLON expression */
   ;
-/* TODO module_path_conditional_expression */
-/* TODO module_path_expression */
-/* TODO module_path_mintypmax_expression */
 range_expression
   : expression { $$ = $1; }
   | expression COLON expression { $$ = new RangeExpression($1, RangeExpression::CONSTANT, $3); }
@@ -1490,8 +1454,6 @@ unary_operator
   | TCARAT { $$ = UnaryExpression::TCARAT; }
   ;
 /* INLINED binary_operator */
-/* TODO unary_module_path_operator */
-/* TODO binary_module_path_operator */
 
 /* A.8.7 Numbers */
 number
@@ -1501,8 +1463,6 @@ number
   | hex_number { $$ = $1; }
   /* TODO | real_number */
   ;
-/* TODO real_number */
-/* TODO exp */
 decimal_number
   : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
   | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
@@ -1522,7 +1482,6 @@ hex_number
   : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
   | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
   ;
-/* TODO sign */
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
   ;
