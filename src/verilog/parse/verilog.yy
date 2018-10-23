@@ -166,14 +166,13 @@ cascade::Identifier dummy("__dummy");
 %left  TTIMES
 %right BANG TILDE 
 
+/* List Operator Precedence */
+%left  COMMA OR
+
 /* Miscellaneous Hackery --- These need to be fixed */
-%token SHIFT 
 %left  SHIFT
-%right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
-%left  OSQUARE DOT
-%left  COMMA
 %left  ELSE
-%left  OR
+%right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
 
 /* A.1.1 Library Source Text */
 %type <String*> include_statement
@@ -1198,7 +1197,7 @@ seq_block
 statement 
   : /*attribute_instance_S*/ blocking_assignment SCOLON { $$ = $1; }
   | /*attribute_instance_S*/ case_statement { $$ = $1; }
-  | /*attribute_instance_S*/ conditional_statement %prec SHIFT { $$ = $1; }
+  | /*attribute_instance_S*/ conditional_statement { $$ = $1; }
   /* TODO | attribute_instance_S disable_statement */
   /* TODO | attribute_instance_S event_trigger  */
   | /*attribute_instance_S*/ loop_statement { $$ = $1; }
