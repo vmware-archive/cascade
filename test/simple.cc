@@ -216,6 +216,9 @@ TEST(simple, pipeline_1) {
 TEST(simple, pipeline_2) {
   run_code("minimal","data/test/simple/pipeline_2.v", "0123456789");
 }
+TEST(simple, precedence) {
+  run_code("minimal","data/test/simple/precedence.v", "7");
+}
 TEST(simple, range_1) {
   run_code("minimal","data/test/simple/range_1.v", "7");
 }

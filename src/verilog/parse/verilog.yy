@@ -42,8 +42,10 @@ cascade::Identifier dummy("__dummy");
 } // namespace 
 }
 
+/* Ctrl-D */
 %token END_OF_FILE 0 
 
+/* Operators and Tokens */
 %token AAMP    "&&"
 %token AMP     "&"
 %token AT      "@"
@@ -92,6 +94,7 @@ cascade::Identifier dummy("__dummy");
 %token TTIMES  "**"
 %token TPIPE   "~|"
 
+/* Keywords */
 %token ALWAYS      "always"
 %token ASSIGN      "assign"
 %token BEGIN_      "begin"
@@ -131,32 +134,47 @@ cascade::Identifier dummy("__dummy");
 %token WHILE       "while"
 %token WIRE        "wire"
 
+/* System Task Identifiers */
 %token SYS_DISPLAY "$display"
 %token SYS_FINISH  "$finish"
 %token SYS_WRITE   "$write"
 
 %token <std::string> INCLUDE
 
+/* Identifiers and Strings */
 %token <std::string> SIMPLE_ID
-%token <std::string> SYSTEM_ID
 %token <std::string> STRING
 
+/* Numbers */
 %token <std::string> UNSIGNED_NUM
 %token <std::pair<bool, std::string>> DECIMAL_VALUE
 %token <std::pair<bool, std::string>> BINARY_VALUE
 %token <std::pair<bool, std::string>> OCTAL_VALUE
 %token <std::pair<bool, std::string>> HEX_VALUE
 
+/* Operator Precedence */
+%right QMARK COLON
+%left  PPIPE
+%left  AAMP
+%left  PIPE 
+%left  CARAT TCARAT
+%left  AMP 
+%left  EEQ EEEQ BEQ BEEQ
+%left  GT LT GEQ LEQ
+%left  LLT LLLT GGT GGGT
+%left  PLUS MINUS
+%left  TIMES DIV MOD
+%left  TTIMES
+%right BANG TILDE 
+
+/* Miscellaneous Hackery --- These need to be fixed */
 %token SHIFT 
 %left  SHIFT
-
 %right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
 %left  OSQUARE DOT
 %left  COMMA
 %left  ELSE
 %left  OR
-%left  AAMP AMP BEEQ BEQ CARAT DIV EEEQ EEQ GEQ GGGT GGT GT LEQ 
-       LLLT LLT LT MINUS MOD PIPE PPIPE PLUS QMARK TCARAT TIMES TTIMES
 
 /* A.1.1 Library Source Text */
 %type <String*> include_statement
@@ -311,7 +329,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.8.6 Operators */
 %type <UnaryExpression::Op> unary_operator
-%type <BinaryExpression::Op> binary_operator
+/* INLINED %type <BinaryExpression::Op> binary_operator */
 
 /* A.8.7 Numbers */
 %type <Number*> number
@@ -987,24 +1005,85 @@ genvar_initialization
   ;
 genvar_expression
   : genvar_primary { 
-    $$ = $1; 
-    $$->set_source($1->get_source());
-    $$->set_line($1->get_line());
+    $$ = $1; $$->set_source($1->get_source()); $$->set_line($1->get_line());
   }
   | unary_operator /*attribute_instance_S*/ genvar_primary { 
-    $$ = new UnaryExpression($1,$2);
-    $$->set_source($2->get_source());
-    $$->set_line($2->get_line());
+    $$ = new UnaryExpression($1,$2); $$->set_source($2->get_source()); $$->set_line($2->get_line());
   }
-  | genvar_expression binary_operator /*attribute_instance_S*/ genvar_expression %prec AAMP { 
-    $$ = new BinaryExpression($1,$2,$3);
-    $$->set_source($1->get_source());
-    $$->set_line($1->get_line());
+  | genvar_expression AAMP /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
   }
-  | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression %prec AAMP { 
-    $$ = new ConditionalExpression($1,$3,$5);
-    $$->set_source($1->get_source());
-    $$->set_line($1->get_line());
+  | genvar_expression AMP /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression BEEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression BEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression CARAT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression DIV /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression EEEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression EEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression GEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression GGGT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression GGT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression GT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression LEQ /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression LLLT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression LLT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression LT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression MINUS /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression MOD /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression PIPE /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression PPIPE /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression PLUS /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression TCARAT /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression TIMES /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression TTIMES /*attribute_instance_S*/ genvar_expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+  }
+  | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression { 
+    $$ = new ConditionalExpression($1,$3,$5); $$->set_source($1->get_source()); $$->set_line($1->get_line());
   }
   ;
 genvar_iteration
@@ -1276,17 +1355,88 @@ multiple_concatenation
 /* A.8.3 Expressions */
 /* TODO base_expression */
 conditional_expression
-  : expression QMARK /*attribute_instance_S*/ expression COLON expression %prec AAMP {
+  : expression QMARK /*attribute_instance_S*/ expression COLON expression {
     $$ = new ConditionalExpression($1,$3,$5);
   }
   ;
 expression
-  : primary { $$ = $1; }
+  : primary { 
+    $$ = $1; 
+  }
   | unary_operator /*attribute_instance_S*/ primary { 
     $$ = new UnaryExpression($1,$2); 
   }
-  | expression binary_operator /*attribute_instance_S*/ expression %prec AAMP { 
-    $$ = new BinaryExpression($1,$2,$3); 
+  | expression AAMP  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); 
+  }
+  | expression AMP  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); 
+  }
+  | expression BEEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); 
+  }
+  | expression BEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); 
+  }
+  | expression CARAT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); 
+  }
+  | expression DIV  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); 
+  }
+  | expression EEEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); 
+  }
+  | expression EEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); 
+  }
+  | expression GEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); 
+  }
+  | expression GGGT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); 
+  }
+  | expression GGT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); 
+  }
+  | expression GT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); 
+  }
+  | expression LEQ  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); 
+  }
+  | expression LLLT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); 
+  }
+  | expression LLT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); 
+  }
+  | expression LT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); 
+  }
+  | expression MINUS  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); 
+  }
+  | expression MOD  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); 
+  }
+  | expression PIPE  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); 
+  }
+  | expression PPIPE  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); 
+  }
+  | expression PLUS  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); 
+  }
+  | expression TCARAT  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); 
+  }
+  | expression TIMES  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); 
+  }
+  | expression TTIMES  /*attribute_instance_S*/ expression { 
+    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
   ;
@@ -1339,32 +1489,7 @@ unary_operator
   | CARAT  { $$ = UnaryExpression::CARAT; }
   | TCARAT { $$ = UnaryExpression::TCARAT; }
   ;
-binary_operator
-  : PLUS   { $$ = BinaryExpression::PLUS; }
-  | MINUS  { $$ = BinaryExpression::MINUS; }
-  | TIMES  { $$ = BinaryExpression::TIMES; }
-  | DIV    { $$ = BinaryExpression::DIV; }
-  | MOD    { $$ = BinaryExpression::MOD; }
-  | EEQ    { $$ = BinaryExpression::EEQ; }
-  | BEQ    { $$ = BinaryExpression::BEQ; }
-  | EEEQ   { $$ = BinaryExpression::EEEQ; }
-  | BEEQ   { $$ = BinaryExpression::BEEQ; }
-  | AAMP   { $$ = BinaryExpression::AAMP; }
-  | PPIPE  { $$ = BinaryExpression::PPIPE; }
-  | TTIMES { $$ = BinaryExpression::TTIMES; }
-  | LT     { $$ = BinaryExpression::LT; }
-  | LEQ    { $$ = BinaryExpression::LEQ; }
-  | GT     { $$ = BinaryExpression::GT; }
-  | GEQ    { $$ = BinaryExpression::GEQ; }
-  | AMP    { $$ = BinaryExpression::AMP; }
-  | PIPE   { $$ = BinaryExpression::PIPE; }
-  | CARAT  { $$ = BinaryExpression::CARAT; }
-  | TCARAT { $$ = BinaryExpression::TCARAT; }
-  | GGT    { $$ = BinaryExpression::GGT; }
-  | GGGT   { $$ = BinaryExpression::GGGT; }
-  | LLT    { $$ = BinaryExpression::LLT; }
-  | LLLT   { $$ = BinaryExpression::LLLT; }
-  ; 
+/* INLINED binary_operator */
 /* TODO unary_module_path_operator */
 /* TODO binary_module_path_operator */
 
