@@ -169,9 +169,10 @@ cascade::Identifier dummy("__dummy");
 /* List Operator Precedence */
 %left  COMMA OR
 
-/* Miscellaneous Hackery --- These need to be fixed */
-%left  SHIFT
-%left  ELSE
+/* If Else Precedence */
+%right THEN ELSE
+
+/* Miscellaneous Hackery */
 %right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
 
 /* A.1.1 Library Source Text */
@@ -297,6 +298,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.6.6 Conditional Statements */
 %type <ConditionalStatement*> conditional_statement
+/* REMOVED IN FAVOR OF BISON CONVENTION %type<ConditionalStatement*> if_else_if_statement */
 
 /* A.6.7 Case Statements */
 %type <CaseStatement*> case_statement
@@ -327,7 +329,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.8.6 Operators */
 %type <UnaryExpression::Op> unary_operator
-/* INLINED %type <BinaryExpression::Op> binary_operator */
+/* INLINED DUE TO BISON PRECEDENCE CONVENTIONS %type <BinaryExpression::Op> binary_operator */
 
 /* A.8.7 Numbers */
 %type <Number*> number
@@ -1071,7 +1073,7 @@ conditional_generate_construct
   | case_generate_construct { $$ = $1; }
   ;
 if_generate_construct
-  : IF OPAREN expression CPAREN generate_block_or_null %prec SHIFT { 
+  : IF OPAREN expression CPAREN generate_block_or_null %prec THEN { 
     $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
@@ -1265,7 +1267,7 @@ wait_statement
 
 /* A.6.6 Conditional Statements */
 conditional_statement
-  : IF OPAREN expression CPAREN statement_or_null %prec SHIFT {
+  : IF OPAREN expression CPAREN statement_or_null %prec THEN {
     $$ = new ConditionalStatement($3,$5,new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));
   }
   | IF OPAREN expression CPAREN statement_or_null ELSE statement_or_null {
