@@ -87,6 +87,9 @@ TEST(parse, pass_module_declaration_4) {
 TEST(parse, pass_module_declaration_5) {
   run_parse("data/test/parse/pass/module_declaration_5.v", false);
 }
+TEST(parse, pass_module_declaration_6) {
+  run_parse("data/test/parse/pass/module_declaration_6.v", false);
+}
 TEST(parse, pass_port_declaration) {
   run_parse("data/test/parse/pass/port_declaration.v", false);
 }

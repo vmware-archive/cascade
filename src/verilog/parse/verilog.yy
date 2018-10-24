@@ -388,9 +388,9 @@ cascade::Identifier dummy("__dummy");
 %type <std::pair<size_t, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
 
-/* Stop-Gap Rules */
-/* These rules represent single element only parameter declarations */
-%type <Declaration*> se_parameter_declaration
+/* Alternate Rules */
+/* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
+%type <Declaration*> alt_parameter_declaration
 /* These rules represent single element only port declarations */
 %type <ModuleItem*> se_port_declaration
 %type <ModuleItem*> se_inout_declaration
@@ -1697,10 +1697,25 @@ ordered_port_connection_P
   }
   ;
 parameter_declaration_P
-  : se_parameter_declaration { $$ = new Many<Declaration>($1); }
-  | parameter_declaration_P COMMA se_parameter_declaration {
+  : parameter_declaration_P COMMA alt_parameter_declaration {
     $$ = $1;
     $$->push_back($3);
+  } 
+  | parameter_declaration_P COMMA list_of_param_assignments COMMA alt_parameter_declaration {
+    $$ = $1;
+    while (!$3->empty()) {
+      auto va = $3->remove_front();
+      auto pd = dynamic_cast<ParameterDeclaration*>($1->back()->clone());
+      pd->replace_id(va->get_lhs()->clone());
+      pd->replace_val(va->get_rhs()->clone());
+      delete va; 
+      $$->push_back(pd);
+    }
+    delete $3;
+    $$->push_back($5);
+  }
+  | alt_parameter_declaration {
+    $$ = new Many<Declaration>($1);
   }
   ;
 parameter_L
@@ -1745,7 +1760,7 @@ statement_S
   }
   ;
 
-se_parameter_declaration
+alt_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
     $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
     delete $5;
