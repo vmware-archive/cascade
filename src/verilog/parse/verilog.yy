@@ -12,6 +12,7 @@
 {
 #include <sstream>
 #include <string>
+#include <tuple>
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
@@ -37,7 +38,12 @@ class Parser;
 
 namespace {
 
-cascade::Identifier dummy("__dummy");
+bool is_null(const cascade::Expression* e) {
+  if (auto i = dynamic_cast<const cascade::Identifier*>(e)) {
+    return i->eq("__null");
+  }
+  return false;
+}
 
 } // namespace 
 }
@@ -391,11 +397,9 @@ cascade::Identifier dummy("__dummy");
 /* Alternate Rules */
 /* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
 %type <Declaration*> alt_parameter_declaration
-/* These rules represent single element only port declarations */
-%type <ModuleItem*> se_port_declaration
-%type <ModuleItem*> se_inout_declaration
-%type <ModuleItem*> se_input_declaration
-%type <ModuleItem*> se_output_declaration
+%type <PortDeclaration*> alt_port_declaration
+%type <PortDeclaration::Type> alt_port_type
+%type <bool> alt_net_type
 
 %%
 
@@ -671,11 +675,8 @@ output_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $4;
@@ -690,15 +691,12 @@ integer_declaration
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto va = $3->remove_front();
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       id->get_id()->set_source(va->get_lhs()->get_source());
       id->get_id()->set_line(va->get_lhs()->get_line());
       id->set_source(parser->source());
       id->set_line($2);
       $$->push_back(id);
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $1;
@@ -744,15 +742,12 @@ reg_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       rd->get_id()->set_source(va->get_lhs()->get_source());
       rd->get_id()->set_line(va->get_lhs()->get_line());
       rd->set_source(parser->source());
       rd->set_line($2);
       $$->push_back(rd);
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $1;
@@ -776,7 +771,7 @@ net_type
   /* TODO | WOR */
   ;
 variable_type
-  : identifier dimension_S { $$ = new VariableAssign($1,&dummy); delete $2; }
+  : identifier dimension_S { $$ = new VariableAssign($1, new Identifier("__null")); delete $2; }
   | identifier EQ expression { $$ = new VariableAssign($1, $3); }
   ;
 
@@ -1598,7 +1593,7 @@ dimension_S
   }
   ;
 eq_ce_Q
-  : %empty { $$ = &dummy; }
+  : %empty { $$ = new Identifier("__null"); }
   | EQ expression { $$ = $2; }
   ;
 expression_P
@@ -1701,7 +1696,7 @@ parameter_declaration_P
     $$ = $1;
     $$->push_back($3);
   } 
-  | parameter_declaration_P COMMA list_of_param_assignments COMMA alt_parameter_declaration {
+  | parameter_declaration_P COMMA list_of_param_assignments {
     $$ = $1;
     while (!$3->empty()) {
       auto va = $3->remove_front();
@@ -1712,7 +1707,6 @@ parameter_declaration_P
       $$->push_back(pd);
     }
     delete $3;
-    $$->push_back($5);
   }
   | alt_parameter_declaration {
     $$ = new Many<Declaration>($1);
@@ -1726,11 +1720,38 @@ parameter_value_assignment_Q
   | parameter_value_assignment { $$ = $1; }
   ;
 port_declaration_P
-  : se_port_declaration { $$ = new Many<ModuleItem>($1); }
-  | port_declaration_P COMMA se_port_declaration {
+  : port_declaration_P COMMA alt_port_declaration {
     $$ = $1;
     $$->push_back($3);
-  } 
+  }
+  | port_declaration_P COMMA list_of_variable_port_identifiers {
+    $$ = $1;
+    while (!$3->empty()) {
+      auto va = $3->remove_front();
+      auto pd = dynamic_cast<PortDeclaration*>($1->back()->clone());
+      if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
+        nd->replace_id(va->get_lhs()->clone());
+        if (!is_null(va->get_rhs())) {
+          // TODO: Memory Leak
+          error(parser->loc(), "Found initialization value in net declaration!");
+          YYERROR;
+        }
+      } else if (auto rd = dynamic_cast<RegDeclaration*>(pd->get_decl())) {
+        rd->replace_id(va->get_lhs()->clone());
+        if (!is_null(va->get_rhs())) {
+          rd->get_val()->replace(va->get_rhs()->clone());
+        }
+      } else {
+        assert(false);
+      }
+      delete va;
+      $$->push_back(pd);
+    }
+    delete $3;
+  }
+  | alt_port_declaration {
+    $$ = new Many<ModuleItem>($1);
+  }
   ;
 port_P
   : port { $$ = new Many<ArgAssign>($1); }
@@ -1770,38 +1791,32 @@ alt_parameter_declaration
     delete $4;
   }
   ;
-se_port_declaration
-  : attribute_instance_S se_inout_declaration { delete $1; $$ = $2; }
-  | attribute_instance_S se_input_declaration { delete $1; $$ = $2; }
-  | attribute_instance_S se_output_declaration { delete $1; $$ = $2; }
-  ;
-se_inout_declaration
-  : INOUT net_type_Q signed_Q range_Q identifier {
-    auto t = PortDeclaration::INOUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
-se_input_declaration
-  : INPUT net_type_Q signed_Q range_Q identifier {
-    auto t = PortDeclaration::INPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
-se_output_declaration
-  : OUTPUT net_type_Q signed_Q range_Q identifier {
-    auto t = PortDeclaration::OUTPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  | OUTPUT REG signed_Q range_Q identifier eq_ce_Q {
-    auto t = PortDeclaration::OUTPUT;
-    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
 
+alt_port_declaration 
+  : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
+    // If this is a net declaration and we have an initial value, it's an error
+    if (!$2 && !is_null($6)) {
+      // TODO: Memory Leak
+      error(parser->loc(), "Found initialization value in net declaration!");
+      YYERROR;
+    }
+    auto d = $2 ? 
+      (Declaration*) new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, is_null($6) ? new Maybe<Expression>() : new Maybe<Expression>($6->clone())) :
+      (Declaration*) new NetDeclaration(new Attributes(new Many<AttrSpec>()), NetDeclaration::WIRE, new Maybe<DelayControl>(), $5, $3, $4);
+    delete $6;
+    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), $1, d);
+  }
+  ;
+alt_port_type
+  : INOUT { $$ = PortDeclaration::INOUT; }
+  | INPUT { $$ = PortDeclaration::INPUT; }
+  | OUTPUT { $$ = PortDeclaration::OUTPUT; }
+  ;
+alt_net_type 
+  : %empty { $$ = false; }
+  | WIRE { $$ = false; }
+  | REG { $$ = true; }
+  ; 
 %%
 
 namespace cascade {
