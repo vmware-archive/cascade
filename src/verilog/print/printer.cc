@@ -206,7 +206,7 @@ void Printer::visit(const GenerateBlock* gb) {
   gb->get_items()->accept(this, [this]{*this << "\n";}, []{});
   os_.untab();
   if (surround) {
-    *this << Color::GREEN << "end " << Color::RESET;
+    *this << Color::GREEN << "\nend " << Color::RESET;
   }
 }
 
