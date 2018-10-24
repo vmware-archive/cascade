@@ -172,9 +172,6 @@ cascade::Identifier dummy("__dummy");
 /* If Else Precedence */
 %right THEN ELSE
 
-/* Miscellaneous Hackery */
-%right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
-
 /* A.1.1 Library Source Text */
 %type <String*> include_statement
 
