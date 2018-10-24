@@ -1508,6 +1508,7 @@ hierarchical_identifier
     $$ = $1;
     if (!$$->get_dim()->null()) {
       if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
+        // TODO: Memory Leak?
         error(parser->loc(), "Found range expression inside hierarchical identifier!");
         YYERROR;
       }
@@ -1732,7 +1733,7 @@ port_declaration_P
       if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
-          // TODO: Memory Leak
+          // TODO: Memory Leak?
           error(parser->loc(), "Found initialization value in net declaration!");
           YYERROR;
         }
@@ -1796,7 +1797,7 @@ alt_port_declaration
   : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
     // If this is a net declaration and we have an initial value, it's an error
     if (!$2 && !is_null($6)) {
-      // TODO: Memory Leak
+      // TODO: Memory Leak?
       error(parser->loc(), "Found initialization value in net declaration!");
       YYERROR;
     }
