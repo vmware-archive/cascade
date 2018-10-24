@@ -566,7 +566,7 @@ non_port_module_item
 
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
-  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
+  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
@@ -582,7 +582,7 @@ local_parameter_declaration
     delete $4;
     delete $5;
   }
-  | attribute_instance_S localparam_L parameter_type list_of_param_assignments %prec LOCALPARAM {
+  | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
@@ -597,7 +597,7 @@ local_parameter_declaration
   }
   ;
 parameter_declaration
-  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments %prec PARAMETER {
+  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
@@ -613,7 +613,7 @@ parameter_declaration
     delete $4;
     delete $5;
   }
-  | attribute_instance_S parameter_L parameter_type list_of_param_assignments %prec PARAMETER {
+  | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
@@ -632,7 +632,7 @@ parameter_type
   ;
 /* A.2.1.2 Port Declarations */
 inout_declaration
-  : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec INOUT {
+  : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INOUT;
@@ -644,7 +644,7 @@ inout_declaration
   }
   ;
 input_declaration
-  : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec INPUT {
+  : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INPUT;
@@ -656,7 +656,7 @@ input_declaration
   }
   ;
 output_declaration
-  : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec OUTPUT {
+  : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::OUTPUT;
@@ -666,7 +666,7 @@ output_declaration
     delete $4;
     delete $5;
   }
-  | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers %prec OUTPUT {
+  | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
@@ -1746,11 +1746,11 @@ statement_S
   ;
 
 se_parameter_declaration
-  : attribute_instance_S PARAMETER signed_Q range_Q param_assignment %prec PARAMETER {
+  : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
     $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
     delete $5;
   }
-  | attribute_instance_S PARAMETER parameter_type param_assignment %prec PARAMETER {
+  | attribute_instance_S PARAMETER parameter_type param_assignment {
     $$ = new ParameterDeclaration($1, false, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
     delete $4;
   }
@@ -1761,26 +1761,26 @@ se_port_declaration
   | attribute_instance_S se_output_declaration { delete $1; $$ = $2; }
   ;
 se_inout_declaration
-  : INOUT net_type_Q signed_Q range_Q identifier %prec INOUT {
+  : INOUT net_type_Q signed_Q range_Q identifier {
     auto t = PortDeclaration::INOUT;
     auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_input_declaration
-  : INPUT net_type_Q signed_Q range_Q identifier %prec INPUT {
+  : INPUT net_type_Q signed_Q range_Q identifier {
     auto t = PortDeclaration::INPUT;
     auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
   ;
 se_output_declaration
-  : OUTPUT net_type_Q signed_Q range_Q identifier %prec OUTPUT {
+  : OUTPUT net_type_Q signed_Q range_Q identifier {
     auto t = PortDeclaration::OUTPUT;
     auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
   }
-  | OUTPUT REG signed_Q range_Q identifier eq_ce_Q %prec OUTPUT {
+  | OUTPUT REG signed_Q range_Q identifier eq_ce_Q {
     auto t = PortDeclaration::OUTPUT;
     auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
