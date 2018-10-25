@@ -87,6 +87,15 @@ TEST(parse, pass_module_declaration_4) {
 TEST(parse, pass_module_declaration_5) {
   run_parse("data/test/parse/pass/module_declaration_5.v", false);
 }
+TEST(parse, pass_module_declaration_6) {
+  run_parse("data/test/parse/pass/module_declaration_6.v", false);
+}
+TEST(parse, pass_module_declaration_7) {
+  run_parse("data/test/parse/pass/module_declaration_7.v", false);
+}
+TEST(parse, pass_module_declaration_8) {
+  run_parse("data/test/parse/pass/module_declaration_8.v", false);
+}
 TEST(parse, pass_port_declaration) {
   run_parse("data/test/parse/pass/port_declaration.v", false);
 }
@@ -108,4 +117,7 @@ TEST(parse, fail_missing_endmodule) {
 }
 TEST(parse, fail_module_declaration_1) {
   run_parse("data/test/parse/fail/module_declaration_1.v", true);
+}
+TEST(parse, fail_module_declaration_2) {
+  run_parse("data/test/parse/fail/module_declaration_2.v", true);
 }

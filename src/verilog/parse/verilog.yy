@@ -12,6 +12,7 @@
 {
 #include <sstream>
 #include <string>
+#include <tuple>
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
@@ -37,7 +38,12 @@ class Parser;
 
 namespace {
 
-cascade::Identifier dummy("__dummy");
+bool is_null(const cascade::Expression* e) {
+  if (auto i = dynamic_cast<const cascade::Identifier*>(e)) {
+    return i->eq("__null");
+  }
+  return false;
+}
 
 } // namespace 
 }
@@ -139,9 +145,8 @@ cascade::Identifier dummy("__dummy");
 %token SYS_FINISH  "$finish"
 %token SYS_WRITE   "$write"
 
-%token <std::string> INCLUDE
-
 /* Identifiers and Strings */
+%token <std::string> INCLUDE
 %token <std::string> SIMPLE_ID
 %token <std::string> STRING
 
@@ -167,14 +172,11 @@ cascade::Identifier dummy("__dummy");
 %left  TTIMES
 %right BANG TILDE 
 
-/* Miscellaneous Hackery --- These need to be fixed */
-%token SHIFT 
-%left  SHIFT
-%right INPUT OUTPUT INOUT PARAMETER LOCALPARAM
-%left  OSQUARE DOT
-%left  COMMA
-%left  ELSE
-%left  OR
+/* List Operator Precedence */
+%left  COMMA OR
+
+/* If Else Precedence */
+%right THEN ELSE
 
 /* A.1.1 Library Source Text */
 %type <String*> include_statement
@@ -299,6 +301,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.6.6 Conditional Statements */
 %type <ConditionalStatement*> conditional_statement
+/* REMOVED IN FAVOR OF BISON CONVENTION %type<ConditionalStatement*> if_else_if_statement */
 
 /* A.6.7 Case Statements */
 %type <CaseStatement*> case_statement
@@ -329,7 +332,7 @@ cascade::Identifier dummy("__dummy");
 
 /* A.8.6 Operators */
 %type <UnaryExpression::Op> unary_operator
-/* INLINED %type <BinaryExpression::Op> binary_operator */
+/* INLINED DUE TO BISON PRECEDENCE CONVENTIONS %type <BinaryExpression::Op> binary_operator */
 
 /* A.8.7 Numbers */
 %type <Number*> number
@@ -391,14 +394,12 @@ cascade::Identifier dummy("__dummy");
 %type <std::pair<size_t, std::string>> simple_id_L
 %type <Many<Statement>*> statement_S
 
-/* Stop-Gap Rules */
-/* These rules represent single element only parameter declarations */
-%type <Declaration*> se_parameter_declaration
-/* These rules represent single element only port declarations */
-%type <ModuleItem*> se_port_declaration
-%type <ModuleItem*> se_inout_declaration
-%type <ModuleItem*> se_input_declaration
-%type <ModuleItem*> se_output_declaration
+/* Alternate Rules */
+/* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
+%type <Declaration*> alt_parameter_declaration
+%type <PortDeclaration*> alt_port_declaration
+%type <PortDeclaration::Type> alt_port_type
+%type <bool> alt_net_type
 
 %%
 
@@ -410,15 +411,11 @@ main
   ;
 
 /* A.1.1 Library Source Text */
-/* TODO library_text */
-/* TODO library_description */
-/* TODO library_declaration */
 include_statement 
   : INCLUDE { $$ = new String($1); }
   ;
 
 /* A.1.2 Verilog Source Text */
-/* TODO description */
 module_declaration
   : attribute_instance_S module_keyword_L identifier module_parameter_port_list
       list_of_ports SCOLON module_item_S
@@ -570,11 +567,10 @@ non_port_module_item
   }
   /* TODO | attribute_instance_S specparam_declaration SCOLON */
   ;
-/* TODO parameter_override */
 
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
-  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments %prec LOCALPARAM {
+  : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
@@ -590,7 +586,7 @@ local_parameter_declaration
     delete $4;
     delete $5;
   }
-  | attribute_instance_S localparam_L parameter_type list_of_param_assignments %prec LOCALPARAM {
+  | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
@@ -605,7 +601,7 @@ local_parameter_declaration
   }
   ;
 parameter_declaration
-  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments %prec PARAMETER {
+  : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
@@ -621,7 +617,7 @@ parameter_declaration
     delete $4;
     delete $5;
   }
-  | attribute_instance_S parameter_L parameter_type list_of_param_assignments %prec PARAMETER {
+  | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
@@ -635,13 +631,12 @@ parameter_declaration
     delete $4;
   }
   ;
-/* TODO specparam_declaration */
 parameter_type
   : INTEGER 
   ;
 /* A.2.1.2 Port Declarations */
 inout_declaration
-  : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec INOUT {
+  : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INOUT;
@@ -653,7 +648,7 @@ inout_declaration
   }
   ;
 input_declaration
-  : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec INPUT {
+  : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INPUT;
@@ -665,7 +660,7 @@ input_declaration
   }
   ;
 output_declaration
-  : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers %prec OUTPUT {
+  : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::OUTPUT;
@@ -675,16 +670,13 @@ output_declaration
     delete $4;
     delete $5;
   }
-  | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers %prec OUTPUT {
+  | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $4;
@@ -693,22 +685,18 @@ output_declaration
   /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
   ;
 
-/* A.2.1.3 Type Declarations
-/* TODO event_declaration */
+/* A.2.1.3 Type Declarations */
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto va = $3->remove_front();
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       id->get_id()->set_source(va->get_lhs()->get_source());
       id->get_id()->set_line(va->get_lhs()->get_line());
       id->set_source(parser->source());
       id->set_line($2);
       $$->push_back(id);
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $1;
@@ -749,22 +737,17 @@ net_declaration
   }
   /* TODO | ... lots of cases */
   ;
-/* TODO real_declaration */
-/* TODO realtime_declaration */
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), va->get_rhs() != &dummy ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
       rd->get_id()->set_source(va->get_lhs()->get_source());
       rd->get_id()->set_line(va->get_lhs()->get_line());
       rd->set_source(parser->source());
       rd->set_line($2);
       $$->push_back(rd);
-      if (va->get_rhs() == &dummy) {
-        va->set_rhs(dummy.clone());
-      }
       delete va;
     }
     delete $1;
@@ -772,7 +755,6 @@ reg_declaration
     delete $5;
   }
   ;
-/* TODO time_declaration */
 
 /* A.2.2.1 Net and Variable Types */
 net_type
@@ -788,10 +770,8 @@ net_type
   /* TODO | WAND */
   /* TODO | WOR */
   ;
-/* TODO output_variable_type */
-/* TODO real_type */
 variable_type
-  : identifier dimension_S { $$ = new VariableAssign($1,&dummy); delete $2; }
+  : identifier dimension_S { $$ = new VariableAssign($1, new Identifier("__null")); delete $2; }
   | identifier EQ expression { $$ = new VariableAssign($1, $3); }
   ;
 
@@ -800,7 +780,6 @@ delay3
   : POUND delay_value { $$ = new DelayControl($2); }
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
-/* TODO delay2 */
 delay_value
   : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, false); }
   /* TODO | real_number */
@@ -808,8 +787,6 @@ delay_value
   ;
 
 /* A.2.3 Declaration Lists */
-/* TODO list_of_defparam_assignments */
-/* TODO list_of_event_identifiers */
 list_of_net_decl_assignments
   : net_decl_assignment { $$ = new Many<VariableAssign>($1); }
   | list_of_net_decl_assignments COMMA net_decl_assignment {
@@ -839,8 +816,6 @@ list_of_port_identifiers
     $$->push_back($3);
   }
   ;
-/* TODO list_of_real_identifiers */
-/* TODO list_of_specparam_assignnments */
 list_of_variable_identifiers
   : variable_type { $$ = new Many<VariableAssign>($1); }
   | list_of_variable_identifiers COMMA variable_type {
@@ -856,17 +831,11 @@ list_of_variable_port_identifiers
   }
 
 /* A.2.4 Declaration Assignments */
-/* TODO defparam_assignment */
 net_decl_assignment
   : identifier EQ expression { $$ = new VariableAssign($1,$3); }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
-/* TODO specparam_assignment */
-/* TODO pulse_control_specparam */
-/* TODO error_limit_value */
-/* TODO reject_limit_value */
-/* TODO limit_value */
 
 /* A.2.5 Declaration Ranges */
 dimension
@@ -913,11 +882,9 @@ list_of_block_variable_identifiers
     $$->push_back($3);
   }
   ;
-/* TODO list_of_block_real_identifiers */
 block_variable_type 
   : identifier dimension_S { $$ = $1; delete $2; }
   ;
-/* TODO block_real_type */
 
 /* A.4.1 Module Instantiation */
 module_instantiation 
@@ -1098,7 +1065,7 @@ conditional_generate_construct
   | case_generate_construct { $$ = $1; }
   ;
 if_generate_construct
-  : IF OPAREN expression CPAREN generate_block_or_null %prec SHIFT { 
+  : IF OPAREN expression CPAREN generate_block_or_null %prec THEN { 
     $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
@@ -1198,7 +1165,6 @@ nonblocking_assignment
     $$ = new NonblockingAssign($3,new VariableAssign($1,$4));
   }
   ;
-/* TODO procedural_continuous_assignments */
 variable_assignment
   : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
   ;
@@ -1225,7 +1191,7 @@ seq_block
 statement 
   : /*attribute_instance_S*/ blocking_assignment SCOLON { $$ = $1; }
   | /*attribute_instance_S*/ case_statement { $$ = $1; }
-  | /*attribute_instance_S*/ conditional_statement %prec SHIFT { $$ = $1; }
+  | /*attribute_instance_S*/ conditional_statement { $$ = $1; }
   /* TODO | attribute_instance_S disable_statement */
   /* TODO | attribute_instance_S event_trigger  */
   | /*attribute_instance_S*/ loop_statement { $$ = $1; }
@@ -1244,7 +1210,6 @@ statement_or_null
     $$ = new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()); 
   }
   ;
-/* TODO function_statement */
 
 /* A.6.5 Timing Control Statements */
 delay_control
@@ -1256,14 +1221,12 @@ delay_or_event_control
   | event_control { $$ = $1; }
   /* TODO | repeat (expression) event_control */
   ;
-/* TODO disable_statement */
 event_control
   /* TODO : AT hierarchical_event_identifier */ 
   : AT OPAREN event_expression CPAREN { $$ = new EventControl($3); }
   | AT TIMES { $$ = new EventControl(new Many<Event>()); }
   | AT STAR { $$ = new EventControl(new Many<Event>()); }
   ;
-/* TODO event_trigger */
 event_expression
   : expression {
     $$ = new Many<Event>(new Event(Event::EDGE, $1));
@@ -1296,7 +1259,7 @@ wait_statement
 
 /* A.6.6 Conditional Statements */
 conditional_statement
-  : IF OPAREN expression CPAREN statement_or_null %prec SHIFT {
+  : IF OPAREN expression CPAREN statement_or_null %prec THEN {
     $$ = new ConditionalStatement($3,$5,new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));
   }
   | IF OPAREN expression CPAREN statement_or_null ELSE statement_or_null {
@@ -1341,19 +1304,16 @@ system_task_enable
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3); }
   ;
-/* TODO task_enable */
 
 /* A.8.1 Concatenations */
 concatenation 
   : OCURLY expression_P CCURLY { $$ = new Concatenation($2); }
   ;
-/* TODO module_path_concatenation */
 multiple_concatenation
   : OCURLY expression concatenation CCURLY { $$ = new MultipleConcatenation($2, $3); }
   ;
 
 /* A.8.3 Expressions */
-/* TODO base_expression */
 conditional_expression
   : expression QMARK /*attribute_instance_S*/ expression COLON expression {
     $$ = new ConditionalExpression($1,$3,$5);
@@ -1444,9 +1404,6 @@ mintypmax_expression
   : expression { $$ = $1; }
   /* TODO | expression COLON expression COLON expression */
   ;
-/* TODO module_path_conditional_expression */
-/* TODO module_path_expression */
-/* TODO module_path_mintypmax_expression */
 range_expression
   : expression { $$ = $1; }
   | expression COLON expression { $$ = new RangeExpression($1, RangeExpression::CONSTANT, $3); }
@@ -1490,8 +1447,6 @@ unary_operator
   | TCARAT { $$ = UnaryExpression::TCARAT; }
   ;
 /* INLINED binary_operator */
-/* TODO unary_module_path_operator */
-/* TODO binary_module_path_operator */
 
 /* A.8.7 Numbers */
 number
@@ -1501,8 +1456,6 @@ number
   | hex_number { $$ = $1; }
   /* TODO | real_number */
   ;
-/* TODO real_number */
-/* TODO exp */
 decimal_number
   : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
   | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
@@ -1522,7 +1475,6 @@ hex_number
   : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
   | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
   ;
-/* TODO sign */
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
   ;
@@ -1556,6 +1508,7 @@ hierarchical_identifier
     $$ = $1;
     if (!$$->get_dim()->null()) {
       if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
+        // TODO: Memory Leak?
         error(parser->loc(), "Found range expression inside hierarchical identifier!");
         YYERROR;
       }
@@ -1641,7 +1594,7 @@ dimension_S
   }
   ;
 eq_ce_Q
-  : %empty { $$ = &dummy; }
+  : %empty { $$ = new Identifier("__null"); }
   | EQ expression { $$ = $2; }
   ;
 expression_P
@@ -1740,10 +1693,24 @@ ordered_port_connection_P
   }
   ;
 parameter_declaration_P
-  : se_parameter_declaration { $$ = new Many<Declaration>($1); }
-  | parameter_declaration_P COMMA se_parameter_declaration {
+  : parameter_declaration_P COMMA alt_parameter_declaration {
     $$ = $1;
     $$->push_back($3);
+  } 
+  | parameter_declaration_P COMMA list_of_param_assignments {
+    $$ = $1;
+    while (!$3->empty()) {
+      auto va = $3->remove_front();
+      auto pd = dynamic_cast<ParameterDeclaration*>($1->back()->clone());
+      pd->replace_id(va->get_lhs()->clone());
+      pd->replace_val(va->get_rhs()->clone());
+      delete va; 
+      $$->push_back(pd);
+    }
+    delete $3;
+  }
+  | alt_parameter_declaration {
+    $$ = new Many<Declaration>($1);
   }
   ;
 parameter_L
@@ -1754,11 +1721,38 @@ parameter_value_assignment_Q
   | parameter_value_assignment { $$ = $1; }
   ;
 port_declaration_P
-  : se_port_declaration { $$ = new Many<ModuleItem>($1); }
-  | port_declaration_P COMMA se_port_declaration {
+  : port_declaration_P COMMA alt_port_declaration {
     $$ = $1;
     $$->push_back($3);
-  } 
+  }
+  | port_declaration_P COMMA list_of_variable_port_identifiers {
+    $$ = $1;
+    while (!$3->empty()) {
+      auto va = $3->remove_front();
+      auto pd = dynamic_cast<PortDeclaration*>($1->back()->clone());
+      if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
+        nd->replace_id(va->get_lhs()->clone());
+        if (!is_null(va->get_rhs())) {
+          // TODO: Memory Leak?
+          error(parser->loc(), "Found initialization value in net declaration!");
+          YYERROR;
+        }
+      } else if (auto rd = dynamic_cast<RegDeclaration*>(pd->get_decl())) {
+        rd->replace_id(va->get_lhs()->clone());
+        if (!is_null(va->get_rhs())) {
+          rd->get_val()->replace(va->get_rhs()->clone());
+        }
+      } else {
+        assert(false);
+      }
+      delete va;
+      $$->push_back(pd);
+    }
+    delete $3;
+  }
+  | alt_port_declaration {
+    $$ = new Many<ModuleItem>($1);
+  }
   ;
 port_P
   : port { $$ = new Many<ArgAssign>($1); }
@@ -1788,48 +1782,42 @@ statement_S
   }
   ;
 
-se_parameter_declaration
-  : attribute_instance_S PARAMETER signed_Q range_Q param_assignment %prec PARAMETER {
+alt_parameter_declaration
+  : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
     $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
     delete $5;
   }
-  | attribute_instance_S PARAMETER parameter_type param_assignment %prec PARAMETER {
+  | attribute_instance_S PARAMETER parameter_type param_assignment {
     $$ = new ParameterDeclaration($1, false, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
     delete $4;
   }
   ;
-se_port_declaration
-  : attribute_instance_S se_inout_declaration { delete $1; $$ = $2; }
-  | attribute_instance_S se_input_declaration { delete $1; $$ = $2; }
-  | attribute_instance_S se_output_declaration { delete $1; $$ = $2; }
-  ;
-se_inout_declaration
-  : INOUT net_type_Q signed_Q range_Q identifier %prec INOUT {
-    auto t = PortDeclaration::INOUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
-se_input_declaration
-  : INPUT net_type_Q signed_Q range_Q identifier %prec INPUT {
-    auto t = PortDeclaration::INPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
-se_output_declaration
-  : OUTPUT net_type_Q signed_Q range_Q identifier %prec OUTPUT {
-    auto t = PortDeclaration::OUTPUT;
-    auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5, $3, $4);
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  | OUTPUT REG signed_Q range_Q identifier eq_ce_Q %prec OUTPUT {
-    auto t = PortDeclaration::OUTPUT;
-    auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, $6 != &dummy ? new Maybe<Expression>($6) : new Maybe<Expression>());
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), t, d);
-  }
-  ;
 
+alt_port_declaration 
+  : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
+    // If this is a net declaration and we have an initial value, it's an error
+    if (!$2 && !is_null($6)) {
+      // TODO: Memory Leak?
+      error(parser->loc(), "Found initialization value in net declaration!");
+      YYERROR;
+    }
+    auto d = $2 ? 
+      (Declaration*) new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, is_null($6) ? new Maybe<Expression>() : new Maybe<Expression>($6->clone())) :
+      (Declaration*) new NetDeclaration(new Attributes(new Many<AttrSpec>()), NetDeclaration::WIRE, new Maybe<DelayControl>(), $5, $3, $4);
+    delete $6;
+    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), $1, d);
+  }
+  ;
+alt_port_type
+  : INOUT { $$ = PortDeclaration::INOUT; }
+  | INPUT { $$ = PortDeclaration::INPUT; }
+  | OUTPUT { $$ = PortDeclaration::OUTPUT; }
+  ;
+alt_net_type 
+  : %empty { $$ = false; }
+  | WIRE { $$ = false; }
+  | REG { $$ = true; }
+  ; 
 %%
 
 namespace cascade {
