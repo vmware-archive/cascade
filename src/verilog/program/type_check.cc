@@ -55,6 +55,7 @@ TypeCheck::TypeCheck(const Program* program, Log* log) : Visitor() {
   local_only(true);
 
   outermost_loop_ = nullptr;
+  exists_bad_id_ = false;
 }
 
 void TypeCheck::deactivate(bool val) {
@@ -271,20 +272,23 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 
 void TypeCheck::visit(const Identifier* id) {
   // RECURSE: ids and dim
+  auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
   id->get_dim()->accept(this);
-  // EXIT:  Resolution won't work if either of these checks failed.
-  if (log_->error()) {
+  // EXIT: Resolution will fail if there's an unresolved id below here
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
     return;
   }
 
   // CHECK: Reference to undefined identifier
   const auto r = Resolve().get_resolution(id);
   if (r == nullptr) {
+    exists_bad_id_ = true;
     if (warn_unresolved_) {
-      warn("Referenece to unresolved identifier", id);
+      warn("Reference to unresolved identifier", id);
     } else {
-      error("Referenece to unresolved identifier", id);
+      error("Reference to unresolved identifier", id);
     }
   }
   // CHECK: Little-endian ranges and subscript out of range
@@ -482,6 +486,16 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (re->null()) {
     return;
   }
+
+  // RECURSE: First check the contents of this expression
+  const auto backup = exists_bad_id_;
+  re->accept(this);
+  // EXIT: Evaluation will fail if there's an unresolved id below here
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
+    return;
+  }
+
   const auto rng = Evaluate().get_range(re->get());
   if (rng.first <= rng.second) {
     error("No support for declarations where msb is not strictly greater than lsb", re);

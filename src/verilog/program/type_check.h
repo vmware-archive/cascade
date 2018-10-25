@@ -72,6 +72,9 @@ class TypeCheck : public Visitor {
     // Location Tracking:
     const Node* outermost_loop_;
 
+    // Error Tracking:
+    bool exists_bad_id_;
+
     // Logging Helpers:
     void warn(const std::string& s, const Node* n);
     void error(const std::string& s, const Node* n);
