@@ -575,8 +575,6 @@ local_parameter_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto lpd = new LocalparamDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      lpd->get_id()->set_source(va->get_lhs()->get_source());
-      lpd->get_id()->set_line(va->get_lhs()->get_line());
       lpd->set_source(parser->source());
       lpd->set_line($2);
       $$->push_back(lpd);
@@ -606,8 +604,6 @@ parameter_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto pd = new ParameterDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      pd->get_id()->set_source(va->get_lhs()->get_source());
-      pd->get_id()->set_line(va->get_lhs()->get_line());
       pd->set_source(parser->source());
       pd->set_line($2);
       $$->push_back(pd);
@@ -692,8 +688,6 @@ integer_declaration
     while (!$3->empty()) {
       auto va = $3->remove_front();
       auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
-      id->get_id()->set_source(va->get_lhs()->get_source());
-      id->get_id()->set_line(va->get_lhs()->get_line());
       id->set_source(parser->source());
       id->set_line($2);
       $$->push_back(id);
@@ -723,12 +717,12 @@ net_declaration
     while (!$6->empty()) {
       auto va = $6->remove_front();
       auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $3, $4->clone());
-      nd->get_id()->set_source(va->get_lhs()->get_source());
-      nd->get_id()->set_line(va->get_lhs()->get_line());
       nd->set_source(parser->source());
       nd->set_line($2.first);
       $$->push_back(nd);
-      $$->push_back(new ContinuousAssign(new Maybe<DelayControl>(), va));
+
+      auto ca = new ContinuousAssign(new Maybe<DelayControl>(), va);
+      $$->push_back(ca);
     }
     delete $1;
     delete $4;
@@ -743,8 +737,6 @@ reg_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
-      rd->get_id()->set_source(va->get_lhs()->get_source());
-      rd->get_id()->set_line(va->get_lhs()->get_line());
       rd->set_source(parser->source());
       rd->set_line($2);
       $$->push_back(rd);
@@ -972,7 +964,7 @@ genvar_initialization
   ;
 genvar_expression
   : genvar_primary { 
-    $$ = $1; $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = $1; 
   }
   | unary_operator /*attribute_instance_S*/ genvar_primary { 
     $$ = new UnaryExpression($1,$2); $$->set_source($2->get_source()); $$->set_line($2->get_line());

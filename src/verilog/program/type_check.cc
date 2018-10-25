@@ -282,9 +282,9 @@ void TypeCheck::visit(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   if (r == nullptr) {
     if (warn_unresolved_) {
-      warn("Referenece to unresolved identifier", id);
+      warn("Reference to unresolved identifier", id);
     } else {
-      error("Referenece to unresolved identifier", id);
+      error("Reference to unresolved identifier", id);
     }
   }
   // CHECK: Little-endian ranges and subscript out of range
