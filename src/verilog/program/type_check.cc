@@ -82,7 +82,8 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   for (auto p : *mi->get_ports()) {
     p->get_imp()->accept(this);
   }
-
+  // CHECK: Array properties
+  check_width(mi->get_range());
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
     if (auto v = Navigate(mi).find_duplicate_name(mi->get_iid()->get_ids()->back())) {

@@ -420,6 +420,11 @@ void Printer::visit(const ModuleInstantiation* mi) {
     *this << Color::RED << ") " << Color::RESET;
   }
   mi->get_iid()->accept(this);
+  if (!mi->get_range()->null()) {
+    *this << Color::RED << "[" << Color::RESET;
+    mi->get_range()->get()->accept(this);
+    *this << Color::RED << "]" << Color::RESET;
+  }
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
   mi->get_ports()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});

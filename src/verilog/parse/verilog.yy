@@ -249,7 +249,7 @@ bool is_null(const cascade::Expression* e) {
 %type <ArgAssign*> ordered_parameter_assignment
 %type <ArgAssign*> named_parameter_assignment
 %type <ModuleInstantiation*> module_instance
-%type <Identifier*> name_of_module_instance
+%type <std::pair<Identifier*, Maybe<RangeExpression>*>> name_of_module_instance
 %type <Many<ArgAssign>*> list_of_port_connections
 %type <ArgAssign*> ordered_port_connection
 %type <ArgAssign*> named_port_connection
@@ -912,11 +912,11 @@ named_parameter_assignment
   ; 
 module_instance
   : name_of_module_instance OPAREN list_of_port_connections CPAREN { 
-    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()), new Identifier(""), $1, new Many<ArgAssign>(), $3);
+    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()), new Identifier(""), $1.first, $1.second, new Many<ArgAssign>(), $3);
   }
   ;
 name_of_module_instance
-  : identifier range_Q { $$ = $1; delete $2; }
+  : identifier range_Q { $$ = std::make_pair($1, $2); }
   ;
 list_of_port_connections
   : ordered_port_connection_P { $$ = $1; }
