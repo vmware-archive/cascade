@@ -512,6 +512,30 @@ void TypeCheck::visit(const SeqBlock* sb) {
   sb->get_stmts()->accept(this);
 }
 
+void TypeCheck::visit(const ForStatement* fs) {
+  error("Cascade does not currently support the use of for statements", fs);
+}
+
+void TypeCheck::visit(const ForeverStatement* fs) {
+  error("Cascade does not currently support the use of forever statements", fs);
+}
+
+void TypeCheck::visit(const RepeatStatement* rs) {
+  error("Cascade does not currently support the use of repeat statements", rs);
+}
+
+void TypeCheck::visit(const WhileStatement* ws) {
+  error("Cascade does not currently support the use of while statements", ws);
+}
+
+void TypeCheck::visit(const WaitStatement* ws) {
+  error("Cascade does not currently support the use of wait statements", ws);
+}
+
+void TypeCheck::visit(const DelayControl* dc) {
+  error("Cascade does not currently support the use of delay controls", dc);
+}
+
 void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (re->null()) {
     return;
