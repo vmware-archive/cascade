@@ -763,8 +763,17 @@ net_type
   /* TODO | WOR */
   ;
 variable_type
-  : identifier dimension_S { $$ = new VariableAssign($1, new Identifier("__null")); delete $2; }
-  | identifier EQ expression { $$ = new VariableAssign($1, $3); }
+  : identifier dimension_S { 
+    $$ = new VariableAssign($1, new Identifier("__null")); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+    delete $2; 
+  }
+  | identifier EQ expression { 
+    $$ = new VariableAssign($1, $3); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+  }
   ;
 
 /* A.2.2.3 Delays */
@@ -824,7 +833,7 @@ list_of_variable_port_identifiers
 
 /* A.2.4 Declaration Assignments */
 net_decl_assignment
-  : identifier EQ expression { $$ = new VariableAssign($1,$3); }
+  : identifier EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
@@ -1158,7 +1167,7 @@ nonblocking_assignment
   }
   ;
 variable_assignment
-  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
+  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 
 /* A.6.3 Parallel and Sequential Blocks */
