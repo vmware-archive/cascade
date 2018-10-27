@@ -326,6 +326,24 @@ void TypeCheck::visit(const Identifier* id) {
   }
 }
 
+void TypeCheck::visit(const String* s) {
+  auto e = false;
+  if (auto ws = dynamic_cast<const WriteStatement*>(s->get_parent()->get_parent())) {
+    if (ws->get_args()->front() != s) {
+      e = true;
+    }
+  } else if (auto ds = dynamic_cast<const DisplayStatement*>(s->get_parent()->get_parent())) {
+    if (ds->get_args()->front() != s) {
+      e = true;
+    }
+  } else {
+    e = true;
+  }
+  if (e) {
+    error("Cascade does not currently support the use of string constants in expressions", s);
+  }
+}
+
 void TypeCheck::visit(const GenerateBlock* gb) {
   // TODO CHECK: Duplicate definition
   // RECURSE: items
@@ -407,6 +425,9 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 }
 
 void TypeCheck::visit(const IntegerDeclaration* id) {
+  // RECURSE: Check for unsupported language features in initial value
+  id->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
     multiple_def(id->get_id(), v->get_parent());
@@ -421,6 +442,9 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
+  // RECURSE: Check for unsupported language features in initial value
+  ld->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
     multiple_def(ld->get_id(), v->get_parent());
@@ -449,6 +473,9 @@ void TypeCheck::visit(const NetDeclaration* nd) {
 }
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
+  // RECURSE: Check for unsupported language features in initial value
+  pd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
     multiple_def(pd->get_id(), v->get_parent());
@@ -461,6 +488,9 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 }
 
 void TypeCheck::visit(const RegDeclaration* rd) {
+  // RECURSE: Check for unsupported language features in initial value
+  rd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
     multiple_def(rd->get_id(), v->get_parent());
@@ -497,6 +527,30 @@ void TypeCheck::visit(const SeqBlock* sb) {
   // RECURSE: decls and body
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
+}
+
+void TypeCheck::visit(const ForStatement* fs) {
+  error("Cascade does not currently support the use of for statements", fs);
+}
+
+void TypeCheck::visit(const ForeverStatement* fs) {
+  error("Cascade does not currently support the use of forever statements", fs);
+}
+
+void TypeCheck::visit(const RepeatStatement* rs) {
+  error("Cascade does not currently support the use of repeat statements", rs);
+}
+
+void TypeCheck::visit(const WhileStatement* ws) {
+  error("Cascade does not currently support the use of while statements", ws);
+}
+
+void TypeCheck::visit(const WaitStatement* ws) {
+  error("Cascade does not currently support the use of wait statements", ws);
+}
+
+void TypeCheck::visit(const DelayControl* dc) {
+  error("Cascade does not currently support the use of delay controls", dc);
 }
 
 void TypeCheck::check_width(const Maybe<RangeExpression>* re) {

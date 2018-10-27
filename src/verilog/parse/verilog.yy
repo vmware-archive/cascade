@@ -763,13 +763,22 @@ net_type
   /* TODO | WOR */
   ;
 variable_type
-  : identifier dimension_S { $$ = new VariableAssign($1, new Identifier("__null")); delete $2; }
-  | identifier EQ expression { $$ = new VariableAssign($1, $3); }
+  : identifier dimension_S { 
+    $$ = new VariableAssign($1, new Identifier("__null")); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+    delete $2; 
+  }
+  | identifier EQ expression { 
+    $$ = new VariableAssign($1, $3); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+  }
   ;
 
 /* A.2.2.3 Delays */
 delay3 
-  : POUND delay_value { $$ = new DelayControl($2); }
+  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line);}
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
 delay_value
@@ -824,7 +833,7 @@ list_of_variable_port_identifiers
 
 /* A.2.4 Declaration Assignments */
 net_decl_assignment
-  : identifier EQ expression { $$ = new VariableAssign($1,$3); }
+  : identifier EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
@@ -1158,7 +1167,7 @@ nonblocking_assignment
   }
   ;
 variable_assignment
-  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
+  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 
 /* A.6.3 Parallel and Sequential Blocks */
@@ -1205,8 +1214,8 @@ statement_or_null
 
 /* A.6.5 Timing Control Statements */
 delay_control
-  : POUND delay_value { $$ = new DelayControl($2); }
-  | POUND OPAREN mintypmax_expression CPAREN { $$ = new DelayControl($3); }
+  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | POUND OPAREN mintypmax_expression CPAREN { $$ = new DelayControl($3); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 delay_or_event_control 
   : delay_control { $$ = $1; }
@@ -1246,7 +1255,11 @@ procedural_timing_control_statement
   : procedural_timing_control statement_or_null { $$ = new TimingControlStatement($1,$2); }
   ;
 wait_statement
-  : WAIT OPAREN expression CPAREN statement_or_null { $$ = new WaitStatement($3,$5); }
+  : WAIT OPAREN expression CPAREN statement_or_null { 
+    $$ = new WaitStatement($3,$5); 
+    $$->set_source(parser->source());
+    $$->set_line($3->get_line());
+  }
   ;
 
 /* A.6.6 Conditional Statements */
@@ -1277,11 +1290,25 @@ case_item
 
 /* A.6.8 Looping Statements */
 loop_statement
-  : FOREVER statement { $$ = new ForeverStatement($2); }
-  | REPEAT OPAREN expression CPAREN statement { $$ = new RepeatStatement($3,$5); }
-  | WHILE OPAREN expression CPAREN statement { $$ = new WhileStatement($3,$5); }
+  : FOREVER statement { 
+    $$ = new ForeverStatement($2); 
+    $$->set_source(parser->source()); 
+    $$->set_line($2->get_line());
+  }
+  | REPEAT OPAREN expression CPAREN statement { 
+    $$ = new RepeatStatement($3,$5); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
+  }
+  | WHILE OPAREN expression CPAREN statement { 
+    $$ = new WhileStatement($3,$5); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
+  }
   | FOR OPAREN variable_assignment SCOLON expression SCOLON variable_assignment CPAREN statement {
-    $$ = new ForStatement($3,$5,$7,$9);
+    $$ = new ForStatement($3,$5,$7,$9); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
   }
   ;
 
@@ -1412,7 +1439,7 @@ primary
   /* TODO | function_call */
   /* TODO | system_function_call */
   | OPAREN mintypmax_expression CPAREN { $$ = new NestedExpression($2); }
-  | string_ { $$ = $1; }
+  | string_ { $$ = $1; $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 
 /* A.8.5 Expression Left-Side Values */
@@ -1449,23 +1476,23 @@ number
   /* TODO | real_number */
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }

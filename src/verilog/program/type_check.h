@@ -82,6 +82,7 @@ class TypeCheck : public Visitor {
 
     // Visitor Interface:
     void visit(const Identifier* id) override;
+    void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;
     void visit(const ModuleDeclaration* md) override;
     void visit(const CaseGenerateConstruct* cgc) override;
@@ -98,6 +99,12 @@ class TypeCheck : public Visitor {
     void visit(const ModuleInstantiation* mi) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
+    void visit(const ForStatement* fs) override;
+    void visit(const ForeverStatement* fs) override;
+    void visit(const RepeatStatement* rs) override;
+    void visit(const WhileStatement* ws) override;
+    void visit(const WaitStatement* ws) override;
+    void visit(const DelayControl* dc) override;
 
     // Width Checking Helpers:
     void check_width(const Maybe<RangeExpression>* re);
