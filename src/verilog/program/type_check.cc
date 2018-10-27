@@ -90,7 +90,12 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   }
 
   // CHECK: Array properties
+  // TODO: Remove this error when support for instance arrays is complete
+  if (!mi->get_range()->null()) {
+    return error("Cascade does not currently support the use of instance arrays", mi);
+  }
   check_width(mi->get_range());
+
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
     if (auto v = Navigate(mi).find_duplicate_name(mi->get_iid()->get_ids()->back())) {
@@ -522,6 +527,7 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
   if (mi->get_range()->null()) {
     return;
   }
+
   // Ports and arguments with matching widths are okay
   const auto pw = Evaluate().get_width(port);
   const auto aw = Evaluate().get_width(arg);
