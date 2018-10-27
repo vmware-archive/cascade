@@ -309,6 +309,10 @@ void TypeCheck::visit(const Identifier* id) {
   }
 }
 
+void TypeCheck::visit(const String* s) {
+  error("Cascade does not currently support the use of string constants", s);
+}
+
 void TypeCheck::visit(const GenerateBlock* gb) {
   // TODO CHECK: Duplicate definition
   // RECURSE: items

@@ -1412,7 +1412,7 @@ primary
   /* TODO | function_call */
   /* TODO | system_function_call */
   | OPAREN mintypmax_expression CPAREN { $$ = new NestedExpression($2); }
-  | string_ { $$ = $1; }
+  | string_ { $$ = $1; $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 
 /* A.8.5 Expression Left-Side Values */

@@ -82,6 +82,7 @@ class TypeCheck : public Visitor {
 
     // Visitor Interface:
     void visit(const Identifier* id) override;
+    void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;
     void visit(const ModuleDeclaration* md) override;
     void visit(const CaseGenerateConstruct* cgc) override;
