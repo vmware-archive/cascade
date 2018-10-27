@@ -208,6 +208,7 @@ void Visitor::visit(const ModuleInstantiation* mi) {
   mi->get_attrs()->accept(this);
   mi->get_mid()->accept(this);
   mi->get_iid()->accept(this);
+  mi->get_range()->accept(this);
   mi->get_params()->accept(this);
   mi->get_ports()->accept(this);
 }

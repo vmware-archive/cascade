@@ -76,12 +76,25 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   }
 
   // RECURSE: Implicit params and ports
+  const auto backup = exists_bad_id_;
   for (auto p : *mi->get_params()) {
     p->get_imp()->accept(this);
   }
   for (auto p : *mi->get_ports()) {
     p->get_imp()->accept(this);
   }
+  // EXIT: Arity checking will fail without access to resolvable ports
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
+    return;
+  }
+
+  // CHECK: Array properties
+  // TODO: Remove this error when support for instance arrays is complete
+  if (!mi->get_range()->null()) {
+    return error("Cascade does not currently support the use of instance arrays", mi);
+  }
+  check_width(mi->get_range());
 
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
@@ -129,7 +142,9 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   if (mi->get_ports()->size() > ModuleInfo(src).ordered_ports().size()) {
     error("Instantiation uses too many connections", mi);
   }
-  // CHECK: Duplicate or unrecognized port connections or expressions connected to outputs
+  // CHECK: Duplicate or unrecognized port connections 
+  // CHECK: expressions connected to outputs
+  // CHECK: Arity mismatch for instance arrays
   if (mi->uses_named_ports()) {
     const auto& np = ModuleInfo(src).named_ports();
     unordered_set<const Identifier*, HashId, EqId> ports;
@@ -150,6 +165,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
           error("Cannot connect expression to named output port", mi);
         }
       }
+      check_arity(mi, *itr, p->get_imp()->get());
     }
   } 
   if (!mi->uses_named_ports()) {
@@ -164,6 +180,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
           error("Cannot connect expression to ordered output port", mi);
         }
       }
+      check_arity(mi, op[i], p->get_imp()->get());
     }
   }
 }
@@ -503,6 +520,28 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (rng.second != 0) {
     error("No support for declarations where lsb is not equal to zero", re);
   }
+}
+
+void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg) {
+  // Nothing to do if this is a scalar instantiation
+  if (mi->get_range()->null()) {
+    return;
+  }
+
+  // Ports and arguments with matching widths are okay
+  const auto pw = Evaluate().get_width(port);
+  const auto aw = Evaluate().get_width(arg);
+  if (pw == aw) {
+    return;
+  }
+  // Arguments that divide evenly by number of instances are okay
+  const auto mw = Evaluate().get_range(mi->get_range()->get()).first + 1;
+  if ((aw % mw == 0) && (aw / mw == pw)) {
+    return;
+  }
+
+  // Anything else is an error
+  error("Arity mismatch between array instantiation and argument", mi);
 }
 
 } // namespace cascade

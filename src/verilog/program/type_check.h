@@ -101,6 +101,8 @@ class TypeCheck : public Visitor {
 
     // Width Checking Helpers:
     void check_width(const Maybe<RangeExpression>* re);
+    // Instantiation Array Checking Helpers:
+    void check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg);
 };
 
 } // namespace cascade

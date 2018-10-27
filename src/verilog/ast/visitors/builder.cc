@@ -354,6 +354,7 @@ ModuleItem* Builder::build(const ModuleInstantiation* mi) {
     mi->get_attrs()->accept(this),
     mi->get_mid()->accept(this),
     mi->get_iid()->accept(this),
+    mi->get_range()->accept(this),
     params,
     ports
   );
