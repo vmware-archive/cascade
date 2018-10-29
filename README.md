@@ -226,8 +226,7 @@ ITEM OK
 Toggling the pads should now change the values of the leds for as long as Cascade is running.
 
 ### DE10 Backend
-Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](de10-nano.terasic.com).
-When Cascade is run on the DE10's ARM core, instead of mapping compute and leds to virtual components, it maps them directly onto a real FPGA. Try ssh'ing onto the ARM core, building Cascade, and starting it using the ```--march de10``` flag.
+Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046). When Cascade is run on the DE10's ARM core, instead of mapping compute and leds onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing onto the ARM core, building Cascade, and starting it using the ```--march de10``` flag.
 ```
 DE10 $ ./bin/cascade --march de10
 ```
@@ -239,8 +238,65 @@ Assuming Cascade is able to successfully connect to the FPGA fabric, you will be
 ### Standard Library
 (Coming soon.)
 
-### FAQ
+FAQ
+====
 
-Q. flex fails during build with error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
-    
-A. This is most likely due to the version of flex you are using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
+#### Flex fails during build with error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
+This is most likely due to the version of flex you are using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
+
+#### How do I ssh into the DE10's ARM core using a USB cable?
+(Coming soon.)
+
+#### How do I configure the DE10's USB Blaster Programming Cable in a Linux Environment?
+(Coming soon.)
+
+#### Cascade emits strange warnings whenever I declare a module.
+Module declarations are typechecked in their own scope, separate from the rest of the program. While this allows Cascade to catch many errors at declaration-time, there are some properties of Verilog programs which can only be verified at instantiation-time. If Cascade emits a warning, it is generally because it cannot statically prove that the module you just declared will instantiate correctly in every possible program context. When ```Foo``` is instantiated, Cascade can verify that there is a variable named ```p``` which is reachable from the scope in which ```f``` appears. No further warnings or errors are necessary. 
+
+#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo```, but not when I instantiate it (Part 1)?
+```verilog
+localparam x = 0;
+module Foo();
+  wire q = x;
+endmodule
+Foo f();
+```
+The local parameter ```x``` was declared in the root module, and the module ```Foo``` was declared in its own scope. In general, there is no way for Cascade to guarantee that you will instantiate ```Foo``` in a context where all of its declaration-time unresolved variables will be resolvable. In this case, it is statically provable, but Cascade doesn't know how to do so. Here is a more general example:
+```verilog
+module Foo();
+  assign x.y.z = 1;
+endmodule
+
+// ...
+begin : x
+  begin : y
+    reg z;
+  end
+end
+// ...
+Foo f(); // This instantiation will succeed because a variable named z
+         // is reachable through the hierarchical name x.y.z from f.
+         
+// ...
+begin : q
+  reg r;
+end
+// ...
+Foo f(); // This instantiation will fail because the only variable
+         // reachable from f is q.r.
+```
+
+#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo``` but not when I instantiate it (Part 2)?
+```verilog
+module #(parameter N) Foo();
+  genvar i;
+  for (i = 0; i < N; i=i+1) begin : GEN
+    reg x;
+  end
+  wire q = GEN[5].x;
+endmodule
+Foo#(8) f();
+```
+The register ```x``` was declared in a loop generate construct with bounds determined by a parameter. In general, there is no way for Cascade to guarantee that you will instantiate ```Foo``` with a parameter binding such that all of its declaration-time unresolved variables are resolvable. When ```Foo``` is instantiated with ```N=8```, Cascade can verify that there is a variable named ```GEN[5].x```. No further warnings or errors are necessary.
+
+More generally, Cascade will defer typechecking for code that appears inside of generate constructs until instantiation-time.
