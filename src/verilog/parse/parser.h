@@ -69,19 +69,24 @@ class Parser : public Editor {
     const Log& get_log() const;
 
   private:
+    // Error and warning message log:
     Log log_;
 
+    // Lexer and debugging level:
     bool debug_lexer_;
     friend class yyLexer;
     yyLexer lexer_;
-
+    // Parser and debugging level:
     bool debug_parser_;
     friend class yyParser;
     
+    // Intra-parse state: values related to the current parse
     std::stack<std::pair<std::string, location>> loc_;
     Node* res_;
     bool eof_;
     std::string last_parse_;
+    // Inter-parse state: values which persist between parses:
+    yyParser::symbol_type backup_;
 
     location& loc();
 
