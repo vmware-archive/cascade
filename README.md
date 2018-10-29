@@ -1,6 +1,8 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog")
 
-(This project just transitioned to open source. Please bear with us in the next few weeks as this document evolves.)
+FPGAs can exceed the performance of general-purpose CPUs by several orders of magnitude and offer dramatically lower cost and time to market than ASICs. While the benefits are substantial, programming an FPGA can be an extremely slow process. Trivial programs can take several minutes to compile using a traditional compiler, and complex designs can take hours or longer. 
+
+Cascade is a novel solution to this problem, the world's first just-in-time compiler for Verilog. Cascade executes code immediately in a software simulator, and performs compilation in the background. When compilation is finished, the code is moved into hardware, and from the user’s perspective it simply gets faster over time. Cascade's ability to move code back and forth between software and hardware also makes it the first platform to provide generic support for the execution of unsynthesizable Verilog from hardware. The effects are substantial. Cascade encourages more frequent compilation, reduces the time required for developers to produce working hardware designs, and transforms HDL development into something which closely resembes writing JavaScript or Python. It takes the first steps towards bridging the gap between programming software and programming hardware.
 
 Index
 =====
