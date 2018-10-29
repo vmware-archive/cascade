@@ -404,11 +404,23 @@ bool is_null(const cascade::Expression* e) {
 %%
 
 main 
-  : include_statement { parser->res_ = $1; YYACCEPT; }
-  | module_declaration { parser->res_ = $1; YYACCEPT; }
-  | non_port_module_item { parser->res_ = $1; YYACCEPT; }
-  | END_OF_FILE { parser->eof_ = true; parser->res_ = nullptr; YYACCEPT; }
+  : restore include_statement { parser->res_ = $2; YYACCEPT; }
+  | restore module_declaration { parser->res_ = $2; YYACCEPT; }
+  | restore non_port_module_item backup { parser->res_ = $2; YYACCEPT; }
+  | restore END_OF_FILE { parser->eof_ = true; parser->res_ = nullptr; YYACCEPT; }
   ;
+
+backup : %empty {
+  if (!yyla.empty()) {
+    parser->backup_.move(yyla);
+  }
+}
+
+restore : %empty { 
+  if (!parser->backup_.empty()) {
+    yyla.move(parser->backup_);
+  }
+}
 
 /* A.1.1 Library Source Text */
 include_statement 

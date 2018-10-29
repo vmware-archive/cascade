@@ -60,6 +60,9 @@ TEST(type_check, pass_instantiation_3) {
 TEST(type_check, pass_instantiation_4) {
   run_typecheck("minimal", "data/test/type_check/pass/instantiation_4.v", false);
 }
+TEST(type_check, pass_issue_4) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_4.v", false);
+}
 TEST(type_check, pass_issue_14) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_14.v", false);
 }
