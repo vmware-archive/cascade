@@ -135,7 +135,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
           id->get_ids()->front()->get_sid(), 
           new Maybe<Expression>(new Number(Evaluate().get_value(itr)))
         )),
-        new Maybe<Expression>()
+        new Many<Expression>()
       )),
       true,
       new Many<ModuleItem>(lpd)

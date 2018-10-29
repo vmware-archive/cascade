@@ -288,6 +288,12 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
+  // TODO ISSUE 20: Turn on support for variable arrays
+  if (id->get_dim()->size() > 1) {
+    exists_bad_id_ = true;
+    return error("Cascade does not currently support the use of variable arrays", id);
+  }
+
   // RECURSE: ids and dim
   auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
@@ -309,8 +315,10 @@ void TypeCheck::visit(const Identifier* id) {
     }
   }
   // CHECK: Little-endian ranges and subscript out of range
-  if (!id->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(id->get_dim()->get());
+  // TODO ISSUE 20: This check needs to change. We only want to do this if this
+  // is a trailing range expression
+  if (!id->get_dim()->empty()) {
+    const auto rng = Evaluate().get_range(id->get_dim()->back());
     if (rng.first < rng.second) {
       error("No support for little-endian range", id);
     }
@@ -439,6 +447,11 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   if (!id->get_val()->null() && !Constant().is_constant(id->get_val()->get())) {
     error("Integer initialization requires constant value", id);
   }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!id->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", id);
+  }
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
@@ -469,6 +482,11 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Delay control statements
   if (!nd->get_ctrl()->null()) {
     error("No support for delay control statements in net declarations", nd);
+  }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!nd->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", nd);
   }
 }
 
@@ -503,6 +521,11 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   // CHECK: Registers initialized to constant value
   if (!rd->get_val()->null() && !Constant().is_constant(rd->get_val()->get())) {
     error("Register initialization requires constant value", rd);
+  }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!rd->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", rd);
   }
 }
 

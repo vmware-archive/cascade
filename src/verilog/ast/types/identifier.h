@@ -38,7 +38,6 @@
 #include "src/verilog/ast/types/id.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/primary.h"
 #include "src/verilog/ast/types/string.h"
 
@@ -48,8 +47,8 @@ class Identifier : public Primary {
   public:
     // Constructors:
     Identifier(const std::string& id__);
-    Identifier(Id* id__, Maybe<Expression>* dim__);
-    Identifier(Many<Id>* ids__, Maybe<Expression>* dim__);
+    Identifier(Id* id__, Many<Expression>* dim__);
+    Identifier(Many<Id>* ids__, Many<Expression>* dim__);
     ~Identifier() override;
 
     // Node Interface:
@@ -64,7 +63,7 @@ class Identifier : public Primary {
 
   private:
     TREE_ATTR(Many<Id>*, ids);
-    TREE_ATTR(Maybe<Expression>*, dim);
+    TREE_ATTR(Many<Expression>*, dim);
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
@@ -72,11 +71,11 @@ class Identifier : public Primary {
     DECORATION(std::vector<Expression*>, dependents);
 };
 
-inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, new Maybe<Expression>()), new Maybe<Expression>()) { }
+inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, new Maybe<Expression>()), new Many<Expression>()) { }
 
-inline Identifier::Identifier(Id* id__, Maybe<Expression>* dim__) : Identifier(new Many<Id>(id__), dim__) { }
+inline Identifier::Identifier(Id* id__, Many<Expression>* dim__) : Identifier(new Many<Id>(id__), dim__) { }
 
-inline Identifier::Identifier(Many<Id>* ids__, Maybe<Expression>* dim__) : Primary() {
+inline Identifier::Identifier(Many<Id>* ids__, Many<Expression>* dim__) : Primary() {
   parent_ = nullptr;
   TREE_SETUP(ids);
   TREE_SETUP(dim);
