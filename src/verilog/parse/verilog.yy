@@ -363,7 +363,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<CaseItem>*> case_item_P
 %type <Maybe<DelayControl>*> delay3_Q
 %type <Maybe<TimingControl>*> delay_or_event_control_Q
-%type <Many<RangeExpression>*> dimension_S
+%type <Many<Expression>*> dimension_S
 %type <Expression*> eq_ce_Q
 %type <Many<Expression>*> expression_P
 %type <Maybe<Expression>*> expression_Q
@@ -767,7 +767,7 @@ variable_type
     $$ = new VariableAssign($1, new Identifier("__null")); 
     $$->set_source(parser->source());
     $$->set_line($1->get_line());
-    delete $2; 
+    $$->get_lhs()->replace_dim($2); 
   }
   | identifier EQ expression { 
     $$ = new VariableAssign($1, $3); 
@@ -796,11 +796,14 @@ list_of_net_decl_assignments
   }
   ;
 list_of_net_identifiers
-  : identifier dimension_S { $$ = new Many<Identifier>($1); delete $2; }
+  : identifier dimension_S { 
+    $$ = new Many<Identifier>($1); 
+    $$->back()->replace_dim($2);
+  }
   | list_of_net_identifiers COMMA identifier dimension_S {
     $$ = $1;
     $$->push_back($3);
-    delete $4;
+    $$->back()->replace_dim($4);
   }
   ;
 list_of_param_assignments 
@@ -884,7 +887,10 @@ list_of_block_variable_identifiers
   }
   ;
 block_variable_type 
-  : identifier dimension_S { $$ = $1; delete $2; }
+  : identifier dimension_S { 
+    $$ = $1; 
+    $$->replace_dim($2);
+  }
   ;
 
 /* A.4.1 Module Instantiation */
@@ -1621,7 +1627,7 @@ delay_or_event_control_Q
   | delay_or_event_control { $$ = new Maybe<TimingControl>($1); }
   ;
 dimension_S
-  : %empty { $$ = new Many<RangeExpression>(); }
+  : %empty { $$ = new Many<Expression>(); }
   | dimension_S dimension { 
     $$ = $1;
     $$->push_back($2);
