@@ -72,6 +72,9 @@ class TypeCheck : public Visitor {
     // Location Tracking:
     const Node* outermost_loop_;
 
+    // Error Tracking:
+    bool exists_bad_id_;
+
     // Logging Helpers:
     void warn(const std::string& s, const Node* n);
     void error(const std::string& s, const Node* n);
@@ -79,6 +82,7 @@ class TypeCheck : public Visitor {
 
     // Visitor Interface:
     void visit(const Identifier* id) override;
+    void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;
     void visit(const ModuleDeclaration* md) override;
     void visit(const CaseGenerateConstruct* cgc) override;
@@ -95,9 +99,17 @@ class TypeCheck : public Visitor {
     void visit(const ModuleInstantiation* mi) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
+    void visit(const ForStatement* fs) override;
+    void visit(const ForeverStatement* fs) override;
+    void visit(const RepeatStatement* rs) override;
+    void visit(const WhileStatement* ws) override;
+    void visit(const WaitStatement* ws) override;
+    void visit(const DelayControl* dc) override;
 
     // Width Checking Helpers:
     void check_width(const Maybe<RangeExpression>* re);
+    // Instantiation Array Checking Helpers:
+    void check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg);
 };
 
 } // namespace cascade

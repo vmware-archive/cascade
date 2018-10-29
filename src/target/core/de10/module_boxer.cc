@@ -361,11 +361,11 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   assert(titr != de_->table_end());
   assert(titr->second.materialized());
 
-  Maybe<Expression>* idx = nullptr;
+  Many<Expression>* idx = nullptr;
   if (titr->second.word_size() == 1) {
-    idx = new Maybe<Expression>(new Number(Bits(32, (uint32_t)titr->second.index())));
+    idx = new Many<Expression>(new Number(Bits(32, (uint32_t)titr->second.index())));
   } else {
-    idx = new Maybe<Expression>(new RangeExpression(titr->second.index()+titr->second.word_size(), titr->second.index()));
+    idx = new Many<Expression>(new RangeExpression(titr->second.index()+titr->second.word_size(), titr->second.index()));
   }
 
   // Replace the original assignment with an assignment to a temporary variable
@@ -432,13 +432,13 @@ Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* args) {
     new VariableAssign(
       new Identifier(
         new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-        new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
+        new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
           new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
-          new Maybe<Expression>(new Number(Bits(32, (uint32_t)id)))
+          new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
         )
       )
     )    
@@ -478,8 +478,8 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
           new Identifier(
             new Many<Id>(id->get_ids()->front()->clone()),
             w == 1 ?
-              new Maybe<Expression>() :
-              new Maybe<Expression>(new Number(Bits(32, w-1)))
+              new Many<Expression>() :
+              new Many<Expression>(new Number(Bits(32, w-1)))
           )
         ))
       );
@@ -491,17 +491,17 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
     if (upper == 0) {
       rhs->get_exprs()->push_back(new Identifier(
         new Many<Id>(id->get_ids()->front()->clone()),
-        new Maybe<Expression>()
+        new Many<Expression>()
       ));
     } else if (upper == lower) {
       rhs->get_exprs()->push_back(new Identifier(
         new Many<Id>(id->get_ids()->front()->clone()), 
-        new Maybe<Expression>(new Number(Bits(32, upper)))
+        new Many<Expression>(new Number(Bits(32, upper)))
       ));
     } else if (upper > lower) {
       rhs->get_exprs()->push_back(new Identifier(
         new Many<Id>(id->get_ids()->front()->clone()), 
-        new Maybe<Expression>(new RangeExpression(upper+1, lower))
+        new Many<Expression>(new RangeExpression(upper+1, lower))
       ));
     } 
     // Attach the concatenation to an assignment, we'll always have enough bits now

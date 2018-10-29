@@ -55,6 +55,7 @@ TypeCheck::TypeCheck(const Program* program, Log* log) : Visitor() {
   local_only(true);
 
   outermost_loop_ = nullptr;
+  exists_bad_id_ = false;
 }
 
 void TypeCheck::deactivate(bool val) {
@@ -75,12 +76,25 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   }
 
   // RECURSE: Implicit params and ports
+  const auto backup = exists_bad_id_;
   for (auto p : *mi->get_params()) {
     p->get_imp()->accept(this);
   }
   for (auto p : *mi->get_ports()) {
     p->get_imp()->accept(this);
   }
+  // EXIT: Arity checking will fail without access to resolvable ports
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
+    return;
+  }
+
+  // CHECK: Array properties
+  // TODO: Remove this error when support for instance arrays is complete
+  if (!mi->get_range()->null()) {
+    return error("Cascade does not currently support the use of instance arrays", mi);
+  }
+  check_width(mi->get_range());
 
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
@@ -128,7 +142,9 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   if (mi->get_ports()->size() > ModuleInfo(src).ordered_ports().size()) {
     error("Instantiation uses too many connections", mi);
   }
-  // CHECK: Duplicate or unrecognized port connections or expressions connected to outputs
+  // CHECK: Duplicate or unrecognized port connections 
+  // CHECK: expressions connected to outputs
+  // CHECK: Arity mismatch for instance arrays
   if (mi->uses_named_ports()) {
     const auto& np = ModuleInfo(src).named_ports();
     unordered_set<const Identifier*, HashId, EqId> ports;
@@ -149,6 +165,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
           error("Cannot connect expression to named output port", mi);
         }
       }
+      check_arity(mi, *itr, p->get_imp()->get());
     }
   } 
   if (!mi->uses_named_ports()) {
@@ -163,6 +180,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
           error("Cannot connect expression to ordered output port", mi);
         }
       }
+      check_arity(mi, op[i], p->get_imp()->get());
     }
   }
 }
@@ -270,26 +288,37 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
+  // TODO ISSUE 20: Turn on support for variable arrays
+  if (id->get_dim()->size() > 1) {
+    exists_bad_id_ = true;
+    return error("Cascade does not currently support the use of variable arrays", id);
+  }
+
   // RECURSE: ids and dim
+  auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
   id->get_dim()->accept(this);
-  // EXIT:  Resolution won't work if either of these checks failed.
-  if (log_->error()) {
+  // EXIT: Resolution will fail if there's an unresolved id below here
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
     return;
   }
 
   // CHECK: Reference to undefined identifier
   const auto r = Resolve().get_resolution(id);
   if (r == nullptr) {
+    exists_bad_id_ = true;
     if (warn_unresolved_) {
-      warn("Referenece to unresolved identifier", id);
+      warn("Reference to unresolved identifier", id);
     } else {
-      error("Referenece to unresolved identifier", id);
+      error("Reference to unresolved identifier", id);
     }
   }
   // CHECK: Little-endian ranges and subscript out of range
-  if (!id->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(id->get_dim()->get());
+  // TODO ISSUE 20: This check needs to change. We only want to do this if this
+  // is a trailing range expression
+  if (!id->get_dim()->empty()) {
+    const auto rng = Evaluate().get_range(id->get_dim()->back());
     if (rng.first < rng.second) {
       error("No support for little-endian range", id);
     }
@@ -302,6 +331,24 @@ void TypeCheck::visit(const Identifier* id) {
     if ((r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
       error("Illegal reference to genvar outside of a loop generate construct", id);
     }
+  }
+}
+
+void TypeCheck::visit(const String* s) {
+  auto e = false;
+  if (auto ws = dynamic_cast<const WriteStatement*>(s->get_parent()->get_parent())) {
+    if (ws->get_args()->front() != s) {
+      e = true;
+    }
+  } else if (auto ds = dynamic_cast<const DisplayStatement*>(s->get_parent()->get_parent())) {
+    if (ds->get_args()->front() != s) {
+      e = true;
+    }
+  } else {
+    e = true;
+  }
+  if (e) {
+    error("Cascade does not currently support the use of string constants in expressions", s);
   }
 }
 
@@ -386,6 +433,9 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 }
 
 void TypeCheck::visit(const IntegerDeclaration* id) {
+  // RECURSE: Check for unsupported language features in initial value
+  id->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
     multiple_def(id->get_id(), v->get_parent());
@@ -397,9 +447,17 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   if (!id->get_val()->null() && !Constant().is_constant(id->get_val()->get())) {
     error("Integer initialization requires constant value", id);
   }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!id->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", id);
+  }
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
+  // RECURSE: Check for unsupported language features in initial value
+  ld->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
     multiple_def(ld->get_id(), v->get_parent());
@@ -425,9 +483,17 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   if (!nd->get_ctrl()->null()) {
     error("No support for delay control statements in net declarations", nd);
   }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!nd->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", nd);
+  }
 }
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
+  // RECURSE: Check for unsupported language features in initial value
+  pd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
     multiple_def(pd->get_id(), v->get_parent());
@@ -440,6 +506,9 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 }
 
 void TypeCheck::visit(const RegDeclaration* rd) {
+  // RECURSE: Check for unsupported language features in initial value
+  rd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
     multiple_def(rd->get_id(), v->get_parent());
@@ -452,6 +521,11 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   // CHECK: Registers initialized to constant value
   if (!rd->get_val()->null() && !Constant().is_constant(rd->get_val()->get())) {
     error("Register initialization requires constant value", rd);
+  }
+
+  // TODO ISSUE 20: Turn on support for arrays
+  if (!rd->get_id()->get_dim()->empty()) {
+    error("Cascade does not currently support the use of variable arrays", rd);
   }
 }
 
@@ -478,10 +552,44 @@ void TypeCheck::visit(const SeqBlock* sb) {
   sb->get_stmts()->accept(this);
 }
 
+void TypeCheck::visit(const ForStatement* fs) {
+  error("Cascade does not currently support the use of for statements", fs);
+}
+
+void TypeCheck::visit(const ForeverStatement* fs) {
+  error("Cascade does not currently support the use of forever statements", fs);
+}
+
+void TypeCheck::visit(const RepeatStatement* rs) {
+  error("Cascade does not currently support the use of repeat statements", rs);
+}
+
+void TypeCheck::visit(const WhileStatement* ws) {
+  error("Cascade does not currently support the use of while statements", ws);
+}
+
+void TypeCheck::visit(const WaitStatement* ws) {
+  error("Cascade does not currently support the use of wait statements", ws);
+}
+
+void TypeCheck::visit(const DelayControl* dc) {
+  error("Cascade does not currently support the use of delay controls", dc);
+}
+
 void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (re->null()) {
     return;
   }
+
+  // RECURSE: First check the contents of this expression
+  const auto backup = exists_bad_id_;
+  re->accept(this);
+  // EXIT: Evaluation will fail if there's an unresolved id below here
+  if (exists_bad_id_) {
+    exists_bad_id_ = backup;
+    return;
+  }
+
   const auto rng = Evaluate().get_range(re->get());
   if (rng.first <= rng.second) {
     error("No support for declarations where msb is not strictly greater than lsb", re);
@@ -489,6 +597,28 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (rng.second != 0) {
     error("No support for declarations where lsb is not equal to zero", re);
   }
+}
+
+void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg) {
+  // Nothing to do if this is a scalar instantiation
+  if (mi->get_range()->null()) {
+    return;
+  }
+
+  // Ports and arguments with matching widths are okay
+  const auto pw = Evaluate().get_width(port);
+  const auto aw = Evaluate().get_width(arg);
+  if (pw == aw) {
+    return;
+  }
+  // Arguments that divide evenly by number of instances are okay
+  const auto mw = Evaluate().get_range(mi->get_range()->get()).first + 1;
+  if ((aw % mw == 0) && (aw / mw == pw)) {
+    return;
+  }
+
+  // Anything else is an error
+  error("Arity mismatch between array instantiation and argument", mi);
 }
 
 } // namespace cascade

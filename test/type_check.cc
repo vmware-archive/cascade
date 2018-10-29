@@ -63,6 +63,19 @@ TEST(type_check, pass_instantiation_4) {
 TEST(type_check, pass_issue_14) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_14.v", false);
 }
+TEST(type_check, pass_issue_23a) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_23a.v", false);
+}
+TEST(type_check, pass_issue_23b) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_23b.v", false);
+}
+TEST(type_check, pass_issue_23c) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_23c.v", false);
+}
+// TODO: Reenable this test when issue_24 is complete
+//TEST(type_check, pass_issue_24a) {
+//  run_typecheck("minimal", "data/test/type_check/pass/issue_24a.v", false);
+//}
 TEST(type_check, pass_resolution_1) {
   run_typecheck("minimal", "data/test/type_check/pass/resolution_1.v", false);
 }
@@ -168,6 +181,18 @@ TEST(type_check, fail_issue_13a) {
 }
 TEST(type_check, fail_issue_13b) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_13b.v", true);
+}
+TEST(type_check, fail_issue_23a) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_23a.v", true);
+}
+TEST(type_check, fail_issue_23b) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_23b.v", true);
+}
+TEST(type_check, fail_issue_23c) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_23c.v", true);
+}
+TEST(type_check, fail_issue_24a) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_24a.v", true);
 }
 TEST(type_check, fail_issue_226) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_226.v", true);
