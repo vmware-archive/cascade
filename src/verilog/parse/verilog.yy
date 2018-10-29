@@ -358,7 +358,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<AttrSpec>*> attr_spec_P
 %type <Attributes*> attribute_instance_S 
 %type <Many<Declaration>*> block_item_declaration_S
-%type <Maybe<Expression>*> braced_re_q
+%type <Many<Expression>*> braced_rexp_S
 %type <Many<CaseGenerateItem>*> case_generate_item_P
 %type <Many<CaseItem>*> case_item_P
 %type <Maybe<DelayControl>*> delay3_Q
@@ -1433,7 +1433,7 @@ range_expression
 /* A.8.4 Primaries */
 primary
   : number { $$ = $1; }
-  | hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  | hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   | concatenation { $$ = $1; }
   | multiple_concatenation { $$ = $1; }
   /* TODO | function_call */
@@ -1444,11 +1444,11 @@ primary
 
 /* A.8.5 Expression Left-Side Values */
 net_lvalue 
-  : hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   /* | '{' net_lvalue_P '}' */
   ;
 variable_lvalue
-  : hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   /* TODO | '{' variable_lvalue_P '}' */
   ;
 
@@ -1516,36 +1516,48 @@ attr_name
   ;
 
 /* A.9.3 Identifiers */
+/* NOTE: This parse deviates from the spec. This is only okay given the */
+/* contexts in which we use it: primary, net_lvalue, and variable_lvalue */
 hierarchical_identifier
-  : simple_id_L braced_re_q { 
+  : simple_id_L braced_rexp_S { 
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
     $$->set_source(parser->source());
     $$->set_line($1.first);
-  }
-  | hierarchical_identifier DOT SIMPLE_ID braced_re_q {
-    $$ = $1;
-    if (!$$->get_dim()->null()) {
-      if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
-        // TODO: Memory Leak?
-        error(parser->loc(), "Found range expression inside hierarchical identifier!");
+    for (auto e : *$2) {
+      if ((e != $2->back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
-      auto lid = $$->get_ids()->back();
-      lid->get_isel()->replace($$->get_dim()->get()->clone());
-      lid->get_isel()->get()->set_source($$->get_dim()->get()->get_source());
-      lid->get_isel()->get()->set_line($$->get_dim()->get()->get_line());
-      $$->get_dim()->replace(nullptr);
     }
-    const auto id = new Id($3, new Maybe<Expression>());
-    $$->get_ids()->push_back(id);
-    $$->replace_dim($4); 
+  }
+  | hierarchical_identifier DOT SIMPLE_ID braced_rexp_S {
+    $$ = $1;
+    if ($$->get_dim()->size() > 1) {
+      error(parser->loc(), "Unexpected multiplie instance selects");
+      YYERROR;
+    }
+    if (!$$->get_dim()->empty()) {
+      if (dynamic_cast<RangeExpression*>($$->get_dim()->back()) != nullptr) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
+        YYERROR;
+      }
+      $$->get_ids()->back()->get_isel()->replace($$->get_dim()->remove_back());
+    }
+    $$->get_ids()->push_back(new Id($3, new Maybe<Expression>()));
+    $$->replace_dim($4);
+    for (auto e : *$4) {
+      if ((e != $4->back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
+        YYERROR;
+      }
+    }
   }
   ;
 identifier 
   : simple_id_L { 
     const auto id = new Id($1.second, new Maybe<Expression>());
-    $$ = new Identifier(new Many<Id>(id), new Maybe<Expression>()); 
+    $$ = new Identifier(new Many<Id>(id), new Many<Expression>()); 
     $$->set_source(parser->source());
     $$->set_line($1.first);
   }
@@ -1575,9 +1587,12 @@ block_item_declaration_S
     $$->concat($2);
   }
   ;
-braced_re_q
-  : %empty { $$ = new Maybe<Expression>(); }
-  | OSQUARE range_expression CSQUARE { $$ = new Maybe<Expression>($2); }
+braced_rexp_S
+  : %empty { $$ = new Many<Expression>(); }
+  | braced_rexp_S OSQUARE range_expression CSQUARE { 
+    $$ = $1;
+    $$->push_back($3); 
+  }
   ;
 case_generate_item_P
   : case_generate_item { $$ = new Many<CaseGenerateItem>($1); }
@@ -1752,7 +1767,6 @@ port_declaration_P
       if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
-          // TODO: Memory Leak?
           error(parser->loc(), "Found initialization value in net declaration!");
           YYERROR;
         }
@@ -1816,7 +1830,6 @@ alt_port_declaration
   : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
     // If this is a net declaration and we have an initial value, it's an error
     if (!$2 && !is_null($6)) {
-      // TODO: Memory Leak?
       error(parser->loc(), "Found initialization value in net declaration!");
       YYERROR;
     }

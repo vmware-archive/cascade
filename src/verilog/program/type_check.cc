@@ -309,8 +309,10 @@ void TypeCheck::visit(const Identifier* id) {
     }
   }
   // CHECK: Little-endian ranges and subscript out of range
-  if (!id->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(id->get_dim()->get());
+  // TODO ISSUE 20: This check needs to change. We only want to do this if this
+  // is a trailing range expression
+  if (!id->get_dim()->empty()) {
+    const auto rng = Evaluate().get_range(id->get_dim()->back());
     if (rng.first < rng.second) {
       error("No support for little-endian range", id);
     }

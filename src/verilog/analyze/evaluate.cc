@@ -213,10 +213,12 @@ void Evaluate::edit(Identifier* id) {
     return;
   }
   // Otherwise copy or slice 
-  if (id->get_dim()->null()) {
+  // TODO ISSUE-20: This needs to be a different check: is the number of
+  // subscripts equal to the arity of this variable?
+  if (id->get_dim()->empty()) {
     id->bit_val_->assign(get_value(r));
   } else {
-    const auto range = get_range(id->get_dim()->get());
+    const auto range = get_range(id->get_dim()->back());
     id->bit_val_->assign(get_value(r), range.first, range.second);
   }
 }
@@ -549,12 +551,14 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
 
   size_t w = 0;
   bool s = false;
-  if (id->get_dim()->null()) {
+  // TODO: This needs to be a different check: is the number of subscripts
+  // equal to the arity of this variable?
+  if (id->get_dim()->empty()) {
     const auto r = Resolve().get_resolution(id);
     assert(r != nullptr);
     w = Evaluate().get_width(r);
     s = Evaluate().get_signed(r);
-  } else if (auto re = dynamic_cast<RangeExpression*>(id->get_dim()->get())) {
+  } else if (auto re = dynamic_cast<RangeExpression*>(id->get_dim()->back())) {
     const auto lower = Evaluate().get_value(re->get_lower()).to_int();
     if (re->get_type() == RangeExpression::CONSTANT) {
       const auto upper = Evaluate().get_value(re->get_upper()).to_int();
