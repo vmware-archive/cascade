@@ -3,7 +3,6 @@
 reg[3:0] COUNT = 0;
 wire[7:0] rd1;
 
-(*__target="sw"*)
 Memory#(2,8) mem1(
   .clock(clock.val),
   .wen(1), 

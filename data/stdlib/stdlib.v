@@ -120,7 +120,7 @@ endmodule
 // __file = "..."
 //   Optional. If specified the contents of this memory will be read/written
 //   from/to this file when the program begins/finishes executing.
-(*__std="memory"*)
+(*__std="memory",__target="sw"*)
 module Memory#(
   parameter ADDR_SIZE = 4,
   parameter BYTE_SIZE = 8
@@ -170,7 +170,7 @@ endmodule
 // __count = "..."
 //   Optional. If specifid along with __file, this fifo will be initialized
 //   with 'count' copies of the data in __file.
-(*__std="fifo"*)
+(*__std="fifo",__target="sw"*)
 module Fifo#(
   parameter DEPTH = 8,
   parameter BYTE_SIZE = 8

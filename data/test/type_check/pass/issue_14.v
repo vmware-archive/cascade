@@ -11,13 +11,10 @@ if (x == 0) begin
     wire n;
   end
 end 
-else ;
 
 if (x == 0) 
   if (x == 0)
     wire q;
-  else ;
-else ;
 
 wire a = genblk1.m;
 wire b = genblk2.genblk1.n;
