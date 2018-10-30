@@ -18,7 +18,8 @@ Index
     4. [JIT Backend](#jit-backend)
 4. [Verilog Support](#verilog-support)
 5. [Standard Library](#standard-library)
-6. [FAQ](#faq)
+6. [Adding Support for New Backends](#backend-support)
+7. [FAQ](#faq)
 
 Dependencies
 =====
@@ -145,7 +146,7 @@ If something on your machine is using port 11111, you can request that Cascade u
 ```
 
 Environments
-====
+=====
 
 ### Minimal Environment
 By default, Cascade is started in a minimal environment. You can invoke this behavior explicitly using the ```--march``` flag.
@@ -240,7 +241,10 @@ GPIO gpio();
 ```
 Try repeating the example from the previous section and watch real buttons toggle real leds.
 
-### Verilog Support
+### JIT Backend
+
+Verilog Support
+=====
 Cascade currently supports a large --- but certainly not complete --- subset of the Verilog 2005 Standard. The following partial list should give a good impression of what Cascade is capable of.
 
 | Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
@@ -280,7 +284,8 @@ Cascade currently supports a large --- but certainly not complete --- subset of 
 |                       | Write Statements          |  x        |             |                  |
 |                       | Monitor Statements        |           | x           |                  |
 
-### Standard Library
+Standard Library
+=====
 Cascade's Clock, along with the modules which are implicitly declared when cascade is run with the ```--march de10``` or ```--march sw``` flags, are part of its Standard Library. The complete set of I/O peripherals in the Standard Library, along with the ```march``` environments in which they are supported, is shown below.
 
 | Component | minimal | sw | de10 | de10_jit |
@@ -349,6 +354,10 @@ When instantiating a fifo, an optional set of annotations may be provided as wel
 Fifo#(8,8) fifo(/* ... */);
 ```
 The ```__file``` annotation is similar to the one described above. If provided, Cascade will attempt to initialize the FIFO with values drawn from this file. The file format is the same. If the file contains more values than the maximum depth of the FIFO, Cascade will automatically push the next value from the file as soon as there is space (```full``` reports false). This process will continue until the end-of-file is reached, and then repeat up to ```__count``` times before no longer attempting to push values into the FIFO. Values are not written back to ```__file``` when Cascade finishes execution, and it is an error to instantiate a FIFO with an unresolvable ```__file``` annotation.
+
+Adding Support for New Backends
+=====
+(Coming Soon.)
 
 FAQ
 ====
