@@ -9,8 +9,8 @@ Index
 0. [Dependencies](#dependencies)
 1. [Building Cascade](#building-cascade)
 2. [Using Cascade](#using-cascade)
-    1. [The Basics](#the-basics)
-    2. [Alternate UIs](#alternate-uis)
+    1. [Command Line Interface](#command-line-interface)
+    2. [Other Interfaces](#other-interfaces)
 3. [Environments](#environments)
     1. [Minimal Environment](#minimal-environment)
     2. [Software Backend](#software-backend)
@@ -22,7 +22,7 @@ Index
 
 Dependencies
 =====
-Cascade should build successfully on OSX and most Linux distributions. Third-party dependencies can be retrieved from the command line using either ```apt-get``` (Ubuntu), ```opk``` (Angstrom), or ```port``` (OSX). Note that on most platforms, this will require administrator privileges.
+Cascade should build successfully on OSX and most Linux distributions. Third-party dependencies can be retrieved from the command line using either ```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```port``` (OSX). Note that on most platforms, this will require administrator privileges.
 ```
 *NIX $ sudo (apt-get|port) install ccache cmake flex bison ncurses
 ```
@@ -49,7 +49,7 @@ If the build didn't succeed (probably because you didn't use the ```--recursive`
 Using Cascade
 =====
 
-### The Basics
+### Command Line Interface
 
 Start Cascade by typing
 ```
@@ -124,7 +124,7 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 >>> module Foo(); wir... I give up... arg... ^C
 ```
 
-### Alternate UIs
+### Other Interfaces
 If you're absolutely fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
 ```
 *NIX $ ./bin/cascade --batch -e path/to/file.v
