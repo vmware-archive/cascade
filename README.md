@@ -14,11 +14,11 @@ Index
 3. [Environments](#environments)
     1. [Minimal Environment](#minimal-environment)
     2. [Software Backend](#software-backend)
-    3. [Hardware Backend](#de10-backend)
+    3. [Hardware Backend](#hardware-backend)
     4. [JIT Backend](#jit-backend)
 4. [Verilog Support](#verilog-support)
 5. [Standard Library](#standard-library)
-6. [Adding Support for New Backends](#backend-support)
+6. [Adding Support for New Backends](#adding-support-for-new-backends)
 7. [FAQ](#faq)
 
 Dependencies
@@ -226,7 +226,7 @@ ITEM OK
 ```
 Toggling the pads should now change the values of the leds for as long as Cascade is running.
 
-### DE10 Backend
+### Hardware Backend
 Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046). When Cascade is run on the DE10's ARM core, instead of mapping compute and leds onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing onto the ARM core ([see FAQ](#faq)), building Cascade, and starting it using the ```--march de10``` flag.
 ```
 DE10 $ ./bin/cascade --march de10
