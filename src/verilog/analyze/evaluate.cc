@@ -30,9 +30,6 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
-#include <cassert>
-#include "src/verilog/analyze/resolve.h"
-
 using namespace std;
 
 namespace cascade {
@@ -49,6 +46,7 @@ bool Evaluate::get_signed(const Expression* e) {
 
 const Bits& Evaluate::get_value(const Expression* e) {
   init(const_cast<Expression*>(e));
+  assert(e->bit_val_.size() == 1);
   if (e->needs_update_) {
     const_cast<Expression*>(e)->accept(this);
     const_cast<Expression*>(e)->needs_update_ = false;
@@ -77,26 +75,25 @@ pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
 }
 
 void Evaluate::assign_value(const Identifier* id, const Bits& val) {
-  init(const_cast<Identifier*>(id));
-  if (!id->bit_val_[0].eq(val)) {
-    const_cast<Identifier*>(id)->bit_val_[0].assign(val);
-    flag_changed(id);
-  }
-}
+  // Find the variable that we're referring to. 
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  init(const_cast<Identifier*>(r));
 
-void Evaluate::assign_value(const Identifier* id, size_t idx, const Bits& val) {
-  init(const_cast<Identifier*>(id));
-  if (!id->bit_val_[0].eq(idx, val)) {
-    const_cast<Identifier*>(id)->bit_val_[0].assign(idx, val);
-    flag_changed(id);
-  }
-}
-
-void Evaluate::assign_value(const Identifier* id, size_t i, size_t j, const Bits& val) {
-  init(const_cast<Identifier*>(id));
-  if (!id->bit_val_[0].eq(i, j, val)) {
-    const_cast<Identifier*>(id)->bit_val_[0].assign(i, j, val);
-    flag_changed(id);
+  // Full variable dereference
+  if (id->get_dim()->empty()) {
+    if (!r->bit_val_[0].eq(val)) {
+      const_cast<Identifier*>(r)->bit_val_[0].assign(val);
+      flag_changed(r);
+    }
+  } 
+  // Part or bit dereference
+  else {
+    const auto rng = get_range(id->get_dim()->back());
+    if (!r->bit_val_[0].eq(rng.first, rng.second, val)) {
+      const_cast<Identifier*>(r)->bit_val_[0].assign(rng.first, rng.second, val);
+      flag_changed(r);
+    }
   }
 }
 

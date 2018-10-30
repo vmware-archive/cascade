@@ -31,8 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_EVALUATE_H
 #define CASCADE_SRC_VERILOG_ANALYZE_EVALUATE_H
 
+#include <cassert>
 #include <utility>
 #include "src/base/bits/bits.h"
+#include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/editor.h"
 
@@ -53,24 +55,23 @@ class Evaluate : public Editor {
     // Returns the same for scalars and arrays.
     bool get_signed(const Expression* e);
 
-    // Gets the value of a word slice within id.
+    // Gets the value of a word slice within id. Invoking this method on an
+    // expression which evaluates to an array is undefined.
     template <typename B>
     B get_word(const Identifier* id, size_t n);
-    // Returns the value of an expression.
+    // Returns the value of an expression. Invoking this method on an
+    // expression which evaluates to an array is undefined.
     const Bits& get_value(const Expression* e);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
+    // Invoking this method on an expression which evaluates to an array is
+    // undefined.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Sets the value of id to val. 
-    void assign_value(const Identifier* id, const Bits& val);
-    // Sets the value of the idx'th bit of id to val.
-    void assign_value(const Identifier* id, size_t idx, const Bits& val);
-    // Sets the slice between i and j in id to the first (i-j+1) bits of val.
-    void assign_value(const Identifier* id, size_t i, size_t j, const Bits& val);
-
-    // Sets the value a word slice within id.
+    // Sets the value a word slice within id.  
     template <typename B>
     void assign_word(const Identifier* id, size_t n, B b);
+    // Sets the value of id to val.  
+    void assign_value(const Identifier* id, const Bits& val);
 
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
@@ -158,14 +159,17 @@ class Evaluate : public Editor {
 template <typename B>
 inline B Evaluate::get_word(const Identifier* id, size_t n) {
   init((Expression*)const_cast<Identifier*>(id));
+  assert(id->bit_val_.size() == 1);
   return id->bit_val_[0].read_word<B>(n);
 }
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {
-  init(const_cast<Identifier*>(id));
-  const_cast<Identifier*>(id)->bit_val_[0].write_word<B>(n, b);
-  flag_changed(id);
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  init(const_cast<Identifier*>(r));
+  const_cast<Identifier*>(r)->bit_val_[0].write_word<B>(n, b);
+  flag_changed(r);
 }
 
 } // namespace cascade

@@ -180,18 +180,9 @@ bool SwLogic::there_are_updates() const {
 void SwLogic::update() {
   // This is a for loop. Updates happen simultaneously
   for (size_t i = 0, ie = updates_.size(); i < ie; ++i) {
-    const auto id = updates_[i];
     const auto& val = update_pool_[i];
-    const auto r = Resolve().get_resolution(id);
-    // TODO ISSUE-20: This needs to be a different check: Are the number of
-    // subscripts equal to the arity of this variable?
-    if (id->get_dim()->empty()) { 
-      Evaluate().assign_value(r, val);
-    } else {
-      const auto idx = Evaluate().get_range(id->get_dim()->back());
-      Evaluate().assign_value(r, idx.first, idx.second, val);
-    } 
-    notify(r);
+    Evaluate().assign_value(updates_[i], val);
+    notify(Resolve().get_resolution(updates_[i]));
   }
   updates_.clear();
 
@@ -474,17 +465,8 @@ void SwLogic::visit(const EventControl* ec) {
 
 void SwLogic::visit(const VariableAssign* va) {
   const auto& res = Evaluate().get_value(va->get_rhs());
-  const auto r = Resolve().get_resolution(va->get_lhs());
-
-  // TODO ISSUE-20: This needs to be a different check: is the number of
-  // subscripts equal to the arity of the variable?
-  if (va->get_lhs()->get_dim()->empty()) {
-    Evaluate().assign_value(r, res);
-  } else {
-    const auto idx = Evaluate().get_range(va->get_lhs()->get_dim()->back());
-    Evaluate().assign_value(r, idx.first, idx.second, res);
-  } 
-  notify(r);
+  Evaluate().assign_value(va->get_lhs(), res);
+  notify(Resolve().get_resolution(va->get_lhs()));
 }
 
 void SwLogic::log(const string& op, const Node* n) {
