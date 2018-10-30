@@ -46,9 +46,11 @@ class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
-    // Returns the bit-width of an expression
+    // Returns the bit-width of the values in an expression. Returns the same
+    // value for scalars and arrays.
     size_t get_width(const Expression* e);
-    // Returns whether an expression is signed or unsigned
+    // Returns true if the values in an expression are signed or unsigned.
+    // Returns the same for scalars and arrays.
     bool get_signed(const Expression* e);
 
     // Gets the value of a word slice within id.
@@ -70,7 +72,8 @@ class Evaluate : public Editor {
     template <typename B>
     void assign_word(const Identifier* id, size_t n, B b);
 
-    // Invalidates bits, size, and type for this subtree
+    // Invalidates bits, size, and type for this expression and the
+    // sub-expressions that it consists of.
     void invalidate(const Expression* e);
 
   private:
@@ -155,13 +158,13 @@ class Evaluate : public Editor {
 template <typename B>
 inline B Evaluate::get_word(const Identifier* id, size_t n) {
   init((Expression*)const_cast<Identifier*>(id));
-  return id->bit_val_->read_word<B>(n);
+  return id->bit_val_[0].read_word<B>(n);
 }
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {
   init(const_cast<Identifier*>(id));
-  const_cast<Identifier*>(id)->bit_val_->write_word<B>(n, b);
+  const_cast<Identifier*>(id)->bit_val_[0].write_word<B>(n, b);
   flag_changed(id);
 }
 
