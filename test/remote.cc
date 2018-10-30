@@ -32,18 +32,14 @@
 #include "src/target/common/remote_runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/sw/sw_compiler.h"
-#include "src/target/interface/remote/remote_compiler.h"
 #include "test/harness.h"
 
 using namespace cascade;
 
 TEST(remote, hello_1) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_code("minimal_remote", "data/test/simple/hello_1.v", "Hello World");
@@ -51,11 +47,8 @@ TEST(remote, hello_1) {
 }
 TEST(remote, pipeline_1) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_code("minimal_remote", "data/test/simple/pipeline_1.v", "0123456789");
@@ -63,11 +56,8 @@ TEST(remote, pipeline_1) {
 }
 TEST(remote, pipeline_2) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_code("minimal_remote", "data/test/simple/pipeline_2.v", "0123456789");
@@ -75,11 +65,8 @@ TEST(remote, pipeline_2) {
 }
 TEST(remote, bitcoin) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_bitcoin("minimal_remote", "data/test/bitcoin/bitcoin_9.v", "f 93");
@@ -87,11 +74,8 @@ TEST(remote, bitcoin) {
 }
 TEST(remote, bubble) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_mips("minimal_remote", "data/test/mips32/src/bubble.s", "1");
@@ -99,11 +83,8 @@ TEST(remote, bubble) {
 }
 TEST(remote, regex) {
   RemoteRuntime rr;
-  auto rc = new RemoteCompiler();
-  auto sc = new SwCompiler();
   auto c = new Compiler();
-    c->set_remote_compiler(rc);
-    c->set_sw_compiler(sc);
+    c->set_sw_compiler(new SwCompiler());
   rr.set_compiler(c);
   rr.run();
   run_regex("minimal_remote", "(Achilles)|(THE END)", "data/test/regex/data/iliad.txt", "424");

@@ -57,13 +57,17 @@ class Compiler {
     ~Compiler();
 
     // Non-Tread-Safe Core Compiler Configuration:
-    // These methods must only be called before the first invocation of compile()
+    // These methods must only be called before the first invocation of
+    // compile() and they cannot be called more than once. Once you configure a
+    // compiler, you're stuck with it.
     Compiler& set_de10_compiler(De10Compiler* c);
     Compiler& set_proxy_compiler(ProxyCompiler* c);
     Compiler& set_sw_compiler(SwCompiler* c);
 
     // Non-Thread-Safe Interface Compiler Configuration:
     // These methods must only be called before the first invocation of compile()
+    // and they cannot be called more than once. Once you configure a compiler,
+    // you're stuck with it.
     Compiler& set_local_compiler(LocalCompiler* c);
     Compiler& set_remote_compiler(RemoteCompiler* c);
 

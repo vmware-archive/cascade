@@ -38,7 +38,6 @@
 #include "src/target/core/de10/de10_compiler.h"
 #include "src/target/core/proxy/proxy_compiler.h"
 #include "src/target/core/sw/sw_compiler.h"
-#include "src/target/interface/remote/remote_compiler.h"
 
 using namespace cl;
 using namespace cascade;
@@ -89,12 +88,10 @@ int main(int argc, char** argv) {
     dc->set_port(quartus_port.value());
   auto pc = new ProxyCompiler();
   auto sc = new SwCompiler();
-  auto rc = new RemoteCompiler();
   auto c = new Compiler();
     c->set_de10_compiler(dc);
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
-    c->set_remote_compiler(rc);
 
   runtime = new RemoteRuntime();
     runtime->set_compiler(c);
