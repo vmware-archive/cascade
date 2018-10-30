@@ -242,6 +242,25 @@ GPIO gpio();
 Try repeating the example from the previous section and watch real buttons toggle real leds.
 
 ### JIT Backend
+For each of the ```--march``` flags described above, the core computation of a program would still be performed in software. Cascade's ```--march de10_jit``` backend is necessary for transitioning a program completely to hardware. Before restarting Cascade, you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a 64-bit Linux machine. Once you've done so, connect this machine to your DE10's USB Blaster II Port [See FAQ](#faq), and verify the connection by typing.
+```
+64-Bit LINUX $ <quartus/install/dir>/jtagconfig
+```
+You'll see something like the following. Take note of the string in square brackets.
+```
+1) DE-SoC [1-3]
+  4BA00477     SOCVHPS
+  02D020DD     5CSEBA6(.|ES)/5CSEMA6/..
+```
+You can now start Cascade's JIT server by typing the following, where the ```--usb``` command line argument is what appeared when you invoked ```jtagconfig```.
+```
+64-Bit LINUX $ ./bin/quartus_server --path <quartus/install/dir> --usb "[1-3]"
+```
+Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
+```
+DE10 $ ./bin/cascade --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10000
+```
+Providing the ```--profile_interval``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
 
 Verilog Support
 =====
@@ -357,7 +376,7 @@ The ```__file``` annotation is similar to the one described above. If provided, 
 
 Adding Support for New Backends
 =====
-(Coming Soon.)
+(Coming soon.)
 
 FAQ
 ====
@@ -368,7 +387,7 @@ This is most likely due to the version of flex you are using. Some versions of p
 #### How do I ssh into the DE10's ARM core using a USB cable?
 (Coming soon.)
 
-#### How do I configure the DE10's USB Blaster Programming Cable in a Linux Environment?
+#### How do I configure the DE10's USB Blaster II Programming Cable in a Linux Environment?
 (Coming soon.)
 
 #### Cascade emits strange warnings whenever I declare a module.
