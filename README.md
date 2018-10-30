@@ -291,6 +291,64 @@ Cascade's Clock, along with the modules which are implicitly declared when casca
 | Reset     |         | x  |      |          |
 | GPIO      |         |    | x    | x        |
 
+Cascade's Standard Library also impliclty declares two reusable data-structures for communicating back and forth between hardware and software, a memory and a FIFO queue. In contrast to the modules described above, these modules are not implicitly instantiated. The user may instead instantiate as many as they like.
+
+Cascade memories are dual-port read, single-port write. The declaration provided by the Standard Library is shown below.
+```verilog
+module Memory#(
+  parameter ADDR_SIZE = 4,           // Address bit-width: A memory will have 2^ADDR_SIZE elements
+  parameter BYTE_SIZE = 8            // Value bit-width: The value at each address will have BYTE_SIZE bits
+)(
+  input  wire clock,                 // Write data is latched on the posedge of this signal
+  input  wire wen,                   // Assert to latch write data
+  input  wire[ADDR_SIZE-1:0] raddr1, // Address to read data from
+  output wire[BYTE_SIZE-1:0] rdata1, // The value at raddr1, available this clock cycle
+  input  wire[ADDR_SIZE-1:0] raddr2, // Ditto
+  output wire[BYTE_SIZE-1:0] rdata2, // Ditto
+  input  wire[ADDR_SIZE-1:0] waddr,  // Address to write data to
+  input  wire[BYTE_SIZE-1:0] wdata   // The value to write to waddr at the posedge of clock
+);
+```
+
+When instantiating a memory, an optional annotation may be provided as well.
+```verilog
+(*__file="path/to/file.mem"*)
+Memory#(4,8) mem(/* ... */);
+```
+This annotation tells Cascade that the initial values for the memory should be read from ```path/to/file.mem```, and that when Cascade finishes execution the state of the memory should be written back to that file. If the file does not exist when the module is instantiated, Cascade will initialize the memory to all zeros. As with include statements, Cascade will attempt to resolve the ```__file``` annotation relative to the paths provided by the ```-I``` flag.  
+
+A memory file is expected to contain whitespace separated hexadecimal values, one for each address. For the memory instiated above (consisting of 2^4 8-bit values), an well-formed memory file might contain the following.
+```
+0 fc 10 6
+1 2 3 4 ff fe fd fc
+c d
+a
+b
+```
+
+Cascade FIFOs provide clocked read and write access to an arbitrary depth first-in-first-out queue. The declaration provided by the standard library is shown below.
+```verilog
+module Fifo#(
+  parameter DEPTH = 8,              // The maximum number of elements that the fifo can hold
+  parameter BYTE_SIZE = 8           // Each element in the fifo will have BYTE_SIZE bits
+)(
+  input  wire clock,                // Reads and writes happen on the posedge of this signal
+  input  wire rreq,                 // Assert to pop a value from the fifo 
+                                    // Pushing/popping at the same time, or reading an empty fifo is undefined
+  output wire[BYTE_SIZE-1:0] rdata, // The value that was popped on the last posedge of clock
+  input  wire wreq,                 // Assert to push a value onto the fifo
+                                    // Pushing/popping at the same time, or writing a full fifo is undefined
+  input  wire[BYTE_SIZE-1:0] wdata, // The value to push at the next posedge of clock
+  output wire empty,                // Is this fifo currently empty?
+  output wire full                  // Is this fifo currently full?
+);
+```
+When instantiating a fifo, an optional set of annotations may be provided as well.
+```verilog
+(*__file="path/to/file.mem", __count=8*)
+Fifo#(8,8) fifo(/* ... */);
+```
+The ```__file``` annotation is similar to the one described above. If provided, Cascade will attempt to initialize the FIFO with values drawn from this file. The file format is the same. If the file contains more values than the maximum depth of the FIFO, Cascade will automatically push the next value from the file as soon as there is space (```full``` reports false). This process will continue until the end-of-file is reached, and then repeat up to ```__count``` times before no longer attempting to push values into the FIFO. Values are not written back to ```__file``` when Cascade finishes execution, and it is an error to instantiate a FIFO with an unresolvable ```__file``` annotation.
 
 FAQ
 ====
