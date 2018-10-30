@@ -63,10 +63,11 @@ Runtime::Runtime(View* view) : Asynchronous() {
   program_ = new Program();
   root_ = nullptr;
 
-  disable_inlining_ = false;
   enable_open_loop_ = false;
   open_loop_itrs_ = 2;
   open_loop_target_ = 1;
+  disable_inlining_ = false;
+  disable_warnings_ = false;
 
   schedule_all_ = false;
   clock_ = nullptr;
@@ -111,6 +112,11 @@ Runtime& Runtime::set_open_loop_target(size_t olt) {
 
 Runtime& Runtime::disable_inlining(bool di) {
   disable_inlining_ = di;
+  return *this;
+}
+
+Runtime& Runtime::disable_warnings(bool dw) {
+  disable_warnings_ = dw;
   return *this;
 }
 
@@ -505,6 +511,9 @@ void Runtime::log_parse_errors() {
 }
 
 void Runtime::log_checker_warns() {
+  if (disable_warnings_) {
+    return;
+  }
   if (program_->get_log().warn_begin() == program_->get_log().warn_end()) {
     return;
   }

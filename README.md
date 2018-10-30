@@ -258,7 +258,7 @@ You can now start Cascade's JIT server by typing the following, where the ```--u
 ```
 Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
 ```
-DE10 $ ./bin/cascade --quartus_server <64-Bit LINUX IP> --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10000
+DE10 $ ./bin/cascade --quartus_server <64-Bit LINUX IP> --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10
 ```
 Providing the ```--profile_interval``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
 
@@ -440,3 +440,9 @@ Foo#(8) f();
 The register ```x``` was declared in a loop generate construct with bounds determined by a parameter. In general, there is no way for Cascade to guarantee that you will instantiate ```Foo``` with a parameter binding such that all of its declaration-time unresolved variables are resolvable. When ```Foo``` is instantiated with ```N=8```, Cascade can verify that there is a variable named ```GEN[5].x```. No further warnings or errors are necessary.
 
 More generally, Cascade will defer typechecking for code that appears inside of generate constructs until instantiation-time.
+
+#### I get it, but it seems like there's something about pretty much every module declaration that Cascade can't prove.
+The truth hurts. If you'd like to disable warnings you can type.
+```
+$ ./bin/cascade --disable_warnings
+```

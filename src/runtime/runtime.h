@@ -72,6 +72,7 @@ class Runtime : public Asynchronous {
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& disable_inlining(bool di);
+    Runtime& disable_warnings(bool dw);
 
     // Controller Interface:
     // 
@@ -186,6 +187,9 @@ class Runtime : public Asynchronous {
     time_t last_time_;
     uint64_t last_logical_time_;
     uint64_t logical_time_;
+
+    // Warnings and Errors:
+    bool disable_warnings_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.

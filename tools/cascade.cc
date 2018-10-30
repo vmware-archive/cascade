@@ -101,7 +101,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 __attribute__((unused)) auto& g4 = Group::create("Logging Options");
 auto& profile_interval = StrArg<int>::create("--profile_interval")
   .usage("<n>")
-  .description("Number of milliseconds to wait between profiling events; setting n to zero disables profiling")
+  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling")
   .initial(0);
 auto& batch = FlagArg::create("--batch")
   .description("Deactivate UI; use -e to provide program input");
@@ -116,6 +116,10 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
+__attribute__((unused)) auto& g6 = Group::create("Warnings and Errors");
+auto& disable_warnings = FlagArg::create("--disable_warnings")
+  .description("Turn of warnings");
+
 class Profiler : public Asynchronous {
   public:
     Profiler(Runtime* rt) : Asynchronous() { 
@@ -127,7 +131,7 @@ class Profiler : public Asynchronous {
       while (!stop_requested()) {
         clog << "TIME = " << time(nullptr) << endl;
         clog << "FREQ = " << rt_->current_frequency() << endl;
-        sleep_for(profile_interval.value());        
+        sleep_for(1000*profile_interval.value());        
       }
     }
     Runtime* rt_;
@@ -207,8 +211,9 @@ int main(int argc, char** argv) {
   // Start the runtime
     runtime->set_compiler(c);
     runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
-    runtime->disable_inlining(disable_inlining.value());
     runtime->set_open_loop_target(open_loop_target.value());
+    runtime->disable_inlining(disable_inlining.value());
+    runtime->disable_warnings(disable_warnings.value());
   runtime->run();
 
   // Parse march configuration
