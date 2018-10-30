@@ -226,14 +226,48 @@ ITEM OK
 Toggling the pads should now change the values of the leds for as long as Cascade is running.
 
 ### DE10 Backend
-Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046). When Cascade is run on the DE10's ARM core, instead of mapping compute and leds onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing onto the ARM core, building Cascade, and starting it using the ```--march de10``` flag.
+Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046). When Cascade is run on the DE10's ARM core, instead of mapping compute and leds onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing onto the ARM core ([see FAQ](#faq)), building Cascade, and starting it using the ```--march de10``` flag.
 ```
 DE10 $ ./bin/cascade --march de10
 ```
 Assuming Cascade is able to successfully connect to the FPGA fabric, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
 
 ### Verilog Support
-(Coming soon.)
+Cascade currently supports a large --- but certainly not complete --- subset of the Verilog 2005 Standard. The following partial list should give a good impression of what Cascade is capable of.
+
+| Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
+|:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
+| Primitive Types       | Net Declarations          |  x        |             |                  |
+|                       | Reg Declarations          |  x        |             |                  |
+|                       | Integer Declarations      |  x        |             |                  |
+|                       | Real Declarations         |           | x           |                  |
+|                       | Time Declarations         |           | x           |                  |
+|                       | Realtime Declarations     |           | x           |                  |
+|                       | Array Declarations        |           | x           |                  |
+| Expressions           | Arithmetic Operators      |  x        |             |                  |
+|                       | Bitwise Operators         |  x        |             |                  |
+|                       | Logical Operators         |  x        |             |                  |
+|                       | Concatentation Operators  |  x        |             |                  |
+|                       | Conditional Operators     |  x        |             |                  |
+|                       | Bit/Part Select           |  x        |             |                  |
+|                       | Strings                   |           | x           |                  |
+|                       | Real Constants            |           | x           |                  |
+| Parameters            | Parameter Declarations    |  x        |             |                  |
+|                       | Localparam Declarations   |  x        |             |                  |
+|                       | Defparam Statements       |           |             | x                |
+| Module Instantiations | Named Parameter Binding   |  x        |             |                  |
+|                       | Ordered Parameter Binding |  x        |             |                  |
+|                       | Named Port Binding        |  x        |             |                  |
+|                       | Ordered Port Binding      |  x        |             |                  |
+|                       | Instantiation Arrays      |           | x           |                  |
+| Generate Constructs   | Genvar Declarations       |  x        |             |                  |
+|                       | Case Generate Constructs  |  x        |             |                  |
+|                       | If Generate Constructs    |  x        |             |                  |
+|                       | Loop Generate Constructs  |  x        |             |                  |
+| System Tasks          | Display Statements        |  x        |             |                  |
+|                       | Finish Statements         |  x        |             |                  |
+|                       | Write Statements          |  x        |             |                  |
+|                       | Monitor Statements        |           | x           |                  |
 
 ### Standard Library
 (Coming soon.)
