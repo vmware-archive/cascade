@@ -123,12 +123,12 @@ void Evaluate::edit(BinaryExpression* be) {
     case BinaryExpression::MOD:
       get_value(be->get_lhs()).arithmetic_mod(get_value(be->get_rhs()), be->bit_val_[0]);
       break;
-    // NOTE: These are equivalent insofar as we don't support x and z
+    // NOTE: These are equivalent because we don't support x and z
     case BinaryExpression::EEEQ:
     case BinaryExpression::EEQ:
       get_value(be->get_lhs()).logical_eq(get_value(be->get_rhs()), be->bit_val_[0]);
       break;
-    // NOTE: These are equivalent insofar as we don't support x and z
+    // NOTE: These are equivalent because we don't support x and z
     case BinaryExpression::BEEQ:
     case BinaryExpression::BEQ:
       get_value(be->get_lhs()).logical_ne(get_value(be->get_rhs()), be->bit_val_[0]);
@@ -416,25 +416,25 @@ void Evaluate::Invalidate::edit(IntegerDeclaration* id) {
 }
 
 void Evaluate::Invalidate::edit(LocalparamDeclaration* ld) {
-  // Don't descend into a different subtree
   ld->get_id()->accept(this);
+  // Ignore dim: Don't descend into a different subtree
   ld->get_val()->accept(this);
 }
 
 void Evaluate::Invalidate::edit(NetDeclaration* nd) { 
-  // Don't descend into a different subtree
   nd->get_id()->accept(this);
+  // Ignore dim: Don't descend into a different subtree
 }
 
 void Evaluate::Invalidate::edit(ParameterDeclaration* pd) {
-  // Don't descend into a different subtree
   pd->get_id()->accept(this);
+  // Ignore dim: Don't descend into a different subtree
   pd->get_val()->accept(this);
 }
 
 void Evaluate::Invalidate::edit(RegDeclaration* rd) {
-  // Don't descend into a different subtree
   rd->get_id()->accept(this);
+  // Ignore dim: Don't descend into a different subtree
   rd->get_val()->accept(this);
 }
 
@@ -608,8 +608,7 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
 
   // Genvars are materialized as localparams and follow the same rules.  For
   // lack of information in this declaration though, we have to assume 32 bit
-  // unsigned. It's not like it even matters. Nothing should ever try to
-  // dereference this value.
+  // unsigned. 
   gd->get_id()->bit_val_.emplace_back(Bits(32, 0));
   gd->get_id()->bit_val_[0].set_signed(false);
 }
@@ -618,9 +617,18 @@ void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
   // Don't descend on id, we handle it below
   id->get_val()->accept(this);
 
-  // Integers must be a minimum of 32 bits and are always signed
-  id->get_id()->bit_val_.emplace_back(Bits(32, 0));
-  id->get_id()->bit_val_[0].set_signed(true);
+  // Calculate arity
+  size_t arity = 1;
+  for (auto dim : *id->get_id()->get_dim()) {
+    const auto rng = Evaluate().get_range(dim);
+    arity *= (rng.first-rng.second+1);
+  }
+  // Allocate bits: Integers must be a minimum of 32 bits and are always signed
+  id->get_id()->bit_val_.resize(arity);
+  for (size_t i = 0; i < arity; ++i) { 
+    id->get_id()->bit_val_[i].resize(32);
+    id->get_id()->bit_val_[i].set_signed(true);
+  }
 
   // Hold off on initial assignment here. We may be doing some size extending
   // in context-determination. We'll want to wait until then to compute the
@@ -649,13 +657,24 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
   nd->get_ctrl()->accept(this);
 
+  // Calculate arity
+  size_t arity = 1;
+  for (auto dim : *nd->get_id()->get_dim()) {
+    const auto rng = Evaluate().get_range(dim);
+    arity *= (rng.first-rng.second+1);
+  }
+  // Calculate width
   size_t w = 1;
   if (!nd->get_dim()->null()) {
     const auto rng = Evaluate().get_range(nd->get_dim()->get());
     w = rng.first-rng.second+1;
   }
-  nd->get_id()->bit_val_.emplace_back(Bits(w, 0));
-  nd->get_id()->bit_val_[0].set_signed(nd->get_signed());
+  // Allocate bits
+  nd->get_id()->bit_val_.resize(arity);
+  for (size_t i = 0; i < arity; ++i) {
+    nd->get_id()->bit_val_[i].resize(w);
+    nd->get_id()->bit_val_[i].set_signed(nd->get_signed());
+  }
 
   // For whatever reason, we've chosen to materialize net declarations as
   // declarations followed by continuous assigns. So there's no initial value
@@ -684,13 +703,24 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
   rd->get_val()->accept(this);
 
+  // Calculate arity
+  size_t arity = 1;
+  for (auto dim : *rd->get_id()->get_dim()) {
+    const auto rng = Evaluate().get_range(dim);
+    arity *= (rng.first-rng.second+1);
+  }
+  // Calculate width
   size_t w = 1;
   if (!rd->get_dim()->null()) {
     const auto rng = Evaluate().get_range(rd->get_dim()->get());
     w = rng.first-rng.second+1;
   }
-  rd->get_id()->bit_val_.emplace_back(Bits(w, 0));
-  rd->get_id()->bit_val_[0].set_signed(rd->get_signed());
+  // Allocate bits:
+  rd->get_id()->bit_val_.resize(arity);
+  for (size_t i = 0; i < arity; ++i) {
+    rd->get_id()->bit_val_[i].resize(w);
+    rd->get_id()->bit_val_[i].set_signed(rd->get_signed());
+  }
 
   // Hold off on initial assignment here. We may be doing some size extending
   // in context-determination. We'll want to wait until then to compute the
@@ -836,6 +866,10 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   if (id->get_val()->null()) {
     return;
   }
+  // The parser should guarantee that only scalar declarations
+  // have initial values.
+  assert(id->get_id()->bit_val_.size() == 1);
+
   // Assignments impose larger sizes but not sign constraints
   if (id->get_val()->get()->bit_val_[0].size() < 32) {
     id->get_val()->get()->bit_val_[0].resize(32);
@@ -886,6 +920,10 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   if (rd->get_val()->null()) {
     return;
   }
+  // The parser should guarantee that only scalar declarations
+  // have initial values.
+  assert(rd->get_id()->bit_val_.size() == 1);
+
   // Assignments impose larger sizes but not sign constraints
   if (rd->get_id()->bit_val_[0].size() > rd->get_val()->get()->bit_val_[0].size()) {
     rd->get_val()->get()->bit_val_[0].resize(rd->get_id()->bit_val_[0].size());
