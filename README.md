@@ -230,7 +230,15 @@ Cascade currently provides support for a single hardware backend: the [Terasic D
 ```
 DE10 $ ./bin/cascade --march de10
 ```
-Assuming Cascade is able to successfully connect to the FPGA fabric, you will be presented with the same environment as above. Try repeating the example and watch real buttons toggle real leds.
+Assuming Cascade is able to successfully connect to the FPGA fabric, you will be presented with a similar environment to the one described above. The only difference is that instead of a Reset module, Cascade will implicitly declare the following module, which represents the DE10's Arduino header.
+```verilog
+module GPIO(
+  input wire[7:0] val
+);
+endmodule
+GPIO gpio();
+```
+Try repeating the example from the previous section and watch real buttons toggle real leds.
 
 ### Verilog Support
 Cascade currently supports a large --- but certainly not complete --- subset of the Verilog 2005 Standard. The following partial list should give a good impression of what Cascade is capable of.
@@ -255,6 +263,9 @@ Cascade currently supports a large --- but certainly not complete --- subset of 
 | Parameters            | Parameter Declarations    |  x        |             |                  |
 |                       | Localparam Declarations   |  x        |             |                  |
 |                       | Defparam Statements       |           |             | x                |
+| Module Declarations   | Input Ports               |  x        |             |                  |
+|                       | Output Ports              |  x        |             |                  |
+|                       | Inout Ports               |           | x           |                  |
 | Module Instantiations | Named Parameter Binding   |  x        |             |                  |
 |                       | Ordered Parameter Binding |  x        |             |                  |
 |                       | Named Port Binding        |  x        |             |                  |
@@ -270,7 +281,16 @@ Cascade currently supports a large --- but certainly not complete --- subset of 
 |                       | Monitor Statements        |           | x           |                  |
 
 ### Standard Library
-(Coming soon.)
+Cascade's Clock, along with the modules which are implicitly declared when cascade is run with the ```--march de10``` or ```--march sw``` flags, are part of its Standard Library. The complete set of I/O peripherals in the Standard Library, along with the ```march``` environments in which they are supported, is shown below.
+
+| Component | minimal | sw | de10 | de10_jit |
+|:----------|:-------:|:--:|:----:|:--------:|
+| Clock     | x       | x  | x    | x        |
+| Led       |         | x  | x    | x        |
+| Pad       |         | x  | x    | x        |
+| Reset     |         | x  |      |          |
+| GPIO      |         |    | x    | x        |
+
 
 FAQ
 ====
@@ -320,7 +340,7 @@ Foo f(); // This instantiation will fail because the only variable
          // reachable from f is q.r.
 ```
 
-#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo``` but not when I instantiate it (Part 2)?
+#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo```, but not when I instantiate it (Part 2)?
 ```verilog
 module #(parameter N) Foo();
   genvar i;
