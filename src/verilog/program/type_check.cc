@@ -288,12 +288,6 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
-  // TODO ISSUE 20: Turn on support for variable arrays
-  if (id->get_dim()->size() > 1) {
-    exists_bad_id_ = true;
-    return error("Cascade does not currently support the use of variable arrays", id);
-  }
-
   // RECURSE: ids and dim
   auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
@@ -314,9 +308,8 @@ void TypeCheck::visit(const Identifier* id) {
       error("Reference to unresolved identifier", id);
     }
   }
+  // TODO ISSUE 20: Check that this is a valid subscript
   // CHECK: Little-endian ranges and subscript out of range
-  // TODO ISSUE 20: This check needs to change. We only want to do this if this
-  // is a trailing range expression
   if (!id->get_dim()->empty()) {
     const auto rng = Evaluate().get_range(id->get_dim()->back());
     if (rng.first < rng.second) {

@@ -55,22 +55,20 @@ class Evaluate : public Editor {
     // Returns the same for scalars and arrays.
     bool get_signed(const Expression* e);
 
-    // Gets the value of a word slice within id. Invoking this method on an
-    // expression which evaluates to an array is undefined.
-    template <typename B>
-    B get_word(const Identifier* id, size_t n);
-    // Returns the value of an expression. Invoking this method on an
-    // expression which evaluates to an array is undefined.
+    // Returns the bit value of an expression. Invoking this method on an expression
+    // which evaluates to an array is undefined.
     const Bits& get_value(const Expression* e);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
     // Invoking this method on an expression which evaluates to an array is
     // undefined.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Sets the value a word slice within id.  
+    // Sets the value a word slice within id. Invoking this method on an
+    // unresolvable id or one which refers to an array is undefined.
     template <typename B>
     void assign_word(const Identifier* id, size_t n, B b);
-    // Sets the value of id to val.  
+    // Sets the value of id to val. Invoking this method on an unresolvable id
+    // or one which refers to an array is undefined.
     void assign_value(const Identifier* id, const Bits& val);
 
     // Invalidates bits, size, and type for this expression and the
@@ -155,13 +153,6 @@ class Evaluate : public Editor {
       void edit(VariableAssign* va) override;
     };
 };
-
-template <typename B>
-inline B Evaluate::get_word(const Identifier* id, size_t n) {
-  init((Expression*)const_cast<Identifier*>(id));
-  assert(id->bit_val_.size() == 1);
-  return id->bit_val_[0].read_word<B>(n);
-}
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {

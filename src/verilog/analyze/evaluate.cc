@@ -80,6 +80,8 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   assert(r != nullptr);
   init(const_cast<Identifier*>(r));
 
+  // TODO ISSUE 20:
+
   // Full variable dereference
   if (id->get_dim()->empty()) {
     if (!r->bit_val_[0].eq(val)) {
@@ -210,8 +212,7 @@ void Evaluate::edit(Identifier* id) {
     return;
   }
   // Otherwise copy or slice 
-  // TODO ISSUE-20: This needs to be a different check: is the number of
-  // subscripts equal to the arity of this variable?
+  // TODO ISSUE 20: 
   if (id->get_dim()->empty()) {
     id->bit_val_[0].assign(get_value(r));
   } else {
@@ -524,8 +525,7 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
 
   size_t w = 0;
   bool s = false;
-  // TODO: This needs to be a different check: is the number of subscripts
-  // equal to the arity of this variable?
+  // TODO ISSUE 20: 
   if (id->get_dim()->empty()) {
     const auto r = Resolve().get_resolution(id);
     assert(r != nullptr);
