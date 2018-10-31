@@ -49,7 +49,9 @@ OBJ=\
 	src/target/core/sw/sw_compiler.o\
 	src/target/core/sw/sw_logic.o\
 	src/target/core_compiler.o\
+	src/target/input.o\
 	src/target/interface_compiler.o\
+	src/target/state.o\
 	\
 	src/ui/log/log_view.o\
 	src/ui/stream/stream_controller.o\
