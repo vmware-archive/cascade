@@ -68,16 +68,19 @@ class Evaluate : public Editor {
     // Returns upper and lower values for ranges, get_value() twice otherwise.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Sets the value a word slice within id. Invoking this method on an
-    // unresolvable id or one which refers to an array is undefined.
-    template <typename B>
-    void assign_word(const Identifier* id, size_t n, B b);
     // Sets the value of id to val. Invoking this method on an unresolvable id
     // or one which refers to an array is undefined.
     void assign_value(const Identifier* id, const Bits& val);
     // Sets the value of id to val. Invoking this method on an unresolvable id
     // or one which refers to an array subscript is undefined.
     void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
+
+    // Sets the value an identifier. Note that this value is set *in place* in
+    // the AST. This method DOES NOT resolve id and then update the value
+    // there.  Invoking this method on a variable which evaluates to an array
+    // is undefined.
+    template <typename B>
+    void assign_word(const Identifier* id, size_t n, B b);
 
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
@@ -174,11 +177,9 @@ class Evaluate : public Editor {
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {
-  const auto r = Resolve().get_resolution(id);
-  assert(r != nullptr);
-  init(const_cast<Identifier*>(r));
-  const_cast<Identifier*>(r)->bit_val_[0].write_word<B>(n, b);
-  flag_changed(r);
+  init(const_cast<Identifier*>(id));
+  const_cast<Identifier*>(id)->bit_val_[0].write_word<B>(n, b);
+  flag_changed(id);
 }
 
 } // namespace cascade
