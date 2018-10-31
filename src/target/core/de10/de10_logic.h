@@ -51,6 +51,8 @@ class De10Logic : public Logic, public Visitor {
         bool materialized() const;
         // What index in the variable table does this variable start at?
         size_t index() const;
+        // How many elements does this variable span?
+        size_t arity() const;
         // How many bits wide is this variable?
         size_t bit_size() const;
         // How many 32-bit entries in the variable table does it span?

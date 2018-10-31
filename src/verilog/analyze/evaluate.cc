@@ -34,6 +34,23 @@ using namespace std;
 
 namespace cascade {
 
+vector<size_t> Evaluate::get_arity(const Identifier* id) {
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+
+  // Variable references are always scalar
+  if (id != r) {
+    return vector<size_t>();
+  }
+  // Otherwise, iterate over the declaration to determine arity
+  vector<size_t> res;
+  for (auto d : *r->get_dim()) {
+    const auto rng = get_range(d);
+    res.push_back(rng.first - rng.second + 1);
+  }
+  return res;
+}
+
 size_t Evaluate::get_width(const Expression* e) {
   init(const_cast<Expression*>(e));
   return e->bit_val_[0].size();
@@ -375,6 +392,10 @@ void Evaluate::flag_changed(const Identifier* id) {
 }
 
 pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Identifier* r, const Identifier* i) {
+  // NOTE: This is the single place where we determine how variables are laid
+  // out in array memory.  The current implementation is the reverse of the
+  // usual. Consecutive highest-order subscripts are adjacent.
+
   // Nothing to do if this is a scalar variable
   if (r->get_dim()->empty()) {
     assert(i->get_dim()->size() <= 1);

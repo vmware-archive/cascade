@@ -66,12 +66,20 @@ size_t De10Logic::VarInfo::index() const {
   return idx_;
 }
 
+size_t De10Logic::VarInfo::arity() const {
+  auto res = 1;
+  for (auto a : Evaluate().get_arity(id_)) {
+    res *= a;
+  }
+  return res;
+}
+
 size_t De10Logic::VarInfo::bit_size() const {
   return Evaluate().get_width(id_);
 }
 
 size_t De10Logic::VarInfo::word_size() const {
-  return (bit_size() + 31) / 32;
+  return (arity() * bit_size() + 31) / 32;
 }
 
 De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 

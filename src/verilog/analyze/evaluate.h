@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <utility>
+#include <vector>
 #include "src/base/bits/bits.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -48,6 +49,9 @@ class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
+    // Returns the arity of an expression: an empty vector for scalars, one 
+    // value for the length of each dimension for arrays.
+    std::vector<size_t> get_arity(const Identifier* id);
     // Returns the bit-width of the values in an expression. Returns the same
     // value for scalars and arrays.
     size_t get_width(const Expression* e);
