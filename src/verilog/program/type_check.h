@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_TYPE_CHECK_H
 
 #include <string>
+#include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -106,8 +107,12 @@ class TypeCheck : public Visitor {
     void visit(const WaitStatement* ws) override;
     void visit(const DelayControl* dc) override;
 
-    // Width Checking Helpers:
+    // Checks whether a range is little-endian and begins at 0
     void check_width(const Maybe<RangeExpression>* re);
+    // Checks whether a potentially subscripted identifier is a valid array
+    // dereference, returns a pointer to the last unused element in its
+    // dimensions so that further operations may check its slice.
+    Many<Expression>::const_iterator check_deref(const Identifier* r, const Identifier* i);
     // Instantiation Array Checking Helpers:
     void check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg);
 };

@@ -56,11 +56,12 @@ class Evaluate : public Editor {
     bool get_signed(const Expression* e);
 
     // Returns the bit value of an expression. Invoking this method on an expression
-    // which evaluates to an array is undefined.
+    // which evaluates to an array returns the first element of that array.
     const Bits& get_value(const Expression* e);
+    // Returns the array value of an identifier. Invoking this method on an identifier
+    // which evaluates to a scalar returns a single element array.
+    const std::vector<Bits>& get_array_value(const Identifier* i);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
-    // Invoking this method on an expression which evaluates to an array is
-    // undefined.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
     // Sets the value a word slice within id. Invoking this method on an
@@ -88,9 +89,19 @@ class Evaluate : public Editor {
     void edit(UnaryExpression* ue) override;
 
     // Helper Methods:
+    //
+    // Returns the root of the expression tree containing e. See implementation
+    // notes for what counts as a boundary between trees.
     const Node* get_root(const Expression* e) const;
+    // Initializes the bit value associated with an identifier using the rules
+    // of self- and context- determination to determine bit-width and sign.
     void init(Expression* e);
+    // Updates the needs_update_ flag for this identifier and its dependencies.
     void flag_changed(const Identifier* id);
+    // Finds the bit_value associated with a potentially subscripted identifier
+    // returns a pointer to the last ununsed element in its dimensions so that
+    // further operations may use it to compute a slice.
+    std::pair<size_t, const Many<Expression>::const_iterator> deref(const Identifier* r, const Identifier* i);
 
     // Invalidates bit, size, and type info for the expressions in this subtree
     struct Invalidate : public Editor {

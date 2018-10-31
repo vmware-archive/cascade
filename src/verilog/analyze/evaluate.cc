@@ -46,12 +46,20 @@ bool Evaluate::get_signed(const Expression* e) {
 
 const Bits& Evaluate::get_value(const Expression* e) {
   init(const_cast<Expression*>(e));
-  assert(e->bit_val_.size() == 1);
   if (e->needs_update_) {
     const_cast<Expression*>(e)->accept(this);
     const_cast<Expression*>(e)->needs_update_ = false;
   }
   return e->bit_val_[0];
+}
+
+const vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
+  init(const_cast<Identifier*>(i));
+  if (i->needs_update_) {
+    const_cast<Identifier*>(i)->accept(this);
+    const_cast<Identifier*>(i)->needs_update_ = false;
+  }
+  return i->bit_val_;
 }
 
 pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
@@ -80,20 +88,17 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   assert(r != nullptr);
   init(const_cast<Identifier*>(r));
 
-  // TODO ISSUE 20:
-
-  // Full variable dereference
-  if (id->get_dim()->empty()) {
-    if (!r->bit_val_[0].eq(val)) {
-      const_cast<Identifier*>(r)->bit_val_[0].assign(val);
+  // Perform the assignment
+  const auto dres = deref(r, id);
+  if (dres.second == id->get_dim()->end()) {
+    if (!r->bit_val_[dres.first].eq(val)) {
+      const_cast<Identifier*>(r)->bit_val_[dres.first].assign(val);
       flag_changed(r);
     }
-  } 
-  // Part or bit dereference
-  else {
-    const auto rng = get_range(id->get_dim()->back());
-    if (!r->bit_val_[0].eq(rng.first, rng.second, val)) {
-      const_cast<Identifier*>(r)->bit_val_[0].assign(rng.first, rng.second, val);
+  } else {
+    const auto rng = get_range(*dres.second);
+    if (!r->bit_val_[dres.first].eq(rng.first, rng.second, val)) {
+      const_cast<Identifier*>(r)->bit_val_[dres.first].assign(rng.first, rng.second, val);
       flag_changed(r);
     }
   }
@@ -212,12 +217,12 @@ void Evaluate::edit(Identifier* id) {
     return;
   }
   // Otherwise copy or slice 
-  // TODO ISSUE 20: 
-  if (id->get_dim()->empty()) {
-    id->bit_val_[0].assign(get_value(r));
+  const auto dres = deref(r, id);
+  if (dres.second == id->get_dim()->end()) {
+    id->bit_val_[0].assign(get_array_value(r)[dres.first]);
   } else {
-    const auto range = get_range(id->get_dim()->back());
-    id->bit_val_[0].assign(get_value(r), range.first, range.second);
+    const auto range = get_range(*dres.second);
+    id->bit_val_[0].assign(get_array_value(r)[dres.first], range.first, range.second);
   }
 }
 
@@ -349,6 +354,39 @@ void Evaluate::flag_changed(const Identifier* id) {
   for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
     (*i)->needs_update_ = true;
   }
+}
+
+pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Identifier* r, const Identifier* i) {
+  // Nothing to do if this is a scalar variable
+  if (r->get_dim()->empty()) {
+    assert(i->get_dim()->size() <= 1);
+    return make_pair(0, i->get_dim()->begin());
+  }
+
+  // Otherwise, i had better have at most one more dimension than r
+  assert(i->get_dim()->size() - r->get_dim()->size() <= 1);
+
+  // Iterators
+  auto iitr = i->get_dim()->begin();
+  auto ritr = ++r->get_dim()->begin();
+  // The index we're looking for
+  size_t idx = get_value(*iitr++).to_int();
+  // Multiplier for multi-dimensional arrays
+  size_t mul = 1;
+
+  // Walk along itr until we're out of dimensions
+  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
+    assert(dynamic_cast<RangeExpression*>(*ritr) != nullptr);
+    assert(dynamic_cast<RangeExpression*>(*iitr) == nullptr);
+
+    const auto rval = get_range(*ritr);
+    const auto ival = get_value(*iitr).to_int();
+
+    idx += mul * ival;
+    mul *= (rval.first-rval.second+1);
+  }
+  // Out of bounds accesses are undefined, so we'll map them to a safe value
+  return make_pair(idx >= r->bit_val_.size() ? 0 : idx, iitr);
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {
@@ -523,12 +561,12 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
 void Evaluate::SelfDetermine::edit(Identifier* id) {
   // Don't descend on dim. We treat it as a separate subtree.
 
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+
   size_t w = 0;
   bool s = false;
-  // TODO ISSUE 20: 
-  if (id->get_dim()->empty()) {
-    const auto r = Resolve().get_resolution(id);
-    assert(r != nullptr);
+  if (id->get_dim()->size() == r->get_dim()->size()) {
     w = Evaluate().get_width(r);
     s = Evaluate().get_signed(r);
   } else if (auto re = dynamic_cast<RangeExpression*>(id->get_dim()->back())) {
@@ -865,7 +903,7 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   }
   // The parser should guarantee that only scalar declarations
   // have initial values.
-  assert(id->get_id()->bit_val_.size() == 1);
+  assert(id->get_id()->bit_val_[0].size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
   if (id->get_val()->get()->bit_val_[0].size() < 32) {
@@ -919,7 +957,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   }
   // The parser should guarantee that only scalar declarations
   // have initial values.
-  assert(rd->get_id()->bit_val_.size() == 1);
+  assert(rd->get_id()->bit_val_[0].size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
   if (rd->get_id()->bit_val_[0].size() > rd->get_val()->get()->bit_val_[0].size()) {
