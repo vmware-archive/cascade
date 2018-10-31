@@ -83,7 +83,7 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
 State* SwLogic::get_state() {
   auto s = new State();
   for (const auto& sv : state_) {
-    s->insert(sv.first, Evaluate().get_value(sv.second));
+    s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
   return s;
 }
@@ -92,7 +92,7 @@ void SwLogic::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      Evaluate().assign_value(sv.second, itr->second);
+      Evaluate().assign_array_value(sv.second, itr->second);
     }
   }
 }

@@ -71,6 +71,9 @@ class Evaluate : public Editor {
     // Sets the value of id to val. Invoking this method on an unresolvable id
     // or one which refers to an array is undefined.
     void assign_value(const Identifier* id, const Bits& val);
+    // Sets the value of id to val. Invoking this method on an unresolvable id
+    // or one which refers to an array subscript is undefined.
+    void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
 
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.

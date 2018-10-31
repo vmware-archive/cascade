@@ -80,7 +80,7 @@ inline State* SwClock::get_state() {
 inline void SwClock::set_state(const State* s) {
   const auto itr = s->find(out_);
   if (itr != s->end()) {
-    val_ = itr->second.to_bool();
+    val_ = itr->second[0].to_bool();
   }
 }
 

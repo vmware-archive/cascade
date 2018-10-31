@@ -32,6 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_STATE_H
 
 #include <unordered_map>
+#include <vector>
 #include "src/base/bits/bits.h"
 #include "src/base/serial/serializable.h"
 #include "src/runtime/ids.h"
@@ -44,12 +45,14 @@ namespace cascade {
 
 class State : public Serializable {
   public:
-    typedef std::unordered_map<VId, Bits>::const_iterator const_iterator;
+    typedef std::unordered_map<VId, std::vector<Bits>>::const_iterator const_iterator;
 
     State() = default;
     ~State() override = default;
 
     void insert(VId id, const Bits& b);
+    void insert(VId id, const std::vector<Bits>& bs);
+
     const_iterator find(VId id) const;
     const_iterator begin() const;
     const_iterator end() const;
@@ -58,11 +61,17 @@ class State : public Serializable {
     size_t serialize(std::ostream& os) const override;
 
   private:
-    std::unordered_map<VId, Bits> state_; 
+    std::unordered_map<VId, std::vector<Bits>> state_; 
 };
 
 inline void State::insert(VId id, const Bits& b) {
-  state_.insert(std::make_pair(id, b));
+  std::vector<Bits> bs;
+  bs.push_back(b);
+  state_.insert(std::make_pair(id, bs));
+}
+
+inline void State::insert(VId id, const std::vector<Bits>& bs) {
+  state_.insert(std::make_pair(id, bs));
 }
 
 inline State::const_iterator State::find(VId id) const {

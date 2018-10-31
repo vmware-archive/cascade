@@ -45,10 +45,18 @@ size_t State::deserialize(istream& is) {
   // Read that many id / bit pairs
   for (size_t i = 0; i < n; ++i) {
     VId id; 
-    Bits bits;
     is.read((char*)&id, 4);
-    res += (4 + bits.deserialize(is));
-    state_.insert(make_pair(id, bits));
+    res += 4;
+
+    uint32_t arity = 0;
+    is.read((char*)&arity, 4);
+    res += 4;
+
+    for (size_t i = 0; i < arity; ++i) {
+      Bits bits;
+      res += bits.deserialize(is);
+      state_[id].push_back(bits);
+    }
   }
   return res;
 }
@@ -62,7 +70,15 @@ size_t State::serialize(ostream& os) const {
   // Write that many id / bit pairs
   for (const auto& s : state_) {
     os.write((char*)&s.first, 4);
-    res += (4 + s.second.serialize(os));
+    res += 4;
+    
+    const uint32_t arity = s.second.size();
+    os.write((char*)&arity, 4);
+    res += 4; 
+           
+    for (const auto& b : s.second) {
+      res += b.serialize(os);
+    }
   }
   return res;
 }

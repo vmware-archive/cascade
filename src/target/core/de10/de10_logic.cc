@@ -127,6 +127,7 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
 }
 
 State* De10Logic::get_state() {
+  // TODO ISSUE 20: This needs updating for programs with arrays
   auto s = new State();
 
   ModuleInfo info(src_);
@@ -144,6 +145,9 @@ State* De10Logic::get_state() {
 }
 
 void De10Logic::set_state(const State* s) {
+  // TODO ISSUE 20 This needs updating for programs with arrays
+  (void) s;
+  /*
   ModuleInfo info(src_);
   for (auto v : info.stateful()) {
     const auto vid = var_map_.find(v);
@@ -156,6 +160,7 @@ void De10Logic::set_state(const State* s) {
       write(vinfo->second, itr->second);
     }
   }
+  */
 }
 
 Input* De10Logic::get_input() {

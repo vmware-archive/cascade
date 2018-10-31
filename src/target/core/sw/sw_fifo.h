@@ -216,15 +216,15 @@ inline void SwFifo::set_state(const State* s) {
   }
 
   VId id = nullid();
-  const auto ptr = s->find(++id)->second.to_int();
+  const auto ptr = s->find(++id)->second[0].to_int();
   if (ifs_.is_open()) {
     ifs_.seekg(ptr);
   }
-  count_ = s->find(++id)->second.to_int();
-  head_ = s->find(++id)->second.to_int();
-  tail_ = s->find(++id)->second.to_int();
+  count_ = s->find(++id)->second[0].to_int();
+  head_ = s->find(++id)->second[0].to_int();
+  tail_ = s->find(++id)->second[0].to_int();
   for (size_t i = 0, ie = fifo_.size(); i < ie; ++i) {
-    fifo_[i].first = s->find(++id)->second;
+    fifo_[i].first = s->find(++id)->second[0];
   }
 }
 

@@ -104,6 +104,24 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   }
 }
 
+void Evaluate::assign_array_value(const Identifier* id, const vector<Bits>& val) {
+  // id shouldn't have any subscripts
+  assert(id->get_dim()->empty());
+
+  // Find the variable that we're referring to. 
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  init(const_cast<Identifier*>(r));
+
+  // Perform the assignment
+  // TODO: Is it worthwhile to check whether anything has changed here?
+  assert(val.size() == id->bit_val_.size());
+  for (size_t i = 0, ie = id->bit_val_.size(); i < ie; ++i) {
+    const_cast<Identifier*>(r)->bit_val_[i].assign(val[i]);
+  }
+  flag_changed(r);
+}
+
 void Evaluate::invalidate(const Expression* e) {
   const auto root = get_root(e);
   Invalidate i;

@@ -190,7 +190,7 @@ inline void SwMemory::set_state(const State* s) {
 
   VId id = nullid();
   for (size_t i = 0, ie = mem_.size(); i < ie; ++i) {
-    mem_[i] = s->find(++id)->second;
+    mem_[i] = s->find(++id)->second[0];
   }
 }
 
