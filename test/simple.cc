@@ -51,6 +51,9 @@ TEST(simple, arithmetic_plus) {
 TEST(simple, arithmetic_pow) {
   run_code("minimal","data/test/simple/arithmetic_pow.v", "16"); 
 }
+TEST(simple, array_1) {
+  run_code("minimal","data/test/simple/array_1.v", "0123");
+}
 TEST(simple, assign_1) {
   run_code("minimal","data/test/simple/assign_1.v", "1");
 }
