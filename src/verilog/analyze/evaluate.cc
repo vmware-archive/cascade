@@ -903,7 +903,7 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   }
   // The parser should guarantee that only scalar declarations
   // have initial values.
-  assert(id->get_id()->bit_val_[0].size() == 1);
+  assert(id->get_id()->bit_val_.size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
   if (id->get_val()->get()->bit_val_[0].size() < 32) {
@@ -957,7 +957,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   }
   // The parser should guarantee that only scalar declarations
   // have initial values.
-  assert(rd->get_id()->bit_val_[0].size() == 1);
+  assert(rd->get_id()->bit_val_.size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
   if (rd->get_id()->bit_val_[0].size() > rd->get_val()->get()->bit_val_[0].size()) {
