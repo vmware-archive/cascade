@@ -392,10 +392,6 @@ void Evaluate::flag_changed(const Identifier* id) {
 }
 
 pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Identifier* r, const Identifier* i) {
-  // NOTE: This is the single place where we determine how variables are laid
-  // out in array memory.  The current implementation is the reverse of the
-  // usual. Consecutive highest-order subscripts are adjacent.
-
   // Nothing to do if this is a scalar variable
   if (r->get_dim()->empty()) {
     assert(i->get_dim()->size() <= 1);
@@ -407,13 +403,13 @@ pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Ident
 
   // Iterators
   auto iitr = i->get_dim()->begin();
-  auto ritr = ++r->get_dim()->begin();
+  auto ritr = r->get_dim()->begin();
   // The index we're looking for
-  size_t idx = get_value(*iitr++).to_int();
+  size_t idx = 0;
   // Multiplier for multi-dimensional arrays
-  size_t mul = 1;
+  size_t mul = r->bit_val_.size();
 
-  // Walk along itr until we're out of dimensions
+  // Walk along subscripts 
   for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
     assert(dynamic_cast<RangeExpression*>(*ritr) != nullptr);
     assert(dynamic_cast<RangeExpression*>(*iitr) == nullptr);
@@ -421,8 +417,8 @@ pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Ident
     const auto rval = get_range(*ritr);
     const auto ival = get_value(*iitr).to_int();
 
+    mul /= (rval.first-rval.second+1);
     idx += mul * ival;
-    mul *= (rval.first-rval.second+1);
   }
   // Out of bounds accesses are undefined, so we'll map them to a safe value
   return make_pair(idx >= r->bit_val_.size() ? 0 : idx, iitr);
