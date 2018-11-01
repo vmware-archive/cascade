@@ -105,7 +105,7 @@ void De10Compiler::abort() {
 
 De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
   if (virtual_base_ == MAP_FAILED) {
-    error("De10 led compilation failed due to inability to memory map device");
+    error("De10 gpio compilation failed due to inability to memory map device");
     delete md;
     return nullptr;
   }

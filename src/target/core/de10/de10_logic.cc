@@ -41,6 +41,8 @@
 #include "src/verilog/analyze/printf.h"
 #include "src/verilog/print/text/text_printer.h"
 
+#include "src/verilog/print/term/term_printer.h"
+
 using namespace std;
 
 // Note that this is a plus, not a logical or! We can't guarantee that addr is aligned!
@@ -66,20 +68,33 @@ size_t De10Logic::VarInfo::index() const {
   return idx_;
 }
 
-size_t De10Logic::VarInfo::arity() const {
-  auto res = 1;
-  for (auto a : Evaluate().get_arity(id_)) {
-    res *= a;
+vector<size_t> De10Logic::VarInfo::arity() const {
+  return Evaluate().get_arity(id_);
+}
+
+size_t De10Logic::VarInfo::elements() const {
+  size_t res = 1;
+  for (auto d : arity()) {
+    res *= d;
   }
   return res;
 }
 
 size_t De10Logic::VarInfo::bit_size() const {
-  return Evaluate().get_width(id_);
+  // Most of the time we'll be applying this function to variable declarations.
+  // But sometimes we'll want to apply it to task arguments, which may have 
+  // a different context-determined width
+  const auto r = Resolve().get_resolution(id_);
+  assert(r != nullptr);
+  return max(Evaluate().get_width(r), Evaluate().get_width(id_));
 }
 
-size_t De10Logic::VarInfo::word_size() const {
-  return (arity() * bit_size() + 31) / 32;
+size_t De10Logic::VarInfo::element_size() const {
+  return (bit_size() + 31) / 32;
+}
+
+size_t De10Logic::VarInfo::entry_size() const {
+  return elements() * element_size();
 }
 
 De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
@@ -341,12 +356,12 @@ void De10Logic::insert(const Identifier* id, bool materialized) {
   VarInfo vi(id, next_index_, materialized);
   var_table_.insert(make_pair(id, vi));
 
-  next_index_ += vi.word_size();
+  next_index_ += vi.entry_size();
 }
 
 void De10Logic::read(const VarInfo& vi) {
   // Move bits from fpga into local storage one word at a time
-  for (size_t idx = vi.index(), n = 0, ne = vi.word_size(); n < ne; ++idx, ++n) {
+  for (size_t idx = vi.index(), n = 0, ne = vi.entry_size(); n < ne; ++idx, ++n) {
     const volatile auto word = DE10_READ(MANGLE(addr_, idx));
     Evaluate().assign_word<uint32_t>(vi.id(), n, word);
   }
@@ -355,7 +370,7 @@ void De10Logic::read(const VarInfo& vi) {
 void De10Logic::write(const VarInfo& vi, const Bits& b) {
   // Move bits to fpga one word at a time, skipping the local storage.
   // If an when we need a value we'll read it out of the fpga first.
-  for (size_t idx = vi.index(), n = 0, ne = vi.word_size(); n < ne; ++idx, ++n) {
+  for (size_t idx = vi.index(), n = 0, ne = vi.entry_size(); n < ne; ++idx, ++n) {
     const volatile auto word = b.read_word<uint32_t>(n);
     DE10_WRITE(MANGLE(addr_, idx), word);
   }

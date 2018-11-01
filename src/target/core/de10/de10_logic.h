@@ -47,16 +47,21 @@ class De10Logic : public Logic, public Visitor {
 
         // Where is this variable located in the AST?
         const Identifier* id() const;
+
         // Was this variable allocated state on the FPGA? 
         bool materialized() const;
         // What index in the variable table does this variable start at?
         size_t index() const;
-        // How many elements does this variable span?
-        size_t arity() const;
-        // How many bits wide is this variable?
+        // What are the dimensions of this variable?
+        std::vector<size_t> arity() const;
+        // How many elements are in this variable?
+        size_t elements() const;
+        // How many bits wide is each element in this variable?
         size_t bit_size() const;
+        // How many words does each element span?
+        size_t element_size() const;
         // How many 32-bit entries in the variable table does it span?
-        size_t word_size() const;
+        size_t entry_size() const;
 
       private:
         const Identifier* id_;
