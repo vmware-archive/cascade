@@ -203,6 +203,9 @@ TEST(type_check, fail_issue_20d) {
 TEST(type_check, fail_issue_20e) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_20e.v", true);
 }
+TEST(type_check, fail_issue_20f) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20f.v", true);
+}
 TEST(type_check, fail_issue_23a) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_23a.v", true);
 }

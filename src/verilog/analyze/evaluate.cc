@@ -30,9 +30,23 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
+
+#include "src/verilog/print/term/term_printer.h"
+
+
 using namespace std;
 
 namespace cascade {
+
+bool Evaluate::is_scalar(const Identifier* id) {
+  const auto r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  return (id != r) || r->get_dim()->empty();
+}
+
+bool Evaluate::is_array(const Identifier* id) {
+  return !is_scalar(id);
+}
 
 vector<size_t> Evaluate::get_arity(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
@@ -106,16 +120,17 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   init(const_cast<Identifier*>(r));
 
   // Perform the assignment
-  const auto dres = deref(r, id);
-  if (dres.second == id->get_dim()->end()) {
-    if (!r->bit_val_[dres.first].eq(val)) {
-      const_cast<Identifier*>(r)->bit_val_[dres.first].assign(val);
+  const auto dres = dereference(r, id);
+  if (get<1>(dres) == -1) {
+    if (!r->bit_val_[get<0>(dres)].eq(val)) {
+      const_cast<Identifier*>(r)->bit_val_[get<0>(dres)].assign(val);
       flag_changed(r);
     }
   } else {
-    const auto rng = get_range(*dres.second);
-    if (!r->bit_val_[dres.first].eq(rng.first, rng.second, val)) {
-      const_cast<Identifier*>(r)->bit_val_[dres.first].assign(rng.first, rng.second, val);
+    const auto msb = min((size_t) get<1>(dres), get_width(r)-1);
+    const auto lsb = min((size_t) get<2>(dres), get_width(r)-1);
+    if (!r->bit_val_[get<0>(dres)].eq(msb, lsb, val)) {
+      const_cast<Identifier*>(r)->bit_val_[get<0>(dres)].assign(msb, lsb, val);
       flag_changed(r);
     }
   }
@@ -137,6 +152,63 @@ void Evaluate::assign_array_value(const Identifier* id, const vector<Bits>& val)
     const_cast<Identifier*>(r)->bit_val_[i].assign(val[i]);
   }
   flag_changed(r);
+}
+
+tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifier* i) {
+  // Nothing to do if this is a scalar variable
+  if (r->get_dim()->empty()) {
+    const auto rng = i->get_dim()->empty() ? 
+      make_pair<size_t, size_t>(-1,-1) : 
+      get_range(i->get_dim()->front());
+    return make_tuple(0, rng.first, rng.second);
+  }
+
+  // Otherwise, i had better have at most one more dimension than r
+  assert(i->get_dim()->size() - r->get_dim()->size() <= 1);
+
+  // Iterators
+  auto iitr = i->get_dim()->begin();
+  auto ritr = r->get_dim()->begin();
+  // The index we're looking for
+  size_t idx = 0;
+  // Multiplier for multi-dimensional arrays
+  size_t mul = r->bit_val_.size();
+
+  // Walk along subscripts 
+  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
+    assert(dynamic_cast<RangeExpression*>(*ritr) != nullptr);
+    assert(dynamic_cast<RangeExpression*>(*iitr) == nullptr);
+
+    const auto rval = get_range(*ritr);
+    const auto ival = get_value(*iitr).to_int();
+
+    mul /= (rval.first-rval.second+1);
+    idx += mul * ival;
+  }
+  // Out of bounds accesses are undefined, so we'll map them to a safe value
+  const auto rng = iitr == i->get_dim()->end() ?
+    make_pair<size_t, size_t>(-1,-1) : 
+    get_range(*iitr);
+  return make_tuple(idx >= r->bit_val_.size() ? 0 : idx, rng.first, rng.second);
+}
+
+void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
+  init(const_cast<Identifier*>(id));
+  assert(idx < id->bit_val_.size());
+
+  if (msb == -1) {
+    if (!id->bit_val_[idx].eq(val)) {
+      const_cast<Identifier*>(id)->bit_val_[idx].assign(val);
+      flag_changed(id);
+    }
+  } else {
+    const auto m = min((size_t) msb, get_width(id)-1);
+    const auto l = min((size_t) lsb, get_width(id)-1);
+    if (!id->bit_val_[idx].eq(m, l, val)) {
+      const_cast<Identifier*>(id)->bit_val_[idx].assign(m, l, val);
+      flag_changed(id);
+    }
+  }
 }
 
 void Evaluate::invalidate(const Expression* e) {
@@ -252,12 +324,13 @@ void Evaluate::edit(Identifier* id) {
     return;
   }
   // Otherwise copy or slice 
-  const auto dres = deref(r, id);
-  if (dres.second == id->get_dim()->end()) {
-    id->bit_val_[0].assign(get_array_value(r)[dres.first]);
+  const auto dres = dereference(r, id);
+  if (get<1>(dres) == -1) {
+    id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)]);
   } else {
-    const auto range = get_range(*dres.second);
-    id->bit_val_[0].assign(get_array_value(r)[dres.first], range.first, range.second);
+    const auto msb = min((size_t) get<1>(dres), get_width(r)-1);
+    const auto lsb = min((size_t) get<2>(dres), get_width(r)-1);
+    id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)], msb, lsb);
   }
 }
 
@@ -389,39 +462,6 @@ void Evaluate::flag_changed(const Identifier* id) {
   for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
     (*i)->needs_update_ = true;
   }
-}
-
-pair<size_t, const Many<Expression>::const_iterator> Evaluate::deref(const Identifier* r, const Identifier* i) {
-  // Nothing to do if this is a scalar variable
-  if (r->get_dim()->empty()) {
-    assert(i->get_dim()->size() <= 1);
-    return make_pair(0, i->get_dim()->begin());
-  }
-
-  // Otherwise, i had better have at most one more dimension than r
-  assert(i->get_dim()->size() - r->get_dim()->size() <= 1);
-
-  // Iterators
-  auto iitr = i->get_dim()->begin();
-  auto ritr = r->get_dim()->begin();
-  // The index we're looking for
-  size_t idx = 0;
-  // Multiplier for multi-dimensional arrays
-  size_t mul = r->bit_val_.size();
-
-  // Walk along subscripts 
-  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
-    assert(dynamic_cast<RangeExpression*>(*ritr) != nullptr);
-    assert(dynamic_cast<RangeExpression*>(*iitr) == nullptr);
-
-    const auto rval = get_range(*ritr);
-    const auto ival = get_value(*iitr).to_int();
-
-    mul /= (rval.first-rval.second+1);
-    idx += mul * ival;
-  }
-  // Out of bounds accesses are undefined, so we'll map them to a safe value
-  return make_pair(idx >= r->bit_val_.size() ? 0 : idx, iitr);
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {

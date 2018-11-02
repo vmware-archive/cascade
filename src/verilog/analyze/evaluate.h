@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_EVALUATE_H
 
 #include <cassert>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "src/base/bits/bits.h"
@@ -45,13 +46,30 @@ namespace cascade {
 // the 2005 Verilog spec. This class requires up-to-date resolution decorations
 // (see resolve.h) to function correctly.
 
+// Internally, this class relies on the fact that AST expressions are decorated
+// with Bits arrays. In practice, most expressions will only have a single
+// element in that array. The only exception are identifiers which are nested
+// within declarations. Verilog does not allow array slicing, so wherever else
+// an identifier appears, it either refers to a scalar, or a scalar element of
+// an array.
+
+// While verilog allows multidimensional arrays, expressions are decorated with
+// single dimensional arrays. The mapping is standard: elements are stored in
+// lexicographically ascending order. The array r[1:0][1:0] would be linearized
+// as follows: r[0][0] r[0][1] r[1][0] r[1][1].
+
 class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
+    // Returns true for scalars.
+    bool is_scalar(const Identifier* id);
+    // Returns true for arrays.
+    bool is_array(const Identifier* id);
     // Returns the arity of an expression: an empty vector for scalars, one 
     // value for the length of each dimension for arrays.
     std::vector<size_t> get_arity(const Identifier* id);
+
     // Returns the bit-width of the values in an expression. Returns the same
     // value for scalars and arrays.
     size_t get_width(const Expression* e);
@@ -68,20 +86,29 @@ class Evaluate : public Editor {
     // Returns upper and lower values for ranges, get_value() twice otherwise.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
-    // Sets the value of id to val. Invoking this method on an unresolvable id
-    // or one which refers to an array is undefined.
+    // High-level interface: Resolves id and sets the value of its target val.
+    // Invoking this method on an unresolvable id or one which refers to an
+    // array is undefined.
     void assign_value(const Identifier* id, const Bits& val);
-    // Sets the value of id to val. Invoking this method on an unresolvable id
-    // or one which refers to an array subscript is undefined.
+    // High-level interface: Resolves id and sets the value of its target to
+    // val. Invoking this method on an unresolvable id or one which refers to
+    // an array subscript is undefined.
     void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
 
-    // Sets the value of an identifier id[ss] where we assume a single
-    // dimensional flattening of a potentially multi-dimensional declaration.
-    // For example, if id were declared reg id[3:0][1:0], then id[5] would
-    // correspond to id[2][2].  Note that this value is set *in place* in the
-    // AST. This method DOES NOT resolve id and then update the value there.  
+    // Low-level interface: Returns an index into r's underlying array, as well
+    // as bit range, based on the expressions in i's dimensions. This method is
+    // undefined if i does not resolve to r. Returns -1 -1 for range to
+    // indicate that no slice was provided.
+    std::tuple<size_t,int,int> dereference(const Identifier* r, const Identifier* i);
+    // Low-level interface: Sets the value of the ss'th element in id's
+    // underlying array. Note that this value is set *in place*. This method
+    // DOES NOT resolve id and then update the value which it finds there.
+    void assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val);
+    // Low-level interface: Sets the value of the idx'th element in id's
+    // underlying array. Note that this value is set *in place*. This method
+    // DOES NOT resolve id and then update the value which it finds there.
     template <typename B>
-    void assign_word(const Identifier* id, size_t ss, size_t n, B b);
+    void assign_word(const Identifier* id, size_t idx, size_t n, B b);
 
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
@@ -109,10 +136,6 @@ class Evaluate : public Editor {
     void init(Expression* e);
     // Updates the needs_update_ flag for this identifier and its dependencies.
     void flag_changed(const Identifier* id);
-    // Finds the bit_value associated with a potentially subscripted identifier
-    // returns a pointer to the last ununsed element in its dimensions so that
-    // further operations may use it to compute a slice.
-    std::pair<size_t, const Many<Expression>::const_iterator> deref(const Identifier* r, const Identifier* i);
 
     // Invalidates bit, size, and type info for the expressions in this subtree
     struct Invalidate : public Editor {
@@ -177,9 +200,10 @@ class Evaluate : public Editor {
 };
 
 template <typename B>
-inline void Evaluate::assign_word(const Identifier* id, size_t ss, size_t n, B b) {
+inline void Evaluate::assign_word(const Identifier* id, size_t idx, size_t n, B b) {
   init(const_cast<Identifier*>(id));
-  const_cast<Identifier*>(id)->bit_val_[ss].write_word<B>(n, b);
+  assert(idx < id->bit_val_.size());
+  const_cast<Identifier*>(id)->bit_val_[idx].write_word<B>(n, b);
   flag_changed(id);
 }
 

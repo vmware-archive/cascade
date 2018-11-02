@@ -321,17 +321,41 @@ void TypeCheck::visit(const Identifier* id) {
 
   // CHECK: Are subscripts valid, if provided?
   const auto cdr = check_deref(r, id);
-  // CHECK: Little-endian ranges and subscript out of range
-  if (cdr != id->get_dim()->end()) {
-    const auto rng = Evaluate().get_range(*cdr);
-    if (Evaluate().get_width(r) == 1) {
-      error("Slice operator provided for scalar value", id);
-    } else if (rng.first < rng.second) {
-      error("No support for little-endian range", id);
-    } else if ((r != nullptr) && (rng.first >= Evaluate().get_width(r))) {
-      error("Upper end of range exceeds variable width", id);
+  // Nothing else to do if we're out of dimensions
+  if (cdr == id->get_dim()->end()) {
+    return;
+  }
+
+  // CHECK: Are we providing a bit-select for a single-bit value?
+  if (Evaluate().get_width(r) == 1) {
+    return error("Bit-select provided for scalar value", id);
+  }
+
+  // CHECK: Range expression bit-selects
+  if (const auto re = dynamic_cast<const RangeExpression*>(*cdr)) {
+    if (re->get_type() == RangeExpression::CONSTANT) {
+      // CHECK: Non-constant values, values out of range, little-endian ranges
+      // EXIT: We can't continue checking if we can't evaluate this range
+      if (!Constant().is_constant_genvar(re)) {
+        return error("Non-constant values provided in bit-select", id);
+      }
+      const auto rng = Evaluate().get_range(re);
+      if (rng.first < rng.second) {
+        error("No support for little-endian bit-selects", id);
+      } 
+    } else {
+      if (!Constant().is_constant_genvar(re->get_lower())) {
+        error("Non-constant width provided in part-select", id);
+      }
     }
   }
+  // WARN: Selects out of range
+  if (Constant().is_constant_genvar(*cdr)) {
+    const auto rng = Evaluate().get_range(*cdr);
+    if ((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) {
+      warn("Bit-select out of range of declared width", id);
+    }
+  } 
 }
 
 void TypeCheck::visit(const String* s) {

@@ -181,8 +181,8 @@ void SwLogic::update() {
   // This is a for loop. Updates happen simultaneously
   for (size_t i = 0, ie = updates_.size(); i < ie; ++i) {
     const auto& val = update_pool_[i];
-    Evaluate().assign_value(updates_[i], val);
-    notify(Resolve().get_resolution(updates_[i]));
+    Evaluate().assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val);
+    notify(get<0>(updates_[i]));
   }
   updates_.clear();
 
@@ -268,12 +268,17 @@ void SwLogic::visit(const NonblockingAssign* na) {
   assert(na->get_ctrl()->null());
   
   if (!silent_) {
-    const auto idx = updates_.size();
+    const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+    assert(r != nullptr);
+    const auto target = Evaluate().dereference(r, na->get_assign()->get_lhs());
     const auto& res = Evaluate().get_value(na->get_assign()->get_rhs());
-    updates_.push_back(na->get_assign()->get_lhs());
+
+    const auto idx = updates_.size();
     if (idx >= update_pool_.size()) {
       update_pool_.resize(2*update_pool_.size());
     } 
+
+    updates_.push_back(make_tuple(r, get<0>(target), get<1>(target), get<2>(target)));
     update_pool_[idx] = res;
   }
   notify(na);
