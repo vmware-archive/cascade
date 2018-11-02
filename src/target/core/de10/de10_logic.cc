@@ -150,7 +150,6 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
 }
 
 State* De10Logic::get_state() {
-  // TODO ISSUE 20: This needs updating for programs with arrays
   auto s = new State();
 
   ModuleInfo info(src_);
@@ -160,17 +159,14 @@ State* De10Logic::get_state() {
     const auto vinfo = var_table_.find(v);
     assert(vinfo != var_table_.end());
 
-    read(vinfo->second);
-    s->insert(vid->second, Evaluate().get_value(vinfo->second.id()));
+    read_array(vinfo->second);
+    s->insert(vid->second, Evaluate().get_array_value(vinfo->second.id()));
   }
 
   return s;
 }
 
 void De10Logic::set_state(const State* s) {
-  // TODO ISSUE 20 This needs updating for programs with arrays
-  (void) s;
-  /*
   ModuleInfo info(src_);
   for (auto v : info.stateful()) {
     const auto vid = var_map_.find(v);
@@ -180,10 +176,9 @@ void De10Logic::set_state(const State* s) {
 
     const auto itr = s->find(vid->second);
     if (itr != s->end()) {
-      write(vinfo->second, itr->second);
+      write_array(vinfo->second, itr->second);
     }
   }
-  */
 }
 
 Input* De10Logic::get_input() {
@@ -196,7 +191,7 @@ Input* De10Logic::get_input() {
     const auto vinfo = var_table_.find(in);
     assert(vinfo != var_table_.end());
 
-    read(vinfo->second);
+    read_scalar(vinfo->second);
     i->insert(vid->second, Evaluate().get_value(vinfo->second.id()));
   }
 
@@ -213,7 +208,7 @@ void De10Logic::set_input(const Input* i) {
 
     const auto itr = i->find(vid->second);
     if (itr != i->end()) {
-      write(vinfo->second, itr->second);
+      write_scalar(vinfo->second, itr->second);
     }
   }
 }
@@ -227,7 +222,7 @@ void De10Logic::resync() {
 void De10Logic::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
-  write(*inputs_[id], *b);
+  write_scalar(*inputs_[id], *b);
 }
 
 void De10Logic::evaluate() {
@@ -359,26 +354,55 @@ void De10Logic::insert(const Identifier* id, bool materialized) {
   next_index_ += vi.entry_size();
 }
 
-void De10Logic::read(const VarInfo& vi) {
-  // Move bits from fpga into local storage one word at a time
-  for (size_t idx = vi.index(), n = 0, ne = vi.entry_size(); n < ne; ++idx, ++n) {
-    const volatile auto word = DE10_READ(MANGLE(addr_, idx));
-    Evaluate().assign_word<uint32_t>(vi.id(), n, word);
+void De10Logic::read_scalar(const VarInfo& vi) {
+  // Make sure this is actually a scalar
+  assert(vi.arity().empty());
+  // But use the generic array implementation
+  read_array(vi);
+}
+
+void De10Logic::read_array(const VarInfo& vi) {
+  // Move bits from fpga into local storage one word at a time.  Values are
+  // stored in ascending order in memory, just as they are in the variable
+  // table
+  auto idx = vi.index();
+  for (size_t i = 0, ie = vi.elements(); i < ie; ++i) {
+    for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
+      const volatile auto word = DE10_READ(MANGLE(addr_, idx));
+      Evaluate().assign_word<uint32_t>(vi.id(), i, j, word);
+      ++idx;
+    } 
   }
 }
 
-void De10Logic::write(const VarInfo& vi, const Bits& b) {
+void De10Logic::write_scalar(const VarInfo& vi, const Bits& b) {
+  // Make sure this is actually a scalar
+  assert(vi.arity().empty());
   // Move bits to fpga one word at a time, skipping the local storage.
   // If an when we need a value we'll read it out of the fpga first.
-  for (size_t idx = vi.index(), n = 0, ne = vi.entry_size(); n < ne; ++idx, ++n) {
-    const volatile auto word = b.read_word<uint32_t>(n);
+  auto idx = vi.index();
+  for (size_t i = 0, ie = vi.entry_size(); i < ie; ++i) {
+    const volatile auto word = b.read_word<uint32_t>(i);
     DE10_WRITE(MANGLE(addr_, idx), word);
+    ++idx;
+  }
+}
+
+void De10Logic::write_array(const VarInfo& vi, const vector<Bits>& bs) {
+  // Move bits to fpga one word at a time, skipping the local storage.
+  // If an when we need a value we'll read it out of the fpga first.
+  auto idx = vi.index();
+  for (size_t i = 0, ie = vi.elements(); i < ie; ++i) {
+    for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
+      const volatile auto word = bs[i].read_word<uint32_t>(j);
+      DE10_WRITE(MANGLE(addr_, idx), word);
+    }
   }
 }
 
 void De10Logic::handle_outputs() {
   for (const auto& o : outputs_) {
-    read(*o.second);
+    read_scalar(*o.second);
     interface()->write(o.first, &Evaluate().get_value(o.second->id()));
   }
 }
@@ -431,7 +455,7 @@ De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
 void De10Logic::Sync::visit(const Identifier* id) {
   const auto vinfo = de_->var_table_.find(id);
   assert(vinfo != de_->var_table_.end());
-  de_->read(vinfo->second);
+  de_->read_scalar(vinfo->second);
 }
 
 #undef MANGLE

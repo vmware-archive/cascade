@@ -75,12 +75,13 @@ class Evaluate : public Editor {
     // or one which refers to an array subscript is undefined.
     void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
 
-    // Sets the value an identifier. Note that this value is set *in place* in
-    // the AST. This method DOES NOT resolve id and then update the value
-    // there.  Invoking this method on a variable which evaluates to an array
-    // is undefined.
+    // Sets the value of an identifier id[ss] where we assume a single
+    // dimensional flattening of a potentially multi-dimensional declaration.
+    // For example, if id were declared reg id[3:0][1:0], then id[5] would
+    // correspond to id[2][2].  Note that this value is set *in place* in the
+    // AST. This method DOES NOT resolve id and then update the value there.  
     template <typename B>
-    void assign_word(const Identifier* id, size_t n, B b);
+    void assign_word(const Identifier* id, size_t ss, size_t n, B b);
 
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
@@ -176,9 +177,9 @@ class Evaluate : public Editor {
 };
 
 template <typename B>
-inline void Evaluate::assign_word(const Identifier* id, size_t n, B b) {
+inline void Evaluate::assign_word(const Identifier* id, size_t ss, size_t n, B b) {
   init(const_cast<Identifier*>(id));
-  const_cast<Identifier*>(id)->bit_val_[0].write_word<B>(n, b);
+  const_cast<Identifier*>(id)->bit_val_[ss].write_word<B>(n, b);
   flag_changed(id);
 }
 

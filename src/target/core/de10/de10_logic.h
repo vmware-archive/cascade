@@ -147,8 +147,10 @@ class De10Logic : public Logic, public Visitor {
     void insert(const Identifier* id, bool materialized);
 
     // I/O Helpers:
-    void read(const VarInfo& vi);
-    void write(const VarInfo& vi, const Bits& b);
+    void read_scalar(const VarInfo& vi);
+    void read_array(const VarInfo& vi);
+    void write_scalar(const VarInfo& vi, const Bits& b);
+    void write_array(const VarInfo& vi, const std::vector<Bits>& bs);
     
     // Evaluate / Update Helpers:
     void handle_outputs();
