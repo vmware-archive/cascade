@@ -248,7 +248,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
 
   for (size_t i = 0; i < titr->second.entry_size(); ++i) {
     stringstream ss;
-    ss << "__var_" << (titr->second.index() + i);
+    ss << "__var[" << (titr->second.index() + i) << "]";
 
     const auto upper = min(32*(i+1),w)-1;
     const auto lower = 32*i;
@@ -304,23 +304,16 @@ void ModuleBoxer::emit_variable_table(indstream& os) {
   // all inputs and stateful variables in this module. Note that (1) stateful
   // elements should NEVER include any inputs and (2) stateful elements may
   // include some, but not necessarily all, outputs.
+
+  // For programs with arrays (particularly multi-dimensional arrays) this
+  // can produce some very large output if we name every element of the table
+  // individually. The only reason we might consider doing this is if we don't
+  // want to allocate space for unmaterialized values. But these are generally
+  // so few in number that this isn't a huge deal.
     
+  const auto size = max((size_t) 2, de_->table_size());
   os << "// Variable Table:" << endl;
-  for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
-    if (!t->second.materialized()) {
-      continue;
-    }
-    for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
-      os << "reg[31:0] __var_" << (t->second.index()+i) << ";";
-      if (i == 0) {
-        TextPrinter(os) << " // " << t->second.id();
-        if (de_->open_loop_enabled() && (t->first == de_->open_loop_clock())) {
-          os << " (Open loop clock)";
-        }
-      }
-      os << endl;
-    }
-  }
+  os << "reg[31:0] __var[" << (size-1) << ":0];" << endl;
   os << endl;
 }
 
@@ -414,7 +407,7 @@ void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo)
       if (j > 0) {
         os << ", ";
       }
-      os << "__var_" << (vinfo.index() + (i+1)*je - j - 1);
+      os << "__var[" << (vinfo.index() + (i+1)*je - j - 1) << "]";
     }
     os << "};" << endl;
   }
@@ -524,7 +517,7 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
     for (size_t i = 0, ie = t->second.elements(); i < ie; ++i) {
       for (size_t j = 0, je = t->second.element_size(); j < je; ++j) {
 
-        os << "__var_" << idx << " <= ";
+        os << "__var[" << idx << "] <= ";
         if (de_->open_loop_enabled() && (t->first == de_->open_loop_clock())) {
           TextPrinter(os) << "__open_loop_tick ? {31'b0, ~" << t->first << "} : ";
         } 
@@ -572,18 +565,13 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
   os.tab();
   os << "case (__vid)" << endl;
   os.tab();
+  // Special cases for control variables first:
   os << de_->there_are_updates_idx() << ": __out = __there_are_updates;" << endl;
   os << de_->sys_task_idx() << ": __out = __task_queue;" << endl;
   os << de_->open_loop_idx() << ": __out = __open_loop_itrs;" << endl;
+  // Now emit cases for variables which weren't materialized
   for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
-    // Was this a materialized (ie: input/state/task arg)?
-    if (t->second.materialized()) {
-      for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
-        os << (t->second.index()+i) << ": __out = __var_" << (t->second.index()+i) << ";" << endl;
-      } 
-    }
-    // Was this not materialized (ie: an output wire)?
-    else {
+    if (!t->second.materialized()) {
       assert(t->second.elements() == 1);
       const auto w = t->second.bit_size();
       for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
@@ -593,7 +581,8 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
       }
     }
   }
-  os << "default: __out = 0;" << endl;
+  // For everything else __vid is an index into the variable table
+  os << "default: __out = __var[__vid];" << endl;
   os.untab();
   os << "endcase" << endl;
   os.untab();
