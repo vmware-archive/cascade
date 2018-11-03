@@ -90,15 +90,11 @@ inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, Connection* con
 
 template <typename T>
 inline State* ProxyCore<T>::get_state() {
-  auto s = new State();
-
   conn_->send_rpc(Rpc(Rpc::GET_STATE, id_));
   conn_->recv_str(in_buf_);
 
-  VId id = nullid();;
-  for (in_buf_.read((char*)&id, 4), bits_.deserialize(in_buf_); !in_buf_.eof(); bits_.deserialize(in_buf_)) {
-    s->insert(id, bits_);
-  }
+  auto s = new State();
+  s->deserialize(in_buf_);
   in_buf_.clear();
 
   return s;
@@ -106,11 +102,8 @@ inline State* ProxyCore<T>::get_state() {
 
 template <typename T>
 inline void ProxyCore<T>::set_state(const State* s) {
-  for (const auto& b : *s) {
-    out_buf_.write((char*)&b.first, 4);
-    b.second.serialize(out_buf_);
-  }
   conn_->send_rpc(Rpc(Rpc::SET_STATE, id_));
+  s->serialize(out_buf_);
   conn_->send_str(out_buf_);
   conn_->recv_ack();
   out_buf_.resize(0);
@@ -118,15 +111,11 @@ inline void ProxyCore<T>::set_state(const State* s) {
 
 template <typename T>
 inline Input* ProxyCore<T>::get_input() {
-  auto i = new Input();
-
   conn_->send_rpc(Rpc(Rpc::GET_INPUT, id_));
   conn_->recv_str(in_buf_);
 
-  VId id = nullid();;
-  for (in_buf_.read((char*)&id, 4), bits_.deserialize(in_buf_); !in_buf_.eof(); bits_.deserialize(in_buf_)) {
-    i->insert(id, bits_);
-  }
+  auto i = new Input();
+  i->deserialize(in_buf_);
   in_buf_.clear();
 
   return i;
@@ -134,11 +123,8 @@ inline Input* ProxyCore<T>::get_input() {
 
 template <typename T>
 inline void ProxyCore<T>::set_input(const Input* i) {
-  for (const auto& b : *i) {
-    out_buf_.write((char*)&b.first, 4);
-    b.second.serialize(out_buf_);
-  }
   conn_->send_rpc(Rpc(Rpc::SET_INPUT, id_));
+  i->serialize(out_buf_);
   conn_->send_str(out_buf_);
   conn_->recv_ack();
   out_buf_.resize(0);

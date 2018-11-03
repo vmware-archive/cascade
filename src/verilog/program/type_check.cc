@@ -288,12 +288,6 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
-  // TODO ISSUE 20: Turn on support for variable arrays
-  if (id->get_dim()->size() > 1) {
-    exists_bad_id_ = true;
-    return error("Cascade does not currently support the use of variable arrays", id);
-  }
-
   // RECURSE: ids and dim
   auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
@@ -314,24 +308,54 @@ void TypeCheck::visit(const Identifier* id) {
       error("Reference to unresolved identifier", id);
     }
   }
-  // CHECK: Little-endian ranges and subscript out of range
-  // TODO ISSUE 20: This check needs to change. We only want to do this if this
-  // is a trailing range expression
-  if (!id->get_dim()->empty()) {
-    const auto rng = Evaluate().get_range(id->get_dim()->back());
-    if (rng.first < rng.second) {
-      error("No support for little-endian range", id);
-    }
-    if ((r != nullptr) && (rng.first >= Evaluate().get_width(r))) {
-      error("Upper end of range exceeds variable width", id);
-    }
-  }
   // CHECK: Is this a reference to a genvar outside of a loop generate construct?
   if (outermost_loop_ == nullptr) {
     if ((r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
       error("Illegal reference to genvar outside of a loop generate construct", id);
     }
   }
+  // EXIT: Can't continue checking if id can't be resolved
+  if (r == nullptr) {
+    return;
+  }
+
+  // CHECK: Are subscripts valid, if provided?
+  const auto cdr = check_deref(r, id);
+  // Nothing else to do if we're out of dimensions
+  if (cdr == id->get_dim()->end()) {
+    return;
+  }
+
+  // CHECK: Are we providing a bit-select for a single-bit value?
+  if (Evaluate().get_width(r) == 1) {
+    return error("Bit-select provided for scalar value", id);
+  }
+
+  // CHECK: Range expression bit-selects
+  if (const auto re = dynamic_cast<const RangeExpression*>(*cdr)) {
+    if (re->get_type() == RangeExpression::CONSTANT) {
+      // CHECK: Non-constant values, values out of range, little-endian ranges
+      // EXIT: We can't continue checking if we can't evaluate this range
+      if (!Constant().is_constant_genvar(re)) {
+        return error("Non-constant values provided in bit-select", id);
+      }
+      const auto rng = Evaluate().get_range(re);
+      if (rng.first < rng.second) {
+        error("No support for little-endian bit-selects", id);
+      } 
+    } else {
+      if (!Constant().is_constant_genvar(re->get_lower())) {
+        error("Non-constant width provided in part-select", id);
+      }
+    }
+  }
+  // WARN: Selects out of range
+  if (Constant().is_constant_genvar(*cdr)) {
+    const auto rng = Evaluate().get_range(*cdr);
+    if ((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) {
+      warn("Bit-select out of range of declared width", id);
+    }
+  } 
 }
 
 void TypeCheck::visit(const String* s) {
@@ -447,11 +471,6 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   if (!id->get_val()->null() && !Constant().is_constant(id->get_val()->get())) {
     error("Integer initialization requires constant value", id);
   }
-
-  // TODO ISSUE 20: Turn on support for arrays
-  if (!id->get_id()->get_dim()->empty()) {
-    error("Cascade does not currently support the use of variable arrays", id);
-  }
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
@@ -482,11 +501,6 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Delay control statements
   if (!nd->get_ctrl()->null()) {
     error("No support for delay control statements in net declarations", nd);
-  }
-
-  // TODO ISSUE 20: Turn on support for arrays
-  if (!nd->get_id()->get_dim()->empty()) {
-    error("Cascade does not currently support the use of variable arrays", nd);
   }
 }
 
@@ -521,11 +535,6 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   // CHECK: Registers initialized to constant value
   if (!rd->get_val()->null() && !Constant().is_constant(rd->get_val()->get())) {
     error("Register initialization requires constant value", rd);
-  }
-
-  // TODO ISSUE 20: Turn on support for arrays
-  if (!rd->get_id()->get_dim()->empty()) {
-    error("Cascade does not currently support the use of variable arrays", rd);
   }
 }
 
@@ -597,6 +606,50 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (rng.second != 0) {
     error("No support for declarations where lsb is not equal to zero", re);
   }
+}
+
+Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, const Identifier* i) {
+  const int diff = i->get_dim()->size() - r->get_dim()->size();
+
+  // We need to have at least as many subscripts on i as r is declared with
+  if (diff < 0) {
+    error("Not enough subscripts provided on array dereference", i);
+    return i->get_dim()->end();
+  }
+  // If we have the same number, the last subscript on i can't be a range
+  // There's also nothing to do if the subscripts are both empty
+  else if (diff == 0) {
+    if (i->get_dim()->empty()) {
+      return i->get_dim()->end();
+    } else if (dynamic_cast<const RangeExpression*>(i->get_dim()->back())) {
+      error("Illegal range expression found where scalar subscript was expected", i);
+      return i->get_dim()->end();
+    }
+  }
+  // And if i has more than one too many, that's an error as well
+  else if (diff > 1) {
+    error("Dereference arity does not match delared arity", i);
+    return i->get_dim()->end();
+  } 
+  
+  // Iterate over subscripts
+  auto iitr = i->get_dim()->begin();
+  auto ritr = r->get_dim()->begin();
+  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
+    // If this is a net declaration, we have to check that subscripts are
+    // constant values which are within range of the declared bounds.
+    if (dynamic_cast<NetDeclaration*>(r->get_parent())) {
+      if (!Constant().is_constant_genvar(*iitr)) {
+        error("Non-constant array subscripts in net dereference", i);
+        return i->get_dim()->end();
+      }
+      if (Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) {
+        error("Array subscript out of bounds in net dereference", i);
+        return i->get_dim()->end();
+      }
+    }
+  }    
+  return iitr;
 }
 
 void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg) {

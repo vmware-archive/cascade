@@ -49,7 +49,9 @@ OBJ=\
 	src/target/core/sw/sw_compiler.o\
 	src/target/core/sw/sw_logic.o\
 	src/target/core_compiler.o\
+	src/target/input.o\
 	src/target/interface_compiler.o\
+	src/target/state.o\
 	\
 	src/ui/log/log_view.o\
 	src/ui/stream/stream_controller.o\
@@ -150,6 +152,6 @@ ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
 	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
-	${CXX} ${CXX_OPT} -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
+	${CXX} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc
-	${CXX} ${CXX_OPT} ${GTEST_INC} ${INC} -c $< -o $@
+	${CXX} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG  ${GTEST_INC} ${INC} -c $< -o $@

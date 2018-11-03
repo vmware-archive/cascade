@@ -32,6 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_LOGIC_H
 
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
@@ -76,7 +77,7 @@ class SwLogic : public Logic, public Visitor {
     bool silent_;
     bool there_were_tasks_;
     std::vector<const Node*> active_;
-    std::vector<const Identifier*> updates_;
+    std::vector<std::tuple<const Identifier*,size_t,int,int>> updates_;
     std::vector<Bits> update_pool_;
 
     // Scheduling: 

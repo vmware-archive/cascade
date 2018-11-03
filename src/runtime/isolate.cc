@@ -114,12 +114,15 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
+  // Careful: We aren't allowed to have initial values for arrays
   auto res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
     true,
     new Maybe<RangeExpression>(new RangeExpression(32,0)),
-    new Maybe<Expression>(new Number(Evaluate().get_value(id->get_id()), Number::HEX))
+    id->get_id()->get_dim()->empty() ? 
+      new Maybe<Expression>(new Number(Evaluate().get_value(id->get_id()), Number::HEX)) :
+      new Maybe<Expression>()
   );
   return res;
 }
@@ -162,12 +165,15 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
 ModuleItem* Isolate::build(const RegDeclaration* rd) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
+  // Careful: We aren't allowed to have initial values for arrays
   auto res = new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
     rd->get_signed(),
     rd->get_dim()->accept(this),
-    new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_id()), Number::HEX))
+    rd->get_id()->get_dim()->empty() ? 
+      new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_id()), Number::HEX)) :
+      new Maybe<Expression>()
   );
   return res;
 }

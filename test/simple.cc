@@ -51,6 +51,18 @@ TEST(simple, arithmetic_plus) {
 TEST(simple, arithmetic_pow) {
   run_code("minimal","data/test/simple/arithmetic_pow.v", "16"); 
 }
+TEST(simple, array_1) {
+  run_code("minimal","data/test/simple/array_1.v", "0123");
+}
+TEST(simple, array_2) {
+  run_code("minimal","data/test/simple/array_2.v", "0255");
+}
+TEST(simple, array_3) {
+  run_code("minimal","data/test/simple/array_3.v", "10");
+}
+TEST(simple, array_4) {
+  run_code("minimal","data/test/simple/array_4.v", "2550");
+}
 TEST(simple, assign_1) {
   run_code("minimal","data/test/simple/assign_1.v", "1");
 }
@@ -161,6 +173,9 @@ TEST(simple, inst_2) {
 }
 TEST(simple, inst_3) {
   run_code("minimal","data/test/simple/inst_3.v", "1");
+}
+TEST(simple, issue_20a) {
+  run_code("minimal","data/test/simple/issue_20a.v", "");
 }
 TEST(simple, issue_228) {
   run_code("minimal","data/test/simple/issue_228.v", "");

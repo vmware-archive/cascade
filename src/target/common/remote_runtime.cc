@@ -212,10 +212,7 @@ Engine* RemoteRuntime::compile(Connection* conn) {
 
 void RemoteRuntime::get_state(Connection* conn, Engine* e) {
   auto s = e->get_state();
-  for (const auto& b : *s) {
-    out_buf_.write((char*)&b.first, 4);
-    b.second.serialize(out_buf_);
-  }
+  s->serialize(out_buf_);
   delete s;
 
   conn->send_str(out_buf_);
@@ -223,26 +220,19 @@ void RemoteRuntime::get_state(Connection* conn, Engine* e) {
 }
 
 void RemoteRuntime::set_state(Connection* conn, Engine* e) {
-  auto s = new State();
   conn->recv_str(in_buf_);
-
-  VId id = nullid();
-  for (in_buf_.read((char*)&id, 4), bits_.deserialize(in_buf_); !in_buf_.eof(); bits_.deserialize(in_buf_)) {
-    s->insert(id, bits_);
-  }
-  in_buf_.clear();
+  auto s = new State();
+  s->deserialize(in_buf_);
   e->set_state(s);
   delete s;
+  in_buf_.clear();
 
   conn->send_ack();
 }
 
 void RemoteRuntime::get_input(Connection* conn, Engine* e) {
   auto i = e->get_input();
-  for (const auto& b : *i) {
-    out_buf_.write((char*)&b.first, 4);
-    b.second.serialize(out_buf_);
-  }
+  i->serialize(out_buf_);
   delete i;
 
   conn->send_str(out_buf_);
@@ -250,16 +240,12 @@ void RemoteRuntime::get_input(Connection* conn, Engine* e) {
 }
 
 void RemoteRuntime::set_input(Connection* conn, Engine* e) {
-  auto i = new Input();
   conn->recv_str(in_buf_);
-
-  VId id = nullid();
-  for (in_buf_.read((char*)&id, 4), bits_.deserialize(in_buf_); !in_buf_.eof(); bits_.deserialize(in_buf_)) {
-    i->insert(id, bits_);
-  }
-  in_buf_.clear();
+  auto i = new Input();
+  i->deserialize(in_buf_);
   e->set_input(i);
   delete i;
+  in_buf_.clear();
 
   conn->send_ack();
 }
