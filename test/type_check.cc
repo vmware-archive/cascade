@@ -60,8 +60,14 @@ TEST(type_check, pass_instantiation_3) {
 TEST(type_check, pass_instantiation_4) {
   run_typecheck("minimal", "data/test/type_check/pass/instantiation_4.v", false);
 }
+TEST(type_check, pass_issue_4) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_4.v", false);
+}
 TEST(type_check, pass_issue_14) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_14.v", false);
+}
+TEST(type_check, pass_issue_20a) {
+  run_typecheck("minimal", "data/test/type_check/pass/issue_20a.v", false);
 }
 TEST(type_check, pass_issue_23a) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_23a.v", false);
@@ -181,6 +187,24 @@ TEST(type_check, fail_issue_13a) {
 }
 TEST(type_check, fail_issue_13b) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_13b.v", true);
+}
+TEST(type_check, fail_issue_20a) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20a.v", true);
+}
+TEST(type_check, fail_issue_20b) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20b.v", true);
+}
+TEST(type_check, fail_issue_20c) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20c.v", true);
+}
+TEST(type_check, fail_issue_20d) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20d.v", true);
+}
+TEST(type_check, fail_issue_20e) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20e.v", true);
+}
+TEST(type_check, fail_issue_20f) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_20f.v", true);
 }
 TEST(type_check, fail_issue_23a) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_23a.v", true);

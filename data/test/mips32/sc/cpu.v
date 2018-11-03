@@ -1,6 +1,7 @@
 include data/test/mips32/sc/alu.v;
 include data/test/mips32/sc/alu_control.v;
 include data/test/mips32/sc/control.v;
+include data/test/mips32/sc/mem.v;
 
 // Program Counter
 
@@ -11,7 +12,7 @@ wire[31:0] pc_4 = pc + 4;
 // (Aligned word addressable, so addrs are shifted right 2)
 
 wire[31:0] instruction;
-(*__target="sw", __file="data/test/mips32/sc/imem.mem"*) 
+(*__file="data/test/mips32/sc/imem.mem"*) 
 Memory#(6,32) imem(
   .clock(clock.val),
   .raddr1(pc >> 2), 
@@ -53,8 +54,7 @@ wire[31:0] branch_addr = pc_4 + (imm << 2);
 wire[31:0] reg_read1;
 wire[31:0] reg_read2;
 wire[31:0] reg_write;
-(*__target="sw", __file="data/test/mips32/sc/reg.mem"*)
-Memory#(5,32) regs(
+Mem#(5,32) regs(
   .clock(clock.val),
   .wen(c_reg_write),
   .raddr1(instruction[25:21]),
@@ -91,8 +91,7 @@ Alu alu(
 // (Aligned word addressable, so addres are shifted right 2)
 
 wire[31:0] mem_read;
-(*__target="sw", __file="data/test/mips32/sc/dmem.mem"*)
-Memory#(10,32) dmem(
+Mem#(10,32) dmem(
   .clock(clock.val),
   .wen(mem_write),
   .raddr1(result >> 2),

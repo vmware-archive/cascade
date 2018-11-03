@@ -308,21 +308,71 @@ void TypeCheck::visit(const Identifier* id) {
       error("Reference to unresolved identifier", id);
     }
   }
-  // CHECK: Little-endian ranges and subscript out of range
-  if (!id->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(id->get_dim()->get());
-    if (rng.first < rng.second) {
-      error("No support for little-endian range", id);
-    }
-    if ((r != nullptr) && (rng.first >= Evaluate().get_width(r))) {
-      error("Upper end of range exceeds variable width", id);
-    }
-  }
   // CHECK: Is this a reference to a genvar outside of a loop generate construct?
   if (outermost_loop_ == nullptr) {
     if ((r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
       error("Illegal reference to genvar outside of a loop generate construct", id);
     }
+  }
+  // EXIT: Can't continue checking if id can't be resolved
+  if (r == nullptr) {
+    return;
+  }
+
+  // CHECK: Are subscripts valid, if provided?
+  const auto cdr = check_deref(r, id);
+  // Nothing else to do if we're out of dimensions
+  if (cdr == id->get_dim()->end()) {
+    return;
+  }
+
+  // CHECK: Are we providing a bit-select for a single-bit value?
+  if (Evaluate().get_width(r) == 1) {
+    return error("Bit-select provided for scalar value", id);
+  }
+
+  // CHECK: Range expression bit-selects
+  if (const auto re = dynamic_cast<const RangeExpression*>(*cdr)) {
+    if (re->get_type() == RangeExpression::CONSTANT) {
+      // CHECK: Non-constant values, values out of range, little-endian ranges
+      // EXIT: We can't continue checking if we can't evaluate this range
+      if (!Constant().is_constant_genvar(re)) {
+        return error("Non-constant values provided in bit-select", id);
+      }
+      const auto rng = Evaluate().get_range(re);
+      if (rng.first < rng.second) {
+        error("No support for little-endian bit-selects", id);
+      } 
+    } else {
+      if (!Constant().is_constant_genvar(re->get_lower())) {
+        error("Non-constant width provided in part-select", id);
+      }
+    }
+  }
+  // WARN: Selects out of range
+  if (Constant().is_constant_genvar(*cdr)) {
+    const auto rng = Evaluate().get_range(*cdr);
+    if ((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) {
+      warn("Bit-select out of range of declared width", id);
+    }
+  } 
+}
+
+void TypeCheck::visit(const String* s) {
+  auto e = false;
+  if (auto ws = dynamic_cast<const WriteStatement*>(s->get_parent()->get_parent())) {
+    if (ws->get_args()->front() != s) {
+      e = true;
+    }
+  } else if (auto ds = dynamic_cast<const DisplayStatement*>(s->get_parent()->get_parent())) {
+    if (ds->get_args()->front() != s) {
+      e = true;
+    }
+  } else {
+    e = true;
+  }
+  if (e) {
+    error("Cascade does not currently support the use of string constants in expressions", s);
   }
 }
 
@@ -407,6 +457,9 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 }
 
 void TypeCheck::visit(const IntegerDeclaration* id) {
+  // RECURSE: Check for unsupported language features in initial value
+  id->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
     multiple_def(id->get_id(), v->get_parent());
@@ -421,6 +474,9 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
+  // RECURSE: Check for unsupported language features in initial value
+  ld->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
     multiple_def(ld->get_id(), v->get_parent());
@@ -449,6 +505,9 @@ void TypeCheck::visit(const NetDeclaration* nd) {
 }
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
+  // RECURSE: Check for unsupported language features in initial value
+  pd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
     multiple_def(pd->get_id(), v->get_parent());
@@ -461,6 +520,9 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 }
 
 void TypeCheck::visit(const RegDeclaration* rd) {
+  // RECURSE: Check for unsupported language features in initial value
+  rd->get_val()->accept(this);
+
   // CHECK: Duplicate definition
   if (auto v = Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
     multiple_def(rd->get_id(), v->get_parent());
@@ -499,6 +561,30 @@ void TypeCheck::visit(const SeqBlock* sb) {
   sb->get_stmts()->accept(this);
 }
 
+void TypeCheck::visit(const ForStatement* fs) {
+  error("Cascade does not currently support the use of for statements", fs);
+}
+
+void TypeCheck::visit(const ForeverStatement* fs) {
+  error("Cascade does not currently support the use of forever statements", fs);
+}
+
+void TypeCheck::visit(const RepeatStatement* rs) {
+  error("Cascade does not currently support the use of repeat statements", rs);
+}
+
+void TypeCheck::visit(const WhileStatement* ws) {
+  error("Cascade does not currently support the use of while statements", ws);
+}
+
+void TypeCheck::visit(const WaitStatement* ws) {
+  error("Cascade does not currently support the use of wait statements", ws);
+}
+
+void TypeCheck::visit(const DelayControl* dc) {
+  error("Cascade does not currently support the use of delay controls", dc);
+}
+
 void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (re->null()) {
     return;
@@ -520,6 +606,50 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   if (rng.second != 0) {
     error("No support for declarations where lsb is not equal to zero", re);
   }
+}
+
+Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, const Identifier* i) {
+  const int diff = i->get_dim()->size() - r->get_dim()->size();
+
+  // We need to have at least as many subscripts on i as r is declared with
+  if (diff < 0) {
+    error("Not enough subscripts provided on array dereference", i);
+    return i->get_dim()->end();
+  }
+  // If we have the same number, the last subscript on i can't be a range
+  // There's also nothing to do if the subscripts are both empty
+  else if (diff == 0) {
+    if (i->get_dim()->empty()) {
+      return i->get_dim()->end();
+    } else if (dynamic_cast<const RangeExpression*>(i->get_dim()->back())) {
+      error("Illegal range expression found where scalar subscript was expected", i);
+      return i->get_dim()->end();
+    }
+  }
+  // And if i has more than one too many, that's an error as well
+  else if (diff > 1) {
+    error("Dereference arity does not match delared arity", i);
+    return i->get_dim()->end();
+  } 
+  
+  // Iterate over subscripts
+  auto iitr = i->get_dim()->begin();
+  auto ritr = r->get_dim()->begin();
+  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
+    // If this is a net declaration, we have to check that subscripts are
+    // constant values which are within range of the declared bounds.
+    if (dynamic_cast<NetDeclaration*>(r->get_parent())) {
+      if (!Constant().is_constant_genvar(*iitr)) {
+        error("Non-constant array subscripts in net dereference", i);
+        return i->get_dim()->end();
+      }
+      if (Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) {
+        error("Array subscript out of bounds in net dereference", i);
+        return i->get_dim()->end();
+      }
+    }
+  }    
+  return iitr;
 }
 
 void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg) {

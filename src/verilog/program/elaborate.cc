@@ -36,7 +36,6 @@
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/analyze/navigate.h"
-#include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/program/program.h"
 
@@ -116,7 +115,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
   auto id = lgc->get_block()->get_id()->null() ? get_name(lgc) : lgc->get_block()->get_id()->get()->clone();
   auto blocks = new Many<GenerateBlock>();
 
-  const auto itr = Resolve().get_resolution(lgc->get_init()->get_lhs());
+  const auto itr = lgc->get_init()->get_lhs();
   for (
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_init()->get_rhs()));
     Evaluate().get_value(lgc->get_cond()).to_bool();
@@ -135,7 +134,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
           id->get_ids()->front()->get_sid(), 
           new Maybe<Expression>(new Number(Evaluate().get_value(itr)))
         )),
-        new Maybe<Expression>()
+        new Many<Expression>()
       )),
       true,
       new Many<ModuleItem>(lpd)

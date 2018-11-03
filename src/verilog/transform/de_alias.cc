@@ -108,9 +108,9 @@ const Identifier* DeAlias::AliasTable::resolve(const Identifier* id) {
     return id;
   } 
   
-  // TODO: For now let's only consider trivial aliases: 
-  // TODO: Give up if either identifier uses a dimension subscript
-  if (!aitr->first->get_dim()->null() || !aitr->second->get_dim()->null()) {
+  // TODO: For now let's only consider trivial scalar aliases. Give up if
+  // either identifier uses a dimension subscript
+  if (!aitr->first->get_dim()->empty() || !aitr->second->get_dim()->empty()) {
     return id;
   }
   // TODO: Give up if these two variables are different widths
@@ -129,7 +129,8 @@ const Identifier* DeAlias::AliasTable::resolve(const Identifier* id) {
 
 void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   const auto lhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_lhs());
-  if ((lhs == nullptr) || !lhs->get_dim()->null()) {
+  // TODO: For now let's only consider trivial scalar assignments. 
+  if ((lhs == nullptr) || !lhs->get_dim()->empty()) {
     return;
   }
   const auto rhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_rhs());

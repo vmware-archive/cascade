@@ -42,7 +42,7 @@ class Expression : public Node {
   public:
     // Constructors:
     Expression();
-    ~Expression();
+    ~Expression() override = default;
 
     // Node Interface:
     Expression* clone() const override = 0;
@@ -52,8 +52,13 @@ class Expression : public Node {
     Expression* accept(Rewriter* r) override = 0;
 
   protected:
+    // Decorations used by Evaluate
     friend class Evaluate;
-    DECORATION(Bits*, bit_val);
+    // A vector of bitstring values, a variable array being the most general
+    // instance of an expression
+    DECORATION(std::vector<Bits>, bit_val);
+    // Does this expression need to be recomputed (generally because the value
+    // of one of its subexpressions has changed)?
     DECORATION(bool, needs_update);
 
     friend class Resolve;
@@ -61,14 +66,7 @@ class Expression : public Node {
 };
 
 inline Expression::Expression() : Node() {
-  bit_val_ = nullptr;
   needs_update_ = true;
-}
-
-inline Expression::~Expression() {
-  if (bit_val_ != nullptr) {
-    delete bit_val_;
-  }
 }
 
 } // namespace cascade 

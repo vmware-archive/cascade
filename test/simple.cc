@@ -51,6 +51,18 @@ TEST(simple, arithmetic_plus) {
 TEST(simple, arithmetic_pow) {
   run_code("minimal","data/test/simple/arithmetic_pow.v", "16"); 
 }
+TEST(simple, array_1) {
+  run_code("minimal","data/test/simple/array_1.v", "0123");
+}
+TEST(simple, array_2) {
+  run_code("minimal","data/test/simple/array_2.v", "0255");
+}
+TEST(simple, array_3) {
+  run_code("minimal","data/test/simple/array_3.v", "10");
+}
+TEST(simple, array_4) {
+  run_code("minimal","data/test/simple/array_4.v", "2550");
+}
 TEST(simple, assign_1) {
   run_code("minimal","data/test/simple/assign_1.v", "1");
 }
@@ -132,9 +144,9 @@ TEST(simple, fifo_5) {
 TEST(simple, finish_1) {
   run_code("minimal","data/test/simple/finish_1.v", "Hello World");
 }
-TEST(simple, for_1) {
-  run_code("minimal","data/test/simple/for_1.v", "333");
-}
+//TEST(simple, for_1) {
+//  run_code("minimal","data/test/simple/for_1.v", "333");
+//}
 TEST(simple, generate_1) {
   run_code("minimal","data/test/simple/generate_1.v", "01234567");
 }
@@ -161,6 +173,9 @@ TEST(simple, inst_2) {
 }
 TEST(simple, inst_3) {
   run_code("minimal","data/test/simple/inst_3.v", "1");
+}
+TEST(simple, issue_20a) {
+  run_code("minimal","data/test/simple/issue_20a.v", "");
 }
 TEST(simple, issue_228) {
   run_code("minimal","data/test/simple/issue_228.v", "");
@@ -246,12 +261,12 @@ TEST(simple, reduce_xor) {
 TEST(simple, reduce_xnor) {
   run_code("minimal","data/test/simple/reduce_xnor.v", "01");
 }
-TEST(simple, repeat_1) {
-  run_code("minimal","data/test/simple/repeat_1.v", "122");
-}
-TEST(simple, repeat_2) {
-  run_code("minimal","data/test/simple/repeat_2.v", "666666");
-}
+//TEST(simple, repeat_1) {
+//  run_code("minimal","data/test/simple/repeat_1.v", "122");
+//}
+//TEST(simple, repeat_2) {
+//  run_code("minimal","data/test/simple/repeat_2.v", "666666");
+//}
 TEST(simple, sign_1) {
   run_code("minimal","data/test/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");
 }
@@ -261,6 +276,6 @@ TEST(simple, sign_2) {
 //TEST(simple, wait_1) {
 //  run_code("minimal","data/test/simple/wait_1.v", "Hello World");
 //}
-TEST(simple, while_1) {
-  run_code("minimal","data/test/simple/while_1.v", "333");
-}
+//TEST(simple, while_1) {
+//  run_code("minimal","data/test/simple/while_1.v", "333");
+//}

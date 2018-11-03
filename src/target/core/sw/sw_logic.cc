@@ -83,7 +83,7 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
 State* SwLogic::get_state() {
   auto s = new State();
   for (const auto& sv : state_) {
-    s->insert(sv.first, Evaluate().get_value(sv.second));
+    s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
   return s;
 }
@@ -92,7 +92,7 @@ void SwLogic::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      Evaluate().assign_value(sv.second, itr->second);
+      Evaluate().assign_array_value(sv.second, itr->second);
     }
   }
 }
@@ -180,16 +180,9 @@ bool SwLogic::there_are_updates() const {
 void SwLogic::update() {
   // This is a for loop. Updates happen simultaneously
   for (size_t i = 0, ie = updates_.size(); i < ie; ++i) {
-    const auto id = updates_[i];
     const auto& val = update_pool_[i];
-    const auto r = Resolve().get_resolution(id);
-    if (id->get_dim()->null()) {
-      Evaluate().assign_value(r, val);
-    } else {
-      const auto idx = Evaluate().get_range(id->get_dim()->get());
-      Evaluate().assign_value(r, idx.first, idx.second, val);
-    } 
-    notify(r);
+    Evaluate().assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val);
+    notify(get<0>(updates_[i]));
   }
   updates_.clear();
 
@@ -275,12 +268,17 @@ void SwLogic::visit(const NonblockingAssign* na) {
   assert(na->get_ctrl()->null());
   
   if (!silent_) {
-    const auto idx = updates_.size();
+    const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+    assert(r != nullptr);
+    const auto target = Evaluate().dereference(r, na->get_assign()->get_lhs());
     const auto& res = Evaluate().get_value(na->get_assign()->get_rhs());
-    updates_.push_back(na->get_assign()->get_lhs());
+
+    const auto idx = updates_.size();
     if (idx >= update_pool_.size()) {
       update_pool_.resize(2*update_pool_.size());
     } 
+
+    updates_.push_back(make_tuple(r, get<0>(target), get<1>(target), get<2>(target)));
     update_pool_[idx] = res;
   }
   notify(na);
@@ -472,15 +470,8 @@ void SwLogic::visit(const EventControl* ec) {
 
 void SwLogic::visit(const VariableAssign* va) {
   const auto& res = Evaluate().get_value(va->get_rhs());
-  const auto r = Resolve().get_resolution(va->get_lhs());
-
-  if (va->get_lhs()->get_dim()->null()) {
-    Evaluate().assign_value(r, res);
-  } else {
-    const auto idx = Evaluate().get_range(va->get_lhs()->get_dim()->get());
-    Evaluate().assign_value(r, idx.first, idx.second, res);
-  } 
-  notify(r);
+  Evaluate().assign_value(va->get_lhs(), res);
+  notify(Resolve().get_resolution(va->get_lhs()));
 }
 
 void SwLogic::log(const string& op, const Node* n) {

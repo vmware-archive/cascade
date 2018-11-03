@@ -2,7 +2,6 @@ reg[3:0] COUNT = 0;
 wire[3:0] rdata;
 wire empty, full;
 
-(*__target="sw"*)
 Fifo#(4,3) fifo(
   .clock(clock.val),
   .wreq(COUNT < 4),

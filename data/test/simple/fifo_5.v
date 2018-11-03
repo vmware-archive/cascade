@@ -3,7 +3,7 @@ wire empty;
 
 reg[31:0] sum = 0;
 
-(*__target="sw", __file="data/test/simple/fifo_4.data", __count=2*)
+(*__file="data/test/simple/fifo_4.data", __count=2*)
 Fifo#(1,4) fifo(
   .clock(clock.val),
   .rreq(!empty),

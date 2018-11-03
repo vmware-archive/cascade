@@ -134,10 +134,13 @@ Expression* Builder::build(const Identifier* id) {
       ids->push_back(ii);
     }
   }
-  return new Identifier(
-    ids,
-    id->get_dim()->accept(this)
-  );
+  auto ds = new Many<Expression>();
+  for (auto d : *id->get_dim()) {
+    if (auto dd = d->accept(this)) {
+      ds->push_back(dd);
+    }
+  }
+  return new Identifier(ids, ds);
 }
 
 Expression* Builder::build(const MultipleConcatenation* mc) {

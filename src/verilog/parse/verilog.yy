@@ -358,12 +358,12 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<AttrSpec>*> attr_spec_P
 %type <Attributes*> attribute_instance_S 
 %type <Many<Declaration>*> block_item_declaration_S
-%type <Maybe<Expression>*> braced_re_q
+%type <Many<Expression>*> braced_rexp_S
 %type <Many<CaseGenerateItem>*> case_generate_item_P
 %type <Many<CaseItem>*> case_item_P
 %type <Maybe<DelayControl>*> delay3_Q
 %type <Maybe<TimingControl>*> delay_or_event_control_Q
-%type <Many<RangeExpression>*> dimension_S
+%type <Many<Expression>*> dimension_S
 %type <Expression*> eq_ce_Q
 %type <Many<Expression>*> expression_P
 %type <Maybe<Expression>*> expression_Q
@@ -404,11 +404,23 @@ bool is_null(const cascade::Expression* e) {
 %%
 
 main 
-  : include_statement { parser->res_ = $1; YYACCEPT; }
-  | module_declaration { parser->res_ = $1; YYACCEPT; }
-  | non_port_module_item { parser->res_ = $1; YYACCEPT; }
-  | END_OF_FILE { parser->eof_ = true; parser->res_ = nullptr; YYACCEPT; }
+  : restore include_statement { parser->res_ = $2; YYACCEPT; }
+  | restore module_declaration { parser->res_ = $2; YYACCEPT; }
+  | restore non_port_module_item backup { parser->res_ = $2; YYACCEPT; }
+  | restore END_OF_FILE { parser->eof_ = true; parser->res_ = nullptr; YYACCEPT; }
   ;
+
+backup : %empty {
+  if (!yyla.empty()) {
+    parser->backup_.move(yyla);
+  }
+}
+
+restore : %empty { 
+  if (!parser->backup_.empty()) {
+    yyla.move(parser->backup_);
+  }
+}
 
 /* A.1.1 Library Source Text */
 include_statement 
@@ -763,13 +775,22 @@ net_type
   /* TODO | WOR */
   ;
 variable_type
-  : identifier dimension_S { $$ = new VariableAssign($1, new Identifier("__null")); delete $2; }
-  | identifier EQ expression { $$ = new VariableAssign($1, $3); }
+  : identifier dimension_S { 
+    $$ = new VariableAssign($1, new Identifier("__null")); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+    $$->get_lhs()->replace_dim($2); 
+  }
+  | identifier EQ expression { 
+    $$ = new VariableAssign($1, $3); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+  }
   ;
 
 /* A.2.2.3 Delays */
 delay3 
-  : POUND delay_value { $$ = new DelayControl($2); }
+  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line);}
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
 delay_value
@@ -787,11 +808,14 @@ list_of_net_decl_assignments
   }
   ;
 list_of_net_identifiers
-  : identifier dimension_S { $$ = new Many<Identifier>($1); delete $2; }
+  : identifier dimension_S { 
+    $$ = new Many<Identifier>($1); 
+    $$->back()->replace_dim($2);
+  }
   | list_of_net_identifiers COMMA identifier dimension_S {
     $$ = $1;
     $$->push_back($3);
-    delete $4;
+    $$->back()->replace_dim($4);
   }
   ;
 list_of_param_assignments 
@@ -824,7 +848,7 @@ list_of_variable_port_identifiers
 
 /* A.2.4 Declaration Assignments */
 net_decl_assignment
-  : identifier EQ expression { $$ = new VariableAssign($1,$3); }
+  : identifier EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
@@ -875,7 +899,10 @@ list_of_block_variable_identifiers
   }
   ;
 block_variable_type 
-  : identifier dimension_S { $$ = $1; delete $2; }
+  : identifier dimension_S { 
+    $$ = $1; 
+    $$->replace_dim($2);
+  }
   ;
 
 /* A.4.1 Module Instantiation */
@@ -1158,7 +1185,7 @@ nonblocking_assignment
   }
   ;
 variable_assignment
-  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
+  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
   ;
 
 /* A.6.3 Parallel and Sequential Blocks */
@@ -1205,8 +1232,8 @@ statement_or_null
 
 /* A.6.5 Timing Control Statements */
 delay_control
-  : POUND delay_value { $$ = new DelayControl($2); }
-  | POUND OPAREN mintypmax_expression CPAREN { $$ = new DelayControl($3); }
+  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | POUND OPAREN mintypmax_expression CPAREN { $$ = new DelayControl($3); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 delay_or_event_control 
   : delay_control { $$ = $1; }
@@ -1246,7 +1273,11 @@ procedural_timing_control_statement
   : procedural_timing_control statement_or_null { $$ = new TimingControlStatement($1,$2); }
   ;
 wait_statement
-  : WAIT OPAREN expression CPAREN statement_or_null { $$ = new WaitStatement($3,$5); }
+  : WAIT OPAREN expression CPAREN statement_or_null { 
+    $$ = new WaitStatement($3,$5); 
+    $$->set_source(parser->source());
+    $$->set_line($3->get_line());
+  }
   ;
 
 /* A.6.6 Conditional Statements */
@@ -1277,11 +1308,25 @@ case_item
 
 /* A.6.8 Looping Statements */
 loop_statement
-  : FOREVER statement { $$ = new ForeverStatement($2); }
-  | REPEAT OPAREN expression CPAREN statement { $$ = new RepeatStatement($3,$5); }
-  | WHILE OPAREN expression CPAREN statement { $$ = new WhileStatement($3,$5); }
+  : FOREVER statement { 
+    $$ = new ForeverStatement($2); 
+    $$->set_source(parser->source()); 
+    $$->set_line($2->get_line());
+  }
+  | REPEAT OPAREN expression CPAREN statement { 
+    $$ = new RepeatStatement($3,$5); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
+  }
+  | WHILE OPAREN expression CPAREN statement { 
+    $$ = new WhileStatement($3,$5); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
+  }
   | FOR OPAREN variable_assignment SCOLON expression SCOLON variable_assignment CPAREN statement {
-    $$ = new ForStatement($3,$5,$7,$9);
+    $$ = new ForStatement($3,$5,$7,$9); 
+    $$->set_source(parser->source()); 
+    $$->set_line($3->get_line());
   }
   ;
 
@@ -1406,22 +1451,22 @@ range_expression
 /* A.8.4 Primaries */
 primary
   : number { $$ = $1; }
-  | hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  | hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   | concatenation { $$ = $1; }
   | multiple_concatenation { $$ = $1; }
   /* TODO | function_call */
   /* TODO | system_function_call */
   | OPAREN mintypmax_expression CPAREN { $$ = new NestedExpression($2); }
-  | string_ { $$ = $1; }
+  | string_ { $$ = $1; $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 
 /* A.8.5 Expression Left-Side Values */
 net_lvalue 
-  : hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   /* | '{' net_lvalue_P '}' */
   ;
 variable_lvalue
-  : hierarchical_identifier /** [cexp]? --- see hierarchical_identifier */ { $$ = $1; }
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
   /* TODO | '{' variable_lvalue_P '}' */
   ;
 
@@ -1449,23 +1494,23 @@ number
   /* TODO | real_number */
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
   ;
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
@@ -1489,36 +1534,48 @@ attr_name
   ;
 
 /* A.9.3 Identifiers */
+/* NOTE: This parse deviates from the spec. This is only okay given the */
+/* contexts in which we use it: primary, net_lvalue, and variable_lvalue */
 hierarchical_identifier
-  : simple_id_L braced_re_q { 
+  : simple_id_L braced_rexp_S { 
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
     $$->set_source(parser->source());
     $$->set_line($1.first);
-  }
-  | hierarchical_identifier DOT SIMPLE_ID braced_re_q {
-    $$ = $1;
-    if (!$$->get_dim()->null()) {
-      if (dynamic_cast<RangeExpression*>($$->get_dim()->get()) != nullptr) {
-        // TODO: Memory Leak?
-        error(parser->loc(), "Found range expression inside hierarchical identifier!");
+    for (auto e : *$2) {
+      if ((e != $2->back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
-      auto lid = $$->get_ids()->back();
-      lid->get_isel()->replace($$->get_dim()->get()->clone());
-      lid->get_isel()->get()->set_source($$->get_dim()->get()->get_source());
-      lid->get_isel()->get()->set_line($$->get_dim()->get()->get_line());
-      $$->get_dim()->replace(nullptr);
     }
-    const auto id = new Id($3, new Maybe<Expression>());
-    $$->get_ids()->push_back(id);
-    $$->replace_dim($4); 
+  }
+  | hierarchical_identifier DOT SIMPLE_ID braced_rexp_S {
+    $$ = $1;
+    if ($$->get_dim()->size() > 1) {
+      error(parser->loc(), "Unexpected multiplie instance selects");
+      YYERROR;
+    }
+    if (!$$->get_dim()->empty()) {
+      if (dynamic_cast<RangeExpression*>($$->get_dim()->back()) != nullptr) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
+        YYERROR;
+      }
+      $$->get_ids()->back()->get_isel()->replace($$->get_dim()->remove_back());
+    }
+    $$->get_ids()->push_back(new Id($3, new Maybe<Expression>()));
+    $$->replace_dim($4);
+    for (auto e : *$4) {
+      if ((e != $4->back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
+        error(parser->loc(), "Unexpected range expression in array subscript");
+        YYERROR;
+      }
+    }
   }
   ;
 identifier 
   : simple_id_L { 
     const auto id = new Id($1.second, new Maybe<Expression>());
-    $$ = new Identifier(new Many<Id>(id), new Maybe<Expression>()); 
+    $$ = new Identifier(new Many<Id>(id), new Many<Expression>()); 
     $$->set_source(parser->source());
     $$->set_line($1.first);
   }
@@ -1548,9 +1605,12 @@ block_item_declaration_S
     $$->concat($2);
   }
   ;
-braced_re_q
-  : %empty { $$ = new Maybe<Expression>(); }
-  | OSQUARE range_expression CSQUARE { $$ = new Maybe<Expression>($2); }
+braced_rexp_S
+  : %empty { $$ = new Many<Expression>(); }
+  | braced_rexp_S OSQUARE range_expression CSQUARE { 
+    $$ = $1;
+    $$->push_back($3); 
+  }
   ;
 case_generate_item_P
   : case_generate_item { $$ = new Many<CaseGenerateItem>($1); }
@@ -1579,7 +1639,7 @@ delay_or_event_control_Q
   | delay_or_event_control { $$ = new Maybe<TimingControl>($1); }
   ;
 dimension_S
-  : %empty { $$ = new Many<RangeExpression>(); }
+  : %empty { $$ = new Many<Expression>(); }
   | dimension_S dimension { 
     $$ = $1;
     $$->push_back($2);
@@ -1725,7 +1785,6 @@ port_declaration_P
       if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
-          // TODO: Memory Leak?
           error(parser->loc(), "Found initialization value in net declaration!");
           YYERROR;
         }
@@ -1789,7 +1848,6 @@ alt_port_declaration
   : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
     // If this is a net declaration and we have an initial value, it's an error
     if (!$2 && !is_null($6)) {
-      // TODO: Memory Leak?
       error(parser->loc(), "Found initialization value in net declaration!");
       YYERROR;
     }

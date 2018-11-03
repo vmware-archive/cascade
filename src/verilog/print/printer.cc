@@ -135,9 +135,9 @@ void Printer::visit(const Concatenation* c) {
 void Printer::visit(const Identifier* id) {
   int cnt = 0;
   id->get_ids()->accept(this, [this,&cnt]{if (cnt++) *this << ".";}, []{});
-  if (!id->get_dim()->null()) {
+  for (auto d : *id->get_dim()) {
     *this << Color::RED << "[" << Color::RESET;
-    id->get_dim()->accept(this);
+    d->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
 }

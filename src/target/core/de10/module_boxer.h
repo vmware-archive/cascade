@@ -32,13 +32,14 @@
 #define CASCADE_SRC_TARGET_CORE_DE10_MODULE_BOXER_H
 
 #include <string>
+#include "src/base/stream/indstream.h"
 #include "src/runtime/ids.h"
+#include "src/target/core/de10/de10_logic.h"
+#include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
-
-class De10Logic;
 
 class ModuleBoxer : public Builder {
   public:
@@ -63,6 +64,9 @@ class ModuleBoxer : public Builder {
     Statement* build(const FinishStatement* fs) override;
     Statement* build(const WriteStatement* ws) override;
 
+    // Builder Helpers:
+    Expression* get_table_range(const Identifier* r, const Identifier* i);
+
     // Sys Task Mangling Helper:
     class Mangler : public Visitor {
       public:
@@ -74,6 +78,23 @@ class ModuleBoxer : public Builder {
         const De10Logic* de_;
         SeqBlock* t_;
     };
+
+    // Code Printing Helpers:
+    void emit_variable_table(indstream& os);
+    void emit_update_state(indstream& os, ModuleInfo& info);
+    void emit_sys_task_state(indstream& os);
+    void emit_control_state(indstream& os);
+    void emit_view_variables(indstream& os);
+    void emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo);
+    void emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo);
+    void emit_subscript(indstream& os, size_t idx, size_t n, const std::vector<size_t>& arity);
+    void emit_program_logic(indstream& os);
+    void emit_update_logic(indstream& os);
+    void emit_sys_task_logic(indstream& os);
+    void emit_control_logic(indstream& os);
+    void emit_variable_table_logic(indstream& os, ModuleInfo& info);
+    void emit_slice(indstream& os, size_t w, size_t i);
+    void emit_output_logic(indstream& os);
 };
 
 } // namespace cascade
