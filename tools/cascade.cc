@@ -109,8 +109,6 @@ auto& enable_logging = FlagArg::create("--enable_logging")
   .description("Turns on UI logging");
 
 __attribute__((unused)) auto& g5 = Group::create("Optimization Options");
-auto& disable_inlining = FlagArg::create("--disable_inlining")
-  .description("Disable inlining for user logic; note that this may disable other optimizations as well");
 auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .usage("<n>")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
@@ -209,10 +207,10 @@ int main(int argc, char** argv) {
     c->set_local_compiler(lc);
 
   // Start the runtime
-    runtime->set_compiler(c);
+  runtime->set_compiler(c);
     runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
     runtime->set_open_loop_target(open_loop_target.value());
-    runtime->disable_inlining(disable_inlining.value());
+    //runtime->disable_inlining(disable_inlining.value());
     runtime->disable_warnings(disable_warnings.value());
   runtime->run();
 

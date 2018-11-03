@@ -137,9 +137,6 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
 }
 
 void Evaluate::assign_array_value(const Identifier* id, const vector<Bits>& val) {
-  // id shouldn't have any subscripts
-  assert(id->get_dim()->empty());
-
   // Find the variable that we're referring to. 
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);

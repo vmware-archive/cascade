@@ -274,7 +274,7 @@ Cascade currently supports a large --- but certainly not complete --- subset of 
 |                       | Real Declarations         |           | x           |                  |
 |                       | Time Declarations         |           | x           |                  |
 |                       | Realtime Declarations     |           | x           |                  |
-|                       | Array Declarations        |           | x           |                  |
+|                       | Array Declarations        |  x        |             |                  |
 | Expressions           | Arithmetic Operators      |  x        |             |                  |
 |                       | Bitwise Operators         |  x        |             |                  |
 |                       | Logical Operators         |  x        |             |                  |
