@@ -175,8 +175,15 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
 De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
   ModuleInfo info(md);
 
+  // Check range on mid 
+  if (to_mid(md->get_id()) >= 4) {
+    error("Unable to compile a module with internal id greater than 3!");
+    delete md;
+    return nullptr;
+  }
+
   // Create a new core with address identity based on module id
-  const auto addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + 4*to_mid(md->get_id()));
+  const auto addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + to_mid(md->get_id()));
   const auto mid = to_mid(md->get_id());
   auto de = new De10Logic(interface, md, addr);
 
@@ -189,6 +196,13 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   }
   for (auto o : info.outputs()) {
     de->set_output(o, to_vid(o));
+  }
+
+  // Check size of variable table
+  if (de->open_loop_idx() >= 0x4000) {
+    error("Unable to compile module with more than 0x4000 entries in variable table");
+    delete de;
+    return nullptr;
   }
 
   // Connect to quartus server

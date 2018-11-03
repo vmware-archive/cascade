@@ -46,7 +46,7 @@
 using namespace std;
 
 // Note that this is a plus, not a logical or! We can't guarantee that addr is aligned!
-#define MANGLE(addr, idx) ((volatile uint8_t*)(((idx) << 8) + (size_t)addr))
+#define MANGLE(addr, idx) ((volatile uint8_t*)(((idx) << 2) + (size_t)addr))
 
 namespace cascade {
 
