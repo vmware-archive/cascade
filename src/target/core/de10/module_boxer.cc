@@ -54,7 +54,7 @@ std::string ModuleBoxer::box(MId id, const ModuleDeclaration* md, const De10Logi
   os.tab();
   os << "input  wire       __clk," << endl;
   os << "input  wire       __read," << endl;
-  os << "input  wire[7:0]  __vid," << endl;
+  os << "input  wire[13:0] __vid," << endl;
   os << "input  wire[31:0] __in," << endl;
   os << "output reg[31:0]  __out," << endl;
   os << "output wire       __wait" << endl;
@@ -311,9 +311,8 @@ void ModuleBoxer::emit_variable_table(indstream& os) {
   // want to allocate space for unmaterialized values. But these are generally
   // so few in number that this isn't a huge deal.
     
-  const auto size = max((size_t) 2, de_->table_size());
   os << "// Variable Table:" << endl;
-  os << "reg[31:0] __var[" << (size-1) << ":0];" << endl;
+  os << "reg[31:0] __var[" << de_->open_loop_idx() << ":0];" << endl;
   os << endl;
 }
 

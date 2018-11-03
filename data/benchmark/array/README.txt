@@ -5,14 +5,16 @@ array.v. Larger values of W will produce longer simulations.  The program will
 print out the number of virtual clock cycles required for it to finish. The
 expected number of cycles is given by the formula shown below.
 
-(2^W) * (2^(2*W)-1) + 2^W + 1 cycles
-
-W = 2 : 61
-    3 : 505
-    4 : 4081
-    5 : 32737 
-    6 : 262081 
-    7 : 2097153
-    8 : 16777217
-    9 : 134217729
-   10 : 1073741825
+ W : 2^(4*W) + 1
+---------------------------------
+10 : 
+ 9 : 
+ 8 : 
+ 7 : 268435457 2^28 + 1
+ 6 : 16777217  2^24 + 1
+ 5 : 1048577   2^20 + 1
+ 4 : 65537     2^16 + 1
+ 3 : 4097      2^12 + 1
+ 2 : 257       2^ 8 + 1
+ 1 : n/a
+ 0 : n/a
