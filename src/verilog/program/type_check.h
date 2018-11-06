@@ -98,6 +98,8 @@ class TypeCheck : public Visitor {
     void visit(const ParameterDeclaration* pd) override;
     void visit(const RegDeclaration* rd) override;
     void visit(const ModuleInstantiation* mi) override;
+    void visit(const BlockingAssign* ba) override;
+    void visit(const NonblockingAssign* na) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
     void visit(const ForStatement* fs) override;
@@ -109,6 +111,8 @@ class TypeCheck : public Visitor {
 
     // Checks whether a range is little-endian and begins at 0
     void check_width(const Maybe<RangeExpression>* re);
+    // Checks whether array dimensions are little-endian and begin at 0
+    void check_array(const Many<Expression>* es);
     // Checks whether a potentially subscripted identifier is a valid array
     // dereference, returns a pointer to the last unused element in its
     // dimensions so that further operations may check its slice.
