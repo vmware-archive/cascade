@@ -1,4 +1,4 @@
-wire pad = 0;
+reg pad = 0;
 wire led = 0;
 
 module foo(x,y);

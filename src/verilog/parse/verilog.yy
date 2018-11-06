@@ -1150,7 +1150,10 @@ continuous_assign
   : ASSIGN /* TODO drive_strength? */ delay3_Q list_of_net_assignments SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
-      $$->push_back(new ContinuousAssign($2->clone(), $3->remove_front()));
+      auto ca = new ContinuousAssign($2->clone(), $3->remove_front());
+      ca->set_source(parser->source());
+      ca->set_line(ca->get_assign()->get_line());
+      $$->push_back(ca);
     }
     delete $2;
     delete $3;
@@ -1164,7 +1167,11 @@ list_of_net_assignments
   }
   ;
 net_assignment
-  : net_lvalue EQ expression { $$ = new VariableAssign($1,$3); }
+  : net_lvalue EQ expression { 
+    $$ = new VariableAssign($1,$3); 
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
+  }
   ;
 
 /* A.6.2 Procedural Blocks and Assignments */
@@ -1177,11 +1184,15 @@ always_construct
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
     $$ = new BlockingAssign($3,new VariableAssign($1,$4));
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
   }
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
     $$ = new NonblockingAssign($3,new VariableAssign($1,$4));
+    $$->set_source(parser->source());
+    $$->set_line($1->get_line());
   }
   ;
 variable_assignment

@@ -218,6 +218,21 @@ TEST(type_check, fail_issue_23c) {
 TEST(type_check, fail_issue_24a) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_24a.v", true);
 }
+TEST(type_check, fail_issue_30a) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_30a.v", true);
+}
+TEST(type_check, fail_issue_30b) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_30b.v", true);
+}
+TEST(type_check, fail_issue_30c) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_30c.v", true);
+}
+TEST(type_check, fail_issue_30d) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_30d.v", true);
+}
+TEST(type_check, fail_issue_30e) {
+  run_typecheck("minimal", "data/test/type_check/fail/issue_30e.v", true);
+}
 TEST(type_check, fail_issue_226) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_226.v", true);
 }

@@ -440,9 +440,9 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
   ca->get_ctrl()->accept(this);
   ca->get_assign()->accept(this);
 
-  const auto o = Resolve().get_origin(ca->get_assign()->get_lhs());
-  if (o != nullptr && ModuleInfo(o).is_stateful(ca->get_assign()->get_lhs())) {
-    error("Stateful elements cannot appear on left hand side of blocking assign statements", ca);
+  const auto r = Resolve().get_resolution(ca->get_assign()->get_lhs());
+  if ((r != nullptr) && (dynamic_cast<const NetDeclaration*>(r->get_parent()) == nullptr)) {
+    error("Continuous assignments are only permitted for variables with type wire", ca);
   }
 }
 
@@ -471,6 +471,8 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   if (!id->get_val()->null() && !Constant().is_constant(id->get_val()->get())) {
     error("Integer initialization requires constant value", id);
   }
+  // CHECK: Array properties
+  check_array(id->get_id()->get_dim());
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
@@ -496,8 +498,9 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   if (Navigate(nd).find_child(nd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", nd);
   }
-  // CHECK: Width properties
+  // CHECK: Width and array properties
   check_width(nd->get_dim());
+  check_array(nd->get_id()->get_dim());
   // CHECK: Delay control statements
   if (!nd->get_ctrl()->null()) {
     error("No support for delay control statements in net declarations", nd);
@@ -530,8 +533,9 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   if (Navigate(rd).find_child(rd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", rd);
   }
-  // CHECK: Width properties
+  // CHECK: Width and array properties
   check_width(rd->get_dim());
+  check_array(rd->get_id()->get_dim());
   // CHECK: Registers initialized to constant value
   if (!rd->get_val()->null() && !Constant().is_constant(rd->get_val()->get())) {
     error("Register initialization requires constant value", rd);
@@ -559,6 +563,30 @@ void TypeCheck::visit(const SeqBlock* sb) {
   // RECURSE: decls and body
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
+}
+
+void TypeCheck::visit(const BlockingAssign* ba) {
+  // RECURSE: 
+  Visitor::visit(ba);
+  // CHECK: Target must be register or integer
+  const auto r = Resolve().get_resolution(ba->get_assign()->get_lhs());
+  if ((r != nullptr) && 
+      (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
+      (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
+    error("Blocking assignments are only permitted for variables with type reg or integer", ba);
+  }
+}
+
+void TypeCheck::visit(const NonblockingAssign* na) {
+  // RECURSE:
+  Visitor::visit(na);
+  // CHECK: Target must be register or integer
+  const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  if ((r != nullptr) && 
+      (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
+      (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
+    error("Non-blocking assignments are only permitted for variables with type reg or integer", na);
+  }
 }
 
 void TypeCheck::visit(const ForStatement* fs) {
@@ -605,6 +633,31 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   }
   if (rng.second != 0) {
     error("No support for declarations where lsb is not equal to zero", re);
+  }
+}
+
+void TypeCheck::check_array(const Many<Expression>* es) {
+  for (auto e : *es) {
+    // CHECK: Array bounds must be constants
+    if (!Constant().is_constant_genvar(e)) {
+      return error("Illegal non-constant expression in array declaration", es->get_parent()->get_parent());
+    }
+    // RECURSE: Check the contents of this array bound
+    const auto backup = exists_bad_id_;
+    e->accept(this);
+    // EXIT: Evaluation will fail if there's an unresolved id below here
+    if (exists_bad_id_) {
+      exists_bad_id_ = backup;
+      return;
+    }
+   
+    const auto rng = Evaluate().get_range(e);
+    if (rng.first <= rng.second) {
+      return error("Upper end of array declaration range must be greater than lower end", es->get_parent()->get_parent());
+    } 
+    if (rng.second != 0) {
+      return error("No support for array declarations where lower end of range is not equal to zero", es->get_parent()->get_parent());
+    }
   }
 }
 
