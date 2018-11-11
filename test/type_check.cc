@@ -33,6 +33,22 @@
 
 using namespace cascade;
 
+TEST(type_check, pass_array_1) {
+  run_typecheck("minimal", "data/test/type_check/pass/array_1.v", false);
+}
+TEST(type_check, pass_array_2) {
+// TODO: UNCOMMENT THIS WHEN WE ACTIVATE SUPPORT FOR INSTANTIATION ARRAYS
+//  run_typecheck("minimal", "data/test/type_check/pass/array_2.v", false);
+}
+TEST(type_check, pass_array_3) {
+  run_typecheck("minimal", "data/test/type_check/pass/array_3.v", false);
+}
+TEST(type_check, pass_array_4) {
+  run_typecheck("minimal", "data/test/type_check/pass/array_4.v", false);
+}
+TEST(type_check, pass_array_5) {
+  run_typecheck("minimal", "data/test/type_check/pass/array_5.v", false);
+}
 TEST(type_check, pass_declaration_1) {
   run_typecheck("minimal", "data/test/type_check/pass/declaration_1.v", false);
 }
@@ -66,9 +82,6 @@ TEST(type_check, pass_issue_4) {
 TEST(type_check, pass_issue_14) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_14.v", false);
 }
-TEST(type_check, pass_issue_20a) {
-  run_typecheck("minimal", "data/test/type_check/pass/issue_20a.v", false);
-}
 TEST(type_check, pass_issue_23a) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_23a.v", false);
 }
@@ -78,10 +91,6 @@ TEST(type_check, pass_issue_23b) {
 TEST(type_check, pass_issue_23c) {
   run_typecheck("minimal", "data/test/type_check/pass/issue_23c.v", false);
 }
-// TODO: Reenable this test when issue_24 is complete
-//TEST(type_check, pass_issue_24a) {
-//  run_typecheck("minimal", "data/test/type_check/pass/issue_24a.v", false);
-//}
 TEST(type_check, pass_resolution_1) {
   run_typecheck("minimal", "data/test/type_check/pass/resolution_1.v", false);
 }
@@ -119,6 +128,36 @@ TEST(type_check, pass_resolution_12) {
   run_typecheck("minimal", "data/test/type_check/pass/resolution_12.v", false);
 }
 
+TEST(type_check, fail_array_1) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_1.v", true);
+}
+TEST(type_check, fail_array_2) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_2.v", true);
+}
+TEST(type_check, fail_array_3) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_3.v", true);
+}
+TEST(type_check, fail_array_4) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_4.v", true);
+}
+TEST(type_check, fail_array_5) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_5.v", true);
+}
+TEST(type_check, fail_array_6) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_6.v", true);
+}
+TEST(type_check, fail_array_7) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_7.v", true);
+}
+TEST(type_check, fail_array_8) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_8.v", true);
+}
+TEST(type_check, fail_array_9) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_9.v", true);
+}
+TEST(type_check, fail_array_10) {
+  run_typecheck("minimal", "data/test/type_check/fail/array_10.v", true);
+}
 TEST(type_check, fail_assign_1) {
   run_typecheck("minimal", "data/test/type_check/fail/assign_1.v", true);
 }
@@ -161,6 +200,9 @@ TEST(type_check, fail_generate_3) {
 TEST(type_check, fail_generate_4) {
   run_typecheck("minimal", "data/test/type_check/fail/generate_4.v", true);
 }
+TEST(type_check, fail_hierarchical_1) {
+  run_typecheck("minimal", "data/test/type_check/fail/hierarchical_1.v", true);
+}
 TEST(type_check, fail_instantiation_1) {
   run_typecheck("minimal", "data/test/type_check/fail/instantiation_1.v", true);
 }
@@ -188,24 +230,6 @@ TEST(type_check, fail_issue_13a) {
 TEST(type_check, fail_issue_13b) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_13b.v", true);
 }
-TEST(type_check, fail_issue_20a) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20a.v", true);
-}
-TEST(type_check, fail_issue_20b) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20b.v", true);
-}
-TEST(type_check, fail_issue_20c) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20c.v", true);
-}
-TEST(type_check, fail_issue_20d) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20d.v", true);
-}
-TEST(type_check, fail_issue_20e) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20e.v", true);
-}
-TEST(type_check, fail_issue_20f) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_20f.v", true);
-}
 TEST(type_check, fail_issue_23a) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_23a.v", true);
 }
@@ -214,15 +238,6 @@ TEST(type_check, fail_issue_23b) {
 }
 TEST(type_check, fail_issue_23c) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_23c.v", true);
-}
-TEST(type_check, fail_issue_24a) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_24a.v", true);
-}
-TEST(type_check, fail_issue_30a) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_30a.v", true);
-}
-TEST(type_check, fail_issue_30b) {
-  run_typecheck("minimal", "data/test/type_check/fail/issue_30b.v", true);
 }
 TEST(type_check, fail_issue_30c) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_30c.v", true);
@@ -247,4 +262,13 @@ TEST(type_check, fail_issue_239c) {
 }
 TEST(type_check, fail_issue_239d) {
   run_typecheck("minimal", "data/test/type_check/fail/issue_239d.v", true);
+}
+TEST(type_check, fail_parameter_1) {
+  run_typecheck("minimal", "data/test/type_check/fail/parameter_1.v", true);
+}
+TEST(type_check, fail_parameter_2) {
+  run_typecheck("minimal", "data/test/type_check/fail/parameter_2.v", true);
+}
+TEST(type_check, fail_resolution_1) {
+  run_typecheck("minimal", "data/test/type_check/fail/resolution_1.v", true);
 }

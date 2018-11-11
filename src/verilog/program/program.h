@@ -107,7 +107,7 @@ class Program : public Editor {
 
     // Configuration Flags:
     bool checker_off_;
-    bool warn_unresolved_;
+    bool decl_check_;
     bool local_only_;
     bool expand_insts_;
     bool expand_gens_;
