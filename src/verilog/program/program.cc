@@ -83,7 +83,7 @@ void Program::declare(ModuleDeclaration* md) {
     md->replace_attrs(root_decl()->second->get_attrs()->clone());
   }
   // Elaborate
-  warn_unresolved_ = true;
+  decl_check_ = true;
   local_only_ = true;
   expand_insts_ = false;
   expand_gens_ = false;
@@ -191,7 +191,7 @@ Program::elab_iterator Program::elab_end() const {
 void Program::elaborate(Node* n) {
   TypeCheck tc(this, &log_);
   tc.deactivate(checker_off_);
-  tc.warn_unresolved(warn_unresolved_);
+  tc.declaration_check(decl_check_);
   tc.local_only(local_only_);
 
   inst_queue_.clear();
@@ -255,7 +255,7 @@ void Program::elaborate(Node* n) {
 }
 
 void Program::elaborate_item(ModuleItem* mi) {
-  warn_unresolved_ = false;
+  decl_check_ = false;
   local_only_ = false;
   expand_insts_ = true;
   expand_gens_ = true;

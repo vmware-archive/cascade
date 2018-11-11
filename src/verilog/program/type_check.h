@@ -48,7 +48,7 @@ class TypeCheck : public Visitor {
 
     // Configuration Interface:
     void deactivate(bool val);
-    void warn_unresolved(bool val);
+    void declaration_check(bool val);
     void local_only(bool val);
 
     // Pre-elaboration Checking Interface:
@@ -67,11 +67,12 @@ class TypeCheck : public Visitor {
 
     // Configuration Flags:
     bool deactivated_;
-    bool warn_unresolved_;
+    bool decl_check_;
     bool local_only_;
 
     // Location Tracking:
     const Node* outermost_loop_;
+    bool net_lval_;
 
     // Error Tracking:
     bool exists_bad_id_;

@@ -51,10 +51,12 @@ TypeCheck::TypeCheck(const Program* program, Log* log) : Visitor() {
   log_ = log;
 
   deactivate(false);
-  warn_unresolved(true);
+  declaration_check(true);
   local_only(true);
 
   outermost_loop_ = nullptr;
+  net_lval_ = false;
+
   exists_bad_id_ = false;
 }
 
@@ -62,8 +64,8 @@ void TypeCheck::deactivate(bool val) {
   deactivated_ = val;
 }
 
-void TypeCheck::warn_unresolved(bool val) {
-  warn_unresolved_ = val;
+void TypeCheck::declaration_check(bool val) {
+  decl_check_ = val;
 }
 
 void TypeCheck::local_only(bool val) {
@@ -90,10 +92,6 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   }
 
   // CHECK: Array properties
-  // TODO: Remove this error when support for instance arrays is complete
-  if (!mi->get_range()->null()) {
-    return error("Cascade does not currently support the use of instance arrays", mi);
-  }
   check_width(mi->get_range());
 
   // CHECK: Duplicate definition for instantiations other than the root
@@ -102,7 +100,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       multiple_def(mi->get_iid(), v->get_parent());
     }
     if (Navigate(mi).find_child(mi->get_iid()->get_ids()->back())) {
-      error("A nested scope scope with this name already exists in this scope", mi);
+      error("A nested scope with this name already exists in this scope", mi);
     }
   }
   // CHECK: TODO Recursive instantiation
@@ -110,10 +108,10 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   // CHECK: Undefined type
   const auto itr = program_->decl_find(mi->get_mid());
   if (itr == program_->decl_end()) {
-    if (warn_unresolved_) {
-      warn("Instantiation refers to unknown type and may fail during elaboration", mi);
+    if (decl_check_) {
+      warn("Instantiation refers to an undeclared module. This may result in an error during elaboration", mi);
     } else {
-      error("Instantiation refers to unknown type", mi);
+      error("Instantiation refers to an undeclared module", mi);
     }
     // EXIT: Can't continue checking without access to source
     return;
@@ -122,7 +120,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
 
   // CHECK: More overrides than declared parameters
   if (mi->get_params()->size() > ModuleInfo(src).ordered_params().size()) {
-    error("Instantiation uses too many parameter overrides", mi);
+    error("Instantiation contains more parameter overrides than appear in module declaration", mi);
   }
   // CHECK: Duplicate or unrecognized parameters
   if (mi->uses_named_params()) {
@@ -130,17 +128,17 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     unordered_set<const Identifier*, HashId, EqId> params;
     for (auto p : *mi->get_params()) {
       if (!params.insert(p->get_exp()->get()).second) {
-        error("Instantiation uses duplicate named params", mi);
+        error("Instantiation contains duplicate named params", mi);
       }
       if (np.find(p->get_exp()->get()) == np.end()) {
-        error("Reference to unresolved parameter", mi);
+        error("Instantiation contains a reference to unresolvable parameter", mi);
       }
     }
   }
 
   // CHECK: More connections than declared ports
   if (mi->get_ports()->size() > ModuleInfo(src).ordered_ports().size()) {
-    error("Instantiation uses too many connections", mi);
+    error("Instantiation contains more connections than appear in module declaration", mi);
   }
   // CHECK: Duplicate or unrecognized port connections 
   // CHECK: expressions connected to outputs
@@ -150,11 +148,11 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     unordered_set<const Identifier*, HashId, EqId> ports;
     for (auto p : *mi->get_ports()) {
       if (!ports.insert(p->get_exp()->get()).second) {
-        error("Instantiation uses duplicate named connections", mi);
+        error("Instantiation contains duplicate named connections", mi);
       }
       const auto itr = np.find(p->get_exp()->get());
       if (itr == np.end()) {
-        error("Reference to unresolved explicit port", mi);
+        error("Instantiation contains a reference to an unresolvable explicit port", mi);
         continue;
       }
       if (p->get_imp()->null()) {
@@ -162,7 +160,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       }
       if (ModuleInfo(src).is_output(*itr)) {
         if (dynamic_cast<const Identifier*>(p->get_imp()->get()) == nullptr) {
-          error("Cannot connect expression to named output port", mi);
+          error("Instantiation contains a connection between an expression and a named output port", mi);
         }
       }
       check_arity(mi, *itr, p->get_imp()->get());
@@ -177,7 +175,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       }
       if (ModuleInfo(src).is_output(op[i])) {
         if (dynamic_cast<const Identifier*>(p->get_imp()->get()) == nullptr) {
-          error("Cannot connect expression to ordered output port", mi);
+          error("Instantiation contains a connection between an expression and an ordered output port", mi);
         }
       }
       check_arity(mi, op[i], p->get_imp()->get());
@@ -191,7 +189,7 @@ void TypeCheck::pre_elaboration_check(const CaseGenerateConstruct* cgc) {
   }
   // CHECK: Constant guard expression 
   if (!Constant().is_constant(cgc->get_cond())) {
-    error("Case generate construct requires constant expression as guard", cgc->get_cond());
+    error("Non-constant expression appears in the guard for a case generate construct", cgc->get_cond());
   }
   // RECURSE: condition
   cgc->get_cond()->accept(this);
@@ -204,7 +202,7 @@ void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
   // CHECK: Constant guard expression 
   for (auto c : *igc->get_clauses()) {
     if (!Constant().is_constant(c->get_if())) {
-      error("If generate construct requires constant expression as guard", c->get_if());
+      error("Non-constant expression appears in the guard for an if generate construct", c->get_if());
     }
     // RECURSE: condition
     c->get_if()->accept(this);
@@ -225,13 +223,13 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
 
     // CHECK: Const loop guard
     if (!Constant().is_constant_genvar(lgc->get_cond())) {
-      error("Loop generate construct requires constant expression as guard", lgc->get_cond());
+      error("Non-constant expression appears in the guard for a loop generate construct", lgc->get_cond());
     }
     // CHECK: Initialization and update refer to same variable
     const auto r1 = Resolve().get_resolution(lgc->get_init()->get_lhs());
     const auto r2 = Resolve().get_resolution(lgc->get_update()->get_lhs());
     if (r1 != r2) {
-      error("Initialization and update refer to different variables", lgc->get_update()->get_lhs());
+      error("Initialization and update statements refer to different variables in loop generate construct", lgc->get_update()->get_lhs());
     }
   }
 
@@ -288,11 +286,18 @@ void TypeCheck::multiple_def(const Node* n, const Node* m) {
 }
 
 void TypeCheck::visit(const Identifier* id) {
+  // CHECK: Are instance selects constant expressions?
+  for (auto i : *id->get_ids()) {
+    if (!i->get_isel()->null() && !Constant().is_constant(i->get_isel()->get())) {
+      error("Found non-constant expression in instance select", id);
+    }
+  }
+
   // RECURSE: ids and dim
   auto backup = exists_bad_id_;
   id->get_ids()->accept(this);
   id->get_dim()->accept(this);
-  // EXIT: Resolution will fail if there's an unresolved id below here
+  // EXIT: Resolution will fail if there's a bad id below here
   if (exists_bad_id_) {
     exists_bad_id_ = backup;
     return;
@@ -302,16 +307,16 @@ void TypeCheck::visit(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   if (r == nullptr) {
     exists_bad_id_ = true;
-    if (warn_unresolved_) {
-      warn("Reference to unresolved identifier", id);
+    if (decl_check_) {
+      warn("Found reference to unresolvable identifier. This may result in an error during instantiation.", id);
     } else {
-      error("Reference to unresolved identifier", id);
+      error("Found reference to an unresolvable identifier", id);
     }
   }
   // CHECK: Is this a reference to a genvar outside of a loop generate construct?
   if (outermost_loop_ == nullptr) {
     if ((r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
-      error("Illegal reference to genvar outside of a loop generate construct", id);
+      error("Found reference to a genvar outside of a loop generate construct", id);
     }
   }
   // EXIT: Can't continue checking if id can't be resolved
@@ -328,7 +333,7 @@ void TypeCheck::visit(const Identifier* id) {
 
   // CHECK: Are we providing a bit-select for a single-bit value?
   if (Evaluate().get_width(r) == 1) {
-    return error("Bit-select provided for scalar value", id);
+    return error("Found bit- or part-select in dereference of variable which was declared scalar", id);
   }
 
   // CHECK: Range expression bit-selects
@@ -336,24 +341,32 @@ void TypeCheck::visit(const Identifier* id) {
     if (re->get_type() == RangeExpression::CONSTANT) {
       // CHECK: Non-constant values, values out of range, little-endian ranges
       // EXIT: We can't continue checking if we can't evaluate this range
-      if (!Constant().is_constant_genvar(re)) {
-        return error("Non-constant values provided in bit-select", id);
+      if (!Constant().is_constant(re)) {
+        return error("Found non-constant value in constant part-select", id);
       }
       const auto rng = Evaluate().get_range(re);
       if (rng.first < rng.second) {
-        error("No support for little-endian bit-selects", id);
+        return error("Cascade does not currently support big-endian part-selects", id);
       } 
     } else {
-      if (!Constant().is_constant_genvar(re->get_lower())) {
-        error("Non-constant width provided in part-select", id);
+      if (!Constant().is_constant(re->get_lower())) {
+        return error("Found non-constant width in indexed part-select", id);
       }
     }
   }
-  // WARN: Selects out of range
-  if (Constant().is_constant_genvar(*cdr)) {
+  if (!Constant().is_constant(*cdr)) {
+    // ERROR: Is this a non-constant in a net_lval?
+    if (net_lval_) {
+      error("Found non-constant bit- or part-select in target of continuous assignment", *cdr);
+    }
+  }
+  else {
+    // WARN: Can we say for sure that selects are out of range
     const auto rng = Evaluate().get_range(*cdr);
     if ((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) {
-      warn("Bit-select out of range of declared width", id);
+      if (!decl_check_) {
+        warn("Found bit- or part-select which is out of range of declared width for this variable", id);
+      }
     }
   } 
 }
@@ -386,14 +399,14 @@ void TypeCheck::visit(const ModuleDeclaration* md) {
   // CHECK: implicit or explict ports that are not simple ids
   for (auto p : *md->get_ports()) {
     if (!p->get_exp()->null()) {
-      error("No support for explicit ports in module declarations", p);
+      error("Cascade does not currently support the use of explicit ports in module declarations", p);
     }
     if (p->get_imp()->null()) {
-      error("Missing implicit port", md);
+      error("Found a missing implicit port in module declaration", md);
     }
     auto imp = dynamic_cast<const Identifier*>(p->get_imp()->get());
     if (imp == nullptr) {
-      error("No support for implicit ports which are not identifiers", p);
+      error("Cascade does not currently support the use of implicit ports which are not identifiers", p);
     } else {
       // RECURSE: implicit port
       imp->accept(this);
@@ -438,7 +451,10 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
   ca->get_ctrl()->accept(this);
-  ca->get_assign()->accept(this);
+  net_lval_ = true;
+  ca->get_assign()->get_lhs()->accept(this);
+  net_lval_ = false;
+  ca->get_assign()->get_rhs()->accept(this);
 
   const auto r = Resolve().get_resolution(ca->get_assign()->get_lhs());
   if ((r != nullptr) && (dynamic_cast<const NetDeclaration*>(r->get_parent()) == nullptr)) {
@@ -488,6 +504,10 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   }
   // CHECK: Width properties
   check_width(ld->get_dim());
+  // CHECK: Parameter initialized to constant value
+  if (!Constant().is_constant(ld->get_val())) {
+    error("Localparam initialization requires constant value", ld);
+  }
 }
 
 void TypeCheck::visit(const NetDeclaration* nd) {
@@ -520,6 +540,10 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   }
   // CHECK: Width properties
   check_width(pd->get_dim());
+  // CHECK: Parameter initialized to constant value
+  if (!Constant().is_constant(pd->get_val())) {
+    error("Parameter initialization requires constant value", pd);
+  }
 }
 
 void TypeCheck::visit(const RegDeclaration* rd) {
@@ -573,7 +597,7 @@ void TypeCheck::visit(const BlockingAssign* ba) {
   if ((r != nullptr) && 
       (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
       (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
-    error("Blocking assignments are only permitted for variables with type reg or integer", ba);
+    error("Found a blocking assignments to a variable with type other than reg or integer", ba);
   }
 }
 
@@ -585,7 +609,7 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   if ((r != nullptr) && 
       (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
       (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
-    error("Non-blocking assignments are only permitted for variables with type reg or integer", na);
+    error("Found a non-blocking assignments to a variable with type other than reg or integer", na);
   }
 }
 
@@ -621,7 +645,7 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
   // RECURSE: First check the contents of this expression
   const auto backup = exists_bad_id_;
   re->accept(this);
-  // EXIT: Evaluation will fail if there's an unresolved id below here
+  // EXIT: Evaluation will fail if there's a bad id below here
   if (exists_bad_id_) {
     exists_bad_id_ = backup;
     return;
@@ -629,23 +653,23 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
 
   const auto rng = Evaluate().get_range(re->get());
   if (rng.first <= rng.second) {
-    error("No support for declarations where msb is not strictly greater than lsb", re);
+    error("Cascade does not currently support little-endian vector declarations", re);
   }
   if (rng.second != 0) {
-    error("No support for declarations where lsb is not equal to zero", re);
+    error("Cascade does not currently support vector declarations with lower bounds not equal to zero", re);
   }
 }
 
 void TypeCheck::check_array(const Many<Expression>* es) {
   for (auto e : *es) {
     // CHECK: Array bounds must be constants
-    if (!Constant().is_constant_genvar(e)) {
-      return error("Illegal non-constant expression in array declaration", es->get_parent()->get_parent());
+    if (!Constant().is_constant(e)) {
+      return error("Found a non-constant expression in an array declaration", es->get_parent()->get_parent());
     }
     // RECURSE: Check the contents of this array bound
     const auto backup = exists_bad_id_;
     e->accept(this);
-    // EXIT: Evaluation will fail if there's an unresolved id below here
+    // EXIT: Evaluation will fail if there's a bad id below here
     if (exists_bad_id_) {
       exists_bad_id_ = backup;
       return;
@@ -653,10 +677,10 @@ void TypeCheck::check_array(const Many<Expression>* es) {
    
     const auto rng = Evaluate().get_range(e);
     if (rng.first <= rng.second) {
-      return error("Upper end of array declaration range must be greater than lower end", es->get_parent()->get_parent());
+      return error("Cascade does not currently support little-endian array declarations", es->get_parent()->get_parent());
     } 
     if (rng.second != 0) {
-      return error("No support for array declarations where lower end of range is not equal to zero", es->get_parent()->get_parent());
+      return error("Cascade does not currently support array declarations with lower bounds not equal to zero", es->get_parent()->get_parent());
     }
   }
 }
@@ -666,7 +690,7 @@ Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, con
 
   // We need to have at least as many subscripts on i as r is declared with
   if (diff < 0) {
-    error("Not enough subscripts provided on array dereference", i);
+    error("Found an array dereference with more subscripts than appear in the declaration for this variable", i);
     return i->get_dim()->end();
   }
   // If we have the same number, the last subscript on i can't be a range
@@ -675,13 +699,13 @@ Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, con
     if (i->get_dim()->empty()) {
       return i->get_dim()->end();
     } else if (dynamic_cast<const RangeExpression*>(i->get_dim()->back())) {
-      error("Illegal range expression found where scalar subscript was expected", i);
+      error("Found a range expression found where a scalar subscript was expected", i);
       return i->get_dim()->end();
     }
   }
   // And if i has more than one too many, that's an error as well
   else if (diff > 1) {
-    error("Dereference arity does not match delared arity", i);
+    error("Found an array dereference with more subscripts than appear in the declaration for this variable", i);
     return i->get_dim()->end();
   } 
   
@@ -689,16 +713,16 @@ Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, con
   auto iitr = i->get_dim()->begin();
   auto ritr = r->get_dim()->begin();
   for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
-    // If this is a net declaration, we have to check that subscripts are
-    // constant values which are within range of the declared bounds.
-    if (dynamic_cast<NetDeclaration*>(r->get_parent())) {
-      if (!Constant().is_constant_genvar(*iitr)) {
-        error("Non-constant array subscripts in net dereference", i);
-        return i->get_dim()->end();
-      }
-      if (Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) {
-        error("Array subscript out of bounds in net dereference", i);
-        return i->get_dim()->end();
+    if (!Constant().is_constant(*iitr)) {
+      // ERROR: Is this a non-constant subscript in a net-lval?
+      if (net_lval_) {
+        error("Found non-constant array subscript in target of continuous assignment", *iitr);
+      } 
+    }
+    else if (Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) {
+      // WARN: Can we say for sure that this value is out of range?
+      if (!decl_check_) {
+        warn("Array subscript is out of range of declared dimension for this variable", *iitr);
       }
     }
   }    
@@ -710,6 +734,9 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
   if (mi->get_range()->null()) {
     return;
   }
+
+  // TODO: REMOVE THIS CHECK TO ACTIVATE SUPPORT FOR INSTANTIATION ARRAYS
+  return error("Cascade does not currently provide support for instantiation arrays", mi);
 
   // Ports and arguments with matching widths are okay
   const auto pw = Evaluate().get_width(port);
@@ -724,7 +751,7 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
   }
 
   // Anything else is an error
-  error("Arity mismatch between array instantiation and argument", mi);
+  error("Found an arity mismatch between module array instantiation and the declared width of one of its ports", mi);
 }
 
 } // namespace cascade
