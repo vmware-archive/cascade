@@ -88,7 +88,8 @@ OBJ=\
 	src/verilog/program/type_check.o\
 	\
 	src/verilog/transform/constant_prop.o\
-	src/verilog/transform/de_alias.o
+	src/verilog/transform/de_alias.o\
+	src/verilog/transform/dead_code_eliminate.o
 
 ### Test binaries
 TEST_OBJ=\

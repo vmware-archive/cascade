@@ -28,72 +28,46 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_NODE_H
-#define CASCADE_SRC_VERILOG_AST_NODE_H
+#ifndef CASCADE_SRC_VERILOG_TRANSFORM_DEAD_CODE_ELIMINATE_H
+#define CASCADE_SRC_VERILOG_TRANSFORM_DEAD_CODE_ELIMINATE_H
 
-#include <string>
-#include <vector>
-#include "src/base/token/tokenize.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/visitors/builder.h"
+#include <unordered_set>
 #include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/rewriter.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
-class Node {
+class DeadCodeEliminate : public Editor {
   public:
-    // Constructors:
-    Node();
-    virtual ~Node() = default;
+    DeadCodeEliminate();
+    ~DeadCodeEliminate() override = default;
 
-    // Node Interface:
-    virtual Node* clone() const = 0;
-    virtual void accept(Visitor* v) const = 0;
-    virtual void accept(Editor* e) = 0;
-    virtual Node* accept(Builder* b) const = 0;
-    virtual Node* accept(Rewriter* r) = 0;
-
-    // Get/Set:
-    GET(parent);
-    LEAF_GET_SET(line)
-
-    // Additional Get/Set:
-    void set_source(const std::string& source);
-    const std::string& get_source() const;
+    void run(ModuleDeclaration* md);
 
   private:
-    friend class Monitor;
-    DECORATION(std::vector<const Node*>, monitor);
-    friend class SwLogic;
-    DECORATION(size_t, ctrl);
-    DECORATION(bool, active);
+    struct Index : public Visitor {
+      Index(DeadCodeEliminate* dce);
+      ~Index() override = default;
 
-    friend class Elaborate;
-    friend class Inline;
-    HIERARCHY_VISIBILITY;
-    DECORATION(Node*, parent);
+      void visit(const Attributes* a) override;
+      void visit(const Identifier* i) override;
+      void visit(const IntegerDeclaration* id) override;
+      void visit(const LocalparamDeclaration* ld) override;
+      void visit(const NetDeclaration* nd) override;
+      void visit(const ParameterDeclaration* pd) override;
+      void visit(const RegDeclaration* rd) override;
 
-    DECORATION(Tokenize::Token, source);
-    DECORATION(size_t, line);
+      DeadCodeEliminate* dce_;
+    };
+
+    void edit(ModuleDeclaration* md) override;
+    void edit(ParBlock* pb) override;
+    void edit(SeqBlock* sb) override;
+
+    std::unordered_set<const Identifier*> use_;
 };
-
-inline Node::Node() {
-  ctrl_ = 0;
-  active_ = false;
-  set_source("<unknown location --- please submit bug report>");
-  line_ = 0;
-}
-
-inline void Node::set_source(const std::string& source) {
-  source_ = Tokenize().map(source);
-}
-
-inline const std::string& Node::get_source() const {
-  return Tokenize().unmap(source_);
-}
 
 } // namespace cascade
 
 #endif
+
