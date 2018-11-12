@@ -86,7 +86,7 @@ class SwLogic : public Logic, public Visitor {
     void notify(const Node* n);
 
     // Control State:
-    size_t& get_state(const Node* n);
+    uint8_t& get_state(const Statement* s);
 
     // Visitor Interface:
     void visit(const Event* e) override;

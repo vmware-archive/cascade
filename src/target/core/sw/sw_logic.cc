@@ -233,8 +233,8 @@ void SwLogic::notify(const Node* n) {
   }
 }
 
-size_t& SwLogic::get_state(const Node* n) {
-  return const_cast<Node*>(n)->ctrl_;
+uint8_t& SwLogic::get_state(const Statement* s) {
+  return const_cast<Statement*>(s)->ctrl_;
 }
 
 void SwLogic::visit(const Event* e) {

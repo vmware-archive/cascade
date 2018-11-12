@@ -63,24 +63,22 @@ class Node {
     const std::string& get_source() const;
 
   private:
-    friend class SwLogic;
-    DECORATION(size_t, ctrl);
-    DECORATION(bool, active);
+    Tokenize::Token source_;
+    size_t line_;
 
     friend class Elaborate;
     friend class Inline;
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
 
-    DECORATION(Tokenize::Token, source);
-    DECORATION(size_t, line);
+    friend class SwLogic;
+    DECORATION(bool, active);
 };
 
 inline Node::Node() {
-  ctrl_ = 0;
-  active_ = false;
   set_source("<unknown location --- please submit bug report>");
   line_ = 0;
+  active_ = false;
 }
 
 inline void Node::set_source(const std::string& source) {
