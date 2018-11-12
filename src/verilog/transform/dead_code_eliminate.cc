@@ -86,9 +86,11 @@ void DeadCodeEliminate::Index::visit(const RegDeclaration* rd) {
 }
 
 void DeadCodeEliminate::edit(ModuleDeclaration* md) {
-  for (auto i = md->get_items()->begin(), ie = md->get_items()->end(); i != ie;) {
+  for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
     if (auto d = dynamic_cast<Declaration*>(*i)) {
-      if (use_.find(d->get_id()) == use_.end()) {
+      const auto is_port = dynamic_cast<PortDeclaration*>(d->get_parent());
+      const auto is_dead = use_.find(d->get_id()) == use_.end();
+      if (!is_port && is_dead) {
         i = md->get_items()->purge(i);
         continue;
       }
@@ -98,8 +100,9 @@ void DeadCodeEliminate::edit(ModuleDeclaration* md) {
 }
 
 void DeadCodeEliminate::edit(ParBlock* pb) {
-  for (auto i = pb->get_decls()->begin(), ie = pb->get_decls()->end(); i != ie; ) {
-    if (use_.find((*i)->get_id()) == use_.end()) {
+  for (auto i = pb->get_decls()->begin(); i != pb->get_decls()->end(); ) {
+    const auto is_dead = use_.find((*i)->get_id()) == use_.end();
+    if (is_dead) {
       i = pb->get_decls()->purge(i);
     } else {
       ++i;
@@ -108,8 +111,9 @@ void DeadCodeEliminate::edit(ParBlock* pb) {
 }
 
 void DeadCodeEliminate::edit(SeqBlock* sb) {
-  for (auto i = sb->get_decls()->begin(), ie = sb->get_decls()->end(); i != ie; ) {
-    if (use_.find((*i)->get_id()) == use_.end()) {
+  for (auto i = sb->get_decls()->begin(); i != sb->get_decls()->end(); ) {
+    const auto is_dead = use_.find((*i)->get_id()) == use_.end();
+    if (is_dead) {
       i = sb->get_decls()->purge(i);
     } else {
       ++i;

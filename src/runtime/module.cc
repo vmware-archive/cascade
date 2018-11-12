@@ -45,6 +45,7 @@
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
 #include "src/verilog/transform/de_alias.h"
+#include "src/verilog/transform/dead_code_eliminate.h"
 
 using namespace std;
 
@@ -199,10 +200,15 @@ Module::iterator Module::end() {
 ModuleDeclaration* Module::regenerate_ir_source() {
   const auto size = psrc_->get_items()->size();
   const auto ignore = parent_ == nullptr ? size - newest_evals_ : 0;
-
   auto md = isolate_->isolate(psrc_, ignore);
-  DeAlias().run(md);
-  ConstantProp().run(md);
+
+  const auto std = md->get_attrs()->get<String>("__std");
+  const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
+  if (is_logic) {
+    DeAlias().run(md);
+    ConstantProp().run(md);
+    DeadCodeEliminate().run(md);
+  }
 
   return md;
 }
