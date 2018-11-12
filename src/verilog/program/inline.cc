@@ -82,10 +82,15 @@ Identifier* Inline::Qualify::qualify_id(const Identifier* id) {
 Expression* Inline::Qualify::build(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  return new Identifier(
-    Resolve().get_full_id(r)->get_ids(),
+
+  const auto fid = Resolve().get_full_id(r);
+  auto res =  new Identifier(
+    fid->get_ids()->clone(),
     id->get_dim()->accept(this)
   );
+  delete fid;
+
+  return res;
 }
 
 void Inline::edit(CaseGenerateConstruct* cgc) {
