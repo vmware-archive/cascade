@@ -32,7 +32,6 @@
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
 #include <string>
-#include <vector>
 #include "src/base/token/tokenize.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/visitors/builder.h"
@@ -64,8 +63,6 @@ class Node {
     const std::string& get_source() const;
 
   private:
-    friend class Monitor;
-    DECORATION(std::vector<const Node*>, monitor);
     friend class SwLogic;
     DECORATION(size_t, ctrl);
     DECORATION(bool, active);

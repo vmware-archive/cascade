@@ -68,6 +68,10 @@ class Identifier : public Primary {
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
     DECORATION(std::vector<Expression*>, dependents);
+
+    friend class Monitor;
+    friend class SwLogic;
+    DECORATION(std::vector<const Node*>, monitor);
 };
 
 inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, new Maybe<Expression>()), new Many<Expression>()) { }

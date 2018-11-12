@@ -216,8 +216,20 @@ void SwLogic::schedule_active(const Node* n) {
 }
 
 void SwLogic::notify(const Node* n) {
-  for (auto m : n->monitor_) {
-    schedule_active(m);
+  if (auto id = dynamic_cast<const Identifier*>(n)) {
+    for (auto m : id->monitor_) {
+      schedule_active(m);
+    }
+    return;
+  } 
+
+  const auto p = n->get_parent();
+  if (dynamic_cast<const Combinator*>(p)) {
+    schedule_active(p->get_parent());
+  } else if (dynamic_cast<const CaseItem*>(p)) {
+    schedule_active(p->get_parent()->get_parent());
+  } else if (dynamic_cast<const InitialConstruct*>(p) == nullptr) {
+    schedule_active(p); 
   }
 }
 
