@@ -74,11 +74,17 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
   return r;
 }
 
-const Identifier* Resolve::get_full_id(const Identifier* id) {
-  if (id->full_id_ == nullptr) {
-    const_cast<Identifier*>(id)->full_id_ = full_id_impl(id);
+Identifier* Resolve::get_full_id(const Identifier* id) {
+  Navigate nav(id);
+  auto fid = new Identifier(
+    new Many<Id>(id->get_ids()->back()->clone()),
+    id->get_dim()->clone()
+  );
+  while (!nav.lost() && nav.name() != nullptr) {
+    fid->get_ids()->push_front(nav.name()->get_ids()->front()->clone());
+    nav.up();
   }
-  return id->full_id_;
+  return fid;
 }
 
 const ModuleDeclaration* Resolve::get_parent(const Identifier* id) {
@@ -136,19 +142,6 @@ const Identifier* Resolve::resolution_impl(const Identifier* id) {
   }
   // Hard Case (3/3): It's either here or it isn't
   return nav.find_name(id->get_ids()->back());
-}
-
-const Identifier* Resolve::full_id_impl(const Identifier* id) {
-  Navigate nav(id);
-  auto fid = new Identifier(
-    new Many<Id>(id->get_ids()->back()->clone()),
-    id->get_dim()->clone()
-  );
-  while (!nav.lost() && nav.name() != nullptr) {
-    fid->get_ids()->push_front(nav.name()->get_ids()->front()->clone());
-    nav.up();
-  }
-  return fid;
 }
 
 void Resolve::edit(BinaryExpression* be) {

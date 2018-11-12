@@ -67,7 +67,6 @@ class Identifier : public Primary {
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
-    DECORATION(const Identifier*, full_id);
     DECORATION(std::vector<Expression*>, dependents);
 };
 
@@ -80,15 +79,11 @@ inline Identifier::Identifier(Many<Id>* ids__, Many<Expression>* dim__) : Primar
   TREE_SETUP(ids);
   TREE_SETUP(dim);
   resolution_ = nullptr;
-  full_id_ = nullptr;
 }
 
 inline Identifier::~Identifier() {
   TREE_TEARDOWN(ids);
   TREE_TEARDOWN(dim);
-  if (full_id_ != nullptr) {
-    delete full_id_;
-  }
 }
 
 inline bool Identifier::eq(const std::string& rhs) const {

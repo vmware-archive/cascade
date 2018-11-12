@@ -42,8 +42,8 @@ namespace cascade {
 class Program : public Editor {
   public:
     // Iterators:
-    typedef typename ManagedUndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId>::const_iterator decl_iterator;
-    typedef typename UndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId>::const_iterator elab_iterator;
+    typedef typename ManagedUndoMap<const Identifier*, false, ModuleDeclaration*, true, HashId, EqId>::const_iterator decl_iterator;
+    typedef typename ManagedUndoMap<const Identifier*, true, ModuleDeclaration*, false, HashId, EqId>::const_iterator elab_iterator;
 
     // Constructors:
     Program();
@@ -94,8 +94,8 @@ class Program : public Editor {
   private:
     // Source:
     ModuleInstantiation* root_inst_;
-    ManagedUndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId> decls_;
-    UndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId> elabs_;
+    ManagedUndoMap<const Identifier*, false, ModuleDeclaration*, true, HashId, EqId> decls_;
+    ManagedUndoMap<const Identifier*, true, ModuleDeclaration*, false, HashId, EqId> elabs_;
 
     // Root Iterators:
     decl_iterator root_ditr_;

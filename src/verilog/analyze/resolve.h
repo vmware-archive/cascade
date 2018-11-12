@@ -65,8 +65,9 @@ class Resolve : public Editor {
     // on failure.
     const Identifier* get_resolution(const Identifier* id);
     // Returns the fully-qualified name of this variable. For example, eg
-    // get_full_id(x) might return root.f[0].x.
-    const Identifier* get_full_id(const Identifier* id);
+    // get_full_id(x) might return root.f[0].x. The caller of this method
+    // takes responsibility for the resulting memory.
+    Identifier* get_full_id(const Identifier* id);
     // Returns a pointer to the ModuleDeclaration that this identifier appears
     // in. Returns nullptr on failure. For example, for variables that are not
     // part of the AST.
@@ -85,7 +86,6 @@ class Resolve : public Editor {
   private:
     // Resolution Helpers:
     const Identifier* resolution_impl(const Identifier* id);
-    const Identifier* full_id_impl(const Identifier* id);
 
     // Editor Interface:
     void edit(BinaryExpression* be) override;

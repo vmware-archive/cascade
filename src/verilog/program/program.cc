@@ -329,7 +329,9 @@ void Program::inline_all(ModuleDeclaration* md) {
     return;
   }
   for (auto& c : ModuleInfo(md).children()) {
-    auto itr = elabs_.find(Resolve().get_full_id(c.first));
+    const auto fid = Resolve().get_full_id(c.first);
+    auto itr = elabs_.find(fid);
+    delete fid;
     assert(itr != elabs_.end());
     inline_all(itr->second);
   }
@@ -343,7 +345,9 @@ void Program::outline_all(ModuleDeclaration* md) {
   }
   Inline().outline_source(md);
   for (auto& c : ModuleInfo(md).children()) {
-    auto itr = elabs_.find(Resolve().get_full_id(c.first));
+    const auto fid = Resolve().get_full_id(c.first);
+    auto itr = elabs_.find(fid);
+    delete fid;
     assert(itr != elabs_.end());
     outline_all(itr->second);
   }

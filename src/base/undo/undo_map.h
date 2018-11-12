@@ -80,7 +80,7 @@ class UndoMap : public BaseUndoMap<K,V,H,E> {
     void undo() override;
 };
 
-template <typename K, typename V, typename H = std::hash<K>, typename E = std::equal_to<K>>
+template <typename K, bool MK, typename V, bool MV, typename H = std::hash<K>, typename E = std::equal_to<K>>
 class ManagedUndoMap : public BaseUndoMap<K,V,H,E> {
   public:
     // Constructors:
@@ -153,24 +153,34 @@ inline void UndoMap<K,V,H,E>::undo() {
   this->deltas_.clear();
 }
 
-template <typename K, typename V, typename H, typename E>
-inline ManagedUndoMap<K,V,H,E>::ManagedUndoMap(size_t bs, const H& h, const E& e) : BaseUndoMap<K,V,H,E>(bs,h,e) {
+template <typename K, bool MK, typename V, bool MV, typename H, typename E>
+inline ManagedUndoMap<K,MK,V,MV,H,E>::ManagedUndoMap(size_t bs, const H& h, const E& e) : BaseUndoMap<K,V,H,E>(bs,h,e) {
   // Does nothing.
 }
 
-template <typename K, typename V, typename H, typename E>
-inline ManagedUndoMap<K,V,H,E>::~ManagedUndoMap() {
+template <typename K, bool MK, typename V, bool MV, typename H, typename E>
+inline ManagedUndoMap<K,MK,V,MV,H,E>::~ManagedUndoMap() {
   for (auto m : this->map_) {
-    delete m.second;
+    if (MK) {
+      delete m.first;
+    }
+    if (MV) {
+      delete m.second;
+    }
   }
 }
 
-template <typename K, typename V, typename H, typename E>
-inline void ManagedUndoMap<K,V,H,E>::undo() {
+template <typename K, bool MK, typename V, bool MV, typename H, typename E>
+inline void ManagedUndoMap<K,MK,V,MV,H,E>::undo() {
   for (auto d : this->deltas_) {
     const auto itr = this->map_.find(d);
     assert(itr != this->map_.end());
-    delete itr->second;
+    if (MK) {
+      delete itr->first;
+    }
+    if (MV) {
+      delete itr->second;
+    }
     this->map_.erase(itr);
   }
   this->deltas_.clear();

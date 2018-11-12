@@ -139,7 +139,7 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
-    new Maybe<Expression>(Resolve().get_full_id(ld->get_id())->clone())
+    new Maybe<Expression>(Resolve().get_full_id(ld->get_id()))
   ));
   return res;
 }
@@ -157,7 +157,7 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
-    new Maybe<Expression>(Resolve().get_full_id(pd->get_id())->clone())
+    new Maybe<Expression>(Resolve().get_full_id(pd->get_id()))
   ));
   return res;
 }
@@ -263,7 +263,7 @@ ModuleDeclaration* Isolate::get_shell() {
     );
     pd->get_attrs()->get_as()->push_back(new AttrSpec(
       new Identifier("__id"), 
-      new Maybe<Expression>(Resolve().get_full_id(p)->clone())
+      new Maybe<Expression>(Resolve().get_full_id(p))
     ));
     res->get_items()->push_back(pd);
   }

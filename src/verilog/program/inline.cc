@@ -83,7 +83,7 @@ Expression* Inline::Qualify::build(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);
   return new Identifier(
-    Resolve().get_full_id(r)->get_ids()->clone(),
+    Resolve().get_full_id(r)->get_ids(),
     id->get_dim()->accept(this)
   );
 }

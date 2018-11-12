@@ -252,7 +252,9 @@ void DebugPrinter<T>::debug_id(ModuleInfo& mi, const Identifier* id) {
   decl->accept(this);
 
   *this << "\n    ";
-  Resolve().get_full_id(id)->accept(this);
+  const auto fid = Resolve().get_full_id(id);
+  fid->accept(this);
+  delete fid;
   if (mi.is_stateful(id)) {
     *this << Color::GREY << " (stateful)" << Color::RESET;
   }
