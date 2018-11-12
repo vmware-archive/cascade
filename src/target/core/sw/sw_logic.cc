@@ -140,7 +140,7 @@ void SwLogic::resync() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->active_ = false;
+    const_cast<Node*>(e)->unset_flag<1>();
     schedule_now(e);
   }
   silent_ = false;
@@ -165,7 +165,7 @@ void SwLogic::evaluate() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->active_ = false;
+    const_cast<Node*>(e)->unset_flag<1>();
     schedule_now(e);
   }
   for (auto& o : writes_) {
@@ -191,7 +191,7 @@ void SwLogic::update() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->active_ = false;
+    const_cast<Node*>(e)->unset_flag<1>();
     schedule_now(e);
   }
 
@@ -209,9 +209,9 @@ void SwLogic::schedule_now(const Node* n) {
 }
 
 void SwLogic::schedule_active(const Node* n) {
-  if (!n->active_) {
+  if (!n->get_flag<1>()) {
     active_.push_back(n);
-    const_cast<Node*>(n)->active_ = true;
+    const_cast<Node*>(n)->set_flag<1>();
   }
 }
 
@@ -298,6 +298,7 @@ void SwLogic::visit(const NonblockingAssign* na) {
 
 void SwLogic::visit(const ParBlock* pb) {
   auto& state = get_state(pb);
+  assert(state < 255);
   switch (state) {
     case 0:
       state = pb->get_stmts()->size();
@@ -315,6 +316,7 @@ void SwLogic::visit(const ParBlock* pb) {
 
 void SwLogic::visit(const SeqBlock* sb) { 
   auto& state = get_state(sb);
+  assert(state < 255);
   if (state < sb->get_stmts()->size()) {
     auto item = sb->get_stmts()->get(state++);
     schedule_now(item);

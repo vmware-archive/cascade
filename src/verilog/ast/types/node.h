@@ -71,14 +71,23 @@ class Node {
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
 
+    friend class Evaluate;
     friend class SwLogic;
-    DECORATION(bool, active);
+    DECORATION(uint8_t, flags);
+
+    template <size_t idx>
+    void set_flag();
+    template <size_t idx>
+    void unset_flag();
+    template <size_t idx>
+    bool get_flag() const;
 };
 
 inline Node::Node() {
   set_source("<unknown location --- please submit bug report>");
-  line_ = 0;
-  active_ = false;
+  set_line(0);
+  set_flag<0>();
+  unset_flag<1>();
 }
 
 inline void Node::set_source(const std::string& source) {
@@ -87,6 +96,21 @@ inline void Node::set_source(const std::string& source) {
 
 inline const std::string& Node::get_source() const {
   return Tokenize().unmap(source_);
+}
+
+template <size_t idx>
+inline void Node::set_flag() {
+  flags_ |= ((uint8_t)1 << idx);
+}
+
+template <size_t idx>
+inline void Node::unset_flag() {
+  flags_ &= ~((uint8_t)1 << idx);
+}
+
+template <size_t idx>
+inline bool Node::get_flag() const {
+  return flags_ & ((uint8_t)1 << idx);
 }
 
 } // namespace cascade

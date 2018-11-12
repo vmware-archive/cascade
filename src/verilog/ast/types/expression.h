@@ -41,7 +41,6 @@ namespace cascade {
 class Expression : public Node {
   public:
     // Constructors:
-    Expression();
     ~Expression() override = default;
 
     // Node Interface:
@@ -52,22 +51,12 @@ class Expression : public Node {
     Expression* accept(Rewriter* r) override = 0;
 
   protected:
-    // Decorations used by Evaluate
     friend class Evaluate;
-    // A vector of bitstring values, a variable array being the most general
-    // instance of an expression
     DECORATION(std::vector<Bits>, bit_val);
-    // Does this expression need to be recomputed (generally because the value
-    // of one of its subexpressions has changed)?
-    DECORATION(bool, needs_update);
 
     friend class Resolve;
     DECORATION(std::vector<Identifier*>, dependencies);
 };
-
-inline Expression::Expression() : Node() {
-  needs_update_ = true;
-}
 
 } // namespace cascade 
 

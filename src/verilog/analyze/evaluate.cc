@@ -77,18 +77,18 @@ bool Evaluate::get_signed(const Expression* e) {
 
 const Bits& Evaluate::get_value(const Expression* e) {
   init(const_cast<Expression*>(e));
-  if (e->needs_update_) {
+  if (e->get_flag<0>()) {
     const_cast<Expression*>(e)->accept(this);
-    const_cast<Expression*>(e)->needs_update_ = false;
+    const_cast<Expression*>(e)->unset_flag<0>();
   }
   return e->bit_val_[0];
 }
 
 const vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
   init(const_cast<Identifier*>(i));
-  if (i->needs_update_) {
+  if (i->get_flag<0>()) {
     const_cast<Identifier*>(i)->accept(this);
-    const_cast<Identifier*>(i)->needs_update_ = false;
+    const_cast<Identifier*>(i)->unset_flag<0>();
   }
   return i->bit_val_;
 }
@@ -455,52 +455,52 @@ void Evaluate::init(Expression* e) {
 }
 
 void Evaluate::flag_changed(const Identifier* id) {
-  const_cast<Identifier*>(id)->needs_update_ = false;
+  const_cast<Identifier*>(id)->unset_flag<0>();
   for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
-    (*i)->needs_update_ = true;
+    (*i)->set_flag<0>();
   }
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {
   be->bit_val_.clear();
-  be->needs_update_ = true;
+  be->set_flag<0>();
   Editor::edit(be);
 }
 
 void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   ce->bit_val_.clear();
-  ce->needs_update_ = true;
+  ce->set_flag<0>();
   Editor::edit(ce);
 }
 
 void Evaluate::Invalidate::edit(NestedExpression* ne) {
   ne->bit_val_.clear();
-  ne->needs_update_ = true;
+  ne->set_flag<0>();
   Editor::edit(ne);
 }
 
 void Evaluate::Invalidate::edit(Concatenation* c) {
   c->bit_val_.clear();
-  c->needs_update_ = true;
+  c->set_flag<0>();
   Editor::edit(c);
 }
 
 void Evaluate::Invalidate::edit(Identifier* id) {
   id->bit_val_.clear();
-  id->needs_update_ = true;
+  id->set_flag<0>();
   // Don't descend into a different subtree
 }
 
 void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
   mc->bit_val_.clear();
-  mc->needs_update_ = true;
+  mc->set_flag<0>();
   // Don't descend into a different subtree
   mc->get_concat()->accept(this);
 }
 
 void Evaluate::Invalidate::edit(Number* n) {
   n->bit_val_.clear();
-  n->needs_update_ = true;
+  n->set_flag<0>();
 }
 
 void Evaluate::Invalidate::edit(String* s) {
@@ -511,7 +511,7 @@ void Evaluate::Invalidate::edit(String* s) {
 
 void Evaluate::Invalidate::edit(UnaryExpression* ue) {
   ue->bit_val_.clear();
-  ue->needs_update_ = true;
+  ue->set_flag<0>();
   Editor::edit(ue);
 }
 
