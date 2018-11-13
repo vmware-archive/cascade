@@ -30,10 +30,6 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
-
-#include "src/verilog/print/term/term_printer.h"
-
-
 using namespace std;
 
 namespace cascade {

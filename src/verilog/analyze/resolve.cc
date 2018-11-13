@@ -36,6 +36,8 @@
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 
+using namespace std;
+
 namespace cascade {
 
 Resolve::Resolve() : Editor() { }

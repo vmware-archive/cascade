@@ -34,7 +34,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
+#include "src/base/container/vector.h"
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/ast/types/arg_assign.h"
 #include "src/verilog/ast/types/attributes.h"
@@ -78,10 +78,10 @@ class ModuleDeclaration : public Node, public Scope {
     DECORATION(std::unordered_set<const Identifier*>, writes);
     typedef std::unordered_set<const Identifier*, HashId, EqId> ParamSet;
     DECORATION(ParamSet, named_params);
-    DECORATION(std::vector<const Identifier*>, ordered_params);
+    DECORATION(Vector<const Identifier*>, ordered_params);
     typedef std::unordered_set<const Identifier*, HashId, EqId> PortSet;
     DECORATION(PortSet, named_ports);
-    DECORATION(std::vector<const Identifier*>, ordered_ports);
+    DECORATION(Vector<const Identifier*>, ordered_ports);
     typedef std::unordered_map<const Identifier*, std::unordered_map<const Identifier*, const Expression*>> ConnMap;
     DECORATION(ConnMap, connections);
     typedef std::unordered_map<const Identifier*, const ModuleDeclaration*> ChildMap;

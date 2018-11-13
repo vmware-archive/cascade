@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 #define CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 
-#include <vector>
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
@@ -47,7 +47,7 @@ namespace cascade {
 class Resolve : public Editor {
   public:
     // Typedefs:
-    typedef typename std::vector<Expression*>::const_iterator dep_iterator;
+    typedef typename Vector<Expression*>::const_iterator dep_iterator;
 
     // Constructors:
     Resolve();

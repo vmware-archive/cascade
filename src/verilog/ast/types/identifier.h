@@ -33,7 +33,7 @@
 
 #include <cassert>
 #include <string>
-#include <vector>
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/id.h"
 #include "src/verilog/ast/types/macro.h"
@@ -67,11 +67,11 @@ class Identifier : public Primary {
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
-    DECORATION(std::vector<Expression*>, dependents);
+    DECORATION(Vector<Expression*>, dependents);
 
     friend class Monitor;
     friend class SwLogic;
-    DECORATION(std::vector<const Node*>, monitor);
+    DECORATION(Vector<const Node*>, monitor);
 };
 
 inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, new Maybe<Expression>()), new Many<Expression>()) { }

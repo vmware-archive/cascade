@@ -159,7 +159,7 @@ const unordered_set<const Identifier*, HashId, EqId>& ModuleInfo::named_params()
   return md_->named_params_;
 }
 
-const vector<const Identifier*>& ModuleInfo::ordered_params() {
+const Vector<const Identifier*>& ModuleInfo::ordered_params() {
   return md_->ordered_params_;
 }
 
@@ -167,7 +167,7 @@ const unordered_set<const Identifier*, HashId, EqId>& ModuleInfo::named_ports() 
   return md_->named_ports_;
 }
 
-const vector<const Identifier*>& ModuleInfo::ordered_ports() {
+const Vector<const Identifier*>& ModuleInfo::ordered_ports() {
   return md_->ordered_ports_;
 }
 
