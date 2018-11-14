@@ -34,7 +34,7 @@
 #include <iostream>
 #include <stack>
 #include <string>
-#include "src/base/log/log.h"
+#include <unordered_map>
 #include "src/verilog/ast/ast_fwd.h"
 #include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/parse/lexer.h"
@@ -42,36 +42,42 @@
 
 namespace cascade {
 
+class Log;
+
 class Parser : public Editor {
   public:
     // Constructors:
     Parser();
     ~Parser() override = default;
 
+    // Configuration Interface: 
+    //
+    // Toggles terminal output from flex and bison, respectively. Outside of a
+    // debugging session, its best to keep these variables turned off, as their
+    // output isn't passed through the high-level cascade output pipeline.
     Parser& debug_lexer(bool debug);
     Parser& debug_parser(bool debug);
 
     // Location Tracking Interface:
+    //
+    // Pushes a new file onto the parser's stack. All subsequent parses will be
+    // tagged with this path.
     void push(const std::string& path);
+    // Removes the last path from the parser's stack.
     void pop();
 
-    // Location Querying Interface:
-    const std::string& source() const;
-    size_t line() const;
-
-    // Returns the last string which was parsed
-    const std::string& last_parse() const;
-
     // Parser Interface:
-    std::pair<Node*, bool> parse(std::istream& is);
-
-    // Log Interface:
-    const Log& get_log() const;
+    //
+    // Parses the next element from an istream. Returns the node (or nullptr
+    // if the parse was unsuccessful) and a flag indicating whether the parse
+    // ended in an end-of-file. Writes errors or warnings to log.
+    std::pair<Node*, bool> parse(std::istream& is, Log* log);
+    // Returns the last string which was parsed.
+    const std::string& get_text() const;
+    // Returns the file and line number for a node from the last parse.
+    std::pair<std::string, size_t> get_loc(const Node* n) const;
 
   private:
-    // Error and warning message log:
-    Log log_;
-
     // Lexer and debugging level:
     bool debug_lexer_;
     friend class yyLexer;
@@ -80,18 +86,39 @@ class Parser : public Editor {
     bool debug_parser_;
     friend class yyParser;
     
-    // Intra-parse state: values related to the current parse
-    std::stack<std::pair<std::string, location>> loc_;
+    // Location stack:
+    std::stack<std::pair<std::string, location>> stack_;
+
+    // State returned by the previous parse:
     Node* res_;
     bool eof_;
     std::string last_parse_;
-    // Inter-parse state: values which persist between parses:
+    std::unordered_map<const Node*, std::pair<std::string, size_t>> locs_;
+    Log* log_;
+
+    // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;
 
-    location& loc();
-
+    // Visitor Interface:
+    //
+    // Collectively, these methods are responsible for fixing structural
+    // artifacts having to do with parsing. For instance, relacing a port list
+    // with a single null element with an empty list.
     void edit(ModuleDeclaration* md) override;
     void edit(ModuleInstantiation* mi) override;
+
+    // Helper methods for tracking location information:
+    //
+    // Returns the current path
+    std::string& get_path();
+    // Returns the current location
+    location& get_loc();
+    // Sets location to the same value as for n2
+    void set_loc(const Node* n1, const Node* n2);
+    // Sets filename to the current path, line to a constant value
+    void set_loc(const Node* n, size_t line);
+    // Sets location to the current path and line 
+    void set_loc(const Node*);
 };
 
 } // namespace cascade 

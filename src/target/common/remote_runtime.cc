@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <vector>
+#include "src/base/log/log.h"
 #include "src/base/socket/socket.h"
 #include "src/target/common/connection.h"
 #include "src/target/common/rpc.h"
@@ -202,9 +203,10 @@ void RemoteRuntime::run_logic() {
 Engine* RemoteRuntime::compile(Connection* conn) {
   conn->recv_str(in_buf_);
   Parser p;
-  auto md = dynamic_cast<ModuleDeclaration*>(p.parse(in_buf_).first);
+  Log log;
+  auto md = dynamic_cast<ModuleDeclaration*>(p.parse(in_buf_, &log).first);
   in_buf_.clear();
-  if (p.get_log().error() || md == nullptr) {
+  if (log.error() || md == nullptr) {
     return nullptr;
   }
   return compiler_->compile(md);

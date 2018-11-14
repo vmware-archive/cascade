@@ -32,11 +32,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include "src/base/log/log.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/navigate.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/parse/parser.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/program/type_check.h"
@@ -53,15 +55,17 @@ Program::Program() : Editor() {
 }
 
 Program::Program(ModuleDeclaration* md) : Program() {
-  declare_and_instantiate(md);
+  Log log;
+  declare_and_instantiate(md, &log);
+  assert(!log.error());
 }
 
 Program::Program(ModuleDeclaration* md, ModuleInstantiation* mi) : Program() {
-  declare(md);
-  if (log_.error()) {
-    return;
-  }
-  eval(mi);
+  Log log;
+  declare(md, &log);
+  assert(!log.error());
+  eval(mi, &log); 
+  assert(!log.error());
 }
 
 Program::~Program() {
@@ -75,9 +79,7 @@ Program& Program::typecheck(bool tc) {
   return *this;
 }
 
-void Program::declare(ModuleDeclaration* md) {
-  log_.clear();
-
+bool Program::declare(ModuleDeclaration* md, Log* log, const Parser* p) {
   // Propage default annotations
   if (md->get_attrs()->get_as()->empty() && root_decl() != decl_end()) {
     md->replace_attrs(root_decl()->second->get_attrs()->clone());
@@ -87,15 +89,15 @@ void Program::declare(ModuleDeclaration* md) {
   local_only_ = true;
   expand_insts_ = false;
   expand_gens_ = false;
-  elaborate(md);
+  elaborate(md, log, p);
 
   // Fail on error
   if (decl_find(md->get_id()) != decl_end()) {
-    log_.error("Previous declaration already exists for this module");
+    log->error("Previous declaration already exists for this module");
   }
-  if (log_.error()) {
+  if (log->error()) {
     delete md;
-    return;
+    return false;
   } 
 
   // Insert the new declaration
@@ -105,12 +107,12 @@ void Program::declare(ModuleDeclaration* md) {
   if (decls_.size() == 1) {
     root_ditr_ = decls_.begin();
   }
+  return log->error();
 }
 
-void Program::declare_and_instantiate(ModuleDeclaration* md) {
-  declare(md);
-  if (log_.error()) {
-    return;
+bool Program::declare_and_instantiate(ModuleDeclaration* md, Log* log, const Parser* p) {
+  if (!declare(md, log, p)) {
+    return false;
   }
 
   auto iid = md->get_id()->get_ids()->front()->get_readable_sid();
@@ -124,16 +126,17 @@ void Program::declare_and_instantiate(ModuleDeclaration* md) {
     new Many<ArgAssign>(),
     new Many<ArgAssign>()
   );
-  eval(mi);
+
+  return eval(mi, log, p);
 }
 
-void Program::eval(ModuleItem* mi) {
-  log_.clear();
+bool Program::eval(ModuleItem* mi, Log* log, const Parser* p) {
   if (elab_begin() == elab_end()) {
-    eval_root(mi);
+    eval_root(mi, log, p);
   } else {
-    eval_item(mi);
+    eval_item(mi, log, p);
   }
+  return log->error();
 }
 
 void Program::inline_all() {
@@ -150,10 +153,6 @@ void Program::outline_all() {
 
 const ModuleDeclaration* Program::src() const {
   return root_eitr_ == elab_end() ? nullptr : root_eitr_->second;
-}
-
-const Log& Program::get_log() const {
-  return log_;
 }
 
 Program::decl_iterator Program::root_decl() const {
@@ -188,8 +187,8 @@ Program::elab_iterator Program::elab_end() const {
   return elabs_.end();
 }
 
-void Program::elaborate(Node* n) {
-  TypeCheck tc(this, &log_);
+void Program::elaborate(Node* n, Log* log, const Parser* p) {
+  TypeCheck tc(this, log, p);
   tc.deactivate(checker_off_);
   tc.declaration_check(decl_check_);
   tc.local_only(local_only_);
@@ -198,11 +197,11 @@ void Program::elaborate(Node* n) {
   gen_queue_.clear();
   n->accept(this);
 
-  while (!log_.error() && (!inst_queue_.empty() || !gen_queue_.empty())) {
-    for (size_t i = 0; !log_.error() && i < inst_queue_.size(); ++i) {
+  while (!log->error() && (!inst_queue_.empty() || !gen_queue_.empty())) {
+    for (size_t i = 0; !log->error() && i < inst_queue_.size(); ++i) {
       auto mi = inst_queue_[i];
       tc.pre_elaboration_check(mi);
-      if (!log_.error() && expand_insts_) {
+      if (!log->error() && expand_insts_) {
         Elaborate(this).elaborate(mi)->accept(this);
         if (!Navigate(mi).lost()) {
           Navigate(mi).invalidate();
@@ -224,23 +223,23 @@ void Program::elaborate(Node* n) {
     // instantiation queue. In practice because don't support defparams
     // I don't *think* it makes a difference.
 
-    for (size_t i = 0; !log_.error() && i < gen_queue_.size(); ++i) {
+    for (size_t i = 0; !log->error() && i < gen_queue_.size(); ++i) {
       auto gc = gen_queue_[i];
       if (auto cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(cgc);
-        if (!log_.error() && expand_gens_) {
+        if (!log->error() && expand_gens_) {
           Elaborate().elaborate(cgc)->accept(this);
           Navigate(cgc).invalidate();
         }
       } else if (auto igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(igc);
-        if (!log_.error() && expand_gens_) {
+        if (!log->error() && expand_gens_) {
           Elaborate().elaborate(igc)->accept(this);
           Navigate(igc).invalidate();
         }
       } else if (auto lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(lgc);
-        if (!log_.error() && expand_gens_) {
+        if (!log->error() && expand_gens_) {
           Elaborate().elaborate(lgc)->accept(this);
           Navigate(lgc).invalidate();
         }
@@ -249,28 +248,28 @@ void Program::elaborate(Node* n) {
     gen_queue_.clear();
   }
 
-  if (!log_.error()) {
+  if (!log->error()) {
     tc.post_elaboration_check(n);
   }
 }
 
-void Program::elaborate_item(ModuleItem* mi) {
+void Program::elaborate_item(ModuleItem* mi, Log* log, const Parser* p) {
   decl_check_ = false;
   local_only_ = false;
   expand_insts_ = true;
   expand_gens_ = true;
-  elaborate(mi);
+  elaborate(mi, log, p);
 }
 
-void Program::eval_root(ModuleItem* mi) {
+void Program::eval_root(ModuleItem* mi, Log* log, const Parser* p) {
   elabs_.checkpoint();
   auto inst = dynamic_cast<ModuleInstantiation*>(mi);
   if ((inst == nullptr) || !EqId()(inst->get_mid(), root_decl()->first)) {
-    log_.error("Cannot evaluate code without first instantiating the root module");
+    log->error("Cannot evaluate code without first instantiating the root module");
   } else {
-    elaborate_item(inst);
+    elaborate_item(inst, log, p);
   }
-  if (log_.error()) {
+  if (log->error()) {
     elabs_.undo();
     delete mi;
     return;
@@ -281,14 +280,14 @@ void Program::eval_root(ModuleItem* mi) {
   root_eitr_ = elabs_.begin();
 }
 
-void Program::eval_item(ModuleItem* mi) {
+void Program::eval_item(ModuleItem* mi, Log* log, const Parser* p) {
   auto src = root_eitr_->second;
   src->get_items()->push_back(mi);
 
   elabs_.checkpoint();
-  elaborate_item(mi);
+  elaborate_item(mi, log, p);
 
-  if (log_.error()) {
+  if (log->error()) {
     elabs_.undo();
     // Invalidate any references to this module item
     Resolve().invalidate(src->get_items()->back());

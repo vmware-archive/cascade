@@ -38,12 +38,18 @@
 namespace cascade {
 
 class Log;
+class Parser;
 class Program;
 
 class TypeCheck : public Visitor {
   public:
     // Constructors:
-    TypeCheck(const Program* program, Log* log);
+    // 
+    // Creates a type checker with references to a program for context, and a
+    // log in which to write error messages or warnings. If parser is provided,
+    // it is assumed that it was used to generate the code which is resulting
+    // in an error or a warning.
+    TypeCheck(const Program* program, Log* log, const Parser* parser = nullptr);
     ~TypeCheck() override = default;
 
     // Configuration Interface:
@@ -61,9 +67,10 @@ class TypeCheck : public Visitor {
     void post_elaboration_check(const Node* n);
 
   private:
-    // Program Reference:
+    // Auxiliary References:
     const Program* program_;
     Log* log_;
+    const Parser* parser_;
 
     // Configuration Flags:
     bool deactivated_;
@@ -72,6 +79,7 @@ class TypeCheck : public Visitor {
 
     // Location Tracking:
     const Node* outermost_loop_;
+    const ModuleInstantiation* instantiation_;
     bool net_lval_;
 
     // Error Tracking:
@@ -80,7 +88,7 @@ class TypeCheck : public Visitor {
     // Logging Helpers:
     void warn(const std::string& s, const Node* n);
     void error(const std::string& s, const Node* n);
-    void multiple_def(const Node* n, const Node* m);
+    void multiple_def(const Node* n);
 
     // Visitor Interface:
     void visit(const Identifier* id) override;

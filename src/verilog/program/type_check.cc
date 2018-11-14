@@ -38,6 +38,7 @@
 #include "src/verilog/analyze/navigate.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/parse/parser.h"
 #include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/program.h"
@@ -46,15 +47,17 @@ using namespace std;
 
 namespace cascade {
 
-TypeCheck::TypeCheck(const Program* program, Log* log) : Visitor() { 
+TypeCheck::TypeCheck(const Program* program, Log* log, const Parser* parser) : Visitor() { 
   program_ = program;
   log_ = log;
+  parser_ = parser;
 
   deactivate(false);
   declaration_check(true);
   local_only(true);
 
   outermost_loop_ = nullptr;
+  instantiation_ = nullptr;
   net_lval_ = false;
 
   exists_bad_id_ = false;
@@ -96,8 +99,8 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
 
   // CHECK: Duplicate definition for instantiations other than the root
   if (!Navigate(mi).lost()) {
-    if (auto v = Navigate(mi).find_duplicate_name(mi->get_iid()->get_ids()->back())) {
-      multiple_def(mi->get_iid(), v->get_parent());
+    if (Navigate(mi).find_duplicate_name(mi->get_iid()->get_ids()->back())) {
+      multiple_def(mi->get_iid());
     }
     if (Navigate(mi).find_child(mi->get_iid()->get_ids()->back())) {
       error("A nested scope with this name already exists in this scope", mi);
@@ -109,7 +112,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   const auto itr = program_->decl_find(mi->get_mid());
   if (itr == program_->decl_end()) {
     if (decl_check_) {
-      warn("Instantiation refers to an undeclared module. This may result in an error during elaboration", mi);
+      warn("Instantiation refers to an undeclared module, this may result in an error during elaboration", mi);
     } else {
       error("Instantiation refers to an undeclared module", mi);
     }
@@ -248,41 +251,70 @@ void TypeCheck::post_elaboration_check(const Node* n) {
 
 void TypeCheck::warn(const string& s, const Node* n) {
   stringstream ss;
-  if (n->get_source() == "<top>") {
-    TextPrinter(ss) << "In final line of user input:\n";
+
+  auto ptr = n;
+  if (decl_check_) {
+    TextPrinter(ss) << "In module declaration ";
+  } else if (instantiation_ != nullptr) {
+    TextPrinter(ss) << "In module instantiation ";
+    ptr = instantiation_;
   } else {
-    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
+    TextPrinter(ss) << "In module item ";
   }
-  TextPrinter(ss) << s << ": " << n;
+
+  if (parser_ == nullptr) {
+    TextPrinter(ss) << "in <unable to access location --- contact developers>: ";
+  } else {
+    const auto loc = parser_->get_loc(ptr);
+    if (loc.first == "<top>") {
+      TextPrinter(ss) << "in final line of user input: ";
+    } else {
+      TextPrinter(ss) << "in " << loc.first << " on line " << loc.second << ": ";
+    }
+  }
+  
+  TextPrinter(ss) << ptr << "\n" << s;
+  if (ptr != n) {
+    TextPrinter(ss) << ", see previous warnings for more information";
+  }
+
   log_->warn(ss.str());
 }
 
 void TypeCheck::error(const string& s, const Node* n) {
   stringstream ss;
-  if (n->get_source() == "<top>") {
-    TextPrinter(ss) << "In final line of user input:\n";
+
+  auto ptr = n;
+  if (decl_check_) {
+    TextPrinter(ss) << "In module declaration ";
+  } else if (instantiation_ != nullptr) {
+    TextPrinter(ss) << "In module instantiation ";
+    ptr = instantiation_;
   } else {
-    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
+    TextPrinter(ss) << "In module item ";
   }
-  TextPrinter(ss) << s << ": " << n;
+
+  if (parser_ == nullptr) {
+    TextPrinter(ss) << "in <unable to access location --- contact developers>: ";
+  } else {
+    const auto loc = parser_->get_loc(ptr);
+    if (loc.first == "<top>") {
+      TextPrinter(ss) << "in final line of user input: ";
+    } else {
+      TextPrinter(ss) << "in " << loc.first << " on line " << loc.second << ": ";
+    }
+  }
+  
+  TextPrinter(ss) << ptr << "\n" << s;
+  if (ptr != n) {
+    TextPrinter(ss) << ", see previous warnings for more information";
+  }
+
   log_->error(ss.str());
 }
 
-void TypeCheck::multiple_def(const Node* n, const Node* m) {
-  stringstream ss;
-  if (n->get_source() == "<top>") {
-    TextPrinter(ss) << "In final line of user input:\n";
-  } else {
-    TextPrinter(ss) << "In " << n->get_source() << " on line " << n->get_line() << ":\n";
-  }
-  TextPrinter(ss) << "A variable named " << n << " already appears in this scope.\n";
-  TextPrinter(ss) << "Previous declaration appears in ";
-  if (m->get_source() == "<top>") {
-    TextPrinter(ss) << "previous user input.";      
-  } else {
-    TextPrinter(ss) << m->get_source() << " on line " << m->get_line() << ".";
-  }
-  log_->error(ss.str());
+void TypeCheck::multiple_def(const Node* n) {
+  error("A variable with this name already appears in this scope", n);
 }
 
 void TypeCheck::visit(const Identifier* id) {
@@ -308,7 +340,7 @@ void TypeCheck::visit(const Identifier* id) {
   if (r == nullptr) {
     exists_bad_id_ = true;
     if (decl_check_) {
-      warn("Found reference to unresolvable identifier. This may result in an error during instantiation.", id);
+      warn("Found reference to unresolvable identifier, this may result in an error during instantiation", id);
     } else {
       error("Found reference to an unresolvable identifier", id);
     }
@@ -464,8 +496,8 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
 
 void TypeCheck::visit(const GenvarDeclaration* gd) {
   // CHECK: Duplicate definition
-  if (auto v = Navigate(gd).find_duplicate_name(gd->get_id()->get_ids()->back())) {
-    multiple_def(gd->get_id(), v->get_parent());
+  if (Navigate(gd).find_duplicate_name(gd->get_id()->get_ids()->back())) {
+    multiple_def(gd->get_id());
   }
   if (Navigate(gd).find_child(gd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", gd);
@@ -477,8 +509,8 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   id->get_val()->accept(this);
 
   // CHECK: Duplicate definition
-  if (auto v = Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
-    multiple_def(id->get_id(), v->get_parent());
+  if (Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
+    multiple_def(id->get_id());
   }
   if (Navigate(id).find_child(id->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", id);
@@ -496,8 +528,8 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   ld->get_val()->accept(this);
 
   // CHECK: Duplicate definition
-  if (auto v = Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
-    multiple_def(ld->get_id(), v->get_parent());
+  if (Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
+    multiple_def(ld->get_id());
   }
   if (Navigate(ld).find_child(ld->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", ld);
@@ -512,8 +544,8 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
 
 void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Duplicate definition
-  if (auto v = Navigate(nd).find_duplicate_name(nd->get_id()->get_ids()->back())) {
-    multiple_def(nd->get_id(), v->get_parent());
+  if (Navigate(nd).find_duplicate_name(nd->get_id()->get_ids()->back())) {
+    multiple_def(nd->get_id());
   }
   if (Navigate(nd).find_child(nd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", nd);
@@ -532,8 +564,8 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   pd->get_val()->accept(this);
 
   // CHECK: Duplicate definition
-  if (auto v = Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
-    multiple_def(pd->get_id(), v->get_parent());
+  if (Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
+    multiple_def(pd->get_id());
   }
   if (Navigate(pd).find_child(pd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", pd);
@@ -551,8 +583,8 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   rd->get_val()->accept(this);
 
   // CHECK: Duplicate definition
-  if (auto v = Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
-    multiple_def(rd->get_id(), v->get_parent());
+  if (Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
+    multiple_def(rd->get_id());
   }
   if (Navigate(rd).find_child(rd->get_id()->get_ids()->back())) {
     error("A nested scope scope with this name already exists in this scope", rd);
@@ -572,7 +604,9 @@ void TypeCheck::visit(const ModuleInstantiation* mi) {
   }
   assert(Elaborate().is_elaborated(mi));
   auto inst = Elaborate(program_).get_elaboration(mi);
+  instantiation_ = mi;
   inst->accept(this);
+  instantiation_ = nullptr;
 }
 
 void TypeCheck::visit(const ParBlock* pb) {

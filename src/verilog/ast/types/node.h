@@ -31,8 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NODE_H
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
-#include <string>
-#include "src/base/token/tokenize.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/editor.h"
@@ -56,16 +54,8 @@ class Node {
 
     // Get/Set:
     GET(parent);
-    LEAF_GET_SET(line)
-
-    // Additional Get/Set:
-    void set_source(const std::string& source);
-    const std::string& get_source() const;
 
   private:
-    Tokenize::Token source_;
-    size_t line_;
-
     friend class Elaborate;
     friend class Inline;
     HIERARCHY_VISIBILITY;
@@ -84,18 +74,8 @@ class Node {
 };
 
 inline Node::Node() {
-  set_source("<unknown location --- please submit bug report>");
-  set_line(0);
   set_flag<0>();
   unset_flag<1>();
-}
-
-inline void Node::set_source(const std::string& source) {
-  source_ = Tokenize().map(source);
-}
-
-inline const std::string& Node::get_source() const {
-  return Tokenize().unmap(source_);
 }
 
 template <size_t idx>

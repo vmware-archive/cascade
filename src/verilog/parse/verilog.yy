@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include "src/base/log/log.h"
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
@@ -435,8 +436,7 @@ module_declaration
       auto mis = $4;
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,$5,mis);
-      $$->set_source(parser->source());
-      $$->set_line($2);
+      parser->set_loc($$, $2);
     }
   | attribute_instance_S module_keyword_L identifier module_parameter_port_list 
       list_of_port_declarations_Q SCOLON non_port_module_item_S
@@ -454,8 +454,7 @@ module_declaration
       mis->concat($5);
       mis->concat($7);
       $$ = new ModuleDeclaration($1,$3,ps,mis);
-      $$->set_source(parser->source());
-      $$->set_line($2);
+      parser->set_loc($$, $2);
     }
   ;
 module_keyword
@@ -587,10 +586,11 @@ local_parameter_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto lpd = new LocalparamDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      lpd->set_source(parser->source());
-      lpd->set_line($2);
-      $$->push_back(lpd);
       delete va;
+      parser->set_loc(lpd, $2);
+      parser->set_loc(lpd->get_id(), $2);
+      parser->set_loc(lpd->get_val(), $2);
+      $$->push_back(lpd);
     }
     delete $1;
     delete $4;
@@ -601,10 +601,11 @@ local_parameter_declaration
     while ($4->empty()) {
       auto va = $4->remove_front();
       auto lpd = new LocalparamDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      lpd->set_source(parser->source());
-      lpd->set_line($2);
-      $$->push_back(lpd);
       delete va;
+      parser->set_loc(lpd, $2);
+      parser->set_loc(lpd->get_id(), $2);
+      parser->set_loc(lpd->get_val(), $2);
+      $$->push_back(lpd);
     }
     delete $1;
     delete $4;
@@ -616,10 +617,11 @@ parameter_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto pd = new ParameterDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      pd->set_source(parser->source());
-      pd->set_line($2);
-      $$->push_back(pd);
       delete va;
+      parser->set_loc(pd, $2);
+      parser->set_loc(pd->get_id(), $2);
+      parser->set_loc(pd->get_val(), $2);
+      $$->push_back(pd);
     }
     delete $1;
     delete $4;
@@ -630,10 +632,11 @@ parameter_declaration
     while ($4->empty()) {
       auto va = $4->remove_front();
       auto pd = new ParameterDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      pd->set_source(parser->source());
-      pd->set_line($2);
-      $$->push_back(pd);
       delete va;
+      parser->set_loc(pd, $2);
+      parser->set_loc(pd->get_id(), $2);
+      parser->set_loc(pd->get_val(), $2);
+      $$->push_back(pd);
     }
     delete $1;
     delete $4;
@@ -684,8 +687,8 @@ output_declaration
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
       auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
-      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
       delete va;
+      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
     delete $4;
     delete $5;
@@ -700,10 +703,10 @@ integer_declaration
     while (!$3->empty()) {
       auto va = $3->remove_front();
       auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
-      id->set_source(parser->source());
-      id->set_line($2);
-      $$->push_back(id);
       delete va;
+      parser->set_loc(id, $2);
+      parser->set_loc(id->get_id(), $2);
+      $$->push_back(id);
     }
     delete $1;
     delete $3;
@@ -714,8 +717,8 @@ net_declaration
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $3, $4->clone());
-      nd->set_source(parser->source());
-      nd->set_line($2.first);
+      parser->set_loc(nd, $2.first);
+      parser->set_loc(nd->get_id(), $2.first);
       $$->push_back(nd);
     }
     delete $1;
@@ -729,8 +732,8 @@ net_declaration
     while (!$6->empty()) {
       auto va = $6->remove_front();
       auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $3, $4->clone());
-      nd->set_source(parser->source());
-      nd->set_line($2.first);
+      parser->set_loc(nd, $2.first);
+      parser->set_loc(nd->get_id(), $2.first);
       $$->push_back(nd);
 
       auto ca = new ContinuousAssign(new Maybe<DelayControl>(), va);
@@ -749,10 +752,10 @@ reg_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
-      rd->set_source(parser->source());
-      rd->set_line($2);
-      $$->push_back(rd);
       delete va;
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$->push_back(rd);
     }
     delete $1;
     delete $4;
@@ -777,20 +780,21 @@ net_type
 variable_type
   : identifier dimension_S { 
     $$ = new VariableAssign($1, new Identifier("__null")); 
-    $$->set_source(parser->source());
-    $$->set_line($1->get_line());
     $$->get_lhs()->replace_dim($2); 
+    parser->set_loc($$, $1);
   }
   | identifier EQ expression { 
     $$ = new VariableAssign($1, $3); 
-    $$->set_source(parser->source());
-    $$->set_line($1->get_line());
+    parser->set_loc($$, $1);
   }
   ;
 
 /* A.2.2.3 Delays */
 delay3 
-  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line);}
+  : POUND delay_value { 
+    $$ = new DelayControl($2); 
+    parser->set_loc($$);
+  }
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
 delay_value
@@ -848,7 +852,10 @@ list_of_variable_port_identifiers
 
 /* A.2.4 Declaration Assignments */
 net_decl_assignment
-  : identifier EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
+  : identifier EQ expression { 
+    $$ = new VariableAssign($1,$3); 
+    parser->set_loc($$, $1);
+  }
   ;
 param_assignment
   : identifier EQ mintypmax_expression { $$ = new VariableAssign($1, $3); }
@@ -913,8 +920,7 @@ module_instantiation
       auto mi = $3->remove_front();
       mi->replace_mid($1->clone());
       mi->replace_params($2->clone());
-      mi->set_source($1->get_source());
-      mi->set_line($1->get_line());
+      parser->set_loc(mi, $1);
       $$->push_back(mi);
     }
     delete $1;
@@ -994,82 +1000,82 @@ genvar_expression
     $$ = $1; 
   }
   | unary_operator /*attribute_instance_S*/ genvar_primary { 
-    $$ = new UnaryExpression($1,$2); $$->set_source($2->get_source()); $$->set_line($2->get_line());
+    $$ = new UnaryExpression($1,$2); parser->set_loc($$, $2); 
   }
   | genvar_expression AAMP /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); parser->set_loc($$, $1);
   }
   | genvar_expression AMP /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); parser->set_loc($$, $1);
   }
   | genvar_expression BEEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression BEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression CARAT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression DIV /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); parser->set_loc($$, $1);
   }
   | genvar_expression EEEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression EEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GGGT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GGT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LLLT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LLT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression MINUS /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); parser->set_loc($$, $1);
   }
   | genvar_expression MOD /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PIPE /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PPIPE /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PLUS /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TCARAT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TIMES /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TTIMES /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); parser->set_loc($$, $1);
   }
   | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression { 
-    $$ = new ConditionalExpression($1,$3,$5); $$->set_source($1->get_source()); $$->set_line($1->get_line());
+    $$ = new ConditionalExpression($1,$3,$5); parser->set_loc($$, $1);
   }
   ;
 genvar_iteration
@@ -1151,8 +1157,7 @@ continuous_assign
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto ca = new ContinuousAssign($2->clone(), $3->remove_front());
-      ca->set_source(parser->source());
-      ca->set_line(ca->get_assign()->get_line());
+      parser->set_loc(ca, ca->get_assign());
       $$->push_back(ca);
     }
     delete $2;
@@ -1169,8 +1174,7 @@ list_of_net_assignments
 net_assignment
   : net_lvalue EQ expression { 
     $$ = new VariableAssign($1,$3); 
-    $$->set_source(parser->source());
-    $$->set_line($1->get_line());
+    parser->set_loc($$, $1);
   }
   ;
 
@@ -1184,19 +1188,20 @@ always_construct
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
     $$ = new BlockingAssign($3,new VariableAssign($1,$4));
-    $$->set_source(parser->source());
-    $$->set_line($1->get_line());
+    parser->set_loc($$, $1);
   }
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
     $$ = new NonblockingAssign($3,new VariableAssign($1,$4));
-    $$->set_source(parser->source());
-    $$->set_line($1->get_line());
+    parser->set_loc($$, $1);
   }
   ;
 variable_assignment
-  : variable_lvalue EQ expression { $$ = new VariableAssign($1,$3); $$->set_source(parser->source()); $$->set_line($1->get_line()); }
+  : variable_lvalue EQ expression { 
+    $$ = new VariableAssign($1,$3); 
+    parser->set_loc($$, $1);
+  }
   ;
 
 /* A.6.3 Parallel and Sequential Blocks */
@@ -1243,8 +1248,14 @@ statement_or_null
 
 /* A.6.5 Timing Control Statements */
 delay_control
-  : POUND delay_value { $$ = new DelayControl($2); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | POUND OPAREN mintypmax_expression CPAREN { $$ = new DelayControl($3); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  : POUND delay_value { 
+    $$ = new DelayControl($2); 
+    parser->set_loc($$);
+  }
+  | POUND OPAREN mintypmax_expression CPAREN { 
+    $$ = new DelayControl($3); 
+    parser->set_loc($$);
+  }
   ;
 delay_or_event_control 
   : delay_control { $$ = $1; }
@@ -1286,8 +1297,7 @@ procedural_timing_control_statement
 wait_statement
   : WAIT OPAREN expression CPAREN statement_or_null { 
     $$ = new WaitStatement($3,$5); 
-    $$->set_source(parser->source());
-    $$->set_line($3->get_line());
+    parser->set_loc($$, $3);
   }
   ;
 
@@ -1321,23 +1331,19 @@ case_item
 loop_statement
   : FOREVER statement { 
     $$ = new ForeverStatement($2); 
-    $$->set_source(parser->source()); 
-    $$->set_line($2->get_line());
+    parser->set_loc($$, $2);
   }
   | REPEAT OPAREN expression CPAREN statement { 
     $$ = new RepeatStatement($3,$5); 
-    $$->set_source(parser->source()); 
-    $$->set_line($3->get_line());
+    parser->set_loc($$, $3);
   }
   | WHILE OPAREN expression CPAREN statement { 
     $$ = new WhileStatement($3,$5); 
-    $$->set_source(parser->source()); 
-    $$->set_line($3->get_line());
+    parser->set_loc($$, $3);
   }
   | FOR OPAREN variable_assignment SCOLON expression SCOLON variable_assignment CPAREN statement {
     $$ = new ForStatement($3,$5,$7,$9); 
-    $$->set_source(parser->source()); 
-    $$->set_line($3->get_line());
+    parser->set_loc($$, $3);
   }
   ;
 
@@ -1462,13 +1468,18 @@ range_expression
 /* A.8.4 Primaries */
 primary
   : number { $$ = $1; }
-  | hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
+  | hierarchical_identifier /* [exp]* [rexp]? inlined */ { 
+    $$ = $1; 
+  }
   | concatenation { $$ = $1; }
   | multiple_concatenation { $$ = $1; }
   /* TODO | function_call */
   /* TODO | system_function_call */
   | OPAREN mintypmax_expression CPAREN { $$ = new NestedExpression($2); }
-  | string_ { $$ = $1; $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  | string_ { 
+    $$ = $1; 
+    parser->set_loc($$);
+  }
   ;
 
 /* A.8.5 Expression Left-Side Values */
@@ -1505,23 +1516,23 @@ number
   /* TODO | real_number */
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); parser->set_loc($$); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); parser->set_loc($$); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); parser->set_loc($$); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); parser->set_loc($$); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); parser->set_loc($$); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); parser->set_loc($$); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); parser->set_loc($$); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); $$->set_source(parser->source()); $$->set_line(parser->loc().begin.line); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); parser->set_loc($$); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); parser->set_loc($$); }
   ;
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
@@ -1551,11 +1562,10 @@ hierarchical_identifier
   : simple_id_L braced_rexp_S { 
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), $2); 
-    $$->set_source(parser->source());
-    $$->set_line($1.first);
+    parser->set_loc($$, $1.first);
     for (auto e : *$2) {
       if ((e != $2->back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
-        error(parser->loc(), "Unexpected range expression in array subscript");
+        error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
     }
@@ -1563,12 +1573,12 @@ hierarchical_identifier
   | hierarchical_identifier DOT SIMPLE_ID braced_rexp_S {
     $$ = $1;
     if ($$->get_dim()->size() > 1) {
-      error(parser->loc(), "Unexpected multiplie instance selects");
+      error(parser->get_loc(), "Unexpected multiplie instance selects");
       YYERROR;
     }
     if (!$$->get_dim()->empty()) {
       if (dynamic_cast<RangeExpression*>($$->get_dim()->back()) != nullptr) {
-        error(parser->loc(), "Unexpected range expression in array subscript");
+        error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
       $$->get_ids()->back()->get_isel()->replace($$->get_dim()->remove_back());
@@ -1577,7 +1587,7 @@ hierarchical_identifier
     $$->replace_dim($4);
     for (auto e : *$4) {
       if ((e != $4->back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
-        error(parser->loc(), "Unexpected range expression in array subscript");
+        error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
     }
@@ -1587,8 +1597,7 @@ identifier
   : simple_id_L { 
     const auto id = new Id($1.second, new Maybe<Expression>());
     $$ = new Identifier(new Many<Id>(id), new Many<Expression>()); 
-    $$->set_source(parser->source());
-    $$->set_line($1.first);
+    parser->set_loc($$, $1.first);
   }
   /* TODO | ESCAPED_ID */
   ;
@@ -1676,14 +1685,14 @@ generate_block_id_Q
   | COLON identifier { $$ = new Maybe<Identifier>($2); }
   ;
 integer_L
-  : INTEGER { $$ = parser->loc().begin.line; }
+  : INTEGER { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
   : %empty { $$ = new Many<ModuleItem>(); } 
   | list_of_port_declarations { $$ = $1; }
   ;
 localparam_L
-  : LOCALPARAM { $$ = parser->loc().begin.line; }
+  : LOCALPARAM { $$ = parser->get_loc().begin.line; }
   ;
 mintypmax_expression_Q 
   : %empty { $$ = new Maybe<Expression>(); }
@@ -1704,7 +1713,7 @@ module_item_S
   }
   ;
 module_keyword_L
-  : module_keyword { $$ = parser->loc().begin.line; }
+  : module_keyword { $$ = parser->get_loc().begin.line; }
   ;
 module_or_generate_item_S
   : %empty { $$ = new Many<ModuleItem>(); }
@@ -1728,7 +1737,7 @@ named_port_connection_P
   }
   ;
 net_type_L
-  : net_type { $$ = std::make_pair(parser->loc().begin.line, $1); }
+  : net_type { $$ = std::make_pair(parser->get_loc().begin.line, $1); }
   ;
 net_type_Q
   : %empty { $$ = NetDeclaration::WIRE; }
@@ -1777,7 +1786,7 @@ parameter_declaration_P
   }
   ;
 parameter_L
-  : PARAMETER { $$ = parser->loc().begin.line; }
+  : PARAMETER { $$ = parser->get_loc().begin.line; }
   ;
 parameter_value_assignment_Q
   : %empty { $$ = new Many<ArgAssign>(); }
@@ -1796,7 +1805,7 @@ port_declaration_P
       if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
-          error(parser->loc(), "Found initialization value in net declaration!");
+          error(parser->get_loc(), "Found initialization value in net declaration!");
           YYERROR;
         }
       } else if (auto rd = dynamic_cast<RegDeclaration*>(pd->get_decl())) {
@@ -1828,14 +1837,14 @@ range_Q
   | range { $$ = new Maybe<RangeExpression>($1); }
   ;
 reg_L
-  : REG { $$ = parser->loc().begin.line; }
+  : REG { $$ = parser->get_loc().begin.line; }
   ;
 signed_Q
   : %empty { $$ = false; }
   | SIGNED { $$ = true; }
   ;
 simple_id_L
-  : SIMPLE_ID { $$ = make_pair(parser->loc().begin.line, $1); }
+  : SIMPLE_ID { $$ = make_pair(parser->get_loc().begin.line, $1); }
 statement_S
   : %empty { $$ = new Many<Statement>(); }
   | statement_S statement {
@@ -1859,7 +1868,7 @@ alt_port_declaration
   : alt_port_type alt_net_type signed_Q range_Q identifier eq_ce_Q {
     // If this is a net declaration and we have an initial value, it's an error
     if (!$2 && !is_null($6)) {
-      error(parser->loc(), "Found initialization value in net declaration!");
+      error(parser->get_loc(), "Found initialization value in net declaration!");
       YYERROR;
     }
     auto d = $2 ? 
@@ -1886,13 +1895,13 @@ namespace cascade {
 void yyParser::error(const location_type& l, const std::string& m) {
   std::stringstream ss;
 
-  if (parser->source() == "<top>") {
+  if (parser->get_path() == "<top>") {
     ss << "In final line of user input:\n";
   } else {
-    ss << "In " << parser->source() << " on line " << l.end.line << ":\n";
+    ss << "In " << parser->get_path() << " on line " << l.end.line << ":\n";
   }
   ss << m;
-  parser->log_.error(ss.str());
+  parser->log_->error(ss.str());
 }
 
 } // namespace cascade

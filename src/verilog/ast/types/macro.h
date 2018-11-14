@@ -53,27 +53,27 @@
 #define TREE(x) PRIVATE(x)->clone()
 #define CLONE_1(T, t1) \
   T* clone() const override { \
-    auto t = new T(t1); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1); \
   } 
 #define CLONE_2(T, t1, t2) \
   T* clone() const override { \
-    auto t = new T(t1, t2); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1, t2); \
   }
 #define CLONE_3(T, t1, t2, t3) \
   T* clone() const override { \
-    auto t = new T(t1, t2, t3); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1, t2, t3); \
   }
 #define CLONE_4(T, t1, t2, t3, t4) \
   T* clone() const override { \
-    auto t = new T(t1, t2, t3, t4); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1, t2, t3, t4); \
   }
 #define CLONE_5(T, t1, t2, t3, t4, t5) \
   T* clone() const override { \
-    auto t = new T(t1, t2, t3, t4, t5); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1, t2, t3, t4, t5); \
   }
 #define CLONE_6(T, t1, t2, t3, t4, t5, t6) \
   T* clone() const override { \
-    auto t = new T(t1, t2, t3, t4, t5, t6); t->source_ = source_; t->line_ = line_; return t; \
+    return new T(t1, t2, t3, t4, t5, t6); \
   }
 #define GET_CLONE(_0, _1, _2, _3, _4, _5, _6, CLONE, ...) CLONE
 #define CLONE(...) GET_CLONE(__VA_ARGS__, CLONE_6, CLONE_5, CLONE_4, CLONE_3, CLONE_2, CLONE_1, _0)(__VA_ARGS__)

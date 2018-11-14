@@ -47,6 +47,7 @@ namespace cascade {
 class Compiler;
 class DataPlane;
 class Isolate;
+class Log;
 class Module;
 class Parser;
 class Program;
@@ -152,6 +153,7 @@ class Runtime : public Asynchronous {
     View* view_;
     
     // Major Components:
+    Log* log_;
     Parser* parser_;
     DataPlane* dp_;
     Isolate* isolate_;

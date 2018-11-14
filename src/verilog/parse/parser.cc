@@ -30,7 +30,7 @@
 
 #include "src/verilog/parse/parser.h"
 
-#include <sstream>
+#include "src/base/log/log.h"
 
 using namespace std;
 
@@ -54,39 +54,28 @@ Parser& Parser::debug_parser(bool debug) {
 }
 
 void Parser::push(const string& path) {
-  loc_.push(make_pair(path, location()));
-  loc_.top().second.initialize();
+  stack_.push(make_pair(path, location()));
+  stack_.top().second.initialize();
 }
 
 void Parser::pop() {
-  loc_.pop();
+  stack_.pop();
 }
 
-const string& Parser::source() const {
-  return loc_.top().first;
-}
-
-size_t Parser::line() const {
-  return loc_.top().second.begin.line;
-}
-
-const std::string& Parser::last_parse() const {
-  return last_parse_;
-}
-
-pair<Node*, bool> Parser::parse(istream& is) {
+pair<Node*, bool> Parser::parse(istream& is, Log* log) {
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
 
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
-  log_.clear();
   res_ = nullptr;
   eof_ = false;
   last_parse_ = "";
+  locs_.clear();
+  log_ = log;
 
-  loc().step();
+  get_loc().step();
   parser.parse();
   if (res_ != nullptr) {
     res_->accept(this);
@@ -95,12 +84,17 @@ pair<Node*, bool> Parser::parse(istream& is) {
   return make_pair(res_, eof_);
 }
 
-const Log& Parser::get_log() const {
-  return log_;
+const std::string& Parser::get_text() const {
+  return last_parse_;
 }
 
-location& Parser::loc() {
-  return loc_.top().second;
+pair<string, size_t> Parser::get_loc(const Node* n) const {
+  const auto itr = locs_.find(n);
+  if (itr == locs_.end()) {
+    return make_pair("<unknown location --- please contact developers>", 0);
+  } else {
+    return itr->second;
+  }
 }
 
 void Parser::edit(ModuleDeclaration* md) {
@@ -120,6 +114,33 @@ void Parser::edit(ModuleInstantiation* mi) {
   if (mi->get_ports()->size() == 1 && mi->get_ports()->front()->get_imp()->null()) {
     mi->get_ports()->purge_to(0);
   } 
+}
+
+string& Parser::get_path() {
+  assert(!stack_.empty());
+  return stack_.top().first;
+}
+
+location& Parser::get_loc() {
+  assert(!stack_.empty());
+  return stack_.top().second;
+}
+
+void Parser::set_loc(const Node* n1, const Node* n2) {
+  const auto itr = locs_.find(n2);
+  if (itr != locs_.end()) {
+    locs_.insert(make_pair(n1, itr->second));
+  } else {
+    locs_.insert(make_pair(n1, make_pair("<missing location --- please contact developers>", 0)));
+  }
+}
+
+void Parser::set_loc(const Node* n, size_t line) {
+  locs_.insert(make_pair(n, make_pair(get_path(), line))); 
+}
+
+void Parser::set_loc(const Node* n) {
+  locs_.insert(make_pair(n, make_pair(get_path(), get_loc().begin.line))); 
 }
 
 } // namespace cascade
