@@ -42,7 +42,7 @@ namespace cascade {
 class PortDeclaration : public ModuleItem {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       INOUT = 0,
       INPUT,
       OUTPUT

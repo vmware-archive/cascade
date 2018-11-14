@@ -41,7 +41,7 @@ namespace cascade {
 class Event : public Node {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       EDGE = 0,
       NEGEDGE,
       POSEDGE

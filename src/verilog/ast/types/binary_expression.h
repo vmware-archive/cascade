@@ -40,7 +40,7 @@ namespace cascade {
 class BinaryExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Op {
+    enum Op : uint8_t {
       PLUS = 0,
       MINUS,
       TIMES,

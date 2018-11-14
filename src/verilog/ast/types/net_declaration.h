@@ -44,7 +44,7 @@ namespace cascade {
 class NetDeclaration : public Declaration {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       WIRE = 0
     };
 

@@ -43,7 +43,7 @@ namespace cascade {
 class CaseStatement : public Statement {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       CASE = 0,
       CASEX,
       CASEZ 

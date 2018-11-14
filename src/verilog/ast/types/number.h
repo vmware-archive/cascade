@@ -42,7 +42,7 @@ namespace cascade {
 class Number : public Primary {
   public:
     // Supporting Concepts:
-    enum Format {
+    enum Format : uint8_t {
       UNBASED = 0,
       DEC,
       BIN,

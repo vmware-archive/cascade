@@ -41,7 +41,7 @@ namespace cascade {
 class RangeExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       CONSTANT = 0,
       PLUS,
       MINUS
