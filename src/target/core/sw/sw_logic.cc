@@ -140,7 +140,7 @@ void SwLogic::resync() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->unset_flag<1>();
+    const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
   }
   silent_ = false;
@@ -165,7 +165,7 @@ void SwLogic::evaluate() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->unset_flag<1>();
+    const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
   }
   for (auto& o : writes_) {
@@ -191,7 +191,7 @@ void SwLogic::update() {
   while (!active_.empty()) {
     auto e = active_.back();
     active_.pop_back();
-    const_cast<Node*>(e)->unset_flag<1>();
+    const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
   }
 
@@ -211,7 +211,7 @@ void SwLogic::schedule_now(const Node* n) {
 void SwLogic::schedule_active(const Node* n) {
   if (!n->get_flag<1>()) {
     active_.push_back(n);
-    const_cast<Node*>(n)->set_flag<1>();
+    const_cast<Node*>(n)->set_flag<1>(true);
   }
 }
 

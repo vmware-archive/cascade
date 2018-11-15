@@ -55,49 +55,81 @@ class Number : public Primary {
     Number(const Bits& val, Format format = UNBASED);
     ~Number() override = default;
 
-    // Node Interface:
-    NODE(Number, LEAF(val), LEAF(format))
-    // Get/Set:
-    LEAF_GET_SET(val)
-    LEAF_GET_SET(format)
+    // Node Interface (custom implementation which uses Expression::bit_val_ to store val)
+    Number* clone() const override;
+    NODE_NO_CLONE(Number)
+
+    // Stripped down get/set:
+    const Bits& get_val() const;
+    void set_val(const Bits& val);
+    Format get_format() const;
+    void set_format(Format format);
 
   private:
-    LEAF_ATTR(Bits, val);
-    LEAF_ATTR(Format, format);
+    // NOTE: All attributes and decorations are stored in Node::common_ and
+    // Expression::bit_val_
 };
 
 inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary() {
   parent_ = nullptr;
+
+  bit_val_.resize(1);
   std::stringstream ss(val);
   switch (format) {
     case UNBASED:
     case DEC:
-      val_.read(ss, 10);  
+      bit_val_[0].read(ss, 10);  
       break;
     case BIN:
-      val_.read(ss, 2);
+      bit_val_[0].read(ss, 2);
       break;
     case OCT:
-      val_.read(ss, 8);
+      bit_val_[0].read(ss, 8);
       break;
     case HEX:
-      val_.read(ss, 16);
+      bit_val_[0].read(ss, 16);
       break;
     default:
       assert(false);
       break;
   }
   if (size > 0) {
-    val_.resize(size);
+    bit_val_[0].resize(size);
   }
-  val_.set_signed(is_signed);
-  format_ = format;
+  bit_val_[0].set_signed(is_signed);
+
+  set_format(format);
+  set_flag<5>(bit_val_[0].is_signed());
+  Node::set_val<6,26>(bit_val_[0].size());
 }
 
 inline Number::Number(const Bits& val, Format format) : Primary() {
   parent_ = nullptr;
-  val_ = val;
-  format_ = format;
+
+  bit_val_.push_back(val);
+  set_format(format);
+  set_flag<5>(bit_val_[0].is_signed());
+  Node::set_val<6,26>(bit_val_[0].size());
+}
+
+inline Number* Number::clone() const {
+  return new Number(get_val(), get_format());
+}
+
+inline const Bits& Number::get_val() const {
+  return bit_val_[0];
+}
+
+inline void Number::set_val(const Bits& val) {
+  bit_val_[0] = val;
+}
+
+inline Number::Format Number::get_format() const {
+  return (Format)Node::get_val<2,3>();  
+}
+
+inline void Number::set_format(Format f) {
+  Node::set_val<2,3>((uint32_t)f);
 }
 
 } // namespace cascade

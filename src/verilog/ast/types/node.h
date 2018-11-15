@@ -63,34 +63,55 @@ class Node {
 
     friend class Evaluate;
     friend class SwLogic;
-    DECORATION(uint8_t, flags);
+    DECORATION(uint32_t, common);
+    // common_[0]    Evaluate: needs_update_
+    // common_[1]    SwLogic:  active_
+    // common_[2-4]  Number:   format_
+    // common_[5]    Number:   signed_
+    // common_[6-31] Number:   size_
 
     template <size_t idx>
-    void set_flag();
-    template <size_t idx>
-    void unset_flag();
+    void set_flag(bool b);
     template <size_t idx>
     bool get_flag() const;
+
+    template <size_t idx, size_t w>
+    void set_val(uint32_t val);
+    template <size_t idx, size_t w>
+    uint32_t get_val() const;
 };
 
 inline Node::Node() {
-  set_flag<0>();
-  unset_flag<1>();
+  set_flag<0>(true);
+  set_flag<1>(false);
 }
 
 template <size_t idx>
-inline void Node::set_flag() {
-  flags_ |= ((uint8_t)1 << idx);
-}
-
-template <size_t idx>
-inline void Node::unset_flag() {
-  flags_ &= ~((uint8_t)1 << idx);
+inline void Node::set_flag(bool b) {
+  if (b) {
+    common_ |= (uint32_t(1) << idx);
+  } else {
+    common_ &= ~(uint32_t(1) << idx);
+  }
 }
 
 template <size_t idx>
 inline bool Node::get_flag() const {
-  return flags_ & ((uint8_t)1 << idx);
+  return common_ & (uint32_t(1) << idx);
+}
+
+template <size_t idx, size_t w>
+inline void Node::set_val(uint32_t val) {
+  const auto mask = (uint32_t(1) << w) - 1;
+  val &= mask;
+  common_ &= ~(mask << idx);
+  common_ |= (val << idx);
+}
+
+template <size_t idx, size_t w>
+inline uint32_t Node::get_val() const {
+  const auto mask = (uint32_t(1) << w) - 1;
+  return uint32_t((common_ >> idx) & mask);
 }
 
 } // namespace cascade

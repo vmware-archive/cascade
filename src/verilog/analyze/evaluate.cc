@@ -75,7 +75,7 @@ const Bits& Evaluate::get_value(const Expression* e) {
   init(const_cast<Expression*>(e));
   if (e->get_flag<0>()) {
     const_cast<Expression*>(e)->accept(this);
-    const_cast<Expression*>(e)->unset_flag<0>();
+    const_cast<Expression*>(e)->set_flag<0>(false);
   }
   return e->bit_val_[0];
 }
@@ -84,7 +84,7 @@ const vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
   init(const_cast<Identifier*>(i));
   if (i->get_flag<0>()) {
     const_cast<Identifier*>(i)->accept(this);
-    const_cast<Identifier*>(i)->unset_flag<0>();
+    const_cast<Identifier*>(i)->set_flag<0>(false);
   }
   return i->bit_val_;
 }
@@ -451,52 +451,54 @@ void Evaluate::init(Expression* e) {
 }
 
 void Evaluate::flag_changed(const Identifier* id) {
-  const_cast<Identifier*>(id)->unset_flag<0>();
+  const_cast<Identifier*>(id)->set_flag<0>(false);
   for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
-    (*i)->set_flag<0>();
+    (*i)->set_flag<0>(true);
   }
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {
   be->bit_val_.clear();
-  be->set_flag<0>();
+  be->set_flag<0>(true);
   Editor::edit(be);
 }
 
 void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   ce->bit_val_.clear();
-  ce->set_flag<0>();
+  ce->set_flag<0>(true);
   Editor::edit(ce);
 }
 
 void Evaluate::Invalidate::edit(NestedExpression* ne) {
   ne->bit_val_.clear();
-  ne->set_flag<0>();
+  ne->set_flag<0>(true);
   Editor::edit(ne);
 }
 
 void Evaluate::Invalidate::edit(Concatenation* c) {
   c->bit_val_.clear();
-  c->set_flag<0>();
+  c->set_flag<0>(true);
   Editor::edit(c);
 }
 
 void Evaluate::Invalidate::edit(Identifier* id) {
   id->bit_val_.clear();
-  id->set_flag<0>();
+  id->set_flag<0>(true);
   // Don't descend into a different subtree
 }
 
 void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
   mc->bit_val_.clear();
-  mc->set_flag<0>();
+  mc->set_flag<0>(true);
   // Don't descend into a different subtree
   mc->get_concat()->accept(this);
 }
 
 void Evaluate::Invalidate::edit(Number* n) {
-  n->bit_val_.clear();
-  n->set_flag<0>();
+  // Reset this number to its default size and sign.
+  n->bit_val_[0].set_signed(n->get_flag<5>());
+  n->bit_val_[0].resize(n->Node::get_val<6,26>());
+  n->set_flag<0>(true);
 }
 
 void Evaluate::Invalidate::edit(String* s) {
@@ -507,7 +509,7 @@ void Evaluate::Invalidate::edit(String* s) {
 
 void Evaluate::Invalidate::edit(UnaryExpression* ue) {
   ue->bit_val_.clear();
-  ue->set_flag<0>();
+  ue->set_flag<0>(true);
   Editor::edit(ue);
 }
 
@@ -664,8 +666,9 @@ void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
 }
 
 void Evaluate::SelfDetermine::edit(Number* n) {
-  // Copying the underlying value of n sets value, width, and sign
-  n->bit_val_.push_back(n->get_val());
+  // Does nothing. We already have the value of this expression stored along
+  // with its default size and sign in the ast.
+  (void) n; 
 }
 
 void Evaluate::SelfDetermine::edit(String* s) {
