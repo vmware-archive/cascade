@@ -64,6 +64,9 @@ class Resolve : public Editor {
     // Returns a pointer to the declaration of this variable. Returns nullptr
     // on failure.
     const Identifier* get_resolution(const Identifier* id);
+    // Returns true if this variable contains a slicing subscript. This method
+    // is undefined for identifiers which cannot be resolved.
+    bool is_slice(const Identifier* id);
     // Returns the fully-qualified name of this variable. For example, eg
     // get_full_id(x) might return root.f[0].x. The caller of this method
     // takes responsibility for the resulting memory.

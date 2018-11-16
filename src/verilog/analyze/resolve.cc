@@ -76,6 +76,12 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
   return r;
 }
 
+bool Resolve::is_slice(const Identifier* id) {
+  const auto r = get_resolution(id);
+  assert(r != nullptr);
+  return (r == id) ? false : (id->get_dim()->size() > r->get_dim()->size());
+}
+
 Identifier* Resolve::get_full_id(const Identifier* id) {
   Navigate nav(id);
   auto fid = new Identifier(
