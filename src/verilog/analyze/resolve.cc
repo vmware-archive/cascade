@@ -175,6 +175,7 @@ void Resolve::edit(Concatenation* c) {
 void Resolve::edit(Identifier* id) {
   Editor::edit(id);
   release(id);
+  id->resolution_ = nullptr;
 }
 
 void Resolve::edit(MultipleConcatenation* mc) {

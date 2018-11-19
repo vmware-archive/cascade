@@ -55,8 +55,8 @@ class Resolve : public Editor {
 
     // Cache Maintenance:
     //
-    // Invalidates the state of any resolution decorations contained in the AST
-    // below this node.
+    // Removes dependency references for this node and all of the nodes below
+    // it in the AST. 
     void invalidate(Node* n);
 
     // Resolution:

@@ -51,8 +51,6 @@ class DeAlias : public Rewriter {
         AliasTable(const ModuleDeclaration* md);
         ~AliasTable();
 
-        // Returns true if this variable appears in the alias table
-        bool is_alias(const Identifier* id);
         // Dealiases a variable or returns nullptr on failure. It is the
         // responsibility of the caller to deallocate any resulting memory.
         Identifier* dealias(const Identifier* id);
@@ -86,8 +84,6 @@ class DeAlias : public Rewriter {
 
     // Returns true if this is now an assignment of the form x = x.
     bool is_self_assign(const ContinuousAssign* ca);
-    // Returns true if this is a declaration for an alis
-    bool is_alias(const Declaration* d);
 
     // Ignores attributes.
     Attributes* rewrite(Attributes* as) override;

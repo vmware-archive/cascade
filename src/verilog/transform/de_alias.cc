@@ -33,7 +33,6 @@
 #include <cassert>
 #include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 
@@ -44,26 +43,21 @@ namespace cascade {
 DeAlias::DeAlias() : Rewriter() { }
 
 void DeAlias::run(ModuleDeclaration* md) {
-  // Build the alias table and replace variable names
+  // Build the alias table 
   table_ = new AliasTable(md);
+  // Replace aliases and delete zero-time self-assignments 
   md->accept(this);
-  // Delete zero-time self-assignments and declarations for aliases.
   for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
     if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       if (is_self_assign(ca)) {
-        Resolve().invalidate(ca);
+        Resolve().invalidate(*i);
         i = md->get_items()->purge(i);
         continue;
       } 
-    } else if (auto d = dynamic_cast<Declaration*>(*i)) {
-      if (is_alias(d)) {
-        Resolve().invalidate(d);
-        i = md->get_items()->purge(i);
-        continue;
-      }
-    }
+    } 
     ++i;
   }
+  Resolve().invalidate(md->get_items());
   // Delete the table
   delete table_;
 }
@@ -87,11 +81,6 @@ DeAlias::AliasTable::~AliasTable() {
   }
 }
 
-bool DeAlias::AliasTable::is_alias(const Identifier* id) {
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : aliases_.find(r) != aliases_.end();
-}
-
 Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
   // Nothing to do if we can't find this identifier in the alias table
   const auto r = Resolve().get_resolution(id);
@@ -110,8 +99,8 @@ Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
   }
 
   // If either this id or the target is a slice, we'll need one last merge.
-  // Otherwise, just append the slice that's attached to id or which appears
-  // in the alias table.
+  // Otherwise, just append the slice that's attached to id or which appears in
+  // the alias table.
   const auto st = !itr->second.slices_.empty();
   const auto si = Resolve().is_slice(id);
   if (st && si) {
@@ -136,8 +125,16 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
     return;
   }
   // Ignore assignments which don't preserve bit-width
-  if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
-    return;
+  if (Resolve().is_slice(rhs)) {
+    if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
+      return;
+    }
+  } else {
+    const auto r = Resolve().get_resolution(rhs);
+    assert(r != nullptr);
+    if (Evaluate().get_width(lhs) != Evaluate().get_width(r)) {
+      return;
+    }
   }
   // Ignore assignments with left-hand-sides that point to arrays
   const auto r = Resolve().get_resolution(lhs);
@@ -146,8 +143,10 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
     return;
   }
   // Ignore non-const assignments
-  if (!Constant().is_constant(rhs)) {
-    return;
+  for (auto d : *rhs->get_dim()) {
+    if (!Constant().is_constant(d)) {
+      return;
+    }
   }
 
   // If the right-hand-side is a slice, record its bounds
@@ -245,7 +244,7 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
     return new RangeExpression(
       new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_upper()->clone()),
       RangeExpression::CONSTANT,
-      new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_lower()->clone())
+      new BinaryExpression(lsb->clone(), BinaryExpression::PLUS, yre->get_lower()->clone())
     );
   } 
 }
@@ -284,10 +283,6 @@ bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
   return true;
 }
 
-bool DeAlias::is_alias(const Declaration* d) {
-  return table_->is_alias(d->get_id());
-}
-
 Attributes* DeAlias::rewrite(Attributes* as) {
   // Don't descend past here.
   return as;
@@ -319,10 +314,8 @@ Expression* DeAlias::rewrite(Identifier* id) {
     return Rewriter::rewrite(id);
   }
   // Otherwise, invalidate resolution information for the old variable and
-  // return the replacement. So why invalidate the parent? Invalidation is kind
-  // of clunky right now. Calling invalidate() directly on an identifier in an
-  // expression subtree puts us into an undefined state.
-  Resolve().invalidate(id->get_parent());
+  // return the replacement. 
+  Resolve().invalidate(id);
   return res;
 }
 

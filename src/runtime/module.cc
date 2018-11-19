@@ -205,11 +205,11 @@ ModuleDeclaration* Module::regenerate_ir_source() {
   const auto std = md->get_attrs()->get<String>("__std");
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
+    ModuleInfo(md).invalidate();
     DeAlias().run(md);
     ConstantProp().run(md);
     DeadCodeEliminate().run(md);
   }
-
   return md;
 }
 
