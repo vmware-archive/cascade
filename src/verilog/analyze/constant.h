@@ -46,12 +46,14 @@ class Constant : public Visitor {
     Constant();
     ~Constant() override = default;
 
-    // Returns true if the free variables in this expressions are parameters.
-    bool is_constant(const Expression* e);
-    // Returns true if the free variables in this expressions are parameters or
-    // genvars. This is a slightly stronger proterty which is useful when
-    // typechecking generate statements.
-    bool is_constant_genvar(const Expression* e);
+    // Returns true if this variable can be statically evaluated at compile
+    // time.  This implies that it contains only parameters and numeric
+    // constants.
+    bool is_static_constant(const Expression* e);
+    // Returns true if this variable can be statically evaluated at elaboration
+    // time. This implies that it contains only parameters, numeric constants,
+    // and genvars.
+    bool is_genvar_constant(const Expression* e);
 
   private:
     bool res_;

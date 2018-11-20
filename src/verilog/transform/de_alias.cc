@@ -144,7 +144,7 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   }
   // Ignore non-const assignments
   for (auto d : *rhs->get_dim()) {
-    if (!Constant().is_constant(d)) {
+    if (!Constant().is_static_constant(d)) {
       return;
     }
   }
@@ -270,7 +270,7 @@ bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
   }
   // If the identifiers have subscripts which disagree, this isn't a self assignment
   for (auto i = lhs->get_dim()->begin(), j = rhs->get_dim()->begin(), ie = lhs->get_dim()->end(); i != ie; ++i, ++j) {
-    if (!Constant().is_constant(*i) || !Constant().is_constant(*j)) {
+    if (!Constant().is_static_constant(*i) || !Constant().is_static_constant(*j)) {
       return false;
     }
     const auto r1 = Evaluate().get_range(*i);

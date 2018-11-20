@@ -44,7 +44,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
 }
 
 Expression* ConstantProp::rewrite(BinaryExpression* be) {
-  if (Constant().is_constant_genvar(be)) {
+  if (Constant().is_static_constant(be)) {
     auto res = new Number(Evaluate().get_value(be), Number::HEX);
     Evaluate().invalidate(be);
     Resolve().invalidate(be);
@@ -54,7 +54,7 @@ Expression* ConstantProp::rewrite(BinaryExpression* be) {
 }
 
 Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
-  if (Constant().is_constant_genvar(ce->get_cond())) {
+  if (Constant().is_static_constant(ce->get_cond())) {
     Expression* res = nullptr;
     if (Evaluate().get_value(ce->get_cond()).to_bool()) {
       res = ce->get_lhs()->accept(this);
@@ -75,7 +75,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
 }
 
 Expression* ConstantProp::rewrite(NestedExpression* ne) {
-  if (Constant().is_constant_genvar(ne)) {
+  if (Constant().is_static_constant(ne)) {
     auto res = new Number(Evaluate().get_value(ne), Number::HEX);
     Evaluate().invalidate(ne);
     Resolve().invalidate(ne);
@@ -85,7 +85,7 @@ Expression* ConstantProp::rewrite(NestedExpression* ne) {
 }
 
 Expression* ConstantProp::rewrite(Concatenation* c) {
-  if (Constant().is_constant_genvar(c)) {
+  if (Constant().is_static_constant(c)) {
     auto res = new Number(Evaluate().get_value(c), Number::HEX);
     Evaluate().invalidate(c);
     Resolve().invalidate(c);
@@ -98,7 +98,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
   if (dynamic_cast<Declaration*>(i->get_parent())) {
     return Rewriter::rewrite(i);
   }
-  if (Constant().is_constant_genvar(i)) {
+  if (Constant().is_static_constant(i)) {
     auto res = new Number(Evaluate().get_value(i), Number::HEX);
     Evaluate().invalidate(i);
     Resolve().invalidate(i);
@@ -108,7 +108,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
 }
 
 Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
-  if (Constant().is_constant_genvar(mc)) {
+  if (Constant().is_static_constant(mc)) {
     auto res = new Number(Evaluate().get_value(mc), Number::HEX);
     Evaluate().invalidate(mc);
     Resolve().invalidate(mc);
@@ -118,7 +118,7 @@ Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
 }
 
 Expression* ConstantProp::rewrite(RangeExpression* re) {
-  if (Constant().is_constant_genvar(re)) {
+  if (Constant().is_static_constant(re)) {
     const auto rng = Evaluate().get_range(re);
     auto res = new RangeExpression(rng.first+1, rng.second);
     Evaluate().invalidate(re);
@@ -129,7 +129,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
 }
 
 Expression* ConstantProp::rewrite(UnaryExpression* ue) {
-  if (Constant().is_constant_genvar(ue)) {
+  if (Constant().is_static_constant(ue)) {
     auto res = new Number(Evaluate().get_value(ue), Number::HEX);
     Evaluate().invalidate(ue);
     Resolve().invalidate(ue);
@@ -139,7 +139,7 @@ Expression* ConstantProp::rewrite(UnaryExpression* ue) {
 }
 
 Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
-  if (Constant().is_constant_genvar(cs->get_if())) {
+  if (Constant().is_static_constant(cs->get_if())) {
     Statement* res = nullptr;
     if (Evaluate().get_value(cs->get_if()).to_bool()) {
       res = cs->get_then()->accept(this);

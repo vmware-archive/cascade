@@ -191,7 +191,7 @@ void TypeCheck::pre_elaboration_check(const CaseGenerateConstruct* cgc) {
     return;
   }
   // CHECK: Constant guard expression 
-  if (!Constant().is_constant(cgc->get_cond())) {
+  if (!Constant().is_static_constant(cgc->get_cond())) {
     error("Non-constant expression appears in the guard for a case generate construct", cgc->get_cond());
   }
   // RECURSE: condition
@@ -204,7 +204,7 @@ void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
   }
   // CHECK: Constant guard expression 
   for (auto c : *igc->get_clauses()) {
-    if (!Constant().is_constant(c->get_if())) {
+    if (!Constant().is_static_constant(c->get_if())) {
       error("Non-constant expression appears in the guard for an if generate construct", c->get_if());
     }
     // RECURSE: condition
@@ -225,7 +225,7 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
     lgc->get_update()->accept(this);
 
     // CHECK: Const loop guard
-    if (!Constant().is_constant_genvar(lgc->get_cond())) {
+    if (!Constant().is_genvar_constant(lgc->get_cond())) {
       error("Non-constant expression appears in the guard for a loop generate construct", lgc->get_cond());
     }
     // CHECK: Initialization and update refer to same variable
@@ -320,7 +320,7 @@ void TypeCheck::multiple_def(const Node* n) {
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i : *id->get_ids()) {
-    if (!i->get_isel()->null() && !Constant().is_constant(i->get_isel()->get())) {
+    if (!i->get_isel()->null() && !Constant().is_static_constant(i->get_isel()->get())) {
       error("Found non-constant expression in instance select", id);
     }
   }
@@ -373,7 +373,7 @@ void TypeCheck::visit(const Identifier* id) {
     if (re->get_type() == RangeExpression::CONSTANT) {
       // CHECK: Non-constant values, values out of range, little-endian ranges
       // EXIT: We can't continue checking if we can't evaluate this range
-      if (!Constant().is_constant(re)) {
+      if (!Constant().is_static_constant(re)) {
         return error("Found non-constant value in constant part-select", id);
       }
       const auto rng = Evaluate().get_range(re);
@@ -381,12 +381,12 @@ void TypeCheck::visit(const Identifier* id) {
         return error("Cascade does not currently support big-endian part-selects", id);
       } 
     } else {
-      if (!Constant().is_constant(re->get_lower())) {
+      if (!Constant().is_static_constant(re->get_lower())) {
         return error("Found non-constant width in indexed part-select", id);
       }
     }
   }
-  if (!Constant().is_constant(*cdr)) {
+  if (!Constant().is_static_constant(*cdr)) {
     // ERROR: Is this a non-constant in a net_lval?
     if (net_lval_) {
       error("Found non-constant bit- or part-select in target of continuous assignment", *cdr);
@@ -516,7 +516,7 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
     error("A nested scope scope with this name already exists in this scope", id);
   }
   // CHECK: Integer initialized to constant value
-  if (!id->get_val()->null() && !Constant().is_constant(id->get_val()->get())) {
+  if (!id->get_val()->null() && !Constant().is_static_constant(id->get_val()->get())) {
     error("Integer initialization requires constant value", id);
   }
   // CHECK: Array properties
@@ -537,7 +537,7 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // CHECK: Width properties
   check_width(ld->get_dim());
   // CHECK: Parameter initialized to constant value
-  if (!Constant().is_constant(ld->get_val())) {
+  if (!Constant().is_static_constant(ld->get_val())) {
     error("Localparam initialization requires constant value", ld);
   }
 }
@@ -573,7 +573,7 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   // CHECK: Width properties
   check_width(pd->get_dim());
   // CHECK: Parameter initialized to constant value
-  if (!Constant().is_constant(pd->get_val())) {
+  if (!Constant().is_static_constant(pd->get_val())) {
     error("Parameter initialization requires constant value", pd);
   }
 }
@@ -593,7 +593,7 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   check_width(rd->get_dim());
   check_array(rd->get_id()->get_dim());
   // CHECK: Registers initialized to constant value
-  if (!rd->get_val()->null() && !Constant().is_constant(rd->get_val()->get())) {
+  if (!rd->get_val()->null() && !Constant().is_static_constant(rd->get_val()->get())) {
     error("Register initialization requires constant value", rd);
   }
 }
@@ -697,7 +697,7 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
 void TypeCheck::check_array(const Many<Expression>* es) {
   for (auto e : *es) {
     // CHECK: Array bounds must be constants
-    if (!Constant().is_constant(e)) {
+    if (!Constant().is_static_constant(e)) {
       return error("Found a non-constant expression in an array declaration", es->get_parent()->get_parent());
     }
     // RECURSE: Check the contents of this array bound
@@ -747,7 +747,7 @@ Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, con
   auto iitr = i->get_dim()->begin();
   auto ritr = r->get_dim()->begin();
   for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
-    if (!Constant().is_constant(*iitr)) {
+    if (!Constant().is_static_constant(*iitr)) {
       // ERROR: Is this a non-constant subscript in a net-lval?
       if (net_lval_) {
         error("Found non-constant array subscript in target of continuous assignment", *iitr);
