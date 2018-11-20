@@ -35,16 +35,120 @@
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 
+using namespace std;
+
 namespace cascade {
 
 ConstantProp::ConstantProp() : Rewriter() { }
 
 void ConstantProp::run(ModuleDeclaration* md) {
+  // Collect net assignments, we'll populate the runtime constant set lazily in
+  // calls to RuntimeConstant::check().
+  for (auto mi : *md->get_items()) {
+    if (auto ca = dynamic_cast<ContinuousAssign*>(mi)) {
+      const auto lhs = ca->get_assign()->get_lhs();
+      const auto r = Resolve().get_resolution(lhs);
+      assert(r != nullptr);
+
+      const auto is_net = dynamic_cast<NetDeclaration*>(r->get_parent()) != nullptr;
+      const auto is_slice = Resolve().is_slice(lhs);
+      const auto is_array = Evaluate().is_array(r);
+      if (is_net && !is_slice && !is_array) {
+        net_assigns_.insert(make_pair(r, ca));
+      }  
+    }
+  }
+
+  // Replace constant expressions with numbers
   md->accept(this);
+
+  // Go back and delete every continuous assignment which was consumed when we
+  // populated the runtime constants set.
+  for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
+    if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
+      const auto lhs = ca->get_assign()->get_lhs();
+      const auto r = Resolve().get_resolution(lhs);
+      assert(r != nullptr);
+
+      const auto is_slice = Resolve().is_slice(lhs);
+      const auto is_array = Evaluate().is_array(r);
+      const auto consumed = runtime_constants_.find(r) != runtime_constants_.end();
+      if (!is_slice && !is_array && consumed) {
+        Resolve().invalidate(*i);
+        i = md->get_items()->purge(i);
+        continue;
+      } 
+    } 
+    ++i;
+  }
+}
+
+bool ConstantProp::is_assign_target(const Identifier* i) const {
+  const auto p = i->get_parent();
+  if (auto va = dynamic_cast<const VariableAssign*>(p)) {
+    const auto pp = p->get_parent();
+    if (dynamic_cast<const ContinuousAssign*>(pp)) {
+      return i == va->get_lhs();
+    }
+  }
+  return false;
+}
+
+ConstantProp::RuntimeConstant::RuntimeConstant(ConstantProp* cp) : Visitor() {
+  cp_ = cp;
+}
+
+bool ConstantProp::RuntimeConstant::check(const Expression* e) {
+  res_ = true;
+  e->accept(this);
+  return res_;
+}
+
+void ConstantProp::RuntimeConstant::visit(const Attributes* as) {
+  // Descending on attributes will cause false negatives.
+  (void) as;
+}
+
+void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
+  Visitor::visit(i);
+
+  // All static constants are runtime constants
+  if (Constant().is_static_constant(i)) {
+    return;
+  }
+  // If we can't resolve this identifier, it's not a runtime constant
+  const auto r = Resolve().get_resolution(i);
+  if (r == nullptr) {
+    res_ = false;
+    return;
+  }
+  // Nothing to do if this variable appears in the runtime constants set
+  if (cp_->runtime_constants_.find(r) != cp_->runtime_constants_.end()) {
+    return;
+  }
+  // If this variable is the target of a continuous assign it might belong
+  // in the runtime constant set
+  auto itr = cp_->net_assigns_.find(r);
+  if (itr != cp_->net_assigns_.end()) {
+    const auto sc = Constant().is_static_constant(itr->second->get_assign()->get_rhs());
+    const auto rc = sc || RuntimeConstant(cp_).check(itr->second->get_assign()->get_rhs());
+    itr = cp_->net_assigns_.find(r);
+    if (sc || rc) {
+      cp_->runtime_constants_.insert(r);
+      Evaluate().assign_value(r, Evaluate().get_value(itr->second->get_assign()->get_rhs()));
+    }
+    cp_->net_assigns_.erase(itr);
+    if (sc || rc) {
+      return;
+    }
+  }
+
+  // No such luck. This isn't a constant.
+  res_ = false;
 }
 
 Expression* ConstantProp::rewrite(BinaryExpression* be) {
-  if (Constant().is_static_constant(be)) {
+  if (RuntimeConstant(this).check(be)) {
     auto res = new Number(Evaluate().get_value(be), Number::HEX);
     Evaluate().invalidate(be);
     Resolve().invalidate(be);
@@ -54,7 +158,7 @@ Expression* ConstantProp::rewrite(BinaryExpression* be) {
 }
 
 Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
-  if (Constant().is_static_constant(ce->get_cond())) {
+  if (RuntimeConstant(this).check(ce->get_cond())) {
     Expression* res = nullptr;
     if (Evaluate().get_value(ce->get_cond()).to_bool()) {
       res = ce->get_lhs()->accept(this);
@@ -75,7 +179,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
 }
 
 Expression* ConstantProp::rewrite(NestedExpression* ne) {
-  if (Constant().is_static_constant(ne)) {
+  if (RuntimeConstant(this).check(ne)) {
     auto res = new Number(Evaluate().get_value(ne), Number::HEX);
     Evaluate().invalidate(ne);
     Resolve().invalidate(ne);
@@ -85,7 +189,7 @@ Expression* ConstantProp::rewrite(NestedExpression* ne) {
 }
 
 Expression* ConstantProp::rewrite(Concatenation* c) {
-  if (Constant().is_static_constant(c)) {
+  if (RuntimeConstant(this).check(c)) {
     auto res = new Number(Evaluate().get_value(c), Number::HEX);
     Evaluate().invalidate(c);
     Resolve().invalidate(c);
@@ -98,7 +202,10 @@ Expression* ConstantProp::rewrite(Identifier* i) {
   if (dynamic_cast<Declaration*>(i->get_parent())) {
     return Rewriter::rewrite(i);
   }
-  if (Constant().is_static_constant(i)) {
+  if (is_assign_target(i)) {
+    return Rewriter::rewrite(i);
+  }
+  if (RuntimeConstant(this).check(i)) {
     auto res = new Number(Evaluate().get_value(i), Number::HEX);
     Evaluate().invalidate(i);
     Resolve().invalidate(i);
@@ -108,7 +215,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
 }
 
 Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
-  if (Constant().is_static_constant(mc)) {
+  if (RuntimeConstant(this).check(mc)) {
     auto res = new Number(Evaluate().get_value(mc), Number::HEX);
     Evaluate().invalidate(mc);
     Resolve().invalidate(mc);
@@ -118,7 +225,7 @@ Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
 }
 
 Expression* ConstantProp::rewrite(RangeExpression* re) {
-  if (Constant().is_static_constant(re)) {
+  if (RuntimeConstant(this).check(re)) {
     const auto rng = Evaluate().get_range(re);
     auto res = new RangeExpression(rng.first+1, rng.second);
     Evaluate().invalidate(re);
@@ -129,7 +236,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
 }
 
 Expression* ConstantProp::rewrite(UnaryExpression* ue) {
-  if (Constant().is_static_constant(ue)) {
+  if (RuntimeConstant(this).check(ue)) {
     auto res = new Number(Evaluate().get_value(ue), Number::HEX);
     Evaluate().invalidate(ue);
     Resolve().invalidate(ue);
@@ -139,7 +246,7 @@ Expression* ConstantProp::rewrite(UnaryExpression* ue) {
 }
 
 Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
-  if (Constant().is_static_constant(cs->get_if())) {
+  if (RuntimeConstant(this).check(cs->get_if())) {
     Statement* res = nullptr;
     if (Evaluate().get_value(cs->get_if()).to_bool()) {
       res = cs->get_then()->accept(this);
