@@ -189,7 +189,7 @@ Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *
       idx,
       BinaryExpression::PLUS,
       new BinaryExpression(
-        new NestedExpression((*iitr++)->clone()),
+        (*iitr++)->clone(),
         BinaryExpression::TIMES,
         new Number(Bits(32, mul*titr->second.element_size()))
       )

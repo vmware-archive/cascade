@@ -162,11 +162,6 @@ void Resolve::edit(ConditionalExpression* ce) {
   release(ce);
 }
 
-void Resolve::edit(NestedExpression* ne) {
-  Editor::edit(ne);
-  release(ne);
-}
-
 void Resolve::edit(Concatenation* c) {
   Editor::edit(c);
   release(c);

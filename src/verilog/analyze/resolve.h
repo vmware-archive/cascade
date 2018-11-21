@@ -93,7 +93,6 @@ class Resolve : public Editor {
     // Editor Interface:
     void edit(BinaryExpression* be) override;
     void edit(ConditionalExpression* ce) override;
-    void edit(NestedExpression* ne) override;
     void edit(Concatenation* c) override;
     void edit(Identifier* id) override;
     void edit(MultipleConcatenation* mc) override;

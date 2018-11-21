@@ -73,10 +73,6 @@ void Editor::edit(ConditionalExpression* ce) {
   ce->get_rhs()->accept(this);
 }
 
-void Editor::edit(NestedExpression* ne) {
-  ne->get_expr()->accept(this);
-}
-
 void Editor::edit(Concatenation* c) {
   c->get_exprs()->accept(this);
 }

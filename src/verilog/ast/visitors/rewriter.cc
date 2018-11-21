@@ -81,11 +81,6 @@ Expression* Rewriter::rewrite(ConditionalExpression* ce) {
   return ce;
 }
 
-Expression* Rewriter::rewrite(NestedExpression* ne) {
-  ne->conditional_replace_expr(ne->get_expr()->accept(this));
-  return ne;
-}
-
 Expression* Rewriter::rewrite(Concatenation* c) {
   c->get_exprs()->accept(this);
   return c;

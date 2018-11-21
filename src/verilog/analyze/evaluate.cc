@@ -297,10 +297,6 @@ void Evaluate::edit(ConditionalExpression* ce) {
   }
 }
 
-void Evaluate::edit(NestedExpression* ne) {
-  ne->bit_val_[0].assign(get_value(ne->get_expr()));
-}
-
 void Evaluate::edit(Concatenation* c) {
   auto i = c->get_exprs()->begin();
   c->bit_val_[0].assign(get_value(*i++));
@@ -469,12 +465,6 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 }
 
-void Evaluate::Invalidate::edit(NestedExpression* ne) {
-  ne->bit_val_.clear();
-  ne->set_flag<0>(true);
-  Editor::edit(ne);
-}
-
 void Evaluate::Invalidate::edit(Concatenation* c) {
   c->bit_val_.clear();
   c->set_flag<0>(true);
@@ -606,15 +596,6 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   size_t w = max(ce->get_lhs()->bit_val_[0].size(), ce->get_rhs()->bit_val_[0].size());
   ce->bit_val_.emplace_back(Bits(w, 0));
   ce->bit_val_[0].set_signed(s);
-}
-
-void Evaluate::SelfDetermine::edit(NestedExpression* ne) {
-  Editor::edit(ne);
-
-  size_t w = ne->get_expr()->bit_val_[0].size();
-  bool s = ne->get_expr()->bit_val_[0].is_signed();
-  ne->bit_val_.emplace_back(Bits(w, 0));
-  ne->bit_val_[0].set_signed(s);
 }
 
 void Evaluate::SelfDetermine::edit(Concatenation* c) {
@@ -903,13 +884,6 @@ void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
 
   Editor::edit(ce);
-}
-
-void Evaluate::ContextDetermine::edit(NestedExpression* ne) {
-  ne->get_expr()->bit_val_[0].set_signed(ne->bit_val_[0].is_signed());
-  ne->get_expr()->bit_val_[0].resize(ne->bit_val_[0].size());
-  
-  Editor::edit(ne);
 }
 
 void Evaluate::ContextDetermine::edit(Concatenation* c) {

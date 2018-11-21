@@ -178,16 +178,6 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
   return Rewriter::rewrite(ce);
 }
 
-Expression* ConstantProp::rewrite(NestedExpression* ne) {
-  if (RuntimeConstant(this).check(ne)) {
-    auto res = new Number(Evaluate().get_value(ne), Number::HEX);
-    Evaluate().invalidate(ne);
-    Resolve().invalidate(ne);
-    return res;
-  }
-  return Rewriter::rewrite(ne);
-}
-
 Expression* ConstantProp::rewrite(Concatenation* c) {
   if (RuntimeConstant(this).check(c)) {
     auto res = new Number(Evaluate().get_value(c), Number::HEX);

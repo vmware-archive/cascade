@@ -48,7 +48,6 @@ class Node;
   class Expression;
     class BinaryExpression;
     class ConditionalExpression;
-    class NestedExpression;
     class Primary;
       class Concatenation;
       class Identifier;

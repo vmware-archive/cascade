@@ -104,24 +104,22 @@ void Printer::visit(const BinaryExpression* be) {
     "||", "**",  "<",  "<=", ">", ">=",  "&",   "|",   "^",  "~^",
     "<<", "<<<", ">>", ">>>"
   }};
+  *this << Color::RED << "(" << Color::RESET;
   be->get_lhs()->accept(this);
   *this << " ";
   *this << Color::RED << ops_[(size_t)be->get_op()] << Color::RESET;
   *this << " ";
   be->get_rhs()->accept(this);
+  *this << Color::RED << ")" << Color::RESET;
 }
 
 void Printer::visit(const ConditionalExpression* ce) {
+  *this << Color::RED << "(" << Color::RESET;
   ce->get_cond()->accept(this);
   *this << Color::RED << " ? " << Color::RESET;
   ce->get_lhs()->accept(this);
   *this << Color::RED << " : " << Color::RESET;
   ce->get_rhs()->accept(this);
-}
-
-void Printer::visit(const NestedExpression* ne) {
-  *this << Color::RED << "(" << Color::RESET;
-  ne->get_expr()->accept(this);
   *this << Color::RED << ")" << Color::RESET;
 }
 

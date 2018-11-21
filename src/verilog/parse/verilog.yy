@@ -1475,7 +1475,7 @@ primary
   | multiple_concatenation { $$ = $1; }
   /* TODO | function_call */
   /* TODO | system_function_call */
-  | OPAREN mintypmax_expression CPAREN { $$ = new NestedExpression($2); }
+  | OPAREN mintypmax_expression CPAREN { $$ = $2; }
   | string_ { 
     $$ = $1; 
     parser->set_loc($$);

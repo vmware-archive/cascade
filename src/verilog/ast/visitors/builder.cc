@@ -109,12 +109,6 @@ Expression* Builder::build(const ConditionalExpression* ce) {
   );
 }
 
-Expression* Builder::build(const NestedExpression* ne) {
-  return new NestedExpression(
-    ne->get_expr()->accept(this)
-  );
-}
-
 Expression* Builder::build(const Concatenation* c) {
   auto exprs = new Many<Expression>();
   for (auto e : *c->get_exprs()) {

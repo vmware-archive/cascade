@@ -72,7 +72,6 @@ class ConstantProp : public Rewriter {
     // Rewriter Interface
     Expression* rewrite(BinaryExpression* be) override;
     Expression* rewrite(ConditionalExpression* ce) override;
-    Expression* rewrite(NestedExpression* ne) override;
     Expression* rewrite(Concatenation* c) override;
     Expression* rewrite(Identifier* i) override;
     Expression* rewrite(MultipleConcatenation* mc) override;

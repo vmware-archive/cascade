@@ -73,10 +73,6 @@ void Visitor::visit(const ConditionalExpression* ce) {
   ce->get_rhs()->accept(this);
 }
 
-void Visitor::visit(const NestedExpression* ne) {
-  ne->get_expr()->accept(this);
-}
-
 void Visitor::visit(const Concatenation* c) {
   c->get_exprs()->accept(this);
 }
