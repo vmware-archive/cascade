@@ -178,7 +178,6 @@
   friend class Event; \
   friend class BinaryExpression; \
   friend class ConditionalExpression; \
-  friend class NestedExpression; \
   friend class Concatenation; \
   friend class Identifier; \
   friend class MultipleConcatenation; \
