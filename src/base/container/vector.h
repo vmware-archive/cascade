@@ -98,9 +98,9 @@ class Vector {
 
 template <typename T>
 inline Vector<T>::Vector() {
-  ts_ = new T[1];   
+  ts_ = nullptr; 
   size_ = 0;
-  capacity_ = 1;
+  capacity_ = 0;
 }
 
 template <typename T>
@@ -126,7 +126,9 @@ inline Vector<T>& Vector<T>::operator=(Vector rhs) {
 
 template <typename T>
 inline Vector<T>::~Vector() {
-  delete[] ts_;
+  if (ts_ != nullptr) {
+    delete[] ts_;
+  }
 }
 
 template <typename T>
@@ -179,8 +181,10 @@ inline void Vector<T>::reserve(size_type n) {
     return;
   }
   auto new_ts = new T[n];
-  std::copy(ts_, ts_ + size_, new_ts);
-  delete[] ts_;
+  if (ts_ != nullptr) {
+    std::copy(ts_, ts_ + size_, new_ts);
+    delete[] ts_;
+  }
   ts_ = new_ts; 
   capacity_ = n;
 }
@@ -241,6 +245,13 @@ inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, const value_
   assert(itr >= begin());
   assert(itr <= end());
 
+  if (itr == nullptr) {
+    reserve(1);
+    ts_[0] = v;
+    size_ = 1;
+    return end();
+  }
+
   const auto delta = itr - ts_;
   reserve(size_ + 1);
   itr = begin() + delta;   
@@ -256,6 +267,13 @@ template <typename T>
 inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, size_type n, const value_type& v) {
   assert(itr >= begin());
   assert(itr <= end());
+
+  if (itr == nullptr) {
+    reserve(n);
+    std::fill_n(begin(), n, v);
+    size_ = n;
+    return end();
+  }
 
   const auto delta = itr - ts_;
   reserve(size_ + n);
@@ -278,6 +296,13 @@ inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, Itr rb, Itr 
   const size_type n = re-rb;
   if (n == 0) {
     return itr;
+  }
+
+  if (itr == nullptr) {
+    reserve(n);
+    std::copy(rb, re, begin());
+    size_ = n;
+    return end();
   }
 
   const auto delta = itr - ts_;
