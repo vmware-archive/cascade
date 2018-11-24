@@ -109,11 +109,8 @@ inline Vector<T>::Vector(size_t n, const value_type& val) : Vector() {
 }
 
 template <typename T>
-inline Vector<T>::Vector(const Vector& rhs) {
-  ts_ = new T[rhs.capacity_];
-  size_ = rhs.size_;
-  capacity_ = rhs.capacity_;
-  std::copy(rhs.begin(), rhs.end(), begin());
+inline Vector<T>::Vector(const Vector& rhs) : Vector() {
+  insert(end(), rhs.begin(), rhs.end());
 }
 
 template <typename T>
@@ -244,14 +241,14 @@ inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, const value_
   assert(itr >= begin());
   assert(itr <= end());
 
-  ++size_;
-
   const auto delta = itr - ts_;
   reserve(size_ + 1);
   itr = begin() + delta;   
 
   std::copy(itr, end(), itr + 1);
   *itr++ = v;
+  ++size_;
+
   return itr;
 }
 
@@ -260,17 +257,15 @@ inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, size_type n,
   assert(itr >= begin());
   assert(itr <= end());
 
-  size_ += n;
-
   const auto delta = itr - ts_;
   reserve(size_ + n);
   itr = begin() + delta;
 
   std::copy(itr, end(), itr+n);
-  for (size_type i = 0; i < n; ++i) {
-    *itr++ = v;
-  }
-  return itr;
+  std::fill_n(itr, n, v);
+  size_ += n;
+
+  return itr + n;
 }
 
 template <typename T>
@@ -285,17 +280,15 @@ inline typename Vector<T>::iterator Vector<T>::insert(iterator itr, Itr rb, Itr 
     return itr;
   }
 
-  size_ += n;
-
   const auto delta = itr - ts_;
   reserve(size_ + n);
   itr = begin() + delta;
 
   std::copy(itr, end(), itr+n);
-  for (size_type i = 0; i < n; ++i) {
-    *itr++ = *rb++;
-  }
-  return itr;
+  std::copy(rb, re, itr);
+  size_ += n;
+
+  return itr + n;
 }
 
 template <typename T>
