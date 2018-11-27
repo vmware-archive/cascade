@@ -81,10 +81,6 @@ Runtime::Runtime(View* view) : Asynchronous() {
 }
 
 Runtime::~Runtime() {
-  if (!disable_inlining_) {
-    program_->outline_all();
-  }
-
   delete program_;
   if (root_ != nullptr) {
     delete root_;

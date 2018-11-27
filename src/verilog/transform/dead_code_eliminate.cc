@@ -31,6 +31,8 @@
 #include "src/verilog/transform/dead_code_eliminate.h"
 
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/navigate.h"
 #include "src/verilog/analyze/resolve.h"
 
 namespace cascade {
@@ -41,6 +43,7 @@ void DeadCodeEliminate::run(ModuleDeclaration* md) {
   Index idx(this);
   md->accept(&idx);
   md->accept(this);
+  ModuleInfo(md).invalidate();
 }
 
 DeadCodeEliminate::Index::Index(DeadCodeEliminate* dce) {
@@ -86,38 +89,53 @@ void DeadCodeEliminate::Index::visit(const RegDeclaration* rd) {
 }
 
 void DeadCodeEliminate::edit(ModuleDeclaration* md) {
+  auto dead = false;
   for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
     if (auto d = dynamic_cast<Declaration*>(*i)) {
       const auto is_port = dynamic_cast<PortDeclaration*>(d->get_parent());
       const auto is_dead = use_.find(d->get_id()) == use_.end();
       if (!is_port && is_dead) {
+        dead = true;
         i = md->get_items()->purge(i);
         continue;
       }
     }
     ++i;
   }
+  if (dead) {
+    Navigate(md).invalidate();
+  }
 }
 
 void DeadCodeEliminate::edit(ParBlock* pb) {
+  auto dead = false;
   for (auto i = pb->get_decls()->begin(); i != pb->get_decls()->end(); ) {
     const auto is_dead = use_.find((*i)->get_id()) == use_.end();
     if (is_dead) {
+      dead = true;
       i = pb->get_decls()->purge(i);
     } else {
       ++i;
     }
   }
+  if (dead) {
+    Navigate(pb).invalidate();
+  }
 }
 
 void DeadCodeEliminate::edit(SeqBlock* sb) {
+  auto dead = false;
   for (auto i = sb->get_decls()->begin(); i != sb->get_decls()->end(); ) {
     const auto is_dead = use_.find((*i)->get_id()) == use_.end();
     if (is_dead) {
+      dead = true;
       i = sb->get_decls()->purge(i);
     } else {
       ++i;
     }
+  }
+  if (dead) {
+    Navigate(sb).invalidate();
   }
 }
 

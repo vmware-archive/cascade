@@ -37,6 +37,8 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/program/elaborate.h"
 
+using namespace std;
+
 namespace cascade {
 
 Inline::Inline() : Editor() { }
@@ -165,6 +167,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
           break;
       }
       d->swap_id(pd->get_decl()->get_id());
+      swap(d->uses_, pd->get_decl()->uses_);
       inline_src->push_back(d);
       delete pd;
     } else if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
@@ -177,6 +180,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
       ld->swap_id(pd->get_id());
+      swap(ld->uses_, pd->uses_);
       inline_src->push_back(ld);
       delete pd;
     } else {
@@ -261,12 +265,6 @@ void Inline::outline_source(ModuleInstantiation* mi) {
     } 
     src->get_items()->push_back(item);
   }
-  // Release any references to the remainder of the code. These are the assign
-  // statements that we introduced in place of the instantiation. 
-  for (auto i : *mi->inline_->get_clauses()->front()->get_then()->get()->get_items()) {
-    Resolve().invalidate(i);
-  }
-
   // Remove what's left of the inlined code and revert decorations
   delete mi->inline_;
   mi->inline_ = nullptr;

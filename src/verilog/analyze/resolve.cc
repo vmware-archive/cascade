@@ -40,10 +40,9 @@ using namespace std;
 
 namespace cascade {
 
-Resolve::Resolve() : Editor() { }
-
-void Resolve::invalidate(Node* n) {
-  n->accept(this);
+void Resolve::invalidate(const Node* n) {
+  Invalidate inv;
+  const_cast<Node*>(n)->accept(&inv);
 }
 
 const Identifier* Resolve::get_resolution(const Identifier* id) {
@@ -52,27 +51,14 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
     return id->resolution_;
   }
   // Slow Path: Perform resolution
-  const auto r = resolution_impl(id);
+  const auto r = cache_resolution(id);
   const_cast<Identifier*>(id)->resolution_ = r;
-
   // Nothing to do if we failed or if this is a self-pointer
   if (r == nullptr || r == id) {
     return r;
   }
   // Otherwise, add self-resolution for the target and update its dependents
   const_cast<Identifier*>(r)->resolution_ = r;
-  for (Node* n = const_cast<Identifier*>(id); ; n = n->get_parent()) {
-    if (auto e = dynamic_cast<Expression*>(n)) {
-      if (find(r->dependents_.begin(), r->dependents_.end(), e) == r->dependents_.end()) {
-        const_cast<Identifier*>(r)->dependents_.push_back(e);
-      }
-      if (find(e->dependencies_.begin(), e->dependencies_.end(), r) == e->dependencies_.end()) {
-        e->dependencies_.push_back(const_cast<Identifier*>(r));
-      }
-    } else if (dynamic_cast<Combinator*>(n) == nullptr) {
-      break;
-    }
-  }
   return r;
 }
 
@@ -108,15 +94,31 @@ const ModuleDeclaration* Resolve::get_origin(const Identifier* id) {
   return get_parent(get_resolution(id));
 }
 
-Resolve::dep_iterator Resolve::dep_begin(const Identifier* id) {
-  return id->dependents_.begin();
+Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
+  const auto r = get_resolution(id);
+  assert(r != nullptr);
+  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  assert(d != nullptr);
+
+  if (d->uses_ == nullptr) {
+    cache_uses(d);
+  }
+  return d->uses_->begin();
 }
 
-Resolve::dep_iterator Resolve::dep_end(const Identifier* id) {
-  return id->dependents_.end();
+Resolve::use_iterator Resolve::use_end(const Identifier* id) {
+  const auto r = get_resolution(id);
+  assert(r != nullptr);
+  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  assert(d != nullptr);
+
+  if (d->uses_ == nullptr) {
+    cache_uses(d);
+  }
+  return d->uses_->end();
 }
 
-const Identifier* Resolve::resolution_impl(const Identifier* id) {
+const Identifier* Resolve::cache_resolution(const Identifier* id) {
   // Attach to the scope that encloses id
   Navigate nav(id);
   if (nav.lost()) {
@@ -152,91 +154,265 @@ const Identifier* Resolve::resolution_impl(const Identifier* id) {
   return nav.find_name(id->get_ids()->back());
 }
 
-void Resolve::edit(BinaryExpression* be) {
-  Editor::edit(be);
-  release(be);
+void Resolve::cache_uses(Declaration* d) {
+  // Navigate to the root of the module hierarchy
+  Navigate nav(d);
+  while (!nav.root()) {
+    nav.up();
+  }
+  assert(!nav.lost());
+
+  // Init and populate use sets 
+  InitCacheUses icu;
+  const_cast<Node*>(nav.where())->accept(&icu);
+  CacheUses cu;
+  const_cast<Node*>(nav.where())->accept(&cu);
 }
 
-void Resolve::edit(ConditionalExpression* ce) {
-  Editor::edit(ce);
-  release(ce);
-}
-
-void Resolve::edit(Concatenation* c) {
-  Editor::edit(c);
-  release(c);
-}
-
-void Resolve::edit(Identifier* id) {
-  Editor::edit(id);
-  release(id);
-  id->resolution_ = nullptr;
-}
-
-void Resolve::edit(MultipleConcatenation* mc) {
-  Editor::edit(mc);
-  release(mc);
-}
-
-void Resolve::edit(Number* n) {
-  Editor::edit(n);
-  release(n);
-}
-
-void Resolve::edit(String* s) {
-  Editor::edit(s);
-  release(s);
-}
-
-void Resolve::edit(RangeExpression* re) {
-  Editor::edit(re);
-  release(re);
-}
-
-void Resolve::edit(UnaryExpression* ue) {
-  Editor::edit(ue);
-  release(ue);
-}
-
-void Resolve::edit(CaseGenerateConstruct* cgc) {
+void Resolve::InitCacheUses::edit(CaseGenerateConstruct* cgc) {
   Editor::edit(cgc);
   if (Elaborate().is_elaborated(cgc)) {
     Elaborate().elaborate(cgc)->accept(this);
   }
 }
 
-void Resolve::edit(IfGenerateConstruct* igc) {
+void Resolve::InitCacheUses::edit(IfGenerateConstruct* igc) {
   Editor::edit(igc);
   if (Elaborate().is_elaborated(igc)) {
     Elaborate().elaborate(igc)->accept(this);
   }
 }
 
-void Resolve::edit(LoopGenerateConstruct* lgc) {
+void Resolve::InitCacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
     Elaborate().elaborate(lgc)->accept(this);
   }
 }
 
-void Resolve::edit(ModuleInstantiation* mi) {
+void Resolve::InitCacheUses::edit(GenvarDeclaration* gd) {
+  if (gd->uses_ == nullptr) {
+    gd->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(IntegerDeclaration* id) {
+  if (id->uses_ == nullptr) {
+    id->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(LocalparamDeclaration* ld) {
+  if (ld->uses_ == nullptr) {
+    ld->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(NetDeclaration* nd) {
+  if (nd->uses_ == nullptr) {
+    nd->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(ParameterDeclaration* pd) {
+  if (pd->uses_ == nullptr) {
+    pd->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(RegDeclaration* rd) {
+  if (rd->uses_ == nullptr) {
+    rd->uses_ = new Vector<const Expression*>();
+  }
+}
+
+void Resolve::InitCacheUses::edit(ModuleInstantiation* mi) {
   Editor::edit(mi);
   if (Elaborate().is_elaborated(mi)) {
     Elaborate().elaborate(mi)->accept(this);
   }
   if (Inline().is_inlined(mi)) {
-    // TODO: We don't have a non-const way of accessing inlined code
-    assert(false);
+    const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);
   }
 }
 
-void Resolve::release(Expression* e) {
-  for (auto d : e->dependencies_) {
-    const auto itr = find(d->dependents_.begin(), d->dependents_.end(), e);
-    assert(itr != d->dependents_.end());
-    d->dependents_.erase(itr);
+void Resolve::CacheUses::edit(Attributes* as) {
+  // Nothing to do. Don't descend past here.
+  (void) as;
+}
+
+void Resolve::CacheUses::edit(Identifier* i) {
+  Editor::edit(i);
+
+  const auto r = Resolve().get_resolution(i);
+  if (r == nullptr) {
+    return;
   }
-  e->dependencies_.clear();
+  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  assert(d != nullptr);
+  assert(d->uses_ != nullptr);
+
+  if (find(d->uses_->begin(), d->uses_->end(), i) != d->uses_->end()) {
+    return;
+  } 
+  d->uses_->push_back(i);
+  for (auto n = i->get_parent(); ; n = n->get_parent()) {
+    if (auto e = dynamic_cast<const Expression*>(n)) {
+      if (find(d->uses_->begin(), d->uses_->end(), e) == d->uses_->end()) {
+        d->uses_->push_back(e);
+      }
+    } else if (dynamic_cast<const Combinator*>(n) == nullptr) {
+      break;
+    }
+  }
+}
+
+void Resolve::CacheUses::edit(CaseGenerateConstruct* cgc) {
+  Editor::edit(cgc);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().elaborate(cgc)->accept(this);
+  }
+}
+
+void Resolve::CacheUses::edit(IfGenerateConstruct* igc) {
+  Editor::edit(igc);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().elaborate(igc)->accept(this);
+  }
+}
+
+void Resolve::CacheUses::edit(LoopGenerateConstruct* lgc) {
+  Editor::edit(lgc);
+  if (Elaborate().is_elaborated(lgc)) {
+    Elaborate().elaborate(lgc)->accept(this);
+  }
+}
+
+void Resolve::CacheUses::edit(GenvarDeclaration* gd) {
+  // Nothing to do. Don't descend past here.
+  (void) gd;
+}
+
+void Resolve::CacheUses::edit(IntegerDeclaration* id) {
+  id->get_val()->accept(this);
+}
+
+void Resolve::CacheUses::edit(LocalparamDeclaration* ld) {
+  ld->get_dim()->accept(this);
+  ld->get_val()->accept(this);
+}
+
+void Resolve::CacheUses::edit(NetDeclaration* nd) {
+  nd->get_dim()->accept(this);
+}
+
+void Resolve::CacheUses::edit(ParameterDeclaration* pd) {
+  pd->get_dim()->accept(this);
+  pd->get_val()->accept(this);
+}
+
+void Resolve::CacheUses::edit(RegDeclaration* rd) {
+  rd->get_dim()->accept(this);
+  rd->get_val()->accept(this);
+}
+
+void Resolve::CacheUses::edit(ModuleInstantiation* mi) {
+  Editor::edit(mi);
+  if (Elaborate().is_elaborated(mi)) {
+    Elaborate().elaborate(mi)->accept(this);
+  }
+  if (Inline().is_inlined(mi)) {
+    const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);
+  }
+}
+
+void Resolve::Invalidate::edit(Attributes* as) {
+  // Don't descend past here
+  (void) as;
+}
+
+void Resolve::Invalidate::edit(Identifier* id) {
+  Editor::edit(id);
+  id->resolution_ = nullptr;
+}
+
+void Resolve::Invalidate::edit(CaseGenerateConstruct* cgc) {
+  Editor::edit(cgc);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().elaborate(cgc)->accept(this);
+  }
+}
+
+void Resolve::Invalidate::edit(IfGenerateConstruct* igc) {
+  Editor::edit(igc);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().elaborate(igc)->accept(this);
+  }
+}
+
+void Resolve::Invalidate::edit(LoopGenerateConstruct* lgc) {
+  Editor::edit(lgc);
+  if (Elaborate().is_elaborated(lgc)) {
+    Elaborate().elaborate(lgc)->accept(this);
+  }
+}
+
+void Resolve::Invalidate::edit(GenvarDeclaration* gd) {
+  Editor::edit(gd);
+  if (gd->uses_ != nullptr) {
+    delete gd->uses_;
+    gd->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(IntegerDeclaration* id) {
+  Editor::edit(id);
+  if (id->uses_ != nullptr) {
+    delete id->uses_;
+    id->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(LocalparamDeclaration* ld) {
+  Editor::edit(ld);
+  if (ld->uses_ != nullptr) {
+    delete ld->uses_;
+    ld->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(NetDeclaration* nd) {
+  Editor::edit(nd);
+  if (nd->uses_ != nullptr) {
+    delete nd->uses_;
+    nd->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(ParameterDeclaration* pd) {
+  Editor::edit(pd);
+  if (pd->uses_ != nullptr) {
+    delete pd->uses_;
+    pd->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(RegDeclaration* rd) {
+  Editor::edit(rd);
+  if (rd->uses_ != nullptr) {
+    delete rd->uses_;
+    rd->uses_ = nullptr;
+  }
+}
+
+void Resolve::Invalidate::edit(ModuleInstantiation* mi) {
+  Editor::edit(mi);
+  if (Elaborate().is_elaborated(mi)) {
+    Elaborate().elaborate(mi)->accept(this);
+  }
+  if (Inline().is_inlined(mi)) {
+    const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);
+  }
 }
 
 } // namespace cascade

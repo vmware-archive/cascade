@@ -31,7 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_DECLARATION_H
 
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/attributes.h"
+#include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/module_item.h"
@@ -42,7 +44,7 @@ class Declaration : public ModuleItem {
   public:
     // Constructors:
     Declaration();
-    ~Declaration() override = default;
+    ~Declaration() override;
 
     // Node Interface:
     Declaration* clone() const override = 0;
@@ -58,9 +60,21 @@ class Declaration : public ModuleItem {
   protected:
     TREE_ATTR(Attributes*, attrs);
     TREE_ATTR(Identifier*, id);
+
+    friend class Inline;
+    friend class Resolve;
+    DECORATION(Vector<const Expression*>*, uses);
 };
 
-inline Declaration::Declaration() : ModuleItem() { }
+inline Declaration::Declaration() : ModuleItem() { 
+  uses_ = nullptr;
+}
+
+inline Declaration::~Declaration() {
+  if (uses_ != nullptr) {
+    delete uses_;
+  }
+}
 
 } // namespace cascade 
 

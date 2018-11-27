@@ -240,6 +240,9 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
       } else if (auto lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(lgc);
         if (!log->error() && expand_gens_) {
+          const auto itr = lgc->get_init()->get_lhs();
+          const auto r = Resolve().get_resolution(itr);
+          Resolve().invalidate(r->get_parent());
           Elaborate().elaborate(lgc)->accept(this);
           Navigate(lgc).invalidate();
         }
@@ -287,23 +290,19 @@ void Program::eval_item(ModuleItem* mi, Log* log, const Parser* p) {
   elabs_.checkpoint();
   elaborate_item(mi, log, p);
 
+  // Several modules may have been affected by this eval. This is true
+  // regardless of succees or failure. Invalidate the entire hierarchy. 
+  for (auto i = elab_begin(), ie = elab_end(); i != ie; ++i) {
+    Navigate(i->second).invalidate();
+    Resolve().invalidate(i->second);
+    ModuleInfo(i->second).invalidate();
+  }
+
   if (log->error()) {
     elabs_.undo();
-    // Invalidate any references to this module item
-    Resolve().invalidate(src->get_items()->back());
-    // Invalidate any scope references to this module item
-    Navigate(src).invalidate();
-    // Delete the module item
     src->get_items()->purge_to(src->get_items()->size()-1);
   } else {
     elabs_.commit();
-  }
-
-  // One or more modules may have been affected by this eval. This is true
-  // regardless of whether succeeded or failed. Invalidate module info for the
-  // entire hierarchy. This is overkill, but it works for now.
-  for (auto i = elab_begin(), ie = elab_end(); i != ie; ++i) {
-    ModuleInfo(i->second).invalidate();
   }
 }
 

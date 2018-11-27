@@ -448,8 +448,8 @@ void Evaluate::init(Expression* e) {
 
 void Evaluate::flag_changed(const Identifier* id) {
   const_cast<Identifier*>(id)->set_flag<0>(false);
-  for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
-    (*i)->set_flag<0>(true);
+  for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
+    const_cast<Expression*>(*i)->set_flag<0>(true);
   }
 }
 
@@ -503,14 +503,6 @@ void Evaluate::Invalidate::edit(UnaryExpression* ue) {
   Editor::edit(ue);
 }
 
-void Evaluate::Invalidate::edit(GenvarDeclaration* gd) {
-  Editor::edit(gd);
-}
-
-void Evaluate::Invalidate::edit(IntegerDeclaration* id) {
-  Editor::edit(id);
-}
-
 void Evaluate::Invalidate::edit(LocalparamDeclaration* ld) {
   ld->get_id()->accept(this);
   // Ignore dim: Don't descend into a different subtree
@@ -532,10 +524,6 @@ void Evaluate::Invalidate::edit(RegDeclaration* rd) {
   rd->get_id()->accept(this);
   // Ignore dim: Don't descend into a different subtree
   rd->get_val()->accept(this);
-}
-
-void Evaluate::Invalidate::edit(VariableAssign* va) {
-  Editor::edit(va);
 }
 
 void Evaluate::SelfDetermine::edit(BinaryExpression* be) {

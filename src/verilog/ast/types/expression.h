@@ -33,7 +33,6 @@
 
 #include <vector>
 #include "src/base/bits/bits.h"
-#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
 
@@ -54,9 +53,6 @@ class Expression : public Node {
   protected:
     friend class Evaluate;
     DECORATION(std::vector<Bits>, bit_val);
-
-    friend class Resolve;
-    DECORATION(Vector<Identifier*>, dependencies);
 };
 
 } // namespace cascade 

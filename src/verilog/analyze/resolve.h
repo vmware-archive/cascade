@@ -44,20 +44,16 @@ namespace cascade {
 // invalidate the resolution decorations for any variables that refer to that
 // scope before it will work correctly.
 
-class Resolve : public Editor {
+class Resolve {
   public:
     // Typedefs:
-    typedef typename Vector<Expression*>::const_iterator dep_iterator;
-
-    // Constructors:
-    Resolve();
-    ~Resolve() override = default;
+    typedef typename Vector<const Expression*>::const_iterator use_iterator;
 
     // Cache Maintenance:
     //
     // Removes dependency references for this node and all of the nodes below
     // it in the AST. 
-    void invalidate(Node* n);
+    void invalidate(const Node* n);
 
     // Resolution:
     //
@@ -81,32 +77,63 @@ class Resolve : public Editor {
 
     // Iterators Interface:
     //
-    // Iterators over the set of expressions that depend on the value of this
-    // variable. For example, the expression i+1 depends on the value of i.
-    dep_iterator dep_begin(const Identifier* id);
-    dep_iterator dep_end(const Identifier* id);
+    // Iterators over the set of expressions that refer to this variable.  For
+    // example, the expression i+1 uses the value of i. Invoking this method on
+    // a variable which cannot be resolved is undefined.
+    use_iterator use_begin(const Identifier* id);
+    use_iterator use_end(const Identifier* id);
 
   private:
-    // Resolution Helpers:
-    const Identifier* resolution_impl(const Identifier* id);
+    // Cached accessor helpers:
+    const Identifier* cache_resolution(const Identifier* id);
+    void cache_uses(Declaration* d);
 
-    // Editor Interface:
-    void edit(BinaryExpression* be) override;
-    void edit(ConditionalExpression* ce) override;
-    void edit(Concatenation* c) override;
-    void edit(Identifier* id) override;
-    void edit(MultipleConcatenation* mc) override;
-    void edit(Number* n) override;
-    void edit(String* s) override;
-    void edit(RangeExpression* re) override;
-    void edit(UnaryExpression* ue) override;
-    void edit(CaseGenerateConstruct* cgc) override;
-    void edit(IfGenerateConstruct* igc) override;
-    void edit(LoopGenerateConstruct* lgc) override;
-    void edit(ModuleInstantiation* mi) override;
-
-    // Cache Maintenance Helpers:
-    void release(Expression* e);
+    // Examines every declaration below this node and inserts an empty use set
+    struct InitCacheUses : public Editor {
+      ~InitCacheUses() override = default;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
+    // Populates use sets
+    struct CacheUses : public Editor {
+      ~CacheUses() override = default;
+      void edit(Attributes* as) override;
+      void edit(Identifier* i) override;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
+    // Invalidation cache information:
+    struct Invalidate : public Editor {
+      ~Invalidate() override = default;
+      void edit(Attributes* as) override;
+      void edit(Identifier* id) override;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
 };
 
 } // namespace cascade

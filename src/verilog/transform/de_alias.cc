@@ -33,6 +33,7 @@
 #include <cassert>
 #include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
+#include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 
@@ -50,16 +51,19 @@ void DeAlias::run(ModuleDeclaration* md) {
   for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
     if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       if (is_self_assign(ca)) {
-        Resolve().invalidate(*i);
         i = md->get_items()->purge(i);
         continue;
       } 
     } 
     ++i;
   }
-  Resolve().invalidate(md->get_items());
   // Delete the table
   delete table_;
+
+  // Invalidate cached state (we haven't added or removed any declarations so
+  // there's no need to invalidate the scope tree).
+  Resolve().invalidate(md);
+  ModuleInfo(md).invalidate();
 }
 
 DeAlias::AliasTable::AliasTable(const ModuleDeclaration* md) : Visitor() { 
@@ -308,15 +312,10 @@ Expression* DeAlias::rewrite(Identifier* id) {
   if (dynamic_cast<PortDeclaration*>(r->get_parent()->get_parent())) {
     return Rewriter::rewrite(id);
   }
-  // Don't rewrite variables we don't have a de-aliasing relationship for
+  // Don't rewrite variables we don't have a de-aliasing relationship for.
+  // Otherwise, return the replacement.
   const auto res = table_->dealias(id);  
-  if (res == nullptr) {
-    return Rewriter::rewrite(id);
-  }
-  // Otherwise, invalidate resolution information for the old variable and
-  // return the replacement. 
-  Resolve().invalidate(id);
-  return res;
+  return (res == nullptr) ? Rewriter::rewrite(id) : res;
 }
 
 ModuleDeclaration* DeAlias::rewrite(ModuleDeclaration* md) {

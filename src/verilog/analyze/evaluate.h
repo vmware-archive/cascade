@@ -147,13 +147,10 @@ class Evaluate : public Editor {
       void edit(Number* n) override;
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
-      void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
-      void edit(VariableAssign* va) override;
     };
     // Uses the self-determination to allocate bits, sizes, and types.
     struct SelfDetermine : public Editor {

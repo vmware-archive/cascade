@@ -32,6 +32,7 @@
 
 #include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
+#include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 
@@ -74,13 +75,17 @@ void ConstantProp::run(ModuleDeclaration* md) {
       const auto is_array = Evaluate().is_array(r);
       const auto consumed = runtime_constants_.find(r) != runtime_constants_.end();
       if (!is_slice && !is_array && consumed) {
-        Resolve().invalidate(*i);
         i = md->get_items()->purge(i);
         continue;
       } 
     } 
     ++i;
   }
+
+  // Invalidate cached state (we haven't added or deleted declarations, so
+  // there's no need to invalidate the scope tree).
+  Resolve().invalidate(md);
+  ModuleInfo(md).invalidate();
 }
 
 bool ConstantProp::is_assign_target(const Identifier* i) const {
@@ -151,7 +156,6 @@ Expression* ConstantProp::rewrite(BinaryExpression* be) {
   if (RuntimeConstant(this).check(be)) {
     auto res = new Number(Evaluate().get_value(be), Number::HEX);
     Evaluate().invalidate(be);
-    Resolve().invalidate(be);
     return res;
   }
   return Rewriter::rewrite(be);
@@ -172,7 +176,6 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
       }
     }
     Evaluate().invalidate(ce);
-    Resolve().invalidate(ce);
     return res;
   }
   return Rewriter::rewrite(ce);
@@ -182,7 +185,6 @@ Expression* ConstantProp::rewrite(Concatenation* c) {
   if (RuntimeConstant(this).check(c)) {
     auto res = new Number(Evaluate().get_value(c), Number::HEX);
     Evaluate().invalidate(c);
-    Resolve().invalidate(c);
     return res;
   }
   return Rewriter::rewrite(c);
@@ -198,7 +200,6 @@ Expression* ConstantProp::rewrite(Identifier* i) {
   if (RuntimeConstant(this).check(i)) {
     auto res = new Number(Evaluate().get_value(i), Number::HEX);
     Evaluate().invalidate(i);
-    Resolve().invalidate(i);
     return res;
   }
   return Rewriter::rewrite(i);
@@ -208,7 +209,6 @@ Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
   if (RuntimeConstant(this).check(mc)) {
     auto res = new Number(Evaluate().get_value(mc), Number::HEX);
     Evaluate().invalidate(mc);
-    Resolve().invalidate(mc);
     return res;
   }
   return Rewriter::rewrite(mc);
@@ -219,7 +219,6 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
     const auto rng = Evaluate().get_range(re);
     auto res = new RangeExpression(rng.first+1, rng.second);
     Evaluate().invalidate(re);
-    Resolve().invalidate(re);
     return res;
   }
   return Rewriter::rewrite(re);
@@ -229,7 +228,6 @@ Expression* ConstantProp::rewrite(UnaryExpression* ue) {
   if (RuntimeConstant(this).check(ue)) {
     auto res = new Number(Evaluate().get_value(ue), Number::HEX);
     Evaluate().invalidate(ue);
-    Resolve().invalidate(ue);
     return res;
   }
   return Rewriter::rewrite(ue);
@@ -249,7 +247,6 @@ Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
         cs->set_else(new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));  
       }
     }
-    Resolve().invalidate(cs);
     return res;
   }
   return Rewriter::rewrite(cs);

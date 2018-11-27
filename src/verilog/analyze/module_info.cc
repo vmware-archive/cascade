@@ -42,7 +42,6 @@ namespace cascade {
 ModuleInfo::ModuleInfo(const ModuleDeclaration* md) : Visitor() {
   md_ = const_cast<ModuleDeclaration*>(md);
   lhs_ = false;
-  refresh();
 }
 
 void ModuleInfo::invalidate() {
@@ -84,94 +83,115 @@ const Identifier* ModuleInfo::id() {
 }
 
 bool ModuleInfo::is_local(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : (md_->locals_.find(r) != md_->locals_.end());
 }
 
 bool ModuleInfo::is_input(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->inputs_.find(r) != md_->inputs_.end();
 }
 
 bool ModuleInfo::is_stateful(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->stateful_.find(r) != md_->stateful_.end();
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->outputs_.find(r) != md_->outputs_.end();
 }
 
 bool ModuleInfo::is_external(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->externals_.find(r) != md_->externals_.end();
 }
 
 bool ModuleInfo::is_read(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->reads_.find(r) != md_->reads_.end();
 }
 
 bool ModuleInfo::is_write(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->writes_.find(r) != md_->writes_.end();
 }
 
 bool ModuleInfo::is_child(const Identifier* id) {
+  refresh();
   const auto r = Resolve().get_resolution(id);
   return r == nullptr ? false : md_->children_.find(r) != md_->children_.end();
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::locals() {
+  refresh();
   return md_->locals_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::inputs() {
+  refresh();
   return md_->inputs_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::outputs() {
+  refresh();
   return md_->outputs_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
+  refresh();
   return md_->stateful_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::externals() {
+  refresh();
   return md_->externals_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::reads() {
+  refresh();
   return md_->reads_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::writes() {
+  refresh();
   return md_->writes_;
 }
 
 const unordered_map<const Identifier*, const ModuleDeclaration*>& ModuleInfo::children() {
+  refresh();
   return md_->children_;
 }
 
 const unordered_set<const Identifier*, HashId, EqId>& ModuleInfo::named_params() {
+  refresh();
   return md_->named_params_;
 }
 
 const Vector<const Identifier*>& ModuleInfo::ordered_params() {
+  refresh();
   return md_->ordered_params_;
 }
 
 const unordered_set<const Identifier*, HashId, EqId>& ModuleInfo::named_ports() {
+  refresh();
   return md_->named_ports_;
 }
 
 const Vector<const Identifier*>& ModuleInfo::ordered_ports() {
+  refresh();
   return md_->ordered_ports_;
 }
 
 const unordered_map<const Identifier*, unordered_map<const Identifier*, const Expression*>>& ModuleInfo::connections() {
+  refresh();
   return md_->connections_;
 }
 
@@ -356,7 +376,7 @@ void ModuleInfo::record_external_write(const Identifier* id) {
 }
 
 void ModuleInfo::record_external_use(const Identifier* id) {
-  for (auto i = Resolve().dep_begin(id), ie = Resolve().dep_end(id); i != ie; ++i) {
+  for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
     // Is this an identifier that resolves here?
     if (auto eid = dynamic_cast<const Identifier*>(*i)) {
       // Nothing to do if this variable appears in this module

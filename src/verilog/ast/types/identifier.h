@@ -67,8 +67,6 @@ class Identifier : public Primary {
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
-    DECORATION(Vector<Expression*>, dependents);
-
     friend class Monitor;
     friend class SwLogic;
     DECORATION(Vector<const Node*>, monitor);
