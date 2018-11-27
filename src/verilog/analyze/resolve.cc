@@ -62,12 +62,6 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
   return r;
 }
 
-bool Resolve::is_slice(const Identifier* id) {
-  const auto r = get_resolution(id);
-  assert(r != nullptr);
-  return (r == id) ? false : (id->get_dim()->size() > r->get_dim()->size());
-}
-
 Identifier* Resolve::get_full_id(const Identifier* id) {
   Navigate nav(id);
   auto fid = new Identifier(
@@ -92,6 +86,22 @@ const ModuleDeclaration* Resolve::get_parent(const Identifier* id) {
 
 const ModuleDeclaration* Resolve::get_origin(const Identifier* id) {
   return get_parent(get_resolution(id));
+}
+
+bool Resolve::is_slice(const Identifier* id) {
+  const auto r = get_resolution(id);
+  assert(r != nullptr);
+  return (r == id) ? false : (id->get_dim()->size() > r->get_dim()->size());
+}
+
+bool Resolve::is_scalar(const Identifier* id) {
+  const auto r = get_resolution(id);
+  assert(r != nullptr);
+  return (id != r) || r->get_dim()->empty();
+}
+
+bool Resolve::is_array(const Identifier* id) {
+  return !is_scalar(id);
 }
 
 Resolve::use_iterator Resolve::use_begin(const Identifier* id) {

@@ -60,9 +60,6 @@ class Resolve {
     // Returns a pointer to the declaration of this variable. Returns nullptr
     // on failure.
     const Identifier* get_resolution(const Identifier* id);
-    // Returns true if this variable contains a slicing subscript. This method
-    // is undefined for identifiers which cannot be resolved.
-    bool is_slice(const Identifier* id);
     // Returns the fully-qualified name of this variable. For example, eg
     // get_full_id(x) might return root.f[0].x. The caller of this method
     // takes responsibility for the resulting memory.
@@ -74,6 +71,19 @@ class Resolve {
     // Returns a pointer to the ModuleDeclaration that this identifier was
     // declared in. Equivalent to calling get_origin(get_resolution(id)).
     const ModuleDeclaration* get_origin(const Identifier* id);
+
+    // Variable Properties: 
+    //
+    // Returns true if this variable contains a slicing subscript. This method
+    // is undefined for identifiers which cannot be resolved.
+    bool is_slice(const Identifier* id);
+    // Returns true for any variable which does not resolve to itself (ie a
+    // reference) or a variable which is part of a scalar declaration.
+    bool is_scalar(const Identifier* id);
+    // Returns false for any variable which does not resolve to itself (ie a
+    // reference) or true for a variable which is part of an array
+    // declaration.
+    bool is_array(const Identifier* id);
 
     // Iterators Interface:
     //

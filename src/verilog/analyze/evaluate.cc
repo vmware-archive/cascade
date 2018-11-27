@@ -34,16 +34,6 @@ using namespace std;
 
 namespace cascade {
 
-bool Evaluate::is_scalar(const Identifier* id) {
-  const auto r = Resolve().get_resolution(id);
-  assert(r != nullptr);
-  return (id != r) || r->get_dim()->empty();
-}
-
-bool Evaluate::is_array(const Identifier* id) {
-  return !is_scalar(id);
-}
-
 vector<size_t> Evaluate::get_arity(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);

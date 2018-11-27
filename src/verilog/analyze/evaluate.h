@@ -62,10 +62,6 @@ class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
-    // Returns true for scalars.
-    bool is_scalar(const Identifier* id);
-    // Returns true for arrays.
-    bool is_array(const Identifier* id);
     // Returns the arity of an expression: an empty vector for scalars, one 
     // value for the length of each dimension for arrays.
     std::vector<size_t> get_arity(const Identifier* id);

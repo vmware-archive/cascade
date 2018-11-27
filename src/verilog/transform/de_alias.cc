@@ -143,7 +143,7 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   // Ignore assignments with left-hand-sides that point to arrays
   const auto r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
-  if (Evaluate().is_array(r)) {
+  if (Resolve().is_array(r)) {
     return;
   }
   // Ignore non-const assignments
@@ -303,7 +303,7 @@ Expression* DeAlias::rewrite(Identifier* id) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite array operations
-  if (Evaluate().is_array(r)) {
+  if (Resolve().is_array(r)) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite references to ports. Mostly we just care about output ports.

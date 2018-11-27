@@ -53,7 +53,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
 
       const auto is_net = dynamic_cast<NetDeclaration*>(r->get_parent()) != nullptr;
       const auto is_slice = Resolve().is_slice(lhs);
-      const auto is_array = Evaluate().is_array(r);
+      const auto is_array = Resolve().is_array(r);
       if (is_net && !is_slice && !is_array) {
         net_assigns_.insert(make_pair(r, ca));
       }  
@@ -72,7 +72,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
       assert(r != nullptr);
 
       const auto is_slice = Resolve().is_slice(lhs);
-      const auto is_array = Evaluate().is_array(r);
+      const auto is_array = Resolve().is_array(r);
       const auto consumed = runtime_constants_.find(r) != runtime_constants_.end();
       if (!is_slice && !is_array && consumed) {
         i = md->get_items()->purge(i);
