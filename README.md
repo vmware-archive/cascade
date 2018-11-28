@@ -44,7 +44,7 @@ If the build didn't succeed (probably because you didn't use the ```--recursive`
 
 3. Check that the build succeeded (all tests should pass)
 ```
-*NIX $ make check
+*NIX $ make test
 ```
 
 Using Cascade
@@ -258,7 +258,7 @@ You can now start Cascade's JIT server by typing the following, where the ```--u
 ```
 Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
 ```
-DE10 $ ./bin/cascade --quartus_server <64-Bit LINUX IP> --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10
+DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10
 ```
 Providing the ```--profile_interval``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
 
@@ -381,8 +381,11 @@ Adding Support for New Backends
 FAQ
 ====
 
-#### Flex fails during build with error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
-This is most likely due to the version of flex you are using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
+#### Flex fails during build with an error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
+This has to do with the version of flex that you're using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
+
+#### Bison fails during build with an error related to ```too many arguments provided to function-like macro``` on OSX.
+(See issue #33) This has to do with the version of bison that you're using. This behavior has so far been observed with bison 3.2.x. Versions 3.0.4 or 3.1 both appear to work.
 
 #### How do I ssh into the DE10's ARM core using a USB cable?
 (Coming soon.)
