@@ -22,4 +22,4 @@ install:
 - "[ $CXX = clang++ ] && export CXX=clang++-3.8 || true"
 script:
   - make
-  - make check
+  - make test

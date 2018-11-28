@@ -111,7 +111,7 @@ BIN=\
 
 ### Top-level commands
 all: ${BIN}
-check: ${GTEST_TARGET}
+test: ${GTEST_TARGET}
 	${MAKE} -C data/test/mips32/asm
 	${MAKE} -C data/test/regex/codegen
 	${MAKE} -C data/test/regex/data

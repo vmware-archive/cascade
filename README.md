@@ -44,7 +44,7 @@ If the build didn't succeed (probably because you didn't use the ```--recursive`
 
 3. Check that the build succeeded (all tests should pass)
 ```
-*NIX $ make check
+*NIX $ make test
 ```
 
 Using Cascade
