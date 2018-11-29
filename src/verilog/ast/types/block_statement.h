@@ -32,7 +32,6 @@
 #define CASCADE_SRC_VERILOG_AST_BLOCK_STATEMENT_H
 
 #include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/statement.h"
 
 namespace cascade {
@@ -50,10 +49,10 @@ class BlockStatement : public Statement {
     void accept(Visitor* v) const override = 0;
 
     // Get/Set:
-    TREE_GET_SET(id)
+    MAYBE_GET_SET(Identifier*, id)
 
   protected:
-    TREE_ATTR(Maybe<Identifier>*, id);
+    MAYBE_ATTR(Identifier*, id);
 };
 
 inline BlockStatement::BlockStatement() : Statement() { }

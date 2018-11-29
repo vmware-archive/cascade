@@ -34,7 +34,6 @@
 #include <cassert>
 #include "src/verilog/ast/types/assign_statement.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/timing_control.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
@@ -43,28 +42,28 @@ namespace cascade {
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
-    NonblockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__);
+    NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~NonblockingAssign() override;
 
     // Node Interface:
-    NODE(NonblockingAssign, TREE(ctrl), TREE(assign))
+    NODE(NonblockingAssign, MAYBE(ctrl), TREE(assign))
     // Get/Set:
-    TREE_GET_SET(ctrl)
+    MAYBE_GET_SET(TimingControl*, ctrl)
     TREE_GET_SET(assign)
 
   private:
-    TREE_ATTR(Maybe<TimingControl>*, ctrl);
+    MAYBE_ATTR(TimingControl*, ctrl);
     TREE_ATTR(VariableAssign*, assign);
 };
 
-inline NonblockingAssign::NonblockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__) : AssignStatement() {
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : AssignStatement() {
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
+  MAYBE_SETUP(ctrl);
   TREE_SETUP(assign); 
 }
 
 inline NonblockingAssign::~NonblockingAssign() {
-  TREE_TEARDOWN(ctrl);
+  MAYBE_TEARDOWN(ctrl);
   TREE_TEARDOWN(assign);
 }
 

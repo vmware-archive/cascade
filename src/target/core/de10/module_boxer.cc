@@ -113,7 +113,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   // Create empty blocks for true and false branches (we'll never populate the
   // false branch)
   const auto t = new SeqBlock(
-    new Maybe<Identifier>(),
+    nullptr,
     new Many<Declaration>(),
     new Many<Statement>()
   );
@@ -139,7 +139,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   ));
   // Insert a new assignment to the next mask
   t->get_stmts()->push_back(new NonblockingAssign(
-    new Maybe<TimingControl>(),
+    nullptr,
     new VariableAssign(
       new Identifier(
         new Many<Id>(new Id("__next_update_mask", nullptr)),
@@ -206,14 +206,14 @@ ModuleBoxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
 Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* args) {
   // Create blocks for true and false (we won't populate the false branch)
   t_ = new SeqBlock(
-    new Maybe<Identifier>(),
+    nullptr,
     new Many<Declaration>(),
     new Many<Statement>()
   );
   const auto f = t_->clone();
   // Insert an assignment to the task mask for this task id
   t_->get_stmts()->push_back(new NonblockingAssign(
-    new Maybe<TimingControl>(),
+    nullptr,
     new VariableAssign(
       new Identifier(
         new Many<Id>(new Id("__next_task_mask", nullptr)),
@@ -290,7 +290,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
 
     // Attach the concatenation to an assignment, we'll always have enough bits now
     t_->get_stmts()->push_back(new NonblockingAssign(
-      new Maybe<TimingControl>(),
+      nullptr,
       new VariableAssign(
         new Identifier(ss.str()),
         rhs

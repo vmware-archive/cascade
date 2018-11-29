@@ -239,12 +239,12 @@ Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
     if (Evaluate().get_value(cs->get_if()).to_bool()) {
       res = cs->get_then()->accept(this);
       if (res == cs->get_then()) {
-        cs->set_then(new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));  
+        cs->set_then(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
       }
     } else {
       res = cs->get_else()->accept(this);
       if (res == cs->get_else()) {
-        cs->set_else(new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));  
+        cs->set_else(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
       }
     }
     return res;

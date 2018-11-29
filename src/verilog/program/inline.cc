@@ -202,7 +202,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     new IfGenerateClause(
       new Number(Bits(true)),
       new Maybe<GenerateBlock>(new GenerateBlock(
-        new Maybe<Identifier>(mi->get_iid()->clone()),
+        mi->get_iid()->clone(),
         true,
         inline_src
       ))

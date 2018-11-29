@@ -37,7 +37,6 @@
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/scope.h"
 #include "src/verilog/ast/types/statement.h"
 
@@ -46,11 +45,11 @@ namespace cascade {
 class SeqBlock : public BlockStatement, public Scope {
   public:
     // Constructors:
-    SeqBlock(Maybe<Identifier>* id__, Many<Declaration>* decls__, Many<Statement>* stmts__);
+    SeqBlock(Identifier* id__, Many<Declaration>* decls__, Many<Statement>* stmts__);
     ~SeqBlock() override;
 
     // Node Interface:
-    NODE(SeqBlock, TREE(id), TREE(decls), TREE(stmts))
+    NODE(SeqBlock, MAYBE(id), TREE(decls), TREE(stmts))
     // Get/Set:
     TREE_GET_SET(decls)
     TREE_GET_SET(stmts)
@@ -60,16 +59,16 @@ class SeqBlock : public BlockStatement, public Scope {
     TREE_ATTR(Many<Statement>*, stmts);
 };
 
-inline SeqBlock::SeqBlock(Maybe<Identifier>* id__, Many<Declaration>* decls__, Many<Statement>* stmts__) : BlockStatement() {
+inline SeqBlock::SeqBlock(Identifier* id__, Many<Declaration>* decls__, Many<Statement>* stmts__) : BlockStatement() {
   parent_ = nullptr;
-  TREE_SETUP(id);
+  MAYBE_SETUP(id);
   TREE_SETUP(decls);
   TREE_SETUP(stmts);
   next_supdate_ = 0;
 }
 
 inline SeqBlock::~SeqBlock() {
-  TREE_TEARDOWN(id);
+  MAYBE_TEARDOWN(id);
   TREE_TEARDOWN(decls);
   TREE_TEARDOWN(stmts);
 }

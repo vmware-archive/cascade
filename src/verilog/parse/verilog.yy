@@ -363,12 +363,12 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<CaseGenerateItem>*> case_generate_item_P
 %type <Many<CaseItem>*> case_item_P
 %type <DelayControl*> delay3_Q
-%type <Maybe<TimingControl>*> delay_or_event_control_Q
+%type <TimingControl*> delay_or_event_control_Q
 %type <Many<Expression>*> dimension_S
 %type <Expression*> eq_ce_Q
 %type <Many<Expression>*> expression_P
 %type <Expression*> expression_Q
-%type <Maybe<Identifier>*> generate_block_id_Q
+%type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
 %type <Many<ModuleItem>*> list_of_port_declarations_Q
 %type <size_t> localparam_L
@@ -1164,7 +1164,7 @@ case_generate_item
   ; 
 generate_block
   : module_or_generate_item { 
-    $$ = new GenerateBlock(new Maybe<Identifier>(), false, $1); 
+    $$ = new GenerateBlock(nullptr, false, $1); 
   }
   | BEGIN_ generate_block_id_Q module_or_generate_item_S END { 
     $$ = new GenerateBlock($2, true, $3);   
@@ -1213,13 +1213,13 @@ always_construct
   ;
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
-    $$ = new BlockingAssign($3,new VariableAssign($1,$4));
+    $$ = new BlockingAssign($3, new VariableAssign($1,$4));
     parser->set_loc($$, $1);
   }
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
-    $$ = new NonblockingAssign($3,new VariableAssign($1,$4));
+    $$ = new NonblockingAssign($3, new VariableAssign($1,$4));
     parser->set_loc($$, $1);
   }
   ;
@@ -1233,18 +1233,18 @@ variable_assignment
 /* A.6.3 Parallel and Sequential Blocks */
 par_block 
   : FORK statement_S JOIN {
-    $$ = new ParBlock(new Maybe<Identifier>(), new Many<Declaration>(), $2);
+    $$ = new ParBlock(nullptr, new Many<Declaration>(), $2);
   }
   | FORK COLON identifier block_item_declaration_S statement_S JOIN {
-    $$ = new ParBlock(new Maybe<Identifier>($3), $4, $5); 
+    $$ = new ParBlock($3, $4, $5); 
   }
   ;
 seq_block 
   : BEGIN_ statement_S END {
-    $$ = new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), $2);
+    $$ = new SeqBlock(nullptr, new Many<Declaration>(), $2);
   }
   | BEGIN_ COLON identifier block_item_declaration_S statement_S END {
-    $$ = new SeqBlock(new Maybe<Identifier>($3), $4, $5); 
+    $$ = new SeqBlock($3, $4, $5); 
   }
   ;
 
@@ -1268,7 +1268,7 @@ statement
 statement_or_null
   : statement { $$ = $1; }
   | /*attribute_instance_S*/ SCOLON { 
-    $$ = new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()); 
+    $$ = new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()); 
   }
   ;
 
@@ -1330,7 +1330,7 @@ wait_statement
 /* A.6.6 Conditional Statements */
 conditional_statement
   : IF OPAREN expression CPAREN statement_or_null %prec THEN {
-    $$ = new ConditionalStatement($3,$5,new SeqBlock(new Maybe<Identifier>(), new Many<Declaration>(), new Many<Statement>()));
+    $$ = new ConditionalStatement($3,$5, new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));
   }
   | IF OPAREN expression CPAREN statement_or_null ELSE statement_or_null {
     $$ = new ConditionalStatement($3,$5,$7);
@@ -1681,8 +1681,8 @@ delay3_Q
   | delay3 { $$ = $1; }
   ;
 delay_or_event_control_Q
-  : %empty { $$ = new Maybe<TimingControl>(); }
-  | delay_or_event_control { $$ = new Maybe<TimingControl>($1); }
+  : %empty { $$ = nullptr; }
+  | delay_or_event_control { $$ = $1; }
   ;
 dimension_S
   : %empty { $$ = new Many<Expression>(); }
@@ -1707,8 +1707,8 @@ expression_Q
   | expression { $$ = $1; }
   ;
 generate_block_id_Q
-  : %empty { $$ = new Maybe<Identifier>(); }
-  | COLON identifier { $$ = new Maybe<Identifier>($2); }
+  : %empty { $$ = nullptr; }
+  | COLON identifier { $$ = $2; }
   ;
 integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }

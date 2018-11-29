@@ -110,7 +110,7 @@ void Visitor::visit(const UnaryExpression* ue) {
 }
 
 void Visitor::visit(const GenerateBlock* gb) {
-  gb->get_id()->accept(this);
+  gb->maybe_accept_id(this);
   gb->get_items()->accept(this);
 }
 
@@ -215,12 +215,12 @@ void Visitor::visit(const PortDeclaration* pd) {
 }
 
 void Visitor::visit(const BlockingAssign* ba) {
-  ba->get_ctrl()->accept(this);
+  ba->maybe_accept_ctrl(this);
   ba->get_assign()->accept(this);
 }
 
 void Visitor::visit(const NonblockingAssign* na) {
-  na->get_ctrl()->accept(this);
+  na->maybe_accept_ctrl(this);
   na->get_assign()->accept(this);
 }
 
@@ -252,13 +252,13 @@ void Visitor::visit(const RepeatStatement* rs) {
 }
 
 void Visitor::visit(const ParBlock* pb) {
-  pb->get_id()->accept(this);
+  pb->maybe_accept_id(this);
   pb->get_decls()->accept(this);
   pb->get_stmts()->accept(this);
 }
 
 void Visitor::visit(const SeqBlock* sb) {
-  sb->get_id()->accept(this);
+  sb->maybe_accept_id(this);
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
 }

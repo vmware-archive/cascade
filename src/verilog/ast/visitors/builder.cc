@@ -175,7 +175,7 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
     }
   }
   return new GenerateBlock(
-    gb->get_id()->accept(this),
+    gb->maybe_accept_id(this),
     gb->get_scope(),
     items
   );
@@ -367,14 +367,14 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 
 Statement* Builder::build(const BlockingAssign* ba) {
   return new BlockingAssign(
-    ba->get_ctrl()->accept(this),
+    ba->maybe_accept_ctrl(this),
     ba->get_assign()->accept(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
   return new NonblockingAssign(
-    na->get_ctrl()->accept(this),
+    na->maybe_accept_ctrl(this),
     na->get_assign()->accept(this)
   );
 }
@@ -437,7 +437,7 @@ Statement* Builder::build(const ParBlock* pb) {
     }
   }
   return new ParBlock(
-    pb->get_id()->accept(this),
+    pb->maybe_accept_id(this),
     decls,
     stmts
   );
@@ -457,7 +457,7 @@ Statement* Builder::build(const SeqBlock* sb) {
     }
   }
   return new SeqBlock(
-    sb->get_id()->accept(this),
+    sb->maybe_accept_id(this),
     decls,
     stmts
   );

@@ -169,12 +169,12 @@ const Identifier* Navigate::name() const {
   assert(location_check());
 
   if (auto gb = dynamic_cast<GenerateBlock*>(where_)) {
-    assert(!gb->get_id()->null());
-    return gb->get_id()->get();
+    assert(gb->is_non_null_id());
+    return gb->get_id();
   }
   if (auto pb = dynamic_cast<ParBlock*>(where_)) {
-    assert(!pb->get_id()->null());
-    return pb->get_id()->get();
+    assert(pb->is_non_null_id());
+    return pb->get_id();
   }
   if (auto md = dynamic_cast<ModuleDeclaration*>(where_)) {
     auto p = md->get_parent();
@@ -186,12 +186,12 @@ const Identifier* Navigate::name() const {
     return mi->get_iid();
   }
   if (auto pb = dynamic_cast<ParBlock*>(where_)) {
-    assert(!pb->get_id()->null());
-    return pb->get_id()->get();
+    assert(pb->is_non_null_id());
+    return pb->get_id();
   }
   if (auto sb = dynamic_cast<SeqBlock*>(where_)) {
-    assert(!sb->get_id()->null());
-    return sb->get_id()->get();
+    assert(sb->is_non_null_id());
+    return sb->get_id();
   }
 
   assert(false);
@@ -257,11 +257,11 @@ Navigate::child_iterator Navigate::child_end() const {
 
 bool Navigate::boundary_check() const {
   if (auto gb = dynamic_cast<const GenerateBlock*>(where_)) {
-    if (!gb->get_id()->null()) {
+    if (gb->is_non_null_id()) {
       return true; 
     }
   } else if (auto bs = dynamic_cast<const BlockStatement*>(where_)) {
-    if (!bs->get_id()->null()) {
+    if (bs->is_non_null_id()) {
       return true; 
     }
   } else if (dynamic_cast<const ModuleDeclaration*>(where_)) {
@@ -292,14 +292,14 @@ void Navigate::cache_name(const Identifier* id) {
 
 void Navigate::visit(const GenerateBlock* gb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == gb || gb->get_id()->null()) {
+  if (where_ == gb || gb->is_null_id()) {
     gb->get_items()->accept(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(gb->get_id()->get()->get_ids()->front(), gb));
+  s->schildren_.insert(make_pair(gb->get_id()->get_ids()->front(), gb));
 }
 
 void Navigate::visit(const CaseGenerateConstruct* cgc) {
@@ -361,7 +361,7 @@ void Navigate::visit(const ModuleInstantiation* mi) {
 
 void Navigate::visit(const ParBlock* pb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == pb || pb->get_id()->null()) {
+  if (where_ == pb || pb->is_null_id()) {
     pb->get_decls()->accept(this);        
     pb->get_stmts()->accept(this);        
     return;
@@ -369,12 +369,12 @@ void Navigate::visit(const ParBlock* pb) {
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(pb->get_id()->get()->get_ids()->front(), pb));
+  s->schildren_.insert(make_pair(pb->get_id()->get_ids()->front(), pb));
 }
 
 void Navigate::visit(const SeqBlock* sb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == sb || sb->get_id()->null()) {
+  if (where_ == sb || sb->is_null_id()) {
     sb->get_decls()->accept(this);        
     sb->get_stmts()->accept(this);        
     return;
@@ -382,7 +382,7 @@ void Navigate::visit(const SeqBlock* sb) {
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(sb->get_id()->get()->get_ids()->front(), sb));
+  s->schildren_.insert(make_pair(sb->get_id()->get_ids()->front(), sb));
 }
 
 void Navigate::refresh() {

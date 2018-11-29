@@ -118,7 +118,7 @@ Expression* Rewriter::rewrite(UnaryExpression* ue) {
 }
 
 GenerateBlock* Rewriter::rewrite(GenerateBlock* gb) {
-  gb->get_id()->accept(this);
+  gb->conditional_replace_id(gb->maybe_accept_id(this));
   gb->get_items()->accept(this);
   return gb;
 }
@@ -247,13 +247,13 @@ ModuleItem* Rewriter::rewrite(PortDeclaration* pd) {
 }
 
 Statement* Rewriter::rewrite(BlockingAssign* ba) {
-  ba->get_ctrl()->accept(this);
+  ba->conditional_replace_ctrl(ba->maybe_accept_ctrl(this));
   ba->get_assign()->accept(this);
   return ba;
 }
 
 Statement* Rewriter::rewrite(NonblockingAssign* na) {
-  na->get_ctrl()->accept(this);
+  na->conditional_replace_ctrl(na->maybe_accept_ctrl(this));
   na->get_assign()->accept(this);
   return na;
 }
@@ -291,14 +291,14 @@ Statement* Rewriter::rewrite(RepeatStatement* rs) {
 }
 
 Statement* Rewriter::rewrite(ParBlock* pb) {
-  pb->get_id()->accept(this);
+  pb->conditional_replace_id(pb->maybe_accept_id(this));
   pb->get_decls()->accept(this);
   pb->get_stmts()->accept(this);
   return pb;
 }
 
 Statement* Rewriter::rewrite(SeqBlock* sb) {
-  sb->get_id()->accept(this);
+  sb->conditional_replace_id(sb->maybe_accept_id(this));
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
   return sb;

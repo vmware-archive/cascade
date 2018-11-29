@@ -192,11 +192,11 @@ void Printer::visit(const UnaryExpression* ue) {
 }
 
 void Printer::visit(const GenerateBlock* gb) {
-  const auto surround = gb->get_scope() || (gb->get_items()->size() > 1) || !gb->get_id()->null();
+  const auto surround = gb->get_scope() || (gb->get_items()->size() > 1) || gb->is_non_null_id();
   if (surround) {
     *this << Color::GREEN << "begin" << Color::RESET;
   }
-  if (!gb->get_id()->null()) {
+  if (gb->is_non_null_id()) {
     *this << Color::RED << " : " << Color::RESET;
     gb->get_id()->accept(this);
   }
@@ -440,7 +440,7 @@ void Printer::visit(const PortDeclaration* pd) {
 void Printer::visit(const BlockingAssign* ba) {
   ba->get_assign()->get_lhs()->accept(this);
   *this << Color::RED << " = " << Color::RESET;
-  ba->get_ctrl()->accept(this, []{}, [this]{*this << " ";});
+  ba->maybe_accept_ctrl(this, []{}, [this]{*this << " ";});
   ba->get_assign()->get_rhs()->accept(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -448,7 +448,7 @@ void Printer::visit(const BlockingAssign* ba) {
 void Printer::visit(const NonblockingAssign* na) {
   na->get_assign()->get_lhs()->accept(this);
   *this << Color::RED << " <= " << Color::RESET;
-  na->get_ctrl()->accept(this, []{}, [this]{*this << " ";});
+  na->maybe_accept_ctrl(this, []{}, [this]{*this << " ";});
   na->get_assign()->get_rhs()->accept(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -525,7 +525,7 @@ void Printer::visit(const RepeatStatement* rs) {
 
 void Printer::visit(const ParBlock* pb) { 
   *this << Color::GREEN << "fork" << Color::RESET;
-  if (!pb->get_id()->null()) {
+  if (pb->is_non_null_id()) {
     *this << Color::RED << " : " << Color::RESET;
     pb->get_id()->accept(this);
   }
@@ -539,7 +539,7 @@ void Printer::visit(const ParBlock* pb) {
 
 void Printer::visit(const SeqBlock* sb) { 
   *this << Color::GREEN << "begin" << Color::RESET;
-  if (!sb->get_id()->null()) {
+  if (sb->is_non_null_id()) {
     *this << Color::RED << " : " << Color::RESET;
     sb->get_id()->accept(this);
   }

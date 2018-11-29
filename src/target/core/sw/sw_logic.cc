@@ -269,7 +269,7 @@ void SwLogic::visit(const ContinuousAssign* ca) {
 
 void SwLogic::visit(const BlockingAssign* ba) {
   // TODO: Support for timing control
-  assert(ba->get_ctrl()->null());
+  assert(ba->is_null_ctrl());
 
   schedule_now(ba->get_assign());
   notify(ba);
@@ -277,7 +277,7 @@ void SwLogic::visit(const BlockingAssign* ba) {
 
 void SwLogic::visit(const NonblockingAssign* na) {
   // TODO: Support for timing control
-  assert(na->get_ctrl()->null());
+  assert(na->is_null_ctrl());
   
   if (!silent_) {
     const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());

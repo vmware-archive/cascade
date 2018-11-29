@@ -35,7 +35,6 @@
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/node.h"
 #include "src/verilog/ast/types/scope.h"
@@ -45,32 +44,32 @@ namespace cascade {
 class GenerateBlock : public Node, public Scope {
   public:
     // Constructors:
-    GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__);
+    GenerateBlock(Identifier* id__, bool scope__, Many<ModuleItem>* items__);
     ~GenerateBlock() override;
 
     // Node Interface:
-    NODE(GenerateBlock, TREE(id), LEAF(scope), TREE(items))
+    NODE(GenerateBlock, MAYBE(id), LEAF(scope), TREE(items))
     // Get/Set:
-    TREE_GET_SET(id)
+    MAYBE_GET_SET(Identifier*, id)
     LEAF_GET_SET(scope)
     TREE_GET_SET(items)
 
   private:
-    TREE_ATTR(Maybe<Identifier>*, id);
+    MAYBE_ATTR(Identifier*, id);
     LEAF_ATTR(bool, scope);
     TREE_ATTR(Many<ModuleItem>*, items);
 };
 
-inline GenerateBlock::GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
+inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(id);
+  MAYBE_SETUP(id);
   LEAF_SETUP(scope);
   TREE_SETUP(items);
   next_supdate_ = 0;
 }
 
 inline GenerateBlock::~GenerateBlock() {
-  TREE_TEARDOWN(id);
+  MAYBE_TEARDOWN(id);
   LEAF_TEARDOWN(scope);
   TREE_TEARDOWN(items);
 }

@@ -112,7 +112,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     return lgc->gen_;
   }
 
-  auto id = lgc->get_block()->get_id()->null() ? get_name(lgc) : lgc->get_block()->get_id()->get()->clone();
+  auto id = lgc->get_block()->is_null_id() ? get_name(lgc) : lgc->get_block()->get_id()->clone();
   auto blocks = new Many<GenerateBlock>();
 
   const auto itr = lgc->get_init()->get_lhs();
@@ -129,13 +129,13 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
       new Number(Evaluate().get_value(itr))
     );
     const auto block = new GenerateBlock(
-      new Maybe<Identifier>(new Identifier(
+      new Identifier(
         new Many<Id>(new Id(
           id->get_ids()->front()->get_sid(), 
           new Number(Evaluate().get_value(itr))
         )),
         new Many<Expression>()
-      )),
+      ),
       true,
       new Many<ModuleItem>(lpd)
     );
@@ -213,7 +213,7 @@ void Elaborate::ordered_params(ModuleInstantiation* mi) {
 void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock>* b) {
   cgc->gen_ = b;  
   // Nothing to do if this block was already named
-  if (b->null() || !b->get()->get_id()->null()) {
+  if (b->null() || b->get()->is_non_null_id()) {
     return;
   }
   // Also nothing to do if this is a directly nested block without begin/ends
@@ -228,7 +228,7 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock
     }
   }
   // Otherwise, attach the next name for this scope
-  b->get()->get_id()->replace(get_name(cgc));
+  b->get()->replace_id(get_name(cgc));
 }
 
 Identifier* Elaborate::get_name(GenerateConstruct* gc) {

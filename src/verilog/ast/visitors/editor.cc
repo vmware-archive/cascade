@@ -105,7 +105,7 @@ void Editor::edit(UnaryExpression* ue) {
 }
 
 void Editor::edit(GenerateBlock* gb) {
-  gb->get_id()->accept(this);
+  gb->maybe_accept_id(this);
   gb->get_items()->accept(this);
 }
 
@@ -215,12 +215,12 @@ void Editor::edit(PortDeclaration* pd) {
 }
 
 void Editor::edit(BlockingAssign* ba) {
-  ba->get_ctrl()->accept(this);
+  ba->maybe_accept_ctrl(this);
   ba->get_assign()->accept(this);
 }
 
 void Editor::edit(NonblockingAssign* na) {
-  na->get_ctrl()->accept(this);
+  na->maybe_accept_ctrl(this);
   na->get_assign()->accept(this);
 }
 
@@ -252,13 +252,13 @@ void Editor::edit(RepeatStatement* rs) {
 }
 
 void Editor::edit(ParBlock* pb) {
-  pb->get_id()->accept(this);
+  pb->maybe_accept_id(this);
   pb->get_decls()->accept(this);
   pb->get_stmts()->accept(this);
 }
 
 void Editor::edit(SeqBlock* sb) {
-  sb->get_id()->accept(this);
+  sb->maybe_accept_id(this);
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
 }
