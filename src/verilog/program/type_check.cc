@@ -83,10 +83,10 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   // RECURSE: Implicit params and ports
   const auto backup = exists_bad_id_;
   for (auto p : *mi->get_params()) {
-    p->get_imp()->accept(this);
+    p->maybe_accept_imp(this);
   }
   for (auto p : *mi->get_ports()) {
-    p->get_imp()->accept(this);
+    p->maybe_accept_imp(this);
   }
   // EXIT: Arity checking will fail without access to resolvable ports
   if (exists_bad_id_) {
@@ -130,10 +130,10 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     const auto& np = ModuleInfo(src).named_params();
     unordered_set<const Identifier*, HashId, EqId> params;
     for (auto p : *mi->get_params()) {
-      if (!params.insert(p->get_exp()->get()).second) {
+      if (!params.insert(p->get_exp()).second) {
         error("Instantiation contains duplicate named params", mi);
       }
-      if (np.find(p->get_exp()->get()) == np.end()) {
+      if (np.find(p->get_exp()) == np.end()) {
         error("Instantiation contains a reference to unresolvable parameter", mi);
       }
     }
@@ -150,38 +150,38 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     const auto& np = ModuleInfo(src).named_ports();
     unordered_set<const Identifier*, HashId, EqId> ports;
     for (auto p : *mi->get_ports()) {
-      if (!ports.insert(p->get_exp()->get()).second) {
+      if (!ports.insert(p->get_exp()).second) {
         error("Instantiation contains duplicate named connections", mi);
       }
-      const auto itr = np.find(p->get_exp()->get());
+      const auto itr = np.find(p->get_exp());
       if (itr == np.end()) {
         error("Instantiation contains a reference to an unresolvable explicit port", mi);
         continue;
       }
-      if (p->get_imp()->null()) {
+      if (p->is_null_imp()) {
         continue;
       }
       if (ModuleInfo(src).is_output(*itr)) {
-        if (dynamic_cast<const Identifier*>(p->get_imp()->get()) == nullptr) {
+        if (dynamic_cast<const Identifier*>(p->get_imp()) == nullptr) {
           error("Instantiation contains a connection between an expression and a named output port", mi);
         }
       }
-      check_arity(mi, *itr, p->get_imp()->get());
+      check_arity(mi, *itr, p->get_imp());
     }
   } 
   if (!mi->uses_named_ports()) {
     const auto& op = ModuleInfo(src).ordered_ports();
     for (size_t i = 0, ie = min(op.size(), mi->get_ports()->size()); i < ie; ++i) {
       const auto p = mi->get_ports()->get(i);
-      if (p->get_imp()->null()) {
+      if (p->is_null_imp()) {
         continue;
       }
       if (ModuleInfo(src).is_output(op[i])) {
-        if (dynamic_cast<const Identifier*>(p->get_imp()->get()) == nullptr) {
+        if (dynamic_cast<const Identifier*>(p->get_imp()) == nullptr) {
           error("Instantiation contains a connection between an expression and an ordered output port", mi);
         }
       }
-      check_arity(mi, op[i], p->get_imp()->get());
+      check_arity(mi, op[i], p->get_imp());
     }
   }
 }
@@ -320,7 +320,7 @@ void TypeCheck::multiple_def(const Node* n) {
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i : *id->get_ids()) {
-    if (!i->get_isel()->null() && !Constant().is_static_constant(i->get_isel()->get())) {
+    if (i->is_non_null_isel() && !Constant().is_static_constant(i->get_isel())) {
       error("Found non-constant expression in instance select", id);
     }
   }
@@ -430,13 +430,13 @@ void TypeCheck::visit(const GenerateBlock* gb) {
 void TypeCheck::visit(const ModuleDeclaration* md) {
   // CHECK: implicit or explict ports that are not simple ids
   for (auto p : *md->get_ports()) {
-    if (!p->get_exp()->null()) {
+    if (p->is_non_null_exp()) {
       error("Cascade does not currently support the use of explicit ports in module declarations", p);
     }
-    if (p->get_imp()->null()) {
+    if (p->is_null_imp()) {
       error("Found a missing implicit port in module declaration", md);
     }
-    auto imp = dynamic_cast<const Identifier*>(p->get_imp()->get());
+    auto imp = dynamic_cast<const Identifier*>(p->get_imp());
     if (imp == nullptr) {
       error("Cascade does not currently support the use of implicit ports which are not identifiers", p);
     } else {

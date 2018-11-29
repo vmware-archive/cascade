@@ -37,8 +37,8 @@ using namespace std;
 
 namespace cascade {
 
-size_t HashId::operator()(const Maybe<Expression>* e) const {
-  return e->null() ? 0 : Evaluate().get_value(e->get()).to_int();
+size_t HashId::operator()(const Expression* e) const {
+  return (e == nullptr) ? 0 : Evaluate().get_value(e).to_int();
 }
 
 size_t HashId::operator()(const Id* id) const {
@@ -53,11 +53,11 @@ size_t HashId::operator()(const Identifier* id) const {
   return res;
 }
 
-bool EqId::operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) const {
-  if (e1->null() && e2->null()) {
+bool EqId::operator()(const Expression* e1, const Expression* e2) const {
+  if ((e1 == nullptr) && (e2 == nullptr)) {
     return true;
-  } else if (!e1->null() && !e2->null()) {
-    return Evaluate().get_value(e1->get()).to_int() == Evaluate().get_value(e2->get()).to_int();
+  } else if ((e1 != nullptr) && (e2 != nullptr)) {
+    return Evaluate().get_value(e1).to_int() == Evaluate().get_value(e2).to_int();
   } else {
     return false;
   }
@@ -79,13 +79,13 @@ bool EqId::operator()(const Identifier* id1, const Identifier* id2) const {
   return true;
 }
 
-bool LtId::operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) const {
-  if (e1->null() && e2->null()) {
+bool LtId::operator()(const Expression* e1, const Expression* e2) const {
+  if ((e1 == nullptr) && (e2 == nullptr)) {
     return false;
-  } else if (!e1->null() && !e2->null()) {
-    return Evaluate().get_value(e1->get()).to_int() < Evaluate().get_value(e2->get()).to_int();
+  } else if ((e1 != nullptr) && (e2 != nullptr)) {
+    return Evaluate().get_value(e1).to_int() < Evaluate().get_value(e2).to_int();
   } else {
-    return e1->null();
+    return e1 == nullptr;
   } 
 }
 

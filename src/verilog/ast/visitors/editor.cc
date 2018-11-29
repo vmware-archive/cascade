@@ -35,8 +35,8 @@
 namespace cascade {
 
 void Editor::edit(ArgAssign* aa) {
-  aa->get_exp()->accept(this);
-  aa->get_imp()->accept(this);
+  aa->maybe_accept_exp(this);
+  aa->maybe_accept_imp(this);
 }
 
 void Editor::edit(Attributes* a) {
@@ -110,7 +110,7 @@ void Editor::edit(GenerateBlock* gb) {
 }
 
 void Editor::edit(Id* i) {
-  i->get_isel()->accept(this);
+  i->maybe_accept_isel(this);
 }
 
 void Editor::edit(IfGenerateClause* igc) {

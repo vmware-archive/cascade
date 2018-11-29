@@ -132,7 +132,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
       new Maybe<Identifier>(new Identifier(
         new Many<Id>(new Id(
           id->get_ids()->front()->get_sid(), 
-          new Maybe<Expression>(new Number(Evaluate().get_value(itr)))
+          new Number(Evaluate().get_value(itr))
         )),
         new Many<Expression>()
       )),
@@ -185,9 +185,9 @@ bool Elaborate::is_elaborated(const LoopGenerateConstruct* lgc) {
 void Elaborate::named_params(ModuleInstantiation* mi) {
   unordered_map<const Identifier*, const Expression*, HashId, EqId> params;
   for (auto p : *mi->get_params()) {
-    assert(!p->get_exp()->null());
-    assert(!p->get_imp()->null());
-    params[p->get_exp()->get()] = p->get_imp()->get();
+    assert(p->is_non_null_exp());
+    assert(p->is_non_null_imp());
+    params[p->get_exp()] = p->get_imp();
   }
 
   for (auto inst : *mi->inst_->get_items()) {
@@ -205,7 +205,7 @@ void Elaborate::ordered_params(ModuleInstantiation* mi) {
   for (auto item : *mi->inst_->get_items()) {
     if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
       const auto p = mi->get_params()->get(idx++);
-      const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(p->get_imp()->get())));
+      const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(p->get_imp())));
     }
   }
 }

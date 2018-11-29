@@ -35,8 +35,8 @@
 namespace cascade {
 
 ArgAssign* Rewriter::rewrite(ArgAssign* aa) {
-  aa->conditional_replace_exp(aa->get_exp()->accept(this));
-  aa->conditional_replace_imp(aa->get_imp()->accept(this));
+  aa->conditional_replace_exp(aa->maybe_accept_exp(this));
+  aa->conditional_replace_imp(aa->maybe_accept_imp(this));
   return aa;
 }
 
@@ -124,7 +124,7 @@ GenerateBlock* Rewriter::rewrite(GenerateBlock* gb) {
 }
 
 Id* Rewriter::rewrite(Id* i) {
-  i->get_isel()->accept(this);
+  i->maybe_accept_isel(this);
   return i;
 }
 

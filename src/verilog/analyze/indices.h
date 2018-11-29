@@ -42,7 +42,7 @@ namespace cascade {
 // These methods are undefined for identifiers whos free variables are not
 // compile-time constants.
 struct HashId {
-  size_t operator()(const Maybe<Expression>* e) const;
+  size_t operator()(const Expression* e) const;
   size_t operator()(const Id* id) const;
   size_t operator()(const Identifier* id) const;
 };
@@ -53,7 +53,7 @@ struct HashId {
 // correctly.  These methods are undefined for identifiers whos free variables
 // are not compile-time constants.
 struct EqId {
-  bool operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) const;
+  bool operator()(const Expression* e1, const Expression* e2) const;
   bool operator()(const Id* id1, const Id* id2) const;
   bool operator()(const Identifier* id1, const Identifier* id2) const;
 };
@@ -64,7 +64,7 @@ struct EqId {
 // correctly.  These methods are undefined for identifiers whos free variables
 // are not compile-time constants.
 struct LtId {
-  bool operator()(const Maybe<Expression>* e1, const Maybe<Expression>* e2) const;
+  bool operator()(const Expression* e1, const Expression* e2) const;
   bool operator()(const Id* id1, const Id* id2) const;
   bool operator()(const Identifier* id1, const Identifier* id2) const;
 };

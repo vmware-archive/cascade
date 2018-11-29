@@ -109,7 +109,7 @@ inline ModuleInstantiation::~ModuleInstantiation() {
 }
 
 inline bool ModuleInstantiation::uses_named_params() const {
-  return params_->empty() || !params_->front()->get_exp()->null();
+  return params_->empty() || params_->front()->is_non_null_exp();
 }
 
 inline bool ModuleInstantiation::uses_ordered_params() const {
@@ -117,7 +117,7 @@ inline bool ModuleInstantiation::uses_ordered_params() const {
 }
 
 inline bool ModuleInstantiation::uses_named_ports() const {
-  return ports_->empty() || !ports_->front()->get_exp()->null();  
+  return ports_->empty() || ports_->front()->is_non_null_exp();  
 }
 
 inline bool ModuleInstantiation::uses_ordered_ports() const {

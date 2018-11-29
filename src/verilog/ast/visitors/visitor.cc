@@ -35,8 +35,8 @@
 namespace cascade {
 
 void Visitor::visit(const ArgAssign* aa) {
-  aa->get_exp()->accept(this);
-  aa->get_imp()->accept(this);
+  aa->maybe_accept_exp(this);
+  aa->maybe_accept_imp(this);
 }
 
 void Visitor::visit(const Attributes* a) {
@@ -115,7 +115,7 @@ void Visitor::visit(const GenerateBlock* gb) {
 }
 
 void Visitor::visit(const Id* i) {
-  i->get_isel()->accept(this);
+  i->maybe_accept_isel(this);
 }
 
 void Visitor::visit(const ModuleDeclaration* md) {

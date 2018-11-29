@@ -99,7 +99,7 @@ pair<string, size_t> Parser::get_loc(const Node* n) const {
 
 void Parser::edit(ModuleDeclaration* md) {
   // PARSER ARTIFACT: Fix empty port list
-  if (md->get_ports()->size() == 1 && md->get_ports()->front()->get_imp()->null()) {
+  if (md->get_ports()->size() == 1 && md->get_ports()->front()->is_null_imp()) {
     md->get_ports()->purge_to(0);
   }
   md->get_items()->accept(this);
@@ -107,11 +107,11 @@ void Parser::edit(ModuleDeclaration* md) {
 
 void Parser::edit(ModuleInstantiation* mi) {
   // PARSER ARTIFACT: Fix empty param list
-  if (mi->get_params()->size() == 1 && mi->get_params()->front()->get_imp()->null()) {
+  if (mi->get_params()->size() == 1 && mi->get_params()->front()->is_null_imp()) {
     mi->get_params()->purge_to(0);
   }
   // PARSER ARTIFICAT: Fix empty port list
-  if (mi->get_ports()->size() == 1 && mi->get_ports()->front()->get_imp()->null()) {
+  if (mi->get_ports()->size() == 1 && mi->get_ports()->front()->is_null_imp()) {
     mi->get_ports()->purge_to(0);
   } 
 }

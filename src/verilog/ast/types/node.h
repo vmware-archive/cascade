@@ -53,7 +53,7 @@ class Node {
     virtual Node* accept(Rewriter* r) = 0;
 
     // Get/Set:
-    GET(parent);
+    TREE_GET(parent);
 
   private:
     friend class Elaborate;

@@ -200,7 +200,7 @@ Identifier* Isolate::to_local_id(const Identifier* id) {
   stringstream ss;
   ss << "__l" << isolate(id);
   return new Identifier(
-    new Many<Id>(new Id(ss.str(), new Maybe<Expression>())),
+    new Many<Id>(new Id(ss.str(), nullptr)),
     id->get_dim()->accept(this)
   );
 }
@@ -209,7 +209,7 @@ Identifier* Isolate::to_global_id(const Identifier* id) {
   stringstream ss;
   ss << "__x" << isolate(id);
   return new Identifier(
-    new Many<Id>(new Id(ss.str(), new Maybe<Expression>())),
+    new Many<Id>(new Id(ss.str(), nullptr)),
     id->get_dim()->accept(this)
   );
 }
@@ -230,8 +230,8 @@ ModuleDeclaration* Isolate::get_shell() {
 
   for (auto p : ports) {
     res->get_ports()->push_back(new ArgAssign(
-      new Maybe<Identifier>(),                       
-      new Maybe<Expression>(to_global_id(p))
+      nullptr,
+      to_global_id(p)
     ));
 
     const auto r = info.is_read(p);

@@ -131,7 +131,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
     na->get_ctrl()->clone(),
     new VariableAssign(
       new Identifier(
-        new Many<Id>(new Id(lhs->get_ids()->front()->get_readable_sid() + "_next", new Maybe<Expression>())),
+        new Many<Id>(new Id(lhs->get_ids()->front()->get_readable_sid() + "_next", nullptr)),
         lhs->get_dim()->clone()
       ),
       na->get_assign()->get_rhs()->clone()
@@ -142,13 +142,13 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
     new Maybe<TimingControl>(),
     new VariableAssign(
       new Identifier(
-        new Many<Id>(new Id("__next_update_mask", new Maybe<Expression>())),
+        new Many<Id>(new Id("__next_update_mask", nullptr)),
         idx
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
-          new Many<Id>(new Id("__next_update_mask", new Maybe<Expression>())),
+          new Many<Id>(new Id("__next_update_mask", nullptr)),
           idx->clone()
         )
       )
@@ -216,13 +216,13 @@ Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* args) {
     new Maybe<TimingControl>(),
     new VariableAssign(
       new Identifier(
-        new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
+        new Many<Id>(new Id("__next_task_mask", nullptr)),
         new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
-          new Many<Id>(new Id("__next_task_mask", new Maybe<Expression>())),
+          new Many<Id>(new Id("__next_task_mask", nullptr)),
           new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
         )
       )
@@ -323,7 +323,7 @@ void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
   os << "// Update State" << endl;
   for (auto s : info.stateful()) {
     auto rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
-    auto ids = new Many<Id>(new Id(s->get_ids()->front()->get_readable_sid() + "_next", new Maybe<Expression>()));
+    auto ids = new Many<Id>(new Id(s->get_ids()->front()->get_readable_sid() + "_next", nullptr));
     rd->get_id()->replace_ids(ids);
     rd->replace_val(new Maybe<Expression>());
     TextPrinter(os) << rd << "\n";

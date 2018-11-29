@@ -367,12 +367,12 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<Expression>*> dimension_S
 %type <Expression*> eq_ce_Q
 %type <Many<Expression>*> expression_P
-%type <Maybe<Expression>*> expression_Q
+%type <Expression*> expression_Q
 %type <Maybe<Identifier>*> generate_block_id_Q
 %type <size_t> integer_L
 %type <Many<ModuleItem>*> list_of_port_declarations_Q
 %type <size_t> localparam_L
-%type <Maybe<Expression>*> mintypmax_expression_Q
+%type <Expression*> mintypmax_expression_Q
 %type <Many<ModuleInstantiation>*> module_instance_P
 %type <Many<ModuleItem>*> module_item_S
 %type <size_t> module_keyword_L
@@ -445,8 +445,8 @@ module_declaration
       for (auto p : *$5) {
         auto d = dynamic_cast<PortDeclaration*>(p)->get_decl();
         auto aa = new ArgAssign(
-          new Maybe<Identifier>(), 
-          new Maybe<Expression>(d->get_id()->clone())
+          nullptr,
+          d->get_id()->clone()
         ); 
         ps->push_back(aa); 
       }
@@ -480,10 +480,10 @@ list_of_port_declarations
   : OPAREN port_declaration_P CPAREN { $$ = $2; }
   ;
 port
-  : %empty { $$ = new ArgAssign(new Maybe<Identifier>(), new Maybe<Expression>()); }
-  | port_expression { $$ = new ArgAssign(new Maybe<Identifier>(),new Maybe<Expression>($1)); }
-  | DOT identifier OPAREN CPAREN { $$ = new ArgAssign(new Maybe<Identifier>($2),new Maybe<Expression>()); }
-  | DOT identifier OPAREN port_expression CPAREN { $$ = new ArgAssign(new Maybe<Identifier>($2),new Maybe<Expression>($4)); }
+  : %empty { $$ = new ArgAssign(nullptr, nullptr); }
+  | port_expression { $$ = new ArgAssign(nullptr, $1); }
+  | DOT identifier OPAREN CPAREN { $$ = new ArgAssign($2, nullptr); }
+  | DOT identifier OPAREN port_expression CPAREN { $$ = new ArgAssign($2, $4); }
   ;
 port_expression
   : port_reference { $$ = $1; }
@@ -936,11 +936,11 @@ list_of_parameter_assignments
   | named_parameter_assignment_P { $$ = $1; }
   ;
 ordered_parameter_assignment
-  : expression { $$ = new ArgAssign(new Maybe<Identifier>(), new Maybe<Expression>($1)); }
+  : expression { $$ = new ArgAssign(nullptr, $1); }
   ;
 named_parameter_assignment
   : DOT identifier OPAREN mintypmax_expression_Q CPAREN { 
-    $$ = new ArgAssign(new Maybe<Identifier>($2), $4);
+    $$ = new ArgAssign($2, $4);
   } 
   ; 
 module_instance
@@ -957,12 +957,12 @@ list_of_port_connections
   ;
 ordered_port_connection
   : /*attribute_instance_S*/ expression_Q { 
-    $$ = new ArgAssign(new Maybe<Identifier>(),$1); 
+    $$ = new ArgAssign(nullptr, $1); 
   }
   ;
 named_port_connection
   : /*attribute_instance_S*/ DOT identifier OPAREN expression_Q CPAREN {
-    $$ = new ArgAssign(new Maybe<Identifier>($2),$4);
+    $$ = new ArgAssign($2, $4);
   }
   ;
 
@@ -1560,7 +1560,7 @@ attr_name
 /* contexts in which we use it: primary, net_lvalue, and variable_lvalue */
 hierarchical_identifier
   : simple_id_L braced_rexp_S { 
-    const auto id = new Id($1.second, new Maybe<Expression>());
+    const auto id = new Id($1.second, nullptr);
     $$ = new Identifier(new Many<Id>(id), $2); 
     parser->set_loc($$, $1.first);
     for (auto e : *$2) {
@@ -1581,9 +1581,9 @@ hierarchical_identifier
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
-      $$->get_ids()->back()->get_isel()->replace($$->get_dim()->remove_back());
+      $$->get_ids()->back()->replace_isel($$->get_dim()->remove_back());
     }
-    $$->get_ids()->push_back(new Id($3, new Maybe<Expression>()));
+    $$->get_ids()->push_back(new Id($3, nullptr));
     $$->replace_dim($4);
     for (auto e : *$4) {
       if ((e != $4->back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
@@ -1595,7 +1595,7 @@ hierarchical_identifier
   ;
 identifier 
   : simple_id_L { 
-    const auto id = new Id($1.second, new Maybe<Expression>());
+    const auto id = new Id($1.second, nullptr);
     $$ = new Identifier(new Many<Id>(id), new Many<Expression>()); 
     parser->set_loc($$, $1.first);
   }
@@ -1677,8 +1677,8 @@ expression_P
   }
   ;
 expression_Q
-  : %empty { $$ = new Maybe<Expression>(); }
-  | expression { $$ = new Maybe<Expression>($1); }
+  : %empty { $$ = nullptr; }
+  | expression { $$ = $1; }
   ;
 generate_block_id_Q
   : %empty { $$ = new Maybe<Identifier>(); }
@@ -1695,8 +1695,8 @@ localparam_L
   : LOCALPARAM { $$ = parser->get_loc().begin.line; }
   ;
 mintypmax_expression_Q 
-  : %empty { $$ = new Maybe<Expression>(); }
-  | mintypmax_expression { $$ = new Maybe<Expression>($1); }
+  : %empty { $$ = nullptr; }
+  | mintypmax_expression { $$ = $1; }
   ;
 module_instance_P
   : module_instance { $$ = new Many<ModuleInstantiation>($1); }

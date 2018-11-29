@@ -72,7 +72,7 @@ class Identifier : public Primary {
     DECORATION(Vector<const Node*>, monitor);
 };
 
-inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, new Maybe<Expression>()), new Many<Expression>()) { }
+inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, nullptr), new Many<Expression>()) { }
 
 inline Identifier::Identifier(Id* id__, Many<Expression>* dim__) : Identifier(new Many<Id>(id__), dim__) { }
 

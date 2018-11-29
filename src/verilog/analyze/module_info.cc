@@ -199,13 +199,13 @@ void ModuleInfo::named_parent_conn(const ModuleInstantiation* mi, const PortDecl
   for (auto p : *mi->get_ports()) {
     // This is a named connection, so explicit port should never be null.
     // Typechecking should enforce this.
-    assert(!p->get_exp()->null());
+    assert(p->is_non_null_exp());
     // Nothing to do for an empty named connection
-    if (p->get_imp()->null()) {
+    if (p->is_null_imp()) {
       continue;
     }
     // Nothing to do if this isn't the right port
-    const auto r = Resolve().get_resolution(p->get_exp()->get()); 
+    const auto r = Resolve().get_resolution(p->get_exp()); 
     if (r != pd->get_decl()->get_id()) {
       continue;
     }
@@ -235,9 +235,9 @@ void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDe
 
   // This is an ordered connection, so explicit port should always be null.
   // Typechecking should enforce this.
-  assert(p->get_exp()->null());
+  assert(p->is_null_exp());
   // Nothing to do for an empty ordered connection
-  if (p->get_imp()->null()) {
+  if (p->is_null_imp()) {
     return;
   }
 
@@ -262,17 +262,17 @@ void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
   for (auto p : *mi->get_ports()) {
     // This is a named connection, so explicit port should never be null.
     // Typechecking should enforce this.
-    assert(!p->get_exp()->null());
+    assert(p->is_non_null_exp());
     // Nothing to do for an empty named connection
-    if (p->get_imp()->null()) {
+    if (p->is_null_imp()) {
       continue;
     }
 
     // Grab the declaration that this explicit port corresponds to
-    const auto r = Resolve().get_resolution(p->get_exp()->get()); 
+    const auto r = Resolve().get_resolution(p->get_exp()); 
     assert(r != nullptr);
     // Connect the variable tot he expression in this module
-    conn.insert(make_pair(r, p->get_imp()->get()));
+    conn.insert(make_pair(r, p->get_imp()));
 
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
@@ -305,7 +305,7 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     const auto p = mi->get_ports()->get(i);
     // This is an ordered connection, so explicit port should always be null.
     // Typechecking should enforce this.
-    assert(p->get_exp()->null());
+    assert(p->is_null_exp());
 
     // Track to the first port declaration. It's kind of ugly to have to iterate
     // over the entire text of this module every time we refresh, but it's the price
@@ -320,14 +320,14 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     assert(pd != nullptr);
 
     // Nothing to do for an empty ordered connection
-    if (p->get_imp()->null()) {
+    if (p->is_null_imp()) {
       continue;
     }
 
     // Grab the declaration that this port corresponds to
     const auto r = pd->get_decl()->get_id();
     // Connect the variable to the expression in this module
-    conn.insert(make_pair(r, p->get_imp()->get()));
+    conn.insert(make_pair(r, p->get_imp()));
 
     switch (pd->get_type()) {
       case PortDeclaration::INPUT:
@@ -384,7 +384,7 @@ void ModuleInfo::record_external_use(const Identifier* id) {
         continue;
       }
       // Do nothing If this is a named variable connection
-      if (eid->get_parent() != nullptr && dynamic_cast<const ArgAssign*>(eid->get_parent()->get_parent())) {
+      if (eid->get_parent() != nullptr && dynamic_cast<const ArgAssign*>(eid->get_parent())) {
         continue;
       }
       // If it's on the lhs of an expression, it's a write, otherwise it's a read
@@ -485,10 +485,10 @@ void ModuleInfo::visit(const ModuleInstantiation* mi) {
 
   // Descend on implicit ports. These are syntactically part of this module.
   for (auto p : *mi->get_params()) {
-    p->get_imp()->accept(this);
+    p->maybe_accept_imp(this);
   }
   for (auto p : *mi->get_ports()) {
-    p->get_imp()->accept(this);
+    p->maybe_accept_imp(this);
   }
 
   // Nothing else to do if this module wasn't instantiated.

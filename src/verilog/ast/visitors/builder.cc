@@ -36,8 +36,8 @@ namespace cascade {
 
 ArgAssign* Builder::build(const ArgAssign* aa) {
   return new ArgAssign(
-    aa->get_exp()->accept(this),
-    aa->get_imp()->accept(this)
+    aa->maybe_accept_exp(this),
+    aa->maybe_accept_imp(this)
   );
 }
 
@@ -184,7 +184,7 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
 Id* Builder::build(const Id* i) {
   return new Id(
     i->get_sid(),
-    i->get_isel()->accept(this)
+    i->maybe_accept_isel(this)
   );
 }
 

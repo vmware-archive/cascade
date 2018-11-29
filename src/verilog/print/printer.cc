@@ -43,13 +43,13 @@ Printer::Printer(ostream& os) : os_(os) {
 }
 
 void Printer::visit(const ArgAssign* aa) {
-  if (!aa->get_exp()->null()) {
+  if (aa->is_non_null_exp()) {
     *this << Color::RED << "." << Color::RESET;
     aa->get_exp()->accept(this); 
     *this << Color::RED << "(" << Color::RESET;
   }
-  aa->get_imp()->accept(this);
-  if (!aa->get_exp()->null()) {
+  aa->maybe_accept_imp(this);
+  if (aa->is_non_null_exp()) {
     *this << Color::RED << ")" << Color::RESET;
   } 
 }
@@ -210,7 +210,7 @@ void Printer::visit(const GenerateBlock* gb) {
 
 void Printer::visit(const Id* id) {
   *this << id->get_readable_sid();
-  if (!id->get_isel()->null()) {
+  if (id->is_non_null_isel()) {
     *this << Color::RED << "[" << Color::RESET;
     id->get_isel()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
