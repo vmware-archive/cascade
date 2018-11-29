@@ -88,8 +88,8 @@ inline void Attributes::erase(const std::string& s) {
 template <typename T>
 inline const T* Attributes::get(const std::string& s) const {
   for (auto va : *as_) {
-    if (va->get_lhs()->eq(s) && !va->get_rhs()->null()) {
-      return dynamic_cast<const T*>(va->get_rhs()->get());
+    if (va->get_lhs()->eq(s) && va->is_non_null_rhs()) {
+      return dynamic_cast<const T*>(va->get_rhs());
     }
   }
   return nullptr;
@@ -99,7 +99,7 @@ inline void Attributes::set_or_replace(const Attributes* rhs) {
   for (auto rva : *rhs->as_) {
     for (auto va : *as_) {
       if (EqId()(va->get_lhs(), rva->get_lhs())) {
-        va->replace_rhs(rva->get_rhs()->clone());
+        va->replace_rhs(rva->maybe_clone_rhs());
         break;
       }
     }
@@ -116,9 +116,9 @@ inline void Attributes::set_or_replace(const std::string& s, Expression* e) {
     }
   }
   if (as == nullptr) {
-    get_as()->push_back(new AttrSpec(new Identifier(s), new Maybe<Expression>(e)));
+    get_as()->push_back(new AttrSpec(new Identifier(s), e));
   } else {
-    as->replace_rhs(new Maybe<Expression>(e));
+    as->replace_rhs(e);
   }
 }
 

@@ -119,10 +119,10 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
     true,
-    new Maybe<RangeExpression>(new RangeExpression(32,0)),
+    new RangeExpression(32,0),
     id->get_id()->get_dim()->empty() ? 
-      new Maybe<Expression>(new Number(Evaluate().get_value(id->get_id()), Number::HEX)) :
-      new Maybe<Expression>()
+      new Number(Evaluate().get_value(id->get_id()), Number::HEX) :
+      nullptr
   );
   return res;
 }
@@ -133,13 +133,13 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   auto res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
-    ld->get_dim()->accept(this),
+    ld->maybe_accept_dim(this),
     ld->get_id()->accept(this),
     new Number(Evaluate().get_value(ld->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
-    new Maybe<Expression>(Resolve().get_full_id(ld->get_id()))
+    Resolve().get_full_id(ld->get_id())
   ));
   return res;
 }
@@ -151,13 +151,13 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   auto res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
-    pd->get_dim()->accept(this),
+    pd->maybe_accept_dim(this),
     pd->get_id()->accept(this),
     new Number(Evaluate().get_value(pd->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
     new Identifier("__id"),
-    new Maybe<Expression>(Resolve().get_full_id(pd->get_id()))
+    Resolve().get_full_id(pd->get_id())
   ));
   return res;
 }
@@ -170,10 +170,10 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
     rd->get_signed(),
-    rd->get_dim()->accept(this),
+    rd->maybe_accept_dim(this),
     rd->get_id()->get_dim()->empty() ? 
-      new Maybe<Expression>(new Number(Evaluate().get_value(rd->get_id()), Number::HEX)) :
-      new Maybe<Expression>()
+      new Number(Evaluate().get_value(rd->get_id()), Number::HEX) :
+      nullptr
   );
   return res;
 }
@@ -249,21 +249,21 @@ ModuleDeclaration* Isolate::get_shell() {
           new Attributes(new Many<AttrSpec>()),
           to_global_id(p),
           dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
-          width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width)),
-          dynamic_cast<RegDeclaration*>(p->get_parent())->get_val()->clone()
+          width == 1 ? nullptr : new RangeExpression(width),
+          dynamic_cast<RegDeclaration*>(p->get_parent())->maybe_clone_val()
         ) : 
         (Declaration*) new NetDeclaration(
           new Attributes(new Many<AttrSpec>()),
           NetDeclaration::WIRE,
-          new Maybe<DelayControl>(),
+          nullptr,
           to_global_id(p),
           dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
-          width == 1 ? new Maybe<RangeExpression>() : new Maybe<RangeExpression>(new RangeExpression(width))
+          width == 1 ? nullptr : new RangeExpression(width)
         )
     );
     pd->get_attrs()->get_as()->push_back(new AttrSpec(
       new Identifier("__id"), 
-      new Maybe<Expression>(Resolve().get_full_id(p))
+      Resolve().get_full_id(p)
     ));
     res->get_items()->push_back(pd);
   }
@@ -338,7 +338,7 @@ void Isolate::replace(Many<ModuleItem>* res, const ModuleInstantiation* mi) {
         (Expression*)c.second->accept(this) : 
         c.first->accept(this);
     auto ca = new ContinuousAssign(
-      new Maybe<DelayControl>(),
+      nullptr,
       new VariableAssign(lhs, rhs)
     );
     res->push_back(ca);

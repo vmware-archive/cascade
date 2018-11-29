@@ -119,7 +119,7 @@ class TypeCheck : public Visitor {
     void visit(const DelayControl* dc) override;
 
     // Checks whether a range is little-endian and begins at 0
-    void check_width(const Maybe<RangeExpression>* re);
+    void check_width(const RangeExpression* re);
     // Checks whether array dimensions are little-endian and begin at 0
     void check_array(const Many<Expression>* es);
     // Checks whether a potentially subscripted identifier is a valid array

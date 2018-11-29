@@ -250,7 +250,7 @@ bool is_null(const cascade::Expression* e) {
 %type <ArgAssign*> ordered_parameter_assignment
 %type <ArgAssign*> named_parameter_assignment
 %type <ModuleInstantiation*> module_instance
-%type <std::pair<Identifier*, Maybe<RangeExpression>*>> name_of_module_instance
+%type <std::pair<Identifier*, RangeExpression*>> name_of_module_instance
 %type <Many<ArgAssign>*> list_of_port_connections
 %type <ArgAssign*> ordered_port_connection
 %type <ArgAssign*> named_port_connection
@@ -362,7 +362,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<Expression>*> braced_rexp_S
 %type <Many<CaseGenerateItem>*> case_generate_item_P
 %type <Many<CaseItem>*> case_item_P
-%type <Maybe<DelayControl>*> delay3_Q
+%type <DelayControl*> delay3_Q
 %type <Maybe<TimingControl>*> delay_or_event_control_Q
 %type <Many<Expression>*> dimension_S
 %type <Expression*> eq_ce_Q
@@ -389,7 +389,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<ArgAssign>*> parameter_value_assignment_Q
 %type <Many<ModuleItem>*> port_declaration_P
 %type <Many<ArgAssign>*> port_P
-%type <Maybe<RangeExpression>*> range_Q
+%type <RangeExpression*> range_Q
 %type <size_t> reg_L
 %type <bool> signed_Q
 %type <std::pair<size_t, std::string>> simple_id_L
@@ -585,7 +585,7 @@ local_parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -593,14 +593,16 @@ local_parameter_declaration
       $$->push_back(lpd);
     }
     delete $1;
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto lpd = new LocalparamDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto lpd = new LocalparamDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -616,7 +618,7 @@ parameter_declaration
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), $3, $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -624,14 +626,16 @@ parameter_declaration
       $$->push_back(pd);
     }
     delete $1;
-    delete $4;
+    if ($4 == nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
     $$ = new Many<Declaration>();
     while ($4->empty()) {
       auto va = $4->remove_front();
-      auto pd = new ParameterDeclaration($1->clone(), false, new Maybe<RangeExpression>(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -651,10 +655,12 @@ inout_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INOUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   ;
@@ -663,10 +669,12 @@ input_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::INPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   ;
@@ -675,10 +683,12 @@ output_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto t = PortDeclaration::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2,new Maybe<DelayControl>(), $5->remove_front(), $3, $4->clone());
+      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
@@ -686,11 +696,13 @@ output_declaration
     while (!$5->empty()) {
       auto va = $5->remove_front();
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
     }
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
@@ -702,7 +714,7 @@ integer_declaration
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
       auto va = $3->remove_front();
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(id, $2);
       parser->set_loc(id->get_id(), $2);
@@ -716,14 +728,18 @@ net_declaration
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), $6->remove_front(), $3, $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), $6->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2.first);
       parser->set_loc(nd->get_id(), $2.first);
       $$->push_back(nd);
     }
     delete $1;
-    delete $4;
-    delete $5;
+    if ($4 != nullptr) {
+      delete $4;
+    }
+    if ($5 != nullptr) {
+      delete $5;
+    }
     delete $6;
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
@@ -731,17 +747,21 @@ net_declaration
     $$ = new Many<ModuleItem>();
     while (!$6->empty()) {
       auto va = $6->remove_front();
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5->clone(), va->get_lhs()->clone(), $3, $4->clone());
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2.first);
       parser->set_loc(nd->get_id(), $2.first);
       $$->push_back(nd);
 
-      auto ca = new ContinuousAssign(new Maybe<DelayControl>(), va);
+      auto ca = new ContinuousAssign(nullptr, va);
       $$->push_back(ca);
     }
     delete $1;
-    delete $4;
-    delete $5;
+    if ($4 != nullptr) {
+      delete $4;
+    }
+    if ($5 != nullptr) {
+      delete $5;
+    }
     delete $6;
   }
   /* TODO | ... lots of cases */
@@ -751,14 +771,16 @@ reg_declaration
     $$ = new Many<ModuleItem>();
     while (!$5->empty()) {
       auto va = $5->remove_front();
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4->clone(), !is_null(va->get_rhs()) ? new Maybe<Expression>(va->get_rhs()->clone()) : new Maybe<Expression>());
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
       $$->push_back(rd);
     }
     delete $1;
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   ;
@@ -877,16 +899,18 @@ block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
     $$ = new Many<Declaration>();
     while (!$5->empty()) {
-      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $3, $4->clone(), new Maybe<Expression>()));
+      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone(), nullptr));
     }
     delete $1;
-    delete $4;
+    if ($4 != nullptr) {
+      delete $4;
+    }
     delete $5;
   }
   | attribute_instance_S INTEGER list_of_block_variable_identifiers SCOLON { 
     $$ = new Many<Declaration>();
     while (!$3->empty()) {
-      $$->push_back(new IntegerDeclaration($1->clone(),$3->remove_front(),new Maybe<Expression>()));
+      $$->push_back(new IntegerDeclaration($1->clone(), $3->remove_front(), nullptr));
     }
     delete $1;
     delete $3;
@@ -1156,11 +1180,13 @@ continuous_assign
   : ASSIGN /* TODO drive_strength? */ delay3_Q list_of_net_assignments SCOLON {
     $$ = new Many<ModuleItem>();
     while (!$3->empty()) {
-      auto ca = new ContinuousAssign($2->clone(), $3->remove_front());
+      auto ca = new ContinuousAssign($2 == nullptr ? $2 : $2->clone(), $3->remove_front());
       parser->set_loc(ca, ca->get_assign());
       $$->push_back(ca);
     }
-    delete $2;
+    if ($2 != nullptr) {
+      delete $2;
+    }
     delete $3;
   }
   ;
@@ -1548,8 +1574,8 @@ attribute_instance
   : OTIMES attr_spec_P CTIMES { $$ = $2; }
   ;
 attr_spec          
-  : attr_name { $$ = new AttrSpec($1,new Maybe<Expression>()); }
-  | attr_name EQ expression { $$ = new AttrSpec($1,new Maybe<Expression>($3)); }
+  : attr_name { $$ = new AttrSpec($1, nullptr); }
+  | attr_name EQ expression { $$ = new AttrSpec($1, $3); }
   ;
 attr_name
   : identifier { $$ = $1; }
@@ -1651,8 +1677,8 @@ colon_Q
   | COLON
   ;
 delay3_Q
-  : %empty { $$ = new Maybe<DelayControl>(); }
-  | delay3 { $$ = new Maybe<DelayControl>($1); }
+  : %empty { $$ = nullptr; }
+  | delay3 { $$ = $1; }
   ;
 delay_or_event_control_Q
   : %empty { $$ = new Maybe<TimingControl>(); }
@@ -1811,7 +1837,7 @@ port_declaration_P
       } else if (auto rd = dynamic_cast<RegDeclaration*>(pd->get_decl())) {
         rd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
-          rd->get_val()->replace(va->get_rhs()->clone());
+          rd->replace_val(va->get_rhs()->clone());
         }
       } else {
         assert(false);
@@ -1833,8 +1859,8 @@ port_P
   }
   ;
 range_Q
-  : %empty { $$ = new Maybe<RangeExpression>(); }
-  | range { $$ = new Maybe<RangeExpression>($1); }
+  : %empty { $$ = nullptr; }
+  | range { $$ = $1; }
   ;
 reg_L
   : REG { $$ = parser->get_loc().begin.line; }
@@ -1859,7 +1885,7 @@ alt_parameter_declaration
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment {
-    $$ = new ParameterDeclaration($1, false, new Maybe<RangeExpression>(), $4->get_lhs()->clone(), $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, false, nullptr, $4->get_lhs()->clone(), $4->get_rhs()->clone());
     delete $4;
   }
   ;
@@ -1872,8 +1898,8 @@ alt_port_declaration
       YYERROR;
     }
     auto d = $2 ? 
-      (Declaration*) new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, is_null($6) ? new Maybe<Expression>() : new Maybe<Expression>($6->clone())) :
-      (Declaration*) new NetDeclaration(new Attributes(new Many<AttrSpec>()), NetDeclaration::WIRE, new Maybe<DelayControl>(), $5, $3, $4);
+      (Declaration*) new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
+      (Declaration*) new NetDeclaration(new Attributes(new Many<AttrSpec>()), NetDeclaration::WIRE, nullptr, $5, $3, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), $1, d);
   }

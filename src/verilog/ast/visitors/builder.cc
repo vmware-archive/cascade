@@ -56,7 +56,7 @@ Attributes* Builder::build(const Attributes* a) {
 AttrSpec* Builder::build(const AttrSpec* as) {
   return new AttrSpec(
     as->get_lhs()->accept(this),
-    as->get_rhs()->accept(this)
+    as->maybe_accept_rhs(this)
   );
 }
 
@@ -261,7 +261,7 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->get_ctrl()->accept(this),
+    ca->maybe_accept_ctrl(this),
     ca->get_assign()->accept(this)
   );
 }
@@ -277,7 +277,7 @@ ModuleItem* Builder::build(const IntegerDeclaration* id) {
   return new IntegerDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
-    id->get_val()->accept(this)
+    id->maybe_accept_val(this)
   );
 }
 
@@ -285,7 +285,7 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
-    ld->get_dim()->accept(this),
+    ld->maybe_accept_dim(this),
     ld->get_id()->accept(this),
     ld->get_val()->accept(this)
   );
@@ -295,10 +295,10 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->get_attrs()->accept(this),
     nd->get_type(),
-    nd->get_ctrl()->accept(this),
+    nd->maybe_accept_ctrl(this),
     nd->get_id()->accept(this),
     nd->get_signed(),
-    nd->get_dim()->accept(this)
+    nd->maybe_accept_dim(this)
   );
 }
 
@@ -306,7 +306,7 @@ ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
-    pd->get_dim()->accept(this),
+    pd->maybe_accept_dim(this),
     pd->get_id()->accept(this),
     pd->get_val()->accept(this)
   );
@@ -317,8 +317,8 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
     rd->get_signed(),
-    rd->get_dim()->accept(this),
-    rd->get_val()->accept(this)
+    rd->maybe_accept_dim(this),
+    rd->maybe_accept_val(this)
   );
 }
 
@@ -351,7 +351,7 @@ ModuleItem* Builder::build(const ModuleInstantiation* mi) {
     mi->get_attrs()->accept(this),
     mi->get_mid()->accept(this),
     mi->get_iid()->accept(this),
-    mi->get_range()->accept(this),
+    mi->maybe_accept_range(this),
     params,
     ports
   );

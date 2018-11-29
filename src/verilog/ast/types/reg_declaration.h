@@ -35,7 +35,6 @@
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -43,37 +42,37 @@ namespace cascade {
 class RegDeclaration : public Declaration {
   public:
     // Constructors:
-    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__);
     ~RegDeclaration() override;
 
     // Node Interface:
-    NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), TREE(dim), TREE(val))
+    NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), MAYBE(dim), MAYBE(val))
     // Get/Set:
     LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
-    TREE_GET_SET(val)
+    MAYBE_GET_SET(RangeExpression*, dim)
+    MAYBE_GET_SET(Expression*, val)
 
   private:
     LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
-    TREE_ATTR(Maybe<Expression>*, val);
+    MAYBE_ATTR(RangeExpression*, dim);
+    MAYBE_ATTR(Expression*, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__) : Declaration() {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   TREE_SETUP(id);
   LEAF_SETUP(signed);
-  TREE_SETUP(dim);
-  TREE_SETUP(val);
+  MAYBE_SETUP(dim);
+  MAYBE_SETUP(val);
 }
 
 inline RegDeclaration::~RegDeclaration() {
   TREE_TEARDOWN(attrs);
   TREE_TEARDOWN(id);
   LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
-  TREE_TEARDOWN(val);
+  MAYBE_TEARDOWN(dim);
+  MAYBE_TEARDOWN(val);
 }
 
 } // namespace cascade 

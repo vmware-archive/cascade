@@ -34,7 +34,6 @@
 #include <cassert>
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
@@ -43,28 +42,28 @@ namespace cascade {
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    ContinuousAssign(Maybe<DelayControl>* ctrl__, VariableAssign* assign__);
+    ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__);
     ~ContinuousAssign() override;
 
     // Node Interface:
-    NODE(ContinuousAssign, TREE(ctrl), TREE(assign))
+    NODE(ContinuousAssign, MAYBE(ctrl), TREE(assign))
     // Get/Set:
-    TREE_GET_SET(ctrl)
+    MAYBE_GET_SET(DelayControl*, ctrl)
     TREE_GET_SET(assign)
 
   private:
-    TREE_ATTR(Maybe<DelayControl>*, ctrl);
+    MAYBE_ATTR(DelayControl*, ctrl);
     TREE_ATTR(VariableAssign*, assign);
 };
 
-inline ContinuousAssign::ContinuousAssign(Maybe<DelayControl>* ctrl__, VariableAssign* assign__) : ModuleItem() {
+inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ModuleItem() {
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
+  MAYBE_SETUP(ctrl);
   TREE_SETUP(assign);
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
-  TREE_TEARDOWN(ctrl);
+  MAYBE_TEARDOWN(ctrl);
   TREE_TEARDOWN(assign);
 }
 

@@ -265,9 +265,19 @@
   bool is_non_null_##t() const { \
     return PRIVATE(t) != nullptr; \
   } \
+  T maybe_clone_##t() const { \
+    return (PRIVATE(t) != nullptr) ? PRIVATE(t)->clone() : nullptr; \
+  } \
   void maybe_accept_##t(Visitor* v) const { \
     if (PRIVATE(t) != nullptr) { \
       PRIVATE(t)->accept(v); \
+    } \
+  } \
+  void maybe_accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
+    if (PRIVATE(t) != nullptr) { \
+      pre(); \
+      PRIVATE(t)->accept(v); \
+      post(); \
     } \
   } \
   void maybe_accept_##t(Editor* e) { \

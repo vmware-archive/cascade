@@ -38,7 +38,6 @@
 #include "src/verilog/ast/types/if_generate_construct.h"
 #include "src/verilog/ast/types/instantiation.h"
 #include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/module_declaration.h"
 #include "src/verilog/ast/types/range_expression.h"
@@ -48,16 +47,16 @@ namespace cascade {
 class ModuleInstantiation : public Instantiation {
   public:
     // Constructors:
-    ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, Maybe<RangeExpression>* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__);
+    ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, RangeExpression* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__);
     ~ModuleInstantiation() override;
 
     // Node Interface:
-    NODE(ModuleInstantiation, TREE(attrs), TREE(mid), TREE(iid), TREE(range), TREE(params), TREE(ports))
+    NODE(ModuleInstantiation, TREE(attrs), TREE(mid), TREE(iid), MAYBE(range), TREE(params), TREE(ports))
     // Get/Set:
     TREE_GET_SET(attrs)
     TREE_GET_SET(mid)
     TREE_GET_SET(iid)
-    TREE_GET_SET(range)
+    MAYBE_GET_SET(RangeExpression*, range)
     TREE_GET_SET(params)
     TREE_GET_SET(ports)
 
@@ -71,7 +70,7 @@ class ModuleInstantiation : public Instantiation {
     TREE_ATTR(Attributes*, attrs);
     TREE_ATTR(Identifier*, mid);
     TREE_ATTR(Identifier*, iid);
-    TREE_ATTR(Maybe<RangeExpression>*, range);
+    MAYBE_ATTR(RangeExpression*, range);
     TREE_ATTR(Many<ArgAssign>*, params);
     TREE_ATTR(Many<ArgAssign>*, ports);
 
@@ -81,12 +80,12 @@ class ModuleInstantiation : public Instantiation {
     DECORATION(IfGenerateConstruct*, inline);
 };
 
-inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, Maybe<RangeExpression>* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__) : Instantiation() {
+inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, RangeExpression* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__) : Instantiation() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   TREE_SETUP(mid);
   TREE_SETUP(iid);
-  TREE_SETUP(range);
+  MAYBE_SETUP(range);
   TREE_SETUP(params);
   TREE_SETUP(ports);
   inst_ = nullptr;
@@ -97,7 +96,7 @@ inline ModuleInstantiation::~ModuleInstantiation() {
   TREE_TEARDOWN(attrs);
   TREE_TEARDOWN(mid);
   TREE_TEARDOWN(iid);
-  TREE_TEARDOWN(range);
+  MAYBE_TEARDOWN(range);
   TREE_TEARDOWN(params);
   TREE_TEARDOWN(ports);
   if (inst_ != nullptr) {

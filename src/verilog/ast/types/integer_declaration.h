@@ -35,36 +35,35 @@
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
 class IntegerDeclaration : public Declaration {
   public:
     // Constructors:
-    IntegerDeclaration(Attributes* attrs__, Identifier* id__, Maybe<Expression>* val__);
+    IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__);
     ~IntegerDeclaration() override;
 
     // Node Interface:
-    NODE(IntegerDeclaration, TREE(attrs), TREE(id), TREE(val))
+    NODE(IntegerDeclaration, TREE(attrs), TREE(id), MAYBE(val))
     // Get/Set:
-    TREE_GET_SET(val)
+    MAYBE_GET_SET(Expression*, val)
 
   private:
-    TREE_ATTR(Maybe<Expression>*, val);
+    MAYBE_ATTR(Expression*, val);
 };
 
-inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__, Maybe<Expression>* val__) : Declaration() {
+inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   TREE_SETUP(id);
-  TREE_SETUP(val);
+  MAYBE_SETUP(val);
 }
 
 inline IntegerDeclaration::~IntegerDeclaration() {
   TREE_TEARDOWN(attrs);
   TREE_TEARDOWN(id);
-  TREE_TEARDOWN(val);
+  MAYBE_TEARDOWN(val);
 }
 
 } // namespace cascade 

@@ -124,7 +124,7 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     const auto lpd = new LocalparamDeclaration(
       new Attributes(new Many<AttrSpec>()),
       false,
-      new Maybe<RangeExpression>(new RangeExpression(32, 0)),
+      new RangeExpression(32, 0),
       itr->clone(), 
       new Number(Evaluate().get_value(itr))
     );

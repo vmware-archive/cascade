@@ -325,7 +325,7 @@ void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
     auto rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
     auto ids = new Many<Id>(new Id(s->get_ids()->front()->get_readable_sid() + "_next", nullptr));
     rd->get_id()->replace_ids(ids);
-    rd->replace_val(new Maybe<Expression>());
+    rd->replace_val(nullptr);
     TextPrinter(os) << rd << "\n";
     delete rd;
   }
@@ -375,7 +375,7 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
 }
 
 void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo) {
-  Maybe<RangeExpression>* re = nullptr;
+  RangeExpression* re = nullptr;
   auto is_signed = false;
   if (auto nd = dynamic_cast<const NetDeclaration*>(vinfo.id()->get_parent())) {
     re = nd->get_dim();
@@ -390,8 +390,8 @@ void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo)
   if (is_signed) {
     os << " signed";
   }
-  if (!re->null()) {
-    TextPrinter(os) << "[" << re->get()->get_upper() << ":0]";
+  if (re != nullptr) {
+    TextPrinter(os) << "[" << re->get_upper() << ":0]";
   }
   TextPrinter(os) << " " << vinfo.id() << ";\n";
 }

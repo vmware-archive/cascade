@@ -45,7 +45,7 @@ void Visitor::visit(const Attributes* a) {
 
 void Visitor::visit(const AttrSpec* as) {
   as->get_lhs()->accept(this);
-  as->get_rhs()->accept(this);
+  as->maybe_accept_rhs(this);
 }
 
 void Visitor::visit(const CaseGenerateItem* cgi) {
@@ -153,7 +153,7 @@ void Visitor::visit(const InitialConstruct* ic) {
 }
 
 void Visitor::visit(const ContinuousAssign* ca) {
-  ca->get_ctrl()->accept(this);
+  ca->maybe_accept_ctrl(this);
   ca->get_assign()->accept(this);
 }
 
@@ -165,26 +165,26 @@ void Visitor::visit(const GenvarDeclaration* gd) {
 void Visitor::visit(const IntegerDeclaration* id) {
   id->get_attrs()->accept(this);
   id->get_id()->accept(this); 
-  id->get_val()->accept(this);
+  id->maybe_accept_val(this);
 }
 
 void Visitor::visit(const LocalparamDeclaration* ld) {
   ld->get_attrs()->accept(this);
-  ld->get_dim()->accept(this);
+  ld->maybe_accept_dim(this);
   ld->get_id()->accept(this);
   ld->get_val()->accept(this);
 }
 
 void Visitor::visit(const NetDeclaration* nd) {
   nd->get_attrs()->accept(this);
-  nd->get_ctrl()->accept(this);
+  nd->maybe_accept_ctrl(this);
   nd->get_id()->accept(this);
-  nd->get_dim()->accept(this);
+  nd->maybe_accept_dim(this);
 }
 
 void Visitor::visit(const ParameterDeclaration* pd) {
   pd->get_attrs()->accept(this);
-  pd->get_dim()->accept(this);
+  pd->maybe_accept_dim(this);
   pd->get_id()->accept(this);
   pd->get_val()->accept(this);
 }
@@ -192,8 +192,8 @@ void Visitor::visit(const ParameterDeclaration* pd) {
 void Visitor::visit(const RegDeclaration* rd) {
   rd->get_attrs()->accept(this);
   rd->get_id()->accept(this);
-  rd->get_dim()->accept(this);
-  rd->get_val()->accept(this);
+  rd->maybe_accept_dim(this);
+  rd->maybe_accept_val(this);
 }
 
 void Visitor::visit(const GenerateRegion* gr) {
@@ -204,7 +204,7 @@ void Visitor::visit(const ModuleInstantiation* mi) {
   mi->get_attrs()->accept(this);
   mi->get_mid()->accept(this);
   mi->get_iid()->accept(this);
-  mi->get_range()->accept(this);
+  mi->maybe_accept_range(this);
   mi->get_params()->accept(this);
   mi->get_ports()->accept(this);
 }

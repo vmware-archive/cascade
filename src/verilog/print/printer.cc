@@ -66,9 +66,9 @@ void Printer::visit(const Attributes* as) {
 
 void Printer::visit(const AttrSpec* as) {
   as->get_lhs()->accept(this);
-  if (!as->get_rhs()->null()) {
+  if (as->is_non_null_rhs()) {
     *this << Color::RED << " = " << Color::RESET;
-    as->get_rhs()->get()->accept(this);
+    as->get_rhs()->accept(this);
   }
 }
 
@@ -299,7 +299,7 @@ void Printer::visit(const InitialConstruct* ic) {
 
 void Printer::visit(const ContinuousAssign* ca) {
   *this << Color::GREEN << "assign " << Color::RESET;
-  ca->get_ctrl()->accept(this, []{}, [this]{*this << " ";});
+  ca->maybe_accept_ctrl(this, []{}, [this]{*this << " ";});
   ca->get_assign()->accept(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -315,9 +315,9 @@ void Printer::visit(const IntegerDeclaration* id) {
   id->get_attrs()->accept(this);
   *this << Color::GREEN << "integer " << Color::RESET;
   id->get_id()->accept(this);
-  if (!id->get_val()->null()) {
+  if (id->is_non_null_val()) {
     *this << Color::RED << " = " << Color::RESET;
-    id->get_val()->get()->accept(this);
+    id->get_val()->accept(this);
   }
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -328,7 +328,7 @@ void Printer::visit(const LocalparamDeclaration* ld) {
   if (ld->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }
-  if (!ld->get_dim()->null()) {
+  if (ld->is_non_null_dim()) {
     *this << Color::RED << "[" << Color::RESET;
     ld->get_dim()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
@@ -347,13 +347,13 @@ void Printer::visit(const NetDeclaration* nd) {
   if (nd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }
-  if (!nd->get_dim()->null()) {
+  if (nd->is_non_null_dim()) {
     *this << Color::RED << "[" << Color::RESET;
     nd->get_dim()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
   *this << " ";
-  nd->get_ctrl()->accept(this, []{}, [this]{*this << " ";});
+  nd->maybe_accept_ctrl(this, []{}, [this]{*this << " ";});
   nd->get_id()->accept(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -364,7 +364,7 @@ void Printer::visit(const ParameterDeclaration* pd) {
   if (pd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }
-  if (!pd->get_dim()->null()) {
+  if (pd->is_non_null_dim()) {
     *this << Color::RED << "[" << Color::RESET;
     pd->get_dim()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
@@ -382,16 +382,16 @@ void Printer::visit(const RegDeclaration* rd) {
   if (rd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }
-  if (!rd->get_dim()->null()) {
+  if (rd->is_non_null_dim()) {
     *this << Color::RED << "[" << Color::RESET;
     rd->get_dim()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
   *this << " ";
   rd->get_id()->accept(this);
-  if (!rd->get_val()->null()) {
+  if (rd->is_non_null_val()) {
     *this << Color::RED << " = " << Color::RESET;
-    rd->get_val()->get()->accept(this);
+    rd->get_val()->accept(this);
   }
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -418,9 +418,9 @@ void Printer::visit(const ModuleInstantiation* mi) {
     *this << Color::RED << ") " << Color::RESET;
   }
   mi->get_iid()->accept(this);
-  if (!mi->get_range()->null()) {
+  if (mi->is_non_null_range()) {
     *this << Color::RED << "[" << Color::RESET;
-    mi->get_range()->get()->accept(this);
+    mi->get_range()->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
   *this << Color::RED << "(" << Color::RESET;

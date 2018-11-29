@@ -34,7 +34,6 @@
 #include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -42,27 +41,27 @@ namespace cascade {
 class ParameterDeclaration : public Declaration {
   public:
     // Constructors:
-    ParameterDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__);
+    ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
     ~ParameterDeclaration() override;
 
     // Node Interface:
-    NODE(ParameterDeclaration, TREE(attrs), LEAF(signed), TREE(dim), TREE(id), TREE(val))
+    NODE(ParameterDeclaration, TREE(attrs), LEAF(signed), MAYBE(dim), TREE(id), TREE(val))
     // Get/Set:
     LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
+    MAYBE_GET_SET(RangeExpression*, dim)
     TREE_GET_SET(val)
 
   private:
     LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
+    MAYBE_ATTR(RangeExpression*, dim);
     TREE_ATTR(Expression*, val);
 };
 
-inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__) : Declaration() {
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   LEAF_SETUP(signed);
-  TREE_SETUP(dim);
+  MAYBE_SETUP(dim);
   TREE_SETUP(id);
   TREE_SETUP(val);
 }
@@ -70,7 +69,7 @@ inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool sign
 inline ParameterDeclaration::~ParameterDeclaration() {
   TREE_TEARDOWN(attrs);
   LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
+  MAYBE_TEARDOWN(dim);
   TREE_TEARDOWN(id);
   TREE_TEARDOWN(val);
 }

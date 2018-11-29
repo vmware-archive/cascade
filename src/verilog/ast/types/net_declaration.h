@@ -36,7 +36,6 @@
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -49,41 +48,41 @@ class NetDeclaration : public Declaration {
     };
 
     // Constructors:
-    NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__);
+    NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
-    NODE(NetDeclaration, TREE(attrs), LEAF(type), TREE(ctrl), TREE(id), LEAF(signed), TREE(dim))
+    NODE(NetDeclaration, TREE(attrs), LEAF(type), MAYBE(ctrl), TREE(id), LEAF(signed), MAYBE(dim))
     // Get/Set:
     LEAF_GET_SET(type)
-    TREE_GET_SET(ctrl)
+    MAYBE_GET_SET(DelayControl*, ctrl)
     LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
+    MAYBE_GET_SET(RangeExpression*, dim)
 
   private:
     LEAF_ATTR(Type, type);
-    TREE_ATTR(Maybe<DelayControl>*, ctrl);
+    MAYBE_ATTR(DelayControl*, ctrl);
     LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
+    MAYBE_ATTR(RangeExpression*, dim);
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__) : Declaration() {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : Declaration() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   LEAF_SETUP(type);
-  TREE_SETUP(ctrl);
+  MAYBE_SETUP(ctrl);
   TREE_SETUP(id);
   LEAF_SETUP(signed);
-  TREE_SETUP(dim);
+  MAYBE_SETUP(dim);
 }
 
 inline NetDeclaration::~NetDeclaration() {
   TREE_TEARDOWN(attrs);
   LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(ctrl);
+  MAYBE_TEARDOWN(ctrl);
   TREE_TEARDOWN(id);
   LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
+  MAYBE_TEARDOWN(dim);
 }
 
 } // namespace cascade 

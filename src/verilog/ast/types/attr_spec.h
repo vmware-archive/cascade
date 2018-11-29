@@ -35,7 +35,6 @@
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/node.h"
 
 namespace cascade {
@@ -43,29 +42,29 @@ namespace cascade {
 class AttrSpec : public Node {
   public:
     // Constructors:
-    AttrSpec(Identifier* lhs__, Maybe<Expression>* rhs__);
+    AttrSpec(Identifier* lhs__, Expression* rhs__);
     ~AttrSpec() override;
 
     // Node Interface:
-    NODE(AttrSpec, TREE(lhs), TREE(rhs))
+    NODE(AttrSpec, TREE(lhs), MAYBE(rhs))
     // Get/Set:
     TREE_GET_SET(lhs)
-    TREE_GET_SET(rhs)
+    MAYBE_GET_SET(Expression*, rhs)
 
   private:
     TREE_ATTR(Identifier*, lhs);
-    TREE_ATTR(Maybe<Expression>*, rhs);
+    MAYBE_ATTR(Expression*, rhs);
 };
 
-inline AttrSpec::AttrSpec(Identifier* lhs__, Maybe<Expression>* rhs__) : Node() { 
+inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node() { 
   parent_ = nullptr;
   TREE_SETUP(lhs);
-  TREE_SETUP(rhs);
+  MAYBE_SETUP(rhs);
 }
 
 inline AttrSpec::~AttrSpec() {
   TREE_TEARDOWN(lhs);
-  TREE_TEARDOWN(rhs);
+  MAYBE_TEARDOWN(rhs);
 }
 
 } // namespace cascade

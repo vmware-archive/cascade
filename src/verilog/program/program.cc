@@ -122,7 +122,7 @@ bool Program::declare_and_instantiate(ModuleDeclaration* md, Log* log, const Par
     new Attributes(new Many<AttrSpec>()),
     md->get_id()->clone(),
     new Identifier(iid),
-    new Maybe<RangeExpression>(),
+    nullptr,
     new Many<ArgAssign>(),
     new Many<ArgAssign>()
   );

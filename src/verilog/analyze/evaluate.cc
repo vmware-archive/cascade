@@ -30,6 +30,10 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
+
+#include <iostream>
+#include "src/verilog/print/term/term_printer.h"
+
 using namespace std;
 
 namespace cascade {
@@ -381,38 +385,31 @@ const Node* Evaluate::get_root(const Expression* e) const {
   // during self-determination.
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
-    // Continuous, non-blocking, or blocking assigns
-    if (dynamic_cast<VariableAssign*>(root->get_parent())) {
-      return root->get_parent();
-    }
-    // Parameter declarations
-    else if (dynamic_cast<LocalparamDeclaration*>(root->get_parent())) {
-      return root->get_parent();
-    }
-    else if (dynamic_cast<ParameterDeclaration*>(root->get_parent())) {
-      return root->get_parent();
-    }
-    // Multiple Concatenation
-    else if (dynamic_cast<MultipleConcatenation*>(root->get_parent())) {
-      return root;
-    }
-    // Subscripts inside of ids
-    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Id*>(root->get_parent()->get_parent())) {
-      return root->get_parent();
-    }
-    // Subscripts inside of identifiers
-    else if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<Identifier*>(root->get_parent()->get_parent())) {
+    // Subscripts inside of identifiers (TODO... shouldn't this have been a many?)
+    if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
       return root->get_parent();
     }
     // Ranges inside of declarations 
-    else if (dynamic_cast<Maybe<RangeExpression>*>(root->get_parent()) && dynamic_cast<Declaration*>(root->get_parent()->get_parent())) {
-      return root->get_parent();
+    else if (dynamic_cast<const RangeExpression*>(root) && dynamic_cast<const Declaration*>(root->get_parent())) {
+      return root;
     }
     // Variables inside of declarations
-    else if (dynamic_cast<Declaration*>(root->get_parent())) {
+    else if (dynamic_cast<const Declaration*>(root->get_parent())) {
       return root->get_parent();
     }
-    else if (!dynamic_cast<Expression*>(root->get_parent())) {
+    // Continuous, non-blocking, or blocking assigns
+    else if (dynamic_cast<const VariableAssign*>(root->get_parent())) {
+      return root->get_parent();
+    }
+    // Multiple Concatenation
+    else if (dynamic_cast<const MultipleConcatenation*>(root->get_parent())) {
+      return root;
+    }
+    // Subscripts inside of ids
+    else if (dynamic_cast<const Id*>(root->get_parent())) {
+      return root;
+    }
+    else if (!dynamic_cast<const Expression*>(root->get_parent())) {
       return root;
     }
   } 
@@ -513,7 +510,7 @@ void Evaluate::Invalidate::edit(ParameterDeclaration* pd) {
 void Evaluate::Invalidate::edit(RegDeclaration* rd) {
   rd->get_id()->accept(this);
   // Ignore dim: Don't descend into a different subtree
-  rd->get_val()->accept(this);
+  rd->maybe_accept_val(this);
 }
 
 void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
@@ -591,6 +588,11 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
   // Don't descend on dim. We treat it as a separate subtree.
 
   const auto r = Resolve().get_resolution(id);
+
+  if (r == nullptr) {
+    TermPrinter(cout) << "I CAN T RESOLVE " << id << "\n";
+  }
+
   assert(r != nullptr);
 
   size_t w = 0;
@@ -680,7 +682,7 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
 
 void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
   // Don't descend on id, we handle it below
-  id->get_val()->accept(this);
+  id->maybe_accept_val(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -708,8 +710,8 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   ld->get_id()->bit_val_.emplace_back(Bits(false));
   // Parameter declaration may override size and sign
   ld->get_id()->bit_val_[0].set_signed(ld->get_signed());
-  if (!ld->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(ld->get_dim()->get());
+  if (ld->is_non_null_dim()) {
+    const auto rng = Evaluate().get_range(ld->get_dim());
     ld->get_id()->bit_val_[0].resize(rng.first-rng.second+1);
   } 
 
@@ -720,7 +722,7 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
 
 void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  nd->get_ctrl()->accept(this);
+  nd->maybe_accept_ctrl(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -730,8 +732,8 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   }
   // Calculate width
   size_t w = 1;
-  if (!nd->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(nd->get_dim()->get());
+  if (nd->is_non_null_dim()) {
+    const auto rng = Evaluate().get_range(nd->get_dim());
     w = rng.first-rng.second+1;
   }
   // Allocate bits
@@ -754,8 +756,8 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   pd->get_id()->bit_val_.emplace_back(Bits(false));
   // Parameter declaration may override size and sign
   pd->get_id()->bit_val_[0].set_signed(pd->get_signed());
-  if (!pd->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(pd->get_dim()->get());
+  if (pd->is_non_null_dim()) {
+    const auto rng = Evaluate().get_range(pd->get_dim());
     pd->get_id()->bit_val_[0].resize(rng.first-rng.second+1);
   }
 
@@ -766,7 +768,7 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
 
 void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  rd->get_val()->accept(this);
+  rd->maybe_accept_val(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -776,8 +778,8 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   }
   // Calculate width
   size_t w = 1;
-  if (!rd->get_dim()->null()) {
-    const auto rng = Evaluate().get_range(rd->get_dim()->get());
+  if (rd->is_non_null_dim()) {
+    const auto rng = Evaluate().get_range(rd->get_dim());
     w = rng.first-rng.second+1;
   }
   // Allocate bits:
@@ -921,7 +923,7 @@ void Evaluate::ContextDetermine::edit(GenvarDeclaration* gd) {
 
 void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) { 
   // Nothing to do if there's no assignment happening here
-  if (id->get_val()->null()) {
+  if (id->is_null_val()) {
     return;
   }
   // The parser should guarantee that only scalar declarations
@@ -929,13 +931,13 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   assert(id->get_id()->bit_val_.size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
-  if (id->get_val()->get()->bit_val_[0].size() < 32) {
-    id->get_val()->get()->bit_val_[0].resize(32);
+  if (id->get_val()->bit_val_[0].size() < 32) {
+    id->get_val()->bit_val_[0].resize(32);
   }
   id->get_val()->accept(this);
 
   // Now that we're context determined, we can perform initial assignment
-  id->get_id()->bit_val_[0].assign(Evaluate().get_value(id->get_val()->get()));
+  id->get_id()->bit_val_[0].assign(Evaluate().get_value(id->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
@@ -945,7 +947,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   if (!ld->get_signed()) {
     ld->get_id()->bit_val_[0].set_signed(ld->get_val()->bit_val_[0].is_signed());
   }
-  if (ld->get_dim()->null()) {
+  if (ld->is_null_dim()) {
     ld->get_id()->bit_val_[0].resize(ld->get_val()->bit_val_[0].size());
   }
 
@@ -965,7 +967,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   if (!pd->get_signed()) {
     pd->get_id()->bit_val_[0].set_signed(pd->get_val()->bit_val_[0].is_signed());
   }
-  if (pd->get_dim()->null()) {
+  if (pd->is_null_dim()) {
     pd->get_id()->bit_val_[0].resize(pd->get_val()->bit_val_[0].size());
   }
 
@@ -975,7 +977,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
 
 void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   // Nothing to do if there's no assignment happening here
-  if (rd->get_val()->null()) {
+  if (rd->is_null_val()) {
     return;
   }
   // The parser should guarantee that only scalar declarations
@@ -983,13 +985,13 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   assert(rd->get_id()->bit_val_.size() == 1);
 
   // Assignments impose larger sizes but not sign constraints
-  if (rd->get_id()->bit_val_[0].size() > rd->get_val()->get()->bit_val_[0].size()) {
-    rd->get_val()->get()->bit_val_[0].resize(rd->get_id()->bit_val_[0].size());
+  if (rd->get_id()->bit_val_[0].size() > rd->get_val()->bit_val_[0].size()) {
+    rd->get_val()->bit_val_[0].resize(rd->get_id()->bit_val_[0].size());
   }
   rd->get_val()->accept(this);
 
   // Now that we're context determined, we can perform initial assignment
-  rd->get_id()->bit_val_[0].assign(Evaluate().get_value(rd->get_val()->get()));
+  rd->get_id()->bit_val_[0].assign(Evaluate().get_value(rd->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(VariableAssign* va) {

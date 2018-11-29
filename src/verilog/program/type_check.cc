@@ -482,7 +482,7 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
-  ca->get_ctrl()->accept(this);
+  ca->maybe_accept_ctrl(this);
   net_lval_ = true;
   ca->get_assign()->get_lhs()->accept(this);
   net_lval_ = false;
@@ -506,7 +506,7 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 
 void TypeCheck::visit(const IntegerDeclaration* id) {
   // RECURSE: Check for unsupported language features in initial value
-  id->get_val()->accept(this);
+  id->maybe_accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
@@ -516,7 +516,7 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
     error("A nested scope scope with this name already exists in this scope", id);
   }
   // CHECK: Integer initialized to constant value
-  if (!id->get_val()->null() && !Constant().is_static_constant(id->get_val()->get())) {
+  if (id->is_non_null_val() && !Constant().is_static_constant(id->get_val())) {
     error("Integer initialization requires constant value", id);
   }
   // CHECK: Array properties
@@ -554,7 +554,7 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   check_width(nd->get_dim());
   check_array(nd->get_id()->get_dim());
   // CHECK: Delay control statements
-  if (!nd->get_ctrl()->null()) {
+  if (nd->is_non_null_ctrl()) {
     error("No support for delay control statements in net declarations", nd);
   }
 }
@@ -580,7 +580,7 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 
 void TypeCheck::visit(const RegDeclaration* rd) {
   // RECURSE: Check for unsupported language features in initial value
-  rd->get_val()->accept(this);
+  rd->maybe_accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {
@@ -593,7 +593,7 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   check_width(rd->get_dim());
   check_array(rd->get_id()->get_dim());
   // CHECK: Registers initialized to constant value
-  if (!rd->get_val()->null() && !Constant().is_static_constant(rd->get_val()->get())) {
+  if (rd->is_non_null_val() && !Constant().is_static_constant(rd->get_val())) {
     error("Register initialization requires constant value", rd);
   }
 }
@@ -671,8 +671,8 @@ void TypeCheck::visit(const DelayControl* dc) {
   error("Cascade does not currently support the use of delay controls", dc);
 }
 
-void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
-  if (re->null()) {
+void TypeCheck::check_width(const RangeExpression* re) {
+  if (re == nullptr) {
     return;
   }
 
@@ -685,7 +685,7 @@ void TypeCheck::check_width(const Maybe<RangeExpression>* re) {
     return;
   }
 
-  const auto rng = Evaluate().get_range(re->get());
+  const auto rng = Evaluate().get_range(re);
   if (rng.first <= rng.second) {
     error("Cascade does not currently support little-endian vector declarations", re);
   }
@@ -765,7 +765,7 @@ Many<Expression>::const_iterator TypeCheck::check_deref(const Identifier* r, con
 
 void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg) {
   // Nothing to do if this is a scalar instantiation
-  if (mi->get_range()->null()) {
+  if (mi->is_null_range()) {
     return;
   }
 
@@ -779,7 +779,7 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
     return;
   }
   // Arguments that divide evenly by number of instances are okay
-  const auto mw = Evaluate().get_range(mi->get_range()->get()).first + 1;
+  const auto mw = Evaluate().get_range(mi->get_range()).first + 1;
   if ((aw % mw == 0) && (aw / mw == pw)) {
     return;
   }

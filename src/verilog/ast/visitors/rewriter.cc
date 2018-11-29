@@ -47,7 +47,7 @@ Attributes* Rewriter::rewrite(Attributes* a) {
 
 AttrSpec* Rewriter::rewrite(AttrSpec* as) {
   as->conditional_replace_lhs(as->get_lhs()->accept(this));
-  as->conditional_replace_rhs(as->get_rhs()->accept(this));
+  as->conditional_replace_rhs(as->maybe_accept_rhs(this));
   return as;
 }
 
@@ -124,7 +124,7 @@ GenerateBlock* Rewriter::rewrite(GenerateBlock* gb) {
 }
 
 Id* Rewriter::rewrite(Id* i) {
-  i->maybe_accept_isel(this);
+  i->conditional_replace_isel(i->maybe_accept_isel(this));
   return i;
 }
 
@@ -175,7 +175,7 @@ ModuleItem* Rewriter::rewrite(InitialConstruct* ic) {
 }
 
 ModuleItem* Rewriter::rewrite(ContinuousAssign* ca) {
-  ca->get_ctrl()->accept(this);
+  ca->conditional_replace_ctrl(ca->maybe_accept_ctrl(this));
   ca->get_assign()->accept(this);
   return ca;
 }
@@ -189,13 +189,13 @@ ModuleItem* Rewriter::rewrite(GenvarDeclaration* gd) {
 ModuleItem* Rewriter::rewrite(IntegerDeclaration* id) {
   id->get_attrs()->accept(this);
   id->get_id()->accept(this);
-  id->conditional_replace_val(id->get_val()->accept(this));
+  id->conditional_replace_val(id->maybe_accept_val(this));
   return id;
 }
 
 ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
   ld->get_attrs()->accept(this);
-  ld->get_dim()->accept(this);
+  ld->conditional_replace_dim(ld->maybe_accept_dim(this));
   ld->get_id()->accept(this);
   ld->conditional_replace_val(ld->get_val()->accept(this));
   return ld;
@@ -203,15 +203,15 @@ ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
 
 ModuleItem* Rewriter::rewrite(NetDeclaration* nd) {
   nd->get_attrs()->accept(this);
-  nd->get_ctrl()->accept(this);
+  nd->conditional_replace_ctrl(nd->maybe_accept_ctrl(this));
   nd->get_id()->accept(this);
-  nd->get_dim()->accept(this);
+  nd->conditional_replace_dim(nd->maybe_accept_dim(this));
   return nd;
 }
 
 ModuleItem* Rewriter::rewrite(ParameterDeclaration* pd) {
   pd->get_attrs()->accept(this);
-  pd->get_dim()->accept(this);
+  pd->conditional_replace_dim(pd->maybe_accept_dim(this));
   pd->get_id()->accept(this);
   pd->conditional_replace_val(pd->get_val()->accept(this));
   return pd;
@@ -220,8 +220,8 @@ ModuleItem* Rewriter::rewrite(ParameterDeclaration* pd) {
 ModuleItem* Rewriter::rewrite(RegDeclaration* rd) {
   rd->get_attrs()->accept(this);
   rd->get_id()->accept(this);
-  rd->get_dim()->accept(this);
-  rd->conditional_replace_val(rd->get_val()->accept(this));
+  rd->conditional_replace_dim(rd->maybe_accept_dim(this));
+  rd->conditional_replace_val(rd->maybe_accept_val(this));
   return rd; 
 }
 
@@ -234,7 +234,7 @@ ModuleItem* Rewriter::rewrite(ModuleInstantiation* mi) {
   mi->get_attrs()->accept(this);
   mi->get_mid()->accept(this);
   mi->get_iid()->accept(this);
-  mi->get_range()->accept(this);
+  mi->conditional_replace_range(mi->maybe_accept_range(this));
   mi->get_params()->accept(this);
   mi->get_ports()->accept(this);
   return mi;

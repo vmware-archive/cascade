@@ -144,7 +144,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       Qualify().qualify_exp(c.second) : 
       Qualify().qualify_exp(c.first);
     conns->push_back(new ContinuousAssign(
-      new Maybe<DelayControl>(),
+      nullptr,
       new VariableAssign(lhs, rhs)
     ));
   }
@@ -174,7 +174,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       auto ld = new LocalparamDeclaration(
         new Attributes(new Many<AttrSpec>()),
         pd->get_signed(),
-        pd->get_dim()->clone(),
+        pd->maybe_clone_dim(),
         pd->get_id()->clone(),
         pd->get_val()->clone()
       );
@@ -191,7 +191,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   auto attrs = new Attributes(new Many<AttrSpec>());
   attrs->get_as()->push_back(new AttrSpec(
     new Identifier("__inline"),
-    new Maybe<Expression>(new Number(Bits(32, (uint32_t)inline_src->size())))
+    new Number(Bits(32, (uint32_t)inline_src->size()))
   ));
   // Finally, append the connections to the new source
   inline_src->concat(conns);
@@ -239,7 +239,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
         auto pd = new ParameterDeclaration(
           new Attributes(new Many<AttrSpec>()),
           ld->get_signed(),
-          ld->get_dim()->clone(),
+          ld->maybe_clone_dim(),
           ld->get_id()->clone(),
           ld->get_val()->clone()
         );
