@@ -30,9 +30,7 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
-
 #include <iostream>
-#include "src/verilog/print/term/term_printer.h"
 
 using namespace std;
 
@@ -385,9 +383,9 @@ const Node* Evaluate::get_root(const Expression* e) const {
   // during self-determination.
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
-    // Subscripts inside of identifiers (TODO... shouldn't this have been a many?)
-    if (dynamic_cast<Maybe<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
-      return root->get_parent();
+    // Subscripts inside of identifiers 
+    if (dynamic_cast<Many<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
+      return root;
     }
     // Ranges inside of declarations 
     else if (dynamic_cast<const RangeExpression*>(root) && dynamic_cast<const Declaration*>(root->get_parent())) {
@@ -586,13 +584,7 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
 
 void Evaluate::SelfDetermine::edit(Identifier* id) {
   // Don't descend on dim. We treat it as a separate subtree.
-
   const auto r = Resolve().get_resolution(id);
-
-  if (r == nullptr) {
-    TermPrinter(cout) << "I CAN T RESOLVE " << id << "\n";
-  }
-
   assert(r != nullptr);
 
   size_t w = 0;

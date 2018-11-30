@@ -50,7 +50,7 @@ void Editor::edit(AttrSpec* as) {
 
 void Editor::edit(CaseGenerateItem* cgi) {
   cgi->get_exprs()->accept(this);
-  cgi->get_block()->accept(this);
+  cgi->maybe_accept_block(this);
 }
 
 void Editor::edit(CaseItem* ci) {
@@ -115,7 +115,7 @@ void Editor::edit(Id* i) {
 
 void Editor::edit(IfGenerateClause* igc) {
   igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->maybe_accept_then(this);
 }
 
 void Editor::edit(ModuleDeclaration* md) {
@@ -132,7 +132,7 @@ void Editor::edit(AlwaysConstruct* ac) {
 void Editor::edit(IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
   igc->get_clauses()->accept(this);
-  igc->get_else()->accept(this);
+  igc->maybe_accept_else(this);
 }
 
 void Editor::edit(CaseGenerateConstruct* cgc) {

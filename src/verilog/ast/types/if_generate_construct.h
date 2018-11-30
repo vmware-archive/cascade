@@ -38,45 +38,44 @@
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
 class IfGenerateConstruct : public ConditionalGenerateConstruct {
   public:
     // Constructors:
-    IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, Maybe<GenerateBlock>* else__);
-    IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, Maybe<GenerateBlock>* else__);
+    IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, GenerateBlock* else__);
+    IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, GenerateBlock* else__);
     ~IfGenerateConstruct() override;
 
     // Node Interface:
-    NODE(IfGenerateConstruct, TREE(attrs), TREE(clauses), TREE(else))
+    NODE(IfGenerateConstruct, TREE(attrs), TREE(clauses), MAYBE(else))
     // Get/Set:
     TREE_GET_SET(attrs)
     TREE_GET_SET(clauses)
-    TREE_GET_SET(else)
+    MAYBE_GET_SET(GenerateBlock*, else)
 
   private:
     friend class Inline;
     TREE_ATTR(Attributes*, attrs);
     TREE_ATTR(Many<IfGenerateClause>*, clauses);
-    TREE_ATTR(Maybe<GenerateBlock>*, else);
+    MAYBE_ATTR(GenerateBlock*, else);
 };
 
-inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, Maybe<GenerateBlock>* else__) : IfGenerateConstruct(attrs__, new Many<IfGenerateClause>(clause__), else__) { }
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, GenerateBlock* else__) : IfGenerateConstruct(attrs__, new Many<IfGenerateClause>(clause__), else__) { }
 
-inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, Maybe<GenerateBlock>* else__) : ConditionalGenerateConstruct() {
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, GenerateBlock* else__) : ConditionalGenerateConstruct() {
   parent_ = nullptr;
   TREE_SETUP(attrs);
   TREE_SETUP(clauses);
-  TREE_SETUP(else);
+  MAYBE_SETUP(else);
   gen_ = nullptr;
 }
 
 inline IfGenerateConstruct::~IfGenerateConstruct() {
   TREE_TEARDOWN(attrs);
   TREE_TEARDOWN(clauses);
-  TREE_TEARDOWN(else);
+  MAYBE_TEARDOWN(else);
   // Don't delete gen_; it points to then_ or else_
 }
 

@@ -33,7 +33,6 @@
 
 #include "src/verilog/ast/types/generate_construct.h"
 #include "src/verilog/ast/types/generate_block.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
@@ -51,7 +50,7 @@ class ConditionalGenerateConstruct : public GenerateConstruct {
 
   protected:
     friend class Elaborate;
-    DECORATION(Maybe<GenerateBlock>*, gen);
+    DECORATION(GenerateBlock*, gen);
 };
 
 inline ConditionalGenerateConstruct::ConditionalGenerateConstruct() : GenerateConstruct() { }

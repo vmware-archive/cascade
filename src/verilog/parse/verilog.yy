@@ -269,7 +269,7 @@ bool is_null(const cascade::Expression* e) {
 %type <CaseGenerateConstruct*> case_generate_construct
 %type <CaseGenerateItem*> case_generate_item
 %type <GenerateBlock*> generate_block
-%type <Maybe<GenerateBlock>*> generate_block_or_null
+%type <GenerateBlock*> generate_block_or_null
 
 /* A.6.1 Continuous Assignment Statements */
 %type <Many<ModuleItem>*> continuous_assign
@@ -1115,22 +1115,24 @@ conditional_generate_construct
   ;
 if_generate_construct
   : IF OPAREN expression CPAREN generate_block_or_null %prec THEN { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), nullptr);
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), new Maybe<GenerateBlock>());
+    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), nullptr);
     // Was the remainder of this parse an empty block?
-    if ($7->null()) {
+    if ($7 == nullptr) {
       // Nothing to do.
     }
     // Was it an unscoped if/then?
-    else if (!$7->get()->get_scope() && ($7->get()->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->front())) {
-      auto igc = dynamic_cast<IfGenerateConstruct*>($7->get()->get_items()->remove_front());
+    else if (!$7->get_scope() && ($7->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get_items()->front())) {
+      auto igc = dynamic_cast<IfGenerateConstruct*>($7->get_items()->remove_front());
       delete $7;
       while (!igc->get_clauses()->empty()) {
         $$->get_clauses()->push_back(igc->get_clauses()->remove_front());
       }
-      $$->swap_else(igc->get_else());
+      auto e = igc->get_else();
+      igc->set_else(nullptr); 
+      $$->replace_else(e);
       delete igc;
     }
     // Everything else is just an else block
@@ -1149,17 +1151,17 @@ case_generate_construct
       }
     }
     if (!has_default) {
-      $5->push_back(new CaseGenerateItem(new Many<Expression>(), new Maybe<GenerateBlock>()));
+      $5->push_back(new CaseGenerateItem(new Many<Expression>(), nullptr));
     }
     $$ = new CaseGenerateConstruct($3,$5);
   }
   ;
 case_generate_item
   : expression_P COLON generate_block_or_null { 
-    $$ = new CaseGenerateItem($1,$3);
+    $$ = new CaseGenerateItem($1, $3);
   }
   | DEFAULT colon_Q generate_block_or_null { 
-    $$ = new CaseGenerateItem(new Many<Expression>(),$3);
+    $$ = new CaseGenerateItem(new Many<Expression>(), $3);
   }
   ; 
 generate_block
@@ -1171,8 +1173,8 @@ generate_block
   }
   ;
 generate_block_or_null
-  : generate_block { $$ = new Maybe<GenerateBlock>($1); }
-  | SCOLON { $$ = new Maybe<GenerateBlock>(); }
+  : SCOLON { $$ = nullptr; }
+  | generate_block { $$ = $1; }
   ;
 
 /* A.6.1 Continuous Assignment Statements */

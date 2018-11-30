@@ -69,7 +69,7 @@ CaseGenerateItem* Builder::build(const CaseGenerateItem* cgi) {
   }
   return new CaseGenerateItem(
     exprs,
-    cgi->get_block()->accept(this)
+    cgi->maybe_accept_block(this)
   );
 }
 
@@ -191,7 +191,7 @@ Id* Builder::build(const Id* i) {
 IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
   return new IfGenerateClause(
     igc->get_if()->accept(this),
-    igc->get_then()->accept(this)
+    igc->maybe_accept_then(this)
   );
 }
 
@@ -226,7 +226,7 @@ ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
   return new IfGenerateConstruct(
     igc->get_attrs()->accept(this),
     igc->get_clauses()->accept(this),
-    igc->get_else()->accept(this)
+    igc->maybe_accept_else(this)
   );
 }
 

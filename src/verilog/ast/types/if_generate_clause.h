@@ -36,31 +36,30 @@
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
 class IfGenerateClause : public Node {
   public:
     // Constructors:
-    IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__);
+    IfGenerateClause(Expression* if__, GenerateBlock* then__);
     ~IfGenerateClause() override;
 
     // Node Interface:
-    NODE(IfGenerateClause, TREE(if), TREE(then))
+    NODE(IfGenerateClause, TREE(if), MAYBE(then))
     // Get/Set:
     TREE_GET_SET(if)
-    TREE_GET_SET(then)
+    MAYBE_GET_SET(GenerateBlock*, then)
 
   private:
     TREE_ATTR(Expression*, if);
-    TREE_ATTR(Maybe<GenerateBlock>*, then);
+    MAYBE_ATTR(GenerateBlock*, then);
 };
 
-inline IfGenerateClause::IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__) : Node() {
+inline IfGenerateClause::IfGenerateClause(Expression* if__, GenerateBlock* then__) : Node() {
   parent_ = nullptr;
   TREE_SETUP(if);
-  TREE_SETUP(then);
+  MAYBE_SETUP(then);
 }
 
 inline IfGenerateClause::~IfGenerateClause() {

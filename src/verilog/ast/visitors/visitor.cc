@@ -50,7 +50,7 @@ void Visitor::visit(const AttrSpec* as) {
 
 void Visitor::visit(const CaseGenerateItem* cgi) {
   cgi->get_exprs()->accept(this);
-  cgi->get_block()->accept(this);
+  cgi->maybe_accept_block(this);
 }
 
 void Visitor::visit(const CaseItem* ci) {
@@ -84,7 +84,7 @@ void Visitor::visit(const Identifier* i) {
 
 void Visitor::visit(const IfGenerateClause* igc) {
   igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->maybe_accept_then(this);
 }
 
 void Visitor::visit(const MultipleConcatenation* mc) {
@@ -132,7 +132,7 @@ void Visitor::visit(const AlwaysConstruct* ac) {
 void Visitor::visit(const IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
   igc->get_clauses()->accept(this);
-  igc->get_else()->accept(this);
+  igc->maybe_accept_else(this);
 }
 
 void Visitor::visit(const CaseGenerateConstruct* cgc) {

@@ -453,27 +453,27 @@ void TypeCheck::visit(const CaseGenerateConstruct* cgc) {
   if (local_only_) {
     return;
   }
-  assert(Elaborate().is_elaborated(cgc));
-  auto gen = Elaborate().get_elaboration(cgc);
-  gen->accept(this);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().get_elaboration(cgc)->accept(this);
+  }
 }
 
 void TypeCheck::visit(const IfGenerateConstruct* igc) {
   if (local_only_) {
     return;
   }
-  assert(Elaborate().is_elaborated(igc));
-  auto gen = Elaborate().get_elaboration(igc);
-  gen->accept(this);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().get_elaboration(igc)->accept(this);
+  }
 }
 
 void TypeCheck::visit(const LoopGenerateConstruct* lgc) {
   if (local_only_) {
     return;
   }
-  assert(Elaborate().is_elaborated(lgc));
-  auto gen = Elaborate().get_elaboration(lgc);
-  gen->accept(this);
+  if (Elaborate().is_elaborated(lgc)) {
+    Elaborate().get_elaboration(lgc)->accept(this);
+  }
 }
 
 void TypeCheck::visit(const InitialConstruct* ic) {
@@ -602,11 +602,11 @@ void TypeCheck::visit(const ModuleInstantiation* mi) {
   if (local_only_) {
     return;
   }
-  assert(Elaborate().is_elaborated(mi));
-  auto inst = Elaborate(program_).get_elaboration(mi);
-  instantiation_ = mi;
-  inst->accept(this);
-  instantiation_ = nullptr;
+  if (Elaborate().is_elaborated(mi)) {
+    instantiation_ = mi;
+    Elaborate(program_).get_elaboration(mi)->accept(this);
+    instantiation_ = nullptr;
+  }
 }
 
 void TypeCheck::visit(const ParBlock* pb) {

@@ -53,7 +53,7 @@ AttrSpec* Rewriter::rewrite(AttrSpec* as) {
 
 CaseGenerateItem* Rewriter::rewrite(CaseGenerateItem* cgi) {
   cgi->get_exprs()->accept(this);
-  cgi->get_block()->accept(this);
+  cgi->conditional_replace_block(cgi->maybe_accept_block(this));
   return cgi;
 }
 
@@ -130,7 +130,7 @@ Id* Rewriter::rewrite(Id* i) {
 
 IfGenerateClause* Rewriter::rewrite(IfGenerateClause* igc) {
   igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->conditional_replace_then(igc->maybe_accept_then(this));
   return igc;
 }
 
@@ -150,7 +150,7 @@ ModuleItem* Rewriter::rewrite(AlwaysConstruct* ac) {
 ModuleItem* Rewriter::rewrite(IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
   igc->conditional_replace_clauses(igc->get_clauses()->accept(this));
-  igc->get_else()->accept(this);
+  igc->conditional_replace_else(igc->maybe_accept_else(this));
   return igc;
 }
 

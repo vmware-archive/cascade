@@ -346,26 +346,25 @@ void Isolate::replace(Many<ModuleItem>* res, const ModuleInstantiation* mi) {
 }
 
 void Isolate::flatten(Many<ModuleItem>* res, const CaseGenerateConstruct* cgc) {
-  auto elab = Elaborate().get_elaboration(cgc);
-  assert(elab != nullptr);
-  if (!elab->null()) {
-    flatten(res, elab->get());
+  if (Elaborate().is_elaborated(cgc)) {
+    auto elab = Elaborate().get_elaboration(cgc);
+    flatten(res, elab);
   }
 }
 
 void Isolate::flatten(Many<ModuleItem>* res, const IfGenerateConstruct* igc) {
-  auto elab = Elaborate().get_elaboration(igc);
-  assert(elab != nullptr);
-  if (!elab->null()) {
-    flatten(res, elab->get());
+  if (Elaborate().is_elaborated(igc)) {
+    auto elab = Elaborate().get_elaboration(igc);
+    flatten(res, elab);
   }
 }
 
 void Isolate::flatten(Many<ModuleItem>* res, const LoopGenerateConstruct* lgc) {
-  auto elab = Elaborate().get_elaboration(lgc);
-  assert(elab != nullptr);
-  for (auto gb : *elab) {
-    flatten(res, gb);
+  if (Elaborate().is_elaborated(lgc)) {
+    auto elab = Elaborate().get_elaboration(lgc);
+    for (auto gb : *elab) {
+      flatten(res, gb);
+    }
   }
 }
 

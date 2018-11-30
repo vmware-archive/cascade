@@ -254,7 +254,7 @@ void Printer::visit(const IfGenerateConstruct* igc) {
     *this << Color::GREEN << "else " << Color::RESET;
     (*c)->accept(this);
   }
-  if (!igc->get_else()->null()) {
+  if (igc->is_non_null_else()) {
     *this << Color::GREEN << "else " << Color::RESET;
     igc->get_else()->accept(this);
   }

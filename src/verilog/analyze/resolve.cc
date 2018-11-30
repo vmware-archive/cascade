@@ -182,21 +182,21 @@ void Resolve::cache_uses(Declaration* d) {
 void Resolve::InitCacheUses::edit(CaseGenerateConstruct* cgc) {
   Editor::edit(cgc);
   if (Elaborate().is_elaborated(cgc)) {
-    Elaborate().elaborate(cgc)->accept(this);
+    Elaborate().get_elaboration(cgc)->accept(this);
   }
 }
 
 void Resolve::InitCacheUses::edit(IfGenerateConstruct* igc) {
   Editor::edit(igc);
   if (Elaborate().is_elaborated(igc)) {
-    Elaborate().elaborate(igc)->accept(this);
+    Elaborate().get_elaboration(igc)->accept(this);
   }
 }
 
 void Resolve::InitCacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().elaborate(lgc)->accept(this);
+    Elaborate().get_elaboration(lgc)->accept(this);
   }
 }
 
@@ -239,7 +239,7 @@ void Resolve::InitCacheUses::edit(RegDeclaration* rd) {
 void Resolve::InitCacheUses::edit(ModuleInstantiation* mi) {
   Editor::edit(mi);
   if (Elaborate().is_elaborated(mi)) {
-    Elaborate().elaborate(mi)->accept(this);
+    Elaborate().get_elaboration(mi)->accept(this);
   }
   if (Inline().is_inlined(mi)) {
     const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);
@@ -280,21 +280,21 @@ void Resolve::CacheUses::edit(Identifier* i) {
 void Resolve::CacheUses::edit(CaseGenerateConstruct* cgc) {
   Editor::edit(cgc);
   if (Elaborate().is_elaborated(cgc)) {
-    Elaborate().elaborate(cgc)->accept(this);
+    Elaborate().get_elaboration(cgc)->accept(this);
   }
 }
 
 void Resolve::CacheUses::edit(IfGenerateConstruct* igc) {
   Editor::edit(igc);
   if (Elaborate().is_elaborated(igc)) {
-    Elaborate().elaborate(igc)->accept(this);
+    Elaborate().get_elaboration(igc)->accept(this);
   }
 }
 
 void Resolve::CacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().elaborate(lgc)->accept(this);
+    Elaborate().get_elaboration(lgc)->accept(this);
   }
 }
 
@@ -329,7 +329,7 @@ void Resolve::CacheUses::edit(RegDeclaration* rd) {
 void Resolve::CacheUses::edit(ModuleInstantiation* mi) {
   Editor::edit(mi);
   if (Elaborate().is_elaborated(mi)) {
-    Elaborate().elaborate(mi)->accept(this);
+    Elaborate().get_elaboration(mi)->accept(this);
   }
   if (Inline().is_inlined(mi)) {
     const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);
@@ -349,21 +349,21 @@ void Resolve::Invalidate::edit(Identifier* id) {
 void Resolve::Invalidate::edit(CaseGenerateConstruct* cgc) {
   Editor::edit(cgc);
   if (Elaborate().is_elaborated(cgc)) {
-    Elaborate().elaborate(cgc)->accept(this);
+    Elaborate().get_elaboration(cgc)->accept(this);
   }
 }
 
 void Resolve::Invalidate::edit(IfGenerateConstruct* igc) {
   Editor::edit(igc);
   if (Elaborate().is_elaborated(igc)) {
-    Elaborate().elaborate(igc)->accept(this);
+    Elaborate().get_elaboration(igc)->accept(this);
   }
 }
 
 void Resolve::Invalidate::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().elaborate(lgc)->accept(this);
+    Elaborate().get_elaboration(lgc)->accept(this);
   }
 }
 
@@ -418,7 +418,7 @@ void Resolve::Invalidate::edit(RegDeclaration* rd) {
 void Resolve::Invalidate::edit(ModuleInstantiation* mi) {
   Editor::edit(mi);
   if (Elaborate().is_elaborated(mi)) {
-    Elaborate().elaborate(mi)->accept(this);
+    Elaborate().get_elaboration(mi)->accept(this);
   }
   if (Inline().is_inlined(mi)) {
     const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->accept(this);

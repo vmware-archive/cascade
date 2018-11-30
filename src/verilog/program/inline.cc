@@ -96,18 +96,21 @@ Expression* Inline::Qualify::build(const Identifier* id) {
 }
 
 void Inline::edit(CaseGenerateConstruct* cgc) {
-  assert(Elaborate().is_elaborated(cgc));
-  Elaborate().elaborate(cgc)->accept(this);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().get_elaboration(cgc)->accept(this);
+  }
 }
 
 void Inline::edit(IfGenerateConstruct* igc) {
-  assert(Elaborate().is_elaborated(igc));
-  Elaborate().elaborate(igc)->accept(this);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().get_elaboration(igc)->accept(this);
+  }
 }
 
 void Inline::edit(LoopGenerateConstruct* lgc) {
-  assert(Elaborate().is_elaborated(lgc));
-  Elaborate().elaborate(lgc)->accept(this);
+  if (Elaborate().is_elaborated(lgc)) {
+    Elaborate().get_elaboration(lgc)->accept(this);
+  }
 }
 
 void Inline::edit(ModuleInstantiation* mi) {
@@ -125,8 +128,8 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     return;
   }
   // Nothing to do for code that we don't support inlining
-  auto src = Elaborate().elaborate(mi);
-  assert(src != nullptr);
+  assert(Elaborate().is_elaborated(mi));
+  auto src = Elaborate().get_elaboration(mi);
   if (!can_inline(src)) {
     return;
   }
@@ -201,13 +204,13 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     attrs,
     new IfGenerateClause(
       new Number(Bits(true)),
-      new Maybe<GenerateBlock>(new GenerateBlock(
+      new GenerateBlock(
         mi->get_iid()->clone(),
         true,
         inline_src
-      ))
+      )
     ),
-    new Maybe<GenerateBlock>()
+    nullptr
   );
   mi->inline_ = igc;
   igc->parent_ = mi;
@@ -233,7 +236,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   // parameter delcarations, and delete the connections.
   const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
-    auto item = mi->inline_->get_clauses()->front()->get_then()->get()->get_items()->remove_front();
+    auto item = mi->inline_->get_clauses()->front()->get_then()->get_items()->remove_front();
     if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto pd = new ParameterDeclaration(

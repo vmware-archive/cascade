@@ -46,20 +46,25 @@ class Elaborate : public Visitor {
 
     // Elaboration Interface:
     ModuleDeclaration* elaborate(ModuleInstantiation* mi);
-    Maybe<GenerateBlock>* elaborate(CaseGenerateConstruct* cgc);
-    Maybe<GenerateBlock>* elaborate(IfGenerateConstruct* igc);
+    GenerateBlock* elaborate(CaseGenerateConstruct* cgc);
+    GenerateBlock* elaborate(IfGenerateConstruct* igc);
     Many<GenerateBlock>* elaborate(LoopGenerateConstruct* lgc);
 
     // Query Interface:
-    const ModuleDeclaration* get_elaboration(const ModuleInstantiation* mi);
-    const Maybe<GenerateBlock>* get_elaboration(const CaseGenerateConstruct* cgc);
-    const Maybe<GenerateBlock>* get_elaboration(const IfGenerateConstruct* igc);
-    const Many<GenerateBlock>* get_elaboration(const LoopGenerateConstruct* lgc);
-
     bool is_elaborated(const ModuleInstantiation* mi);
     bool is_elaborated(const CaseGenerateConstruct* cgc);
     bool is_elaborated(const IfGenerateConstruct* igc);
     bool is_elaborated(const LoopGenerateConstruct* lgc);
+
+    ModuleDeclaration* get_elaboration(ModuleInstantiation* mi);
+    GenerateBlock* get_elaboration(CaseGenerateConstruct* cgc);
+    GenerateBlock* get_elaboration(IfGenerateConstruct* igc);
+    Many<GenerateBlock>* get_elaboration(LoopGenerateConstruct* lgc);
+
+    const ModuleDeclaration* get_elaboration(const ModuleInstantiation* mi);
+    const GenerateBlock* get_elaboration(const CaseGenerateConstruct* cgc);
+    const GenerateBlock* get_elaboration(const IfGenerateConstruct* igc);
+    const Many<GenerateBlock>* get_elaboration(const LoopGenerateConstruct* lgc);
 
   private:
     // Program Access:
@@ -73,7 +78,7 @@ class Elaborate : public Visitor {
     // Helper Methods:
     void named_params(ModuleInstantiation* mi);
     void ordered_params(ModuleInstantiation* mi);
-    void elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock>* b);
+    void elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b);
 
     // Visitor Interface:
     void visit(const CaseGenerateConstruct* cgc) override;

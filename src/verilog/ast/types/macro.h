@@ -265,6 +265,13 @@
   bool is_non_null_##t() const { \
     return PRIVATE(t) != nullptr; \
   } \
+  T remove_##t() { \
+    assert(PRIVATE(t) != nullptr); \
+    auto res = PRIVATE(t); \
+    PRIVATE(t) = nullptr; \
+    res->parent_ = nullptr; \
+    return res; \
+  } \
   T maybe_clone_##t() const { \
     return (PRIVATE(t) != nullptr) ? PRIVATE(t)->clone() : nullptr; \
   } \
@@ -318,8 +325,6 @@
 #define HIERARCHY_VISIBILITY \
   template <typename T> \
   friend class Many; \
-  template <typename T> \
-  friend class Maybe; \
   friend class ArgAssign; \
   friend class Attributes; \
   friend class AttrSpec; \

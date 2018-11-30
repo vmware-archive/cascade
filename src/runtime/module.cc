@@ -223,15 +223,21 @@ Module::Instantiator::Instantiator(Module* ptr) {
 }
 
 void Module::Instantiator::visit(const CaseGenerateConstruct* cgc) {
-  Elaborate().get_elaboration(cgc)->accept(this);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().get_elaboration(cgc)->accept(this);
+  }
 }
 
 void Module::Instantiator::visit(const IfGenerateConstruct* igc) {
-  Elaborate().get_elaboration(igc)->accept(this);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().get_elaboration(igc)->accept(this);
+  }
 }
 
 void Module::Instantiator::visit(const LoopGenerateConstruct* lgc) {
-  Elaborate().get_elaboration(lgc)->accept(this);
+  if (Elaborate().is_elaborated(lgc)) {
+    Elaborate().get_elaboration(lgc)->accept(this);
+  }
 }
 
 void Module::Instantiator::visit(const ModuleInstantiation* mi) {

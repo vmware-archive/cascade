@@ -68,7 +68,7 @@ ModuleDeclaration* Elaborate::elaborate(ModuleInstantiation* mi) {
   return mi->inst_;
 }
 
-Maybe<GenerateBlock>* Elaborate::elaborate(CaseGenerateConstruct* cgc) {
+GenerateBlock* Elaborate::elaborate(CaseGenerateConstruct* cgc) {
   if (cgc->gen_ != nullptr) {
     return cgc->gen_;
   }
@@ -93,7 +93,7 @@ Maybe<GenerateBlock>* Elaborate::elaborate(CaseGenerateConstruct* cgc) {
   return nullptr;
 }
 
-Maybe<GenerateBlock>* Elaborate::elaborate(IfGenerateConstruct* igc) {
+GenerateBlock* Elaborate::elaborate(IfGenerateConstruct* igc) {
   if (igc->gen_ != nullptr) {
     return igc->gen_;
   }
@@ -150,22 +150,6 @@ Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
   return lgc->gen_;
 }
 
-const ModuleDeclaration* Elaborate::get_elaboration(const ModuleInstantiation* mi) {
-  return mi->inst_;
-}
-
-const Maybe<GenerateBlock>* Elaborate::get_elaboration(const CaseGenerateConstruct* cgc) {
-  return cgc->gen_;
-}
-
-const Maybe<GenerateBlock>* Elaborate::get_elaboration(const IfGenerateConstruct* igc) {
-  return igc->gen_;
-}
-
-const Many<GenerateBlock>* Elaborate::get_elaboration(const LoopGenerateConstruct* lgc) {
-  return lgc->gen_;
-}
-
 bool Elaborate::is_elaborated(const ModuleInstantiation* mi) {
   return mi->inst_ != nullptr;
 }
@@ -180,6 +164,46 @@ bool Elaborate::is_elaborated(const IfGenerateConstruct* igc) {
 
 bool Elaborate::is_elaborated(const LoopGenerateConstruct* lgc) {
   return lgc->gen_ != nullptr;
+}
+
+ModuleDeclaration* Elaborate::get_elaboration(ModuleInstantiation* mi) {
+  assert(mi->inst_ != nullptr);
+  return mi->inst_;
+}
+
+GenerateBlock* Elaborate::get_elaboration(CaseGenerateConstruct* cgc) {
+  assert(cgc->gen_ != nullptr);
+  return cgc->gen_;
+}
+
+GenerateBlock* Elaborate::get_elaboration(IfGenerateConstruct* igc) {
+  assert(igc->gen_ != nullptr);
+  return igc->gen_;
+}
+
+Many<GenerateBlock>* Elaborate::get_elaboration(LoopGenerateConstruct* lgc) {
+  assert(lgc->gen_ != nullptr);
+  return lgc->gen_;
+}
+
+const ModuleDeclaration* Elaborate::get_elaboration(const ModuleInstantiation* mi) {
+  assert(mi->inst_ != nullptr);
+  return mi->inst_;
+}
+
+const GenerateBlock* Elaborate::get_elaboration(const CaseGenerateConstruct* cgc) {
+  assert(cgc->gen_ != nullptr);
+  return cgc->gen_;
+}
+
+const GenerateBlock* Elaborate::get_elaboration(const IfGenerateConstruct* igc) {
+  assert(igc->gen_ != nullptr);
+  return igc->gen_;
+}
+
+const Many<GenerateBlock>* Elaborate::get_elaboration(const LoopGenerateConstruct* lgc) {
+  assert(lgc->gen_ != nullptr);
+  return lgc->gen_;
 }
 
 void Elaborate::named_params(ModuleInstantiation* mi) {
@@ -210,25 +234,29 @@ void Elaborate::ordered_params(ModuleInstantiation* mi) {
   }
 }
 
-void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, Maybe<GenerateBlock>* b) {
+void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b) {
   cgc->gen_ = b;  
+  if (b != nullptr) {
+    b->parent_ = cgc;
+  }
+
   // Nothing to do if this block was already named
-  if (b->null() || b->get()->is_non_null_id()) {
+  if (b == nullptr || b->is_non_null_id()) {
     return;
   }
   // Also nothing to do if this is a directly nested block without begin/ends
   if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent()->get_parent())) {
     const auto only_item = block->get_items()->size() == 1;
-    const auto pp = block->get_parent()->get_parent();
-    const auto nested_if = dynamic_cast<IfGenerateClause*>(pp);
-    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(pp);
-    const auto nested_case = dynamic_cast<CaseGenerateItem*>(pp);
+    const auto p = block->get_parent();
+    const auto nested_if = dynamic_cast<IfGenerateClause*>(p);
+    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(p);
+    const auto nested_case = dynamic_cast<CaseGenerateItem*>(p);
     if (!block->get_scope() && only_item && (nested_if || nested_else || nested_case)) {
       return;
     }
   }
   // Otherwise, attach the next name for this scope
-  b->get()->replace_id(get_name(cgc));
+  b->replace_id(get_name(cgc));
 }
 
 Identifier* Elaborate::get_name(GenerateConstruct* gc) {

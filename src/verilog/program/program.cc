@@ -202,18 +202,19 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
       auto mi = inst_queue_[i];
       tc.pre_elaboration_check(mi);
       if (!log->error() && expand_insts_) {
-        Elaborate(this).elaborate(mi)->accept(this);
+        auto e = Elaborate(this).elaborate(mi);
+        assert(e != nullptr);
+        e->accept(this);
         if (!Navigate(mi).lost()) {
           Navigate(mi).invalidate();
         }
 
-        auto inst = Elaborate().elaborate(mi);
         if (mi->get_attrs()->get_as()->empty()) {
-          inst->get_attrs()->set_or_replace(root_inst_->get_attrs());
+          e->get_attrs()->set_or_replace(root_inst_->get_attrs());
         } else {
-          inst->get_attrs()->set_or_replace(mi->get_attrs());
+          e->get_attrs()->set_or_replace(mi->get_attrs());
         }
-        elabs_.insert(Resolve().get_full_id(mi->get_iid()), inst);
+        elabs_.insert(Resolve().get_full_id(mi->get_iid()), e);
       }
     }
     inst_queue_.clear();
@@ -228,13 +229,17 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
       if (auto cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(cgc);
         if (!log->error() && expand_gens_) {
-          Elaborate().elaborate(cgc)->accept(this);
+          if (auto e = Elaborate().elaborate(cgc)) {
+            e->accept(this);
+          }
           Navigate(cgc).invalidate();
         }
       } else if (auto igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(igc);
         if (!log->error() && expand_gens_) {
-          Elaborate().elaborate(igc)->accept(this);
+          if (auto e = Elaborate().elaborate(igc)) {
+            e->accept(this);
+          }
           Navigate(igc).invalidate();
         }
       } else if (auto lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
