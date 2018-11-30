@@ -46,25 +46,25 @@ class IfGenerateClause : public Node {
     ~IfGenerateClause() override;
 
     // Node Interface:
-    NODE(IfGenerateClause, TREE(if), MAYBE(then))
+    NODE(IfGenerateClause, PTR(if), MAYBE(then))
     // Get/Set:
-    TREE_GET_SET(if)
+    PTR_GET_SET(if)
     MAYBE_GET_SET(GenerateBlock*, then)
 
   private:
-    TREE_ATTR(Expression*, if);
+    PTR_ATTR(Expression*, if);
     MAYBE_ATTR(GenerateBlock*, then);
 };
 
 inline IfGenerateClause::IfGenerateClause(Expression* if__, GenerateBlock* then__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(if);
+  PTR_SETUP(if);
   MAYBE_SETUP(then);
 }
 
 inline IfGenerateClause::~IfGenerateClause() {
-  TREE_TEARDOWN(if);
-  TREE_TEARDOWN(then);
+  PTR_TEARDOWN(if);
+  PTR_TEARDOWN(then);
 }
 
 } // namespace cascade 

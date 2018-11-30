@@ -46,25 +46,25 @@ class ContinuousAssign : public ModuleItem {
     ~ContinuousAssign() override;
 
     // Node Interface:
-    NODE(ContinuousAssign, MAYBE(ctrl), TREE(assign))
+    NODE(ContinuousAssign, MAYBE(ctrl), PTR(assign))
     // Get/Set:
     MAYBE_GET_SET(DelayControl*, ctrl)
-    TREE_GET_SET(assign)
+    PTR_GET_SET(assign)
 
   private:
     MAYBE_ATTR(DelayControl*, ctrl);
-    TREE_ATTR(VariableAssign*, assign);
+    PTR_ATTR(VariableAssign*, assign);
 };
 
 inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ModuleItem() {
   parent_ = nullptr;
   MAYBE_SETUP(ctrl);
-  TREE_SETUP(assign);
+  PTR_SETUP(assign);
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
   MAYBE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(assign);
+  PTR_TEARDOWN(assign);
 }
 
 } // namespace cascade 

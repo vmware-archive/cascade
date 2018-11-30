@@ -46,25 +46,25 @@ class RepeatStatement : public LoopStatement {
     ~RepeatStatement() override;
 
     // Node Interface:
-    NODE(RepeatStatement, TREE(cond), TREE(stmt))
+    NODE(RepeatStatement, PTR(cond), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(cond)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline RepeatStatement::RepeatStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(stmt);
+  PTR_SETUP(cond);
+  PTR_SETUP(stmt);
 }
 
 inline RepeatStatement::~RepeatStatement() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

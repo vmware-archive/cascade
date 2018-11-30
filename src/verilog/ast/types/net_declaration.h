@@ -52,36 +52,36 @@ class NetDeclaration : public Declaration {
     ~NetDeclaration() override;
 
     // Node Interface:
-    NODE(NetDeclaration, TREE(attrs), LEAF(type), MAYBE(ctrl), TREE(id), LEAF(signed), MAYBE(dim))
+    NODE(NetDeclaration, PTR(attrs), VAL(type), MAYBE(ctrl), PTR(id), VAL(signed), MAYBE(dim))
     // Get/Set:
-    LEAF_GET_SET(type)
+    VAL_GET_SET(type)
     MAYBE_GET_SET(DelayControl*, ctrl)
-    LEAF_GET_SET(signed)
+    VAL_GET_SET(signed)
     MAYBE_GET_SET(RangeExpression*, dim)
 
   private:
-    LEAF_ATTR(Type, type);
+    VAL_ATTR(Type, type);
     MAYBE_ATTR(DelayControl*, ctrl);
-    LEAF_ATTR(bool, signed);
+    VAL_ATTR(bool, signed);
     MAYBE_ATTR(RangeExpression*, dim);
 };
 
 inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(type);
+  PTR_SETUP(attrs);
+  VAL_SETUP(type);
   MAYBE_SETUP(ctrl);
-  TREE_SETUP(id);
-  LEAF_SETUP(signed);
+  PTR_SETUP(id);
+  VAL_SETUP(signed);
   MAYBE_SETUP(dim);
 }
 
 inline NetDeclaration::~NetDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(type);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(signed);
+  PTR_TEARDOWN(id);
+  VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
 }
 

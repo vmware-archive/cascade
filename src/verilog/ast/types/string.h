@@ -46,9 +46,9 @@ class String : public Primary {
     ~String() override = default;
 
     // Node Interface:
-    NODE(String, LEAF(val))
+    NODE(String, VAL(val))
     // Get/Set:
-    LEAF_GET_SET(val)
+    VAL_GET_SET(val)
     // Additional Get/Set:
     const std::string& get_readable_val();
     const std::string& get_readable_val() const;
@@ -59,7 +59,7 @@ class String : public Primary {
     bool eq(const std::string& rhs) const;
 
   private:
-    LEAF_ATTR(Tokenize::Token, val);
+    VAL_ATTR(Tokenize::Token, val);
 };
 
 inline String::String(const std::string& val) : String(Tokenize().map(val)) { }

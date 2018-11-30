@@ -49,16 +49,16 @@ class IfGenerateConstruct : public ConditionalGenerateConstruct {
     ~IfGenerateConstruct() override;
 
     // Node Interface:
-    NODE(IfGenerateConstruct, TREE(attrs), TREE(clauses), MAYBE(else))
+    NODE(IfGenerateConstruct, PTR(attrs), PTR(clauses), MAYBE(else))
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(clauses)
+    PTR_GET_SET(attrs)
+    PTR_GET_SET(clauses)
     MAYBE_GET_SET(GenerateBlock*, else)
 
   private:
     friend class Inline;
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Many<IfGenerateClause>*, clauses);
+    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Many<IfGenerateClause>*, clauses);
     MAYBE_ATTR(GenerateBlock*, else);
 };
 
@@ -66,15 +66,15 @@ inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, IfGenerateC
 
 inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, GenerateBlock* else__) : ConditionalGenerateConstruct() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(clauses);
+  PTR_SETUP(attrs);
+  PTR_SETUP(clauses);
   MAYBE_SETUP(else);
   gen_ = nullptr;
 }
 
 inline IfGenerateConstruct::~IfGenerateConstruct() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(clauses);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(clauses);
   MAYBE_TEARDOWN(else);
   // Don't delete gen_; it points to then_ or else_
 }

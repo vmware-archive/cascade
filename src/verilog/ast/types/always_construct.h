@@ -45,21 +45,21 @@ class AlwaysConstruct : public Construct {
     ~AlwaysConstruct() override;
 
     // Node Interface:
-    NODE(AlwaysConstruct, TREE(stmt))
+    NODE(AlwaysConstruct, PTR(stmt))
     // Get/Set
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline AlwaysConstruct::AlwaysConstruct(Statement* stmt__) : Construct() {
   parent_ = nullptr;
-  TREE_SETUP(stmt);
+  PTR_SETUP(stmt);
 }
 
 inline AlwaysConstruct::~AlwaysConstruct() {
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

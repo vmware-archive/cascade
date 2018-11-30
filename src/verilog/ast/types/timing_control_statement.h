@@ -45,25 +45,25 @@ class TimingControlStatement : public Statement {
     ~TimingControlStatement() override;
 
     // Node Interface:
-    NODE(TimingControlStatement, TREE(ctrl), TREE(stmt))
+    NODE(TimingControlStatement, PTR(ctrl), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(ctrl)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(ctrl)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(TimingControl*, ctrl);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(TimingControl*, ctrl);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline TimingControlStatement::TimingControlStatement(TimingControl* ctrl__, Statement* stmt__) : Statement() {
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
-  TREE_SETUP(stmt);
+  PTR_SETUP(ctrl);
+  PTR_SETUP(stmt);
 }
 
 inline TimingControlStatement::~TimingControlStatement() {
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(ctrl);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

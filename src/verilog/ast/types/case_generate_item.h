@@ -47,24 +47,24 @@ class CaseGenerateItem : public Node {
     ~CaseGenerateItem() override;
 
     // Node Interface:
-    NODE(CaseGenerateItem, TREE(exprs), MAYBE(block))
+    NODE(CaseGenerateItem, PTR(exprs), MAYBE(block))
     // Get/Set:
-    TREE_GET_SET(exprs)
+    PTR_GET_SET(exprs)
     MAYBE_GET_SET(GenerateBlock*, block)
 
   private:
-    TREE_ATTR(Many<Expression>*, exprs);
+    PTR_ATTR(Many<Expression>*, exprs);
     MAYBE_ATTR(GenerateBlock*, block);
 };
 
 inline CaseGenerateItem::CaseGenerateItem(Many<Expression>* exprs__, GenerateBlock* block__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(exprs);
+  PTR_SETUP(exprs);
   MAYBE_SETUP(block);
 }
 
 inline CaseGenerateItem::~CaseGenerateItem() {
-  TREE_TEARDOWN(exprs);
+  PTR_TEARDOWN(exprs);
   MAYBE_TEARDOWN(block);
 }
 

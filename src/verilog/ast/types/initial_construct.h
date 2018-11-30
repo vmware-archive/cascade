@@ -46,25 +46,25 @@ class InitialConstruct : public Construct {
     ~InitialConstruct() override;
 
     // Node Interface:
-    NODE(InitialConstruct, TREE(attrs), TREE(stmt))
+    NODE(InitialConstruct, PTR(attrs), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(attrs)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline InitialConstruct::InitialConstruct(Attributes* attrs__, Statement* stmt__) : Construct() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(stmt);
+  PTR_SETUP(attrs);
+  PTR_SETUP(stmt);
 }
 
 inline InitialConstruct::~InitialConstruct() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

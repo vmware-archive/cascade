@@ -95,7 +95,7 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   size_t depth = 0;
   size_t byte_size = 0;
   for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<LocalparamDeclaration*>(l->get_parent())) {
+    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
       const auto id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
@@ -129,8 +129,8 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
 
   // Set up input output connections
   for (auto l : info.locals()) {
-    auto d = dynamic_cast<Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<PortDeclaration*>(d->get_parent())) {
+    auto d = dynamic_cast<const Declaration*>(l->get_parent());
+    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
       const auto id = pd->get_attrs()->get<Identifier>("__id");
       if (id->get_ids()->back()->eq("clock")) {
         fifo->set_clock(to_vid(l));
@@ -200,7 +200,7 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
   size_t addr_size = 0;
   size_t byte_size = 0;
   for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<LocalparamDeclaration*>(l->get_parent())) {
+    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
       const auto id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
@@ -227,8 +227,8 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
 
   // Set up input output connections
   for (auto l : info.locals()) {
-    auto d = dynamic_cast<Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<PortDeclaration*>(d->get_parent())) {
+    auto d = dynamic_cast<const Declaration*>(l->get_parent());
+    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
       const auto id = pd->get_attrs()->get<Identifier>("__id");
       if (id->get_ids()->back()->eq("clock")) {
         mem->set_clock(to_vid(l));

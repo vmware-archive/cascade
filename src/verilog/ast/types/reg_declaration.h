@@ -46,31 +46,31 @@ class RegDeclaration : public Declaration {
     ~RegDeclaration() override;
 
     // Node Interface:
-    NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), MAYBE(dim), MAYBE(val))
+    NODE(RegDeclaration, PTR(attrs), PTR(id), VAL(signed), MAYBE(dim), MAYBE(val))
     // Get/Set:
-    LEAF_GET_SET(signed)
+    VAL_GET_SET(signed)
     MAYBE_GET_SET(RangeExpression*, dim)
     MAYBE_GET_SET(Expression*, val)
 
   private:
-    LEAF_ATTR(bool, signed);
+    VAL_ATTR(bool, signed);
     MAYBE_ATTR(RangeExpression*, dim);
     MAYBE_ATTR(Expression*, val);
 };
 
 inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(id);
-  LEAF_SETUP(signed);
+  PTR_SETUP(attrs);
+  PTR_SETUP(id);
+  VAL_SETUP(signed);
   MAYBE_SETUP(dim);
   MAYBE_SETUP(val);
 }
 
 inline RegDeclaration::~RegDeclaration() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(signed);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(id);
+  VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
   MAYBE_TEARDOWN(val);
 }

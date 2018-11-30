@@ -45,29 +45,29 @@ class ConditionalStatement : public Statement {
     ~ConditionalStatement() override;
 
     // Node Interface:
-    NODE(ConditionalStatement, TREE(if), TREE(then), TREE(else))
+    NODE(ConditionalStatement, PTR(if), PTR(then), PTR(else))
     // Get/Set:
-    TREE_GET_SET(if)
-    TREE_GET_SET(then)
-    TREE_GET_SET(else)
+    PTR_GET_SET(if)
+    PTR_GET_SET(then)
+    PTR_GET_SET(else)
 
   private:
-    TREE_ATTR(Expression*, if);
-    TREE_ATTR(Statement*, then);
-    TREE_ATTR(Statement*, else);
+    PTR_ATTR(Expression*, if);
+    PTR_ATTR(Statement*, then);
+    PTR_ATTR(Statement*, else);
 };
 
 inline ConditionalStatement::ConditionalStatement(Expression* if__, Statement* then__, Statement* else__) : Statement() {
   parent_ = nullptr;
-  TREE_SETUP(if);
-  TREE_SETUP(then);
-  TREE_SETUP(else);
+  PTR_SETUP(if);
+  PTR_SETUP(then);
+  PTR_SETUP(else);
 }
 
 inline ConditionalStatement::~ConditionalStatement() {
-  TREE_TEARDOWN(if);
-  TREE_TEARDOWN(then);
-  TREE_TEARDOWN(else);
+  PTR_TEARDOWN(if);
+  PTR_TEARDOWN(then);
+  PTR_TEARDOWN(else);
 }
 
 } // namespace cascade 

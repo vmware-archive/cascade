@@ -47,26 +47,26 @@ class CaseGenerateConstruct : public ConditionalGenerateConstruct {
     ~CaseGenerateConstruct() override;
 
     // Node Interface:
-    NODE(CaseGenerateConstruct, TREE(cond), TREE(items))
+    NODE(CaseGenerateConstruct, PTR(cond), PTR(items))
     // Get/Set
-    TREE_GET_SET(cond)
-    TREE_GET_SET(items)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(items)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Many<CaseGenerateItem>*, items);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(Many<CaseGenerateItem>*, items);
 };
 
 inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__, Many<CaseGenerateItem>* items__) : ConditionalGenerateConstruct() {
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(items);
+  PTR_SETUP(cond);
+  PTR_SETUP(items);
   gen_ = nullptr;
 }
 
 inline CaseGenerateConstruct::~CaseGenerateConstruct() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(items);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(items);
   // Don't delete gen_; it points to one of items_
 }
 

@@ -58,25 +58,25 @@ class UnaryExpression : public Expression {
     ~UnaryExpression() override;
 
     // Node Interface:
-    NODE(UnaryExpression, LEAF(op), TREE(lhs))
+    NODE(UnaryExpression, VAL(op), PTR(lhs))
     // Get/Set:
-    LEAF_GET_SET(op)
-    TREE_GET_SET(lhs)
+    VAL_GET_SET(op)
+    PTR_GET_SET(lhs)
 
   private:
-    LEAF_ATTR(Op, op);
-    TREE_ATTR(Expression*, lhs);
+    VAL_ATTR(Op, op);
+    PTR_ATTR(Expression*, lhs);
 };
 
 inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression() {
   parent_ = nullptr;
-  LEAF_SETUP(op);
-  TREE_SETUP(lhs);
+  VAL_SETUP(op);
+  PTR_SETUP(lhs);
 }
 
 inline UnaryExpression::~UnaryExpression() {
-  LEAF_TEARDOWN(op);
-  TREE_TEARDOWN(lhs);
+  VAL_TEARDOWN(op);
+  PTR_TEARDOWN(lhs);
 }
 
 } // namespace cascade 

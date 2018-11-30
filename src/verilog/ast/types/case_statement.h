@@ -54,29 +54,29 @@ class CaseStatement : public Statement {
     ~CaseStatement() override;
 
     // Node Interface:
-    NODE(CaseStatement, LEAF(type), TREE(cond), TREE(items))
+    NODE(CaseStatement, VAL(type), PTR(cond), PTR(items))
     // Get/Set:
-    LEAF_GET_SET(type)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(items)
+    VAL_GET_SET(type)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(items)
 
   private:
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Many<CaseItem>*, items);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(Many<CaseItem>*, items);
 };
 
 inline CaseStatement::CaseStatement(Type type__, Expression* cond__, Many<CaseItem>* items__) : Statement() {
   parent_ = nullptr;
-  LEAF_SETUP(type);
-  TREE_SETUP(cond);
-  TREE_SETUP(items);
+  VAL_SETUP(type);
+  PTR_SETUP(cond);
+  PTR_SETUP(items);
 }
 
 inline CaseStatement::~CaseStatement() {
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(items);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(items);
 }
 
 } // namespace cascade 

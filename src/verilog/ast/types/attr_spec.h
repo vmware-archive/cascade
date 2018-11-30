@@ -46,24 +46,24 @@ class AttrSpec : public Node {
     ~AttrSpec() override;
 
     // Node Interface:
-    NODE(AttrSpec, TREE(lhs), MAYBE(rhs))
+    NODE(AttrSpec, PTR(lhs), MAYBE(rhs))
     // Get/Set:
-    TREE_GET_SET(lhs)
+    PTR_GET_SET(lhs)
     MAYBE_GET_SET(Expression*, rhs)
 
   private:
-    TREE_ATTR(Identifier*, lhs);
+    PTR_ATTR(Identifier*, lhs);
     MAYBE_ATTR(Expression*, rhs);
 };
 
 inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node() { 
   parent_ = nullptr;
-  TREE_SETUP(lhs);
+  PTR_SETUP(lhs);
   MAYBE_SETUP(rhs);
 }
 
 inline AttrSpec::~AttrSpec() {
-  TREE_TEARDOWN(lhs);
+  PTR_TEARDOWN(lhs);
   MAYBE_TEARDOWN(rhs);
 }
 

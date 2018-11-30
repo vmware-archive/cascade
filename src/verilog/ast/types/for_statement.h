@@ -47,33 +47,33 @@ class ForStatement : public LoopStatement {
     ~ForStatement() override;
 
     // Node Interface:
-    NODE(ForStatement, TREE(init), TREE(cond), TREE(update), TREE(stmt))
+    NODE(ForStatement, PTR(init), PTR(cond), PTR(update), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(init)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(update)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(init)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(update)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(VariableAssign*, init);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(VariableAssign*, update);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(VariableAssign*, init);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(VariableAssign*, update);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline ForStatement::ForStatement(VariableAssign* init__, Expression* cond__, VariableAssign* update__, Statement* stmt__) : LoopStatement() {
   parent_ = nullptr;
-  TREE_SETUP(init);
-  TREE_SETUP(cond);
-  TREE_SETUP(update);
-  TREE_SETUP(stmt);
+  PTR_SETUP(init);
+  PTR_SETUP(cond);
+  PTR_SETUP(update);
+  PTR_SETUP(stmt);
 }
 
 inline ForStatement::~ForStatement() {
-  TREE_TEARDOWN(init);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(update);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(init);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(update);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

@@ -45,7 +45,7 @@ class IntegerDeclaration : public Declaration {
     ~IntegerDeclaration() override;
 
     // Node Interface:
-    NODE(IntegerDeclaration, TREE(attrs), TREE(id), MAYBE(val))
+    NODE(IntegerDeclaration, PTR(attrs), PTR(id), MAYBE(val))
     // Get/Set:
     MAYBE_GET_SET(Expression*, val)
 
@@ -55,14 +55,14 @@ class IntegerDeclaration : public Declaration {
 
 inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(id);
+  PTR_SETUP(attrs);
+  PTR_SETUP(id);
   MAYBE_SETUP(val);
 }
 
 inline IntegerDeclaration::~IntegerDeclaration() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(id);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(id);
   MAYBE_TEARDOWN(val);
 }
 

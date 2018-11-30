@@ -44,18 +44,18 @@ class GenvarDeclaration : public Declaration {
     ~GenvarDeclaration() override;
 
     // Node Interface:
-    NODE(GenvarDeclaration, TREE(attrs), TREE(id));
+    NODE(GenvarDeclaration, PTR(attrs), PTR(id));
 };
 
 inline GenvarDeclaration::GenvarDeclaration(Attributes* attrs__, Identifier* id__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(id);
+  PTR_SETUP(attrs);
+  PTR_SETUP(id);
 }
 
 inline GenvarDeclaration::~GenvarDeclaration() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(id);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(id);
 }
 
 } // namespace cascade 

@@ -53,7 +53,8 @@ class Node {
     virtual Node* accept(Rewriter* r) = 0;
 
     // Get/Set:
-    TREE_GET(parent);
+    Node* get_parent();
+    const Node* get_parent() const;
 
   private:
     friend class Elaborate;
@@ -84,6 +85,14 @@ class Node {
 inline Node::Node() {
   set_flag<0>(true);
   set_flag<1>(false);
+}
+
+inline Node* Node::get_parent() {
+  return parent_;
+}
+
+inline const Node* Node::get_parent() const {
+  return parent_;
 }
 
 template <size_t idx>

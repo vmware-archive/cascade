@@ -52,25 +52,25 @@ class Event : public Node {
     ~Event() override;
 
     // Node Interface:
-    NODE(Event, LEAF(type), TREE(expr))
+    NODE(Event, VAL(type), PTR(expr))
     // Get/Set:
-    LEAF_GET_SET(type)
-    TREE_GET_SET(expr)
+    VAL_GET_SET(type)
+    PTR_GET_SET(expr)
 
   private:
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, expr);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression*, expr);
 };
 
 inline Event::Event(Type type__, Expression* expr__) : Node() {
   parent_ = nullptr;
-  LEAF_SETUP(type);
-  TREE_SETUP(expr);
+  VAL_SETUP(type);
+  PTR_SETUP(expr);
 }
 
 inline Event::~Event() {
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(expr);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(expr);
 }
 
 } // namespace cascade 

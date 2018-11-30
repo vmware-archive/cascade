@@ -88,9 +88,9 @@ Navigate::Navigate(const Node* n) : Visitor() {
   // is in explicit port and parameter assignments. These actually point DOWN
   // into the instantiation that they appear in.
   auto p = n->get_parent();
-  if (auto aa = dynamic_cast<ArgAssign*>(p)) {
+  if (auto aa = dynamic_cast<const ArgAssign*>(p)) {
     if (n == aa->get_exp()) {
-      auto mi = dynamic_cast<ModuleInstantiation*>(p->get_parent()->get_parent());
+      auto mi = dynamic_cast<const ModuleInstantiation*>(p->get_parent()->get_parent());
       assert(mi != nullptr);
       if (Elaborate().is_elaborated(mi)) {
         where_ = const_cast<ModuleDeclaration*>(Elaborate().get_elaboration(mi));

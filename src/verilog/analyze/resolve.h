@@ -96,7 +96,7 @@ class Resolve {
   private:
     // Cached accessor helpers:
     const Identifier* cache_resolution(const Identifier* id);
-    void cache_uses(Declaration* d);
+    void cache_uses(const Declaration* d);
 
     // Examines every declaration below this node and inserts an empty use set
     struct InitCacheUses : public Editor {

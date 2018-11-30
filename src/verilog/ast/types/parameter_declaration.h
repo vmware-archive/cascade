@@ -45,33 +45,33 @@ class ParameterDeclaration : public Declaration {
     ~ParameterDeclaration() override;
 
     // Node Interface:
-    NODE(ParameterDeclaration, TREE(attrs), LEAF(signed), MAYBE(dim), TREE(id), TREE(val))
+    NODE(ParameterDeclaration, PTR(attrs), VAL(signed), MAYBE(dim), PTR(id), PTR(val))
     // Get/Set:
-    LEAF_GET_SET(signed)
+    VAL_GET_SET(signed)
     MAYBE_GET_SET(RangeExpression*, dim)
-    TREE_GET_SET(val)
+    PTR_GET_SET(val)
 
   private:
-    LEAF_ATTR(bool, signed);
+    VAL_ATTR(bool, signed);
     MAYBE_ATTR(RangeExpression*, dim);
-    TREE_ATTR(Expression*, val);
+    PTR_ATTR(Expression*, val);
 };
 
 inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(signed);
+  PTR_SETUP(attrs);
+  VAL_SETUP(signed);
   MAYBE_SETUP(dim);
-  TREE_SETUP(id);
-  TREE_SETUP(val);
+  PTR_SETUP(id);
+  PTR_SETUP(val);
 }
 
 inline ParameterDeclaration::~ParameterDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(signed);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
-  TREE_TEARDOWN(id);
-  TREE_TEARDOWN(val);
+  PTR_TEARDOWN(id);
+  PTR_TEARDOWN(val);
 }
 
 } // namespace cascade 

@@ -46,21 +46,21 @@ class WriteStatement : public SystemTaskEnableStatement {
     ~WriteStatement() override;
 
     // Node Interface:
-    NODE(WriteStatement, TREE(args))
+    NODE(WriteStatement, PTR(args))
     // Get/Set:
-    TREE_GET_SET(args)
+    PTR_GET_SET(args)
 
   private:
-    TREE_ATTR(Many<Expression>*, args);
+    PTR_ATTR(Many<Expression>*, args);
 };
 
 inline WriteStatement::WriteStatement(Many<Expression>* args__) : SystemTaskEnableStatement() {
   parent_ = nullptr;
-  TREE_SETUP(args);
+  PTR_SETUP(args);
 }
 
 inline WriteStatement::~WriteStatement() {
-  TREE_TEARDOWN(args);
+  PTR_TEARDOWN(args);
 }
 
 } // namespace cascade 

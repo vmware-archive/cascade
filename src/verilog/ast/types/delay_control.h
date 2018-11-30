@@ -45,21 +45,21 @@ class DelayControl : public TimingControl {
     ~DelayControl() override;
 
     // Node Interface:
-    NODE(DelayControl, TREE(delay))
+    NODE(DelayControl, PTR(delay))
     // Get/Set:
-    TREE_GET_SET(delay)
+    PTR_GET_SET(delay)
 
   private:
-    TREE_ATTR(Expression*, delay);
+    PTR_ATTR(Expression*, delay);
 };
 
 inline DelayControl::DelayControl(Expression* delay__) : TimingControl() {
   parent_ = nullptr;
-  TREE_SETUP(delay);
+  PTR_SETUP(delay);
 }
 
 inline DelayControl::~DelayControl() {
-  TREE_TEARDOWN(delay);
+  PTR_TEARDOWN(delay);
 }
 
 } // namespace cascade 

@@ -49,9 +49,9 @@ class Id : public Node {
     ~Id() override;
 
     // Node Interface:
-    NODE(Id, LEAF(sid), MAYBE(isel))
+    NODE(Id, VAL(sid), MAYBE(isel))
     // Get/Set:
-    LEAF_GET_SET(sid)
+    VAL_GET_SET(sid)
     MAYBE_GET_SET(Expression*, isel)
     // Additional Get/Set:
     const std::string& get_readable_sid();
@@ -64,7 +64,7 @@ class Id : public Node {
     bool eq(const String* rhs) const;
 
   private:
-    LEAF_ATTR(Tokenize::Token, sid);
+    VAL_ATTR(Tokenize::Token, sid);
     MAYBE_ATTR(Expression*, isel);
 };
 
@@ -72,12 +72,12 @@ inline Id::Id(const std::string& sid__, Expression* isel__) : Id(Tokenize().map(
 
 inline Id::Id(Tokenize::Token sid__, Expression* isel__) : Node() {
   parent_ = nullptr;
-  LEAF_SETUP(sid);
+  VAL_SETUP(sid);
   MAYBE_SETUP(isel);
 }
 
 inline Id::~Id() {
-  LEAF_TEARDOWN(sid);
+  VAL_TEARDOWN(sid);
   MAYBE_TEARDOWN(isel);
 }
 

@@ -46,21 +46,21 @@ class Concatenation : public Primary {
     ~Concatenation() override;
 
     // Node Interface:
-    NODE(Concatenation, TREE(exprs))
+    NODE(Concatenation, PTR(exprs))
     // Get/Set:
-    TREE_GET_SET(exprs)
+    PTR_GET_SET(exprs)
 
   private:
-    TREE_ATTR(Many<Expression>*, exprs);
+    PTR_ATTR(Many<Expression>*, exprs);
 };
 
 inline Concatenation::Concatenation(Many<Expression>* exprs__) : Primary() {
   parent_ = nullptr;
-  TREE_SETUP(exprs);
+  PTR_SETUP(exprs);
 }
 
 inline Concatenation::~Concatenation() {
-  TREE_TEARDOWN(exprs);
+  PTR_TEARDOWN(exprs);
 }
 
 } // namespace cascade 

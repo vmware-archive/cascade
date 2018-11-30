@@ -42,48 +42,63 @@
 
 // Constructor Helpers:
 //
-// Binds a leaf (non-pointer attribute) to an input argument.
-#define LEAF_SETUP(t) \
+// Binds a value attribute to an input argument.
+#define VAL_SETUP(t) \
   PRIVATE(t) = INPUT(t);
-// Binds a tree (pointer) attribute to an input argument. Throws an assertion
-// for null pointers and sets the argument's parent pointer to the node it's
-// being attached to.
-#define TREE_SETUP(t) \
+// Binds a pointer attribute to an input argument. Throws an assertion
+// for null pointers and sets the argument's parent pointer to this node.
+#define PTR_SETUP(t) \
   assert(INPUT(t) != nullptr); \
   PRIVATE(t) = INPUT(t); \
   PRIVATE(t)->parent_ = this;
-// Binds a maybe attribute to an input argument. Identical to tree setup, but
+// Binds a maybe attribute to an input argument. Identical to pointer setup, but
 // allows for null pointers.
 #define MAYBE_SETUP(t) \
   PRIVATE(t) = INPUT(t); \
   if (PRIVATE(t) != nullptr) { \
     PRIVATE(t)->parent_ = this; \
   }
+// Binds a many attribute to an input argument. Identical to value setup, as
+// values are stored in non-pointer objects. Sets the parent pointer for every
+// element to this node.
+#define MANY_SETUP(t) \
+  PRIVATE(t) = INPUT(t); \
+  for (auto n : PRIVATE(t)) { \
+    n->parent_ = this; \
+  }
 
 // Destructor Helpers:
 //
-// Frees memory associated with a leaf (non-pointer) attribute (does nothing).
-#define LEAF_TEARDOWN(t)
-// Frees memory associated with a tree (pointer) attribute by calling delete.
-// Throws an assertion of this attribute is a null pointer.
-#define TREE_TEARDOWN(t) \
+// Frees the memory associated with a value attribute (does nothing).
+#define VAL_TEARDOWN(t)
+// Frees the memory associated with a pointer attribute by calling
+// delete.  Throws an assertion of this attribute is a null pointer.
+#define PTR_TEARDOWN(t) \
   assert(PRIVATE(t) != nullptr); \
   delete PRIVATE(t);
-// Frees memory associated with a maybe attribute. Identical to tree teardown
-// but allows for null pointers.
+// Frees the memory associated with a maybe attribute. Identical to pointer
+// teardown but allows for null pointers.
 #define MAYBE_TEARDOWN(t) \
   if (PRIVATE(t) != nullptr) { \
     delete PRIVATE(t); \
   }
+// Frees the memory associated with every element.
+#define MANY_TEARDOWN(t) \
+  for (auto n : PRIVATE(t)) { \
+    delete n; \
+  }
 
 // Clone Implementation Helpers:
 // 
-// Leaf attributes are passed by value. 
-#define LEAF(x) PRIVATE(x)
-// Tree attributes are cloned before being passed as arguments.
-#define TREE(x) PRIVATE(x)->clone()
+// Value attributes are passed by value. 
+#define VAL(x) PRIVATE(x)
+// Pointer attributes are cloned before being passed as arguments.
+#define PTR(x) PRIVATE(x)->clone()
 // Maybe attribtues are only cloned if they are non-null.
 #define MAYBE(x) (PRIVATE(x) != nullptr) ? PRIVATE(x)->clone() : nullptr
+// Many attributes are cloned before being passed as arguments.
+#define MANY(x) /* TODO */
+
 // Variadic definitions for invoking clone with 1 to 6 arguments.
 #define CLONE_1(T, t1) \
   T* clone() const override { \
@@ -133,57 +148,34 @@
   CLONE(T, __VA_ARGS__) \
   NODE_NO_CLONE(T)
 
-// Getter Implementation Helpers: 
+// Attribute API Helpers: 
 //
-// Leaf attributes are returned by const reference
-#define LEAF_GET(t) \
+// Value attributes are set and returned by reference.
+#define VAL_GET_SET(t) \
   auto& get_##t() { \
     return PRIVATE(t); \
   } \
   const auto& get_##t() const { \
     return PRIVATE(t); \
-  }
-// Tree attributes are returned by const reference as well
-#define TREE_GET(t) \
-  auto& get_##t() { \
-    return PRIVATE(t); \
   } \
-  const auto& get_##t() const { \
-    return PRIVATE(t); \
-  }
-// Returns an attribute by const reference. Note that this can return a null
-// pointer.
-#define MAYBE_GET(t) \
-  auto& get_##t() { \
-    return PRIVATE(t); \
-  } \
-  const auto& get_##t() const { \
-    return PRIVATE(t); \
-  }
-
-// Setter Implementation Helpers:
-//
-// Leaf attributes are written over unconditionally. 
-#define LEAF_SET(t) \
   template <typename T> \
   void set_##t(T rhs) { \
-    PRIVATE(t) = rhs; \
-  } \
-  template <typename T> \
-  void replace_##t(T rhs) { \
-    PRIVATE(t) = rhs; \
-  } \
-  template <typename T> \
-  void conditional_replace_##t(T rhs) { \
     PRIVATE(t) = rhs; \
   } \
   template <typename T> \
   void swap_##t(T& rhs) { \
     std::swap(PRIVATE(t), rhs); \
   }
-// Tree attributes are written over and have their parent pointers updated
-// accordingly.  Throws an assertion if either argument is a null pointer.
-#define TREE_SET(t) \
+// Pointer attributes are set and returned by pointers. The pointer API
+// guarantees that parent pointers are set when elements are attached and
+// removed from this node.
+#define PTR_GET_SET(t) \
+  auto& get_##t() { \
+    return PRIVATE(t); \
+  } \
+  const auto& get_##t() const { \
+    return PRIVATE(t); \
+  } \
   template <typename T> \
   void set_##t(T rhs) { \
     assert(PRIVATE(t) != nullptr); \
@@ -218,12 +210,31 @@
     std::swap(PRIVATE(t), rhs); \
     std::swap(PRIVATE(t)->parent_, rhs->parent_); \
   }
-// Maybe attributes are written over and have their parent pointers updated
-// accordingly, but both left and right hand sides are permitted to be null
-// pointers. Swapping is not permitted. If we attempted to swap a pointer with
-// a null pointer, we'd have no way of knowing where its new parent was.
-#define MAYBE_SET(t) \
-  template <typename T> \
+// Maybe attributes are handled similarly to pointer attributes. The only notable
+// difference is an extended set of query operators and the absence of a swap
+// method (in the case of a non-null/null pointer swap, it would be impossible
+// to determine the non-null pointer's new parent). The maybe API also provides
+// convenience methods for recursive invocations of clone and visitors.
+#define MAYBE_GET_SET(T, t) \
+  bool is_null_##t() const { \
+    return PRIVATE(t) == nullptr; \
+  } \
+  bool is_non_null_##t() const { \
+    return PRIVATE(t) != nullptr; \
+  } \
+  auto& get_##t() { \
+    return PRIVATE(t); \
+  } \
+  const auto& get_##t() const { \
+    return PRIVATE(t); \
+  } \
+  T remove_##t() { \
+    assert(PRIVATE(t) != nullptr); \
+    auto res = PRIVATE(t); \
+    PRIVATE(t) = nullptr; \
+    res->parent_ = nullptr; \
+    return res; \
+  } \
   void set_##t(T rhs) { \
     if (PRIVATE(t) != nullptr) { \
       PRIVATE(t)->parent_ = nullptr; \
@@ -233,7 +244,6 @@
       PRIVATE(t)->parent_ = this; \
     } \
   } \
-  template <typename T> \
   void replace_##t(T rhs) { \
     if (PRIVATE(t) != nullptr) { \
       delete PRIVATE(t); \
@@ -243,7 +253,6 @@
       PRIVATE(t)->parent_ = this; \
     } \
   } \
-  template <typename T> \
   void conditional_replace_##t(T rhs) { \
     if (PRIVATE(t) == rhs) { \
       return; \
@@ -255,22 +264,6 @@
     if (PRIVATE(t) != nullptr) { \
       PRIVATE(t)->parent_ = this; \
     } \
-  } \
-
-// Extended Maybe definiton helpers
-#define MAYBE_HELPERS(T, t) \
-  bool is_null_##t() const { \
-    return PRIVATE(t) == nullptr; \
-  } \
-  bool is_non_null_##t() const { \
-    return PRIVATE(t) != nullptr; \
-  } \
-  T remove_##t() { \
-    assert(PRIVATE(t) != nullptr); \
-    auto res = PRIVATE(t); \
-    PRIVATE(t) = nullptr; \
-    res->parent_ = nullptr; \
-    return res; \
   } \
   T maybe_clone_##t() const { \
     return (PRIVATE(t) != nullptr) ? PRIVATE(t)->clone() : nullptr; \
@@ -299,27 +292,13 @@
     return (PRIVATE(t) != nullptr) ? (T) PRIVATE(t)->accept(r) : nullptr; \
   }
 
-// Convenience Definitions:
-//
-// Inserts definitions for get and set
-#define LEAF_GET_SET(t) \
-  LEAF_GET(t) \
-  LEAF_SET(t)
-#define TREE_GET_SET(t) \
-  TREE_GET(t) \
-  TREE_SET(t)
-#define MAYBE_GET_SET(T, t) \
-  MAYBE_HELPERS(T, t) \
-  MAYBE_GET(t) \
-  MAYBE_SET(t)
-
 // Attribute Declaration Helpers:
 //
 // These are provided for the sake of expressiveness only. Everything is mapped
 // down on to PRIVATE.
-#define LEAF_ATTR(T, t) T PRIVATE(t)
+#define VAL_ATTR(T, t) T PRIVATE(t)
 #define MAYBE_ATTR(T, t) T PRIVATE(t)
-#define TREE_ATTR(T, t) T PRIVATE(t)
+#define PTR_ATTR(T, t) T PRIVATE(t)
 #define DECORATION(T, t) T PRIVATE(t)
 
 #define HIERARCHY_VISIBILITY \

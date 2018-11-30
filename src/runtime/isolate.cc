@@ -219,7 +219,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
   auto res = new ModuleDeclaration(
     src_->get_attrs()->clone(),
-    to_mangled_id(dynamic_cast<ModuleInstantiation*>(src_->get_parent())->get_iid()),
+    to_mangled_id(dynamic_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid()),
     new Many<ArgAssign>(),
     new Many<ModuleItem>()
   );
@@ -250,7 +250,7 @@ ModuleDeclaration* Isolate::get_shell() {
           to_global_id(p),
           dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
           width == 1 ? nullptr : new RangeExpression(width),
-          dynamic_cast<RegDeclaration*>(p->get_parent())->maybe_clone_val()
+          dynamic_cast<const RegDeclaration*>(p->get_parent())->maybe_clone_val()
         ) : 
         (Declaration*) new NetDeclaration(
           new Attributes(new Many<AttrSpec>()),

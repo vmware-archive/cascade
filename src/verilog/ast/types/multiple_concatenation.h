@@ -46,25 +46,25 @@ class MultipleConcatenation : public Primary {
     ~MultipleConcatenation() override;
 
     // Node Interface:
-    NODE(MultipleConcatenation, TREE(expr), TREE(concat))
+    NODE(MultipleConcatenation, PTR(expr), PTR(concat))
     // Get/Set:
-    TREE_GET_SET(expr)
-    TREE_GET_SET(concat)
+    PTR_GET_SET(expr)
+    PTR_GET_SET(concat)
 
   private:
-    TREE_ATTR(Expression*, expr);
-    TREE_ATTR(Concatenation*, concat);
+    PTR_ATTR(Expression*, expr);
+    PTR_ATTR(Concatenation*, concat);
 };
 
 inline MultipleConcatenation::MultipleConcatenation(Expression* expr__, Concatenation* concat__) : Primary() {
   parent_ = nullptr;
-  TREE_SETUP(expr);
-  TREE_SETUP(concat);
+  PTR_SETUP(expr);
+  PTR_SETUP(concat);
 }
 
 inline MultipleConcatenation::~MultipleConcatenation() {
-  TREE_TEARDOWN(expr);
-  TREE_TEARDOWN(concat);
+  PTR_TEARDOWN(expr);
+  PTR_TEARDOWN(concat);
 }
 
 } // namespace cascade 

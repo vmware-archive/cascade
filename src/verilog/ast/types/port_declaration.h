@@ -53,29 +53,29 @@ class PortDeclaration : public ModuleItem {
     ~PortDeclaration() override;
 
     // Node Interface:
-    NODE(PortDeclaration, TREE(attrs), LEAF(type), TREE(decl))
+    NODE(PortDeclaration, PTR(attrs), VAL(type), PTR(decl))
     // Get/Set:
-    TREE_GET_SET(attrs)
-    LEAF_GET_SET(type)
-    TREE_GET_SET(decl)
+    PTR_GET_SET(attrs)
+    VAL_GET_SET(type)
+    PTR_GET_SET(decl)
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Declaration*, decl);
+    PTR_ATTR(Attributes*, attrs);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Declaration*, decl);
 };
 
 inline PortDeclaration::PortDeclaration(Attributes* attrs__, Type type__, Declaration* decl__) : ModuleItem() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(type);
-  TREE_SETUP(decl);
+  PTR_SETUP(attrs);
+  VAL_SETUP(type);
+  PTR_SETUP(decl);
 }
 
 inline PortDeclaration::~PortDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(decl);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(decl);
 }
 
 } // namespace cascade 

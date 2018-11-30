@@ -54,12 +54,12 @@ class Declaration : public ModuleItem {
     Declaration* accept(Rewriter* r) override = 0;
 
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(id)
+    PTR_GET_SET(attrs)
+    PTR_GET_SET(id)
 
   protected:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Identifier*, id);
+    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Identifier*, id);
 
     friend class Inline;
     friend class Resolve;

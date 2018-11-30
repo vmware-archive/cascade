@@ -384,7 +384,7 @@ const Node* Evaluate::get_root(const Expression* e) const {
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
     // Subscripts inside of identifiers 
-    if (dynamic_cast<Many<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
+    if (dynamic_cast<const Many<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
       return root;
     }
     // Ranges inside of declarations 

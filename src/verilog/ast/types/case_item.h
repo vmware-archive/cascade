@@ -47,25 +47,25 @@ class CaseItem : public Node {
     ~CaseItem() override;
 
     // Node Interface:
-    NODE(CaseItem, TREE(exprs), TREE(stmt))
+    NODE(CaseItem, PTR(exprs), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(exprs)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(exprs)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Many<Expression>*, exprs);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Many<Expression>*, exprs);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline CaseItem::CaseItem(Many<Expression>* exprs__, Statement* stmt__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(exprs);
-  TREE_SETUP(stmt);
+  PTR_SETUP(exprs);
+  PTR_SETUP(stmt);
 }
 
 inline CaseItem::~CaseItem() {
-  TREE_TEARDOWN(exprs);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(exprs);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

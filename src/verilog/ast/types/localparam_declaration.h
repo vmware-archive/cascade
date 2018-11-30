@@ -46,33 +46,33 @@ class LocalparamDeclaration : public Declaration {
     ~LocalparamDeclaration() override;
 
     // Node Interface:
-    NODE(LocalparamDeclaration, TREE(attrs), LEAF(signed), MAYBE(dim), TREE(id), TREE(val))
+    NODE(LocalparamDeclaration, PTR(attrs), VAL(signed), MAYBE(dim), PTR(id), PTR(val))
     // Get/Set:
-    LEAF_GET_SET(signed)
+    VAL_GET_SET(signed)
     MAYBE_GET_SET(RangeExpression*, dim)
-    TREE_GET_SET(val)
+    PTR_GET_SET(val)
 
   private:
     MAYBE_ATTR(RangeExpression*, dim);
-    LEAF_ATTR(bool, signed);
-    TREE_ATTR(Expression*, val);
+    VAL_ATTR(bool, signed);
+    PTR_ATTR(Expression*, val);
 };
 
 inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : Declaration() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(signed);
+  PTR_SETUP(attrs);
+  VAL_SETUP(signed);
   MAYBE_SETUP(dim);
-  TREE_SETUP(id);
-  TREE_SETUP(val);
+  PTR_SETUP(id);
+  PTR_SETUP(val);
 }
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(signed);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
-  TREE_TEARDOWN(id);
-  TREE_TEARDOWN(val);
+  PTR_TEARDOWN(id);
+  PTR_TEARDOWN(val);
 }
 
 } // namespace cascade 

@@ -45,21 +45,21 @@ class ForeverStatement : public LoopStatement {
     ~ForeverStatement() override;
 
     // Node Interface:
-    NODE(ForeverStatement, TREE(stmt))
+    NODE(ForeverStatement, PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline ForeverStatement::ForeverStatement(Statement* stmt__) : LoopStatement() {
   parent_ = nullptr;
-  TREE_SETUP(stmt);
+  PTR_SETUP(stmt);
 }
 
 inline ForeverStatement::~ForeverStatement() {
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

@@ -52,18 +52,18 @@ class Identifier : public Primary {
     ~Identifier() override;
 
     // Node Interface:
-    NODE(Identifier, TREE(ids), TREE(dim))
+    NODE(Identifier, PTR(ids), PTR(dim))
     // Get/Set:
-    TREE_GET_SET(ids)
-    TREE_GET_SET(dim)
+    PTR_GET_SET(ids)
+    PTR_GET_SET(dim)
 
     // Comparison Operators:
     bool eq(const std::string& rhs) const;
     bool eq(const String* rhs) const;
 
   private:
-    TREE_ATTR(Many<Id>*, ids);
-    TREE_ATTR(Many<Expression>*, dim);
+    PTR_ATTR(Many<Id>*, ids);
+    PTR_ATTR(Many<Expression>*, dim);
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
@@ -78,14 +78,14 @@ inline Identifier::Identifier(Id* id__, Many<Expression>* dim__) : Identifier(ne
 
 inline Identifier::Identifier(Many<Id>* ids__, Many<Expression>* dim__) : Primary() {
   parent_ = nullptr;
-  TREE_SETUP(ids);
-  TREE_SETUP(dim);
+  PTR_SETUP(ids);
+  PTR_SETUP(dim);
   resolution_ = nullptr;
 }
 
 inline Identifier::~Identifier() {
-  TREE_TEARDOWN(ids);
-  TREE_TEARDOWN(dim);
+  PTR_TEARDOWN(ids);
+  PTR_TEARDOWN(dim);
 }
 
 inline bool Identifier::eq(const std::string& rhs) const {

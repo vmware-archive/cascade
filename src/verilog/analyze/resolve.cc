@@ -107,7 +107,7 @@ bool Resolve::is_array(const Identifier* id) {
 Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
   const auto r = get_resolution(id);
   assert(r != nullptr);
-  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
 
   if (d->uses_ == nullptr) {
@@ -119,7 +119,7 @@ Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
 Resolve::use_iterator Resolve::use_end(const Identifier* id) {
   const auto r = get_resolution(id);
   assert(r != nullptr);
-  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
 
   if (d->uses_ == nullptr) {
@@ -164,7 +164,7 @@ const Identifier* Resolve::cache_resolution(const Identifier* id) {
   return nav.find_name(id->get_ids()->back());
 }
 
-void Resolve::cache_uses(Declaration* d) {
+void Resolve::cache_uses(const Declaration* d) {
   // Navigate to the root of the module hierarchy
   Navigate nav(d);
   while (!nav.root()) {
@@ -258,7 +258,7 @@ void Resolve::CacheUses::edit(Identifier* i) {
   if (r == nullptr) {
     return;
   }
-  const auto d = dynamic_cast<Declaration*>(r->get_parent());
+  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
   assert(d->uses_ != nullptr);
 

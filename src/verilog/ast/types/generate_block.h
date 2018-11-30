@@ -48,30 +48,30 @@ class GenerateBlock : public Node, public Scope {
     ~GenerateBlock() override;
 
     // Node Interface:
-    NODE(GenerateBlock, MAYBE(id), LEAF(scope), TREE(items))
+    NODE(GenerateBlock, MAYBE(id), VAL(scope), PTR(items))
     // Get/Set:
     MAYBE_GET_SET(Identifier*, id)
-    LEAF_GET_SET(scope)
-    TREE_GET_SET(items)
+    VAL_GET_SET(scope)
+    PTR_GET_SET(items)
 
   private:
     MAYBE_ATTR(Identifier*, id);
-    LEAF_ATTR(bool, scope);
-    TREE_ATTR(Many<ModuleItem>*, items);
+    VAL_ATTR(bool, scope);
+    PTR_ATTR(Many<ModuleItem>*, items);
 };
 
 inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
   parent_ = nullptr;
   MAYBE_SETUP(id);
-  LEAF_SETUP(scope);
-  TREE_SETUP(items);
+  VAL_SETUP(scope);
+  PTR_SETUP(items);
   next_supdate_ = 0;
 }
 
 inline GenerateBlock::~GenerateBlock() {
   MAYBE_TEARDOWN(id);
-  LEAF_TEARDOWN(scope);
-  TREE_TEARDOWN(items);
+  VAL_TEARDOWN(scope);
+  PTR_TEARDOWN(items);
 }
 
 } // namespace cascade 

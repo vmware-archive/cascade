@@ -46,21 +46,21 @@ class EventControl : public TimingControl {
     ~EventControl() override;
 
     // Node Interface:
-    NODE(EventControl, TREE(events))
+    NODE(EventControl, PTR(events))
     // Get/Set:
-    TREE_GET_SET(events)
+    PTR_GET_SET(events)
 
   private:
-    TREE_ATTR(Many<Event>*, events);
+    PTR_ATTR(Many<Event>*, events);
 };
 
 inline EventControl::EventControl(Many<Event>* events__) : TimingControl() {
   parent_ = nullptr;
-  TREE_SETUP(events);
+  PTR_SETUP(events);
 }
 
 inline EventControl::~EventControl() {
-  TREE_TEARDOWN(events);
+  PTR_TEARDOWN(events);
 }
 
 } // namespace cascade 

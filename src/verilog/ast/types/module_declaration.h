@@ -54,18 +54,18 @@ class ModuleDeclaration : public Node, public Scope {
     ~ModuleDeclaration() override;
 
     // Node Interface:
-    NODE(ModuleDeclaration, TREE(attrs), TREE(id), TREE(ports), TREE(items))
+    NODE(ModuleDeclaration, PTR(attrs), PTR(id), PTR(ports), PTR(items))
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(id)
-    TREE_GET_SET(ports)
-    TREE_GET_SET(items)
+    PTR_GET_SET(attrs)
+    PTR_GET_SET(id)
+    PTR_GET_SET(ports)
+    PTR_GET_SET(items)
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Identifier*, id);
-    TREE_ATTR(Many<ArgAssign>*, ports);
-    TREE_ATTR(Many<ModuleItem>*, items);
+    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Identifier*, id);
+    PTR_ATTR(Many<ArgAssign>*, ports);
+    PTR_ATTR(Many<ModuleItem>*, items);
 
     friend class ModuleInfo;
     DECORATION(size_t, next_update);
@@ -90,19 +90,19 @@ class ModuleDeclaration : public Node, public Scope {
 
 inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__, Many<ArgAssign>* ports__, Many<ModuleItem>* items__) : Node() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(id);
-  TREE_SETUP(ports);
-  TREE_SETUP(items);
+  PTR_SETUP(attrs);
+  PTR_SETUP(id);
+  PTR_SETUP(ports);
+  PTR_SETUP(items);
   next_update_ = 0;
   next_supdate_ = 0;
 }
 
 inline ModuleDeclaration::~ModuleDeclaration() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(id);
-  TREE_TEARDOWN(ports);
-  TREE_TEARDOWN(items);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(id);
+  PTR_TEARDOWN(ports);
+  PTR_TEARDOWN(items);
 }
 
 } // namespace cascade 

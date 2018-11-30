@@ -72,29 +72,29 @@ class BinaryExpression : public Expression {
     ~BinaryExpression() override;
 
     // Node Interface:
-    NODE(BinaryExpression, TREE(lhs), LEAF(op), TREE(rhs))
+    NODE(BinaryExpression, PTR(lhs), VAL(op), PTR(rhs))
     // Get/Set
-    TREE_GET_SET(lhs)
-    LEAF_GET_SET(op)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(lhs)
+    VAL_GET_SET(op)
+    PTR_GET_SET(rhs)
 
   private:
-    TREE_ATTR(Expression*, lhs);
-    LEAF_ATTR(Op, op);
-    TREE_ATTR(Expression*, rhs);
+    PTR_ATTR(Expression*, lhs);
+    VAL_ATTR(Op, op);
+    PTR_ATTR(Expression*, rhs);
 };
 
 inline BinaryExpression::BinaryExpression(Expression* lhs__, Op op__, Expression* rhs__) : Expression() {
   parent_ = nullptr;
-  TREE_SETUP(lhs);
-  LEAF_SETUP(op);
-  TREE_SETUP(rhs);
+  PTR_SETUP(lhs);
+  VAL_SETUP(op);
+  PTR_SETUP(rhs);
 }
 
 inline BinaryExpression::~BinaryExpression() {
-  TREE_TEARDOWN(lhs);
-  LEAF_TEARDOWN(op);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(lhs);
+  VAL_TEARDOWN(op);
+  PTR_TEARDOWN(rhs);
 }
 
 } // namespace cascade 

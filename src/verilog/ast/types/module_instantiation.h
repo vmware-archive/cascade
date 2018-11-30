@@ -51,14 +51,14 @@ class ModuleInstantiation : public Instantiation {
     ~ModuleInstantiation() override;
 
     // Node Interface:
-    NODE(ModuleInstantiation, TREE(attrs), TREE(mid), TREE(iid), MAYBE(range), TREE(params), TREE(ports))
+    NODE(ModuleInstantiation, PTR(attrs), PTR(mid), PTR(iid), MAYBE(range), PTR(params), PTR(ports))
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(mid)
-    TREE_GET_SET(iid)
+    PTR_GET_SET(attrs)
+    PTR_GET_SET(mid)
+    PTR_GET_SET(iid)
     MAYBE_GET_SET(RangeExpression*, range)
-    TREE_GET_SET(params)
-    TREE_GET_SET(ports)
+    PTR_GET_SET(params)
+    PTR_GET_SET(ports)
 
     // Convention Interface:
     bool uses_named_params() const;
@@ -67,12 +67,12 @@ class ModuleInstantiation : public Instantiation {
     bool uses_ordered_ports() const;
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Identifier*, mid);
-    TREE_ATTR(Identifier*, iid);
+    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Identifier*, mid);
+    PTR_ATTR(Identifier*, iid);
     MAYBE_ATTR(RangeExpression*, range);
-    TREE_ATTR(Many<ArgAssign>*, params);
-    TREE_ATTR(Many<ArgAssign>*, ports);
+    PTR_ATTR(Many<ArgAssign>*, params);
+    PTR_ATTR(Many<ArgAssign>*, ports);
 
     friend class Elaborate;
     friend class Inline;
@@ -82,23 +82,23 @@ class ModuleInstantiation : public Instantiation {
 
 inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, RangeExpression* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__) : Instantiation() {
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(mid);
-  TREE_SETUP(iid);
+  PTR_SETUP(attrs);
+  PTR_SETUP(mid);
+  PTR_SETUP(iid);
   MAYBE_SETUP(range);
-  TREE_SETUP(params);
-  TREE_SETUP(ports);
+  PTR_SETUP(params);
+  PTR_SETUP(ports);
   inst_ = nullptr;
   inline_ = nullptr;
 }
 
 inline ModuleInstantiation::~ModuleInstantiation() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(mid);
-  TREE_TEARDOWN(iid);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(mid);
+  PTR_TEARDOWN(iid);
   MAYBE_TEARDOWN(range);
-  TREE_TEARDOWN(params);
-  TREE_TEARDOWN(ports);
+  PTR_TEARDOWN(params);
+  PTR_TEARDOWN(ports);
   if (inst_ != nullptr) {
     delete inst_;
   }

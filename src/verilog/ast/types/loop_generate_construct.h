@@ -49,18 +49,18 @@ class LoopGenerateConstruct : public GenerateConstruct {
     ~LoopGenerateConstruct() override;
 
     // Node Interface:
-    NODE(LoopGenerateConstruct, TREE(init), TREE(cond), TREE(update), TREE(block))
+    NODE(LoopGenerateConstruct, PTR(init), PTR(cond), PTR(update), PTR(block))
     // Get/Set:
-    TREE_GET_SET(init)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(update)
-    TREE_GET_SET(block)
+    PTR_GET_SET(init)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(update)
+    PTR_GET_SET(block)
 
   private:
-    TREE_ATTR(VariableAssign*, init);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(VariableAssign*, update);
-    TREE_ATTR(GenerateBlock*, block);
+    PTR_ATTR(VariableAssign*, init);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(VariableAssign*, update);
+    PTR_ATTR(GenerateBlock*, block);
 
     friend class Elaborate;
     DECORATION(Many<GenerateBlock>*, gen);
@@ -68,18 +68,18 @@ class LoopGenerateConstruct : public GenerateConstruct {
 
 inline LoopGenerateConstruct::LoopGenerateConstruct(VariableAssign* init__, Expression* cond__, VariableAssign* update__, GenerateBlock* block__) : GenerateConstruct() {
   parent_ = nullptr;
-  TREE_SETUP(init);
-  TREE_SETUP(cond);
-  TREE_SETUP(update);
-  TREE_SETUP(block);
+  PTR_SETUP(init);
+  PTR_SETUP(cond);
+  PTR_SETUP(update);
+  PTR_SETUP(block);
   gen_ = nullptr;
 }
 
 inline LoopGenerateConstruct::~LoopGenerateConstruct() {
-  TREE_TEARDOWN(init);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(update);
-  TREE_TEARDOWN(block);
+  PTR_TEARDOWN(init);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(update);
+  PTR_TEARDOWN(block);
   if (gen_ != nullptr) {
     delete gen_;
   }

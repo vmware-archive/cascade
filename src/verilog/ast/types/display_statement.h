@@ -46,21 +46,21 @@ class DisplayStatement : public SystemTaskEnableStatement {
     ~DisplayStatement() override;
 
     // Node Interface:
-    NODE(DisplayStatement, TREE(args))
+    NODE(DisplayStatement, PTR(args))
     // Get/Set:
-    TREE_GET_SET(args)
+    PTR_GET_SET(args)
 
   private:
-    TREE_ATTR(Many<Expression>*, args);
+    PTR_ATTR(Many<Expression>*, args);
 };
 
 inline DisplayStatement::DisplayStatement(Many<Expression>* args__) : SystemTaskEnableStatement() {
   parent_ = nullptr;
-  TREE_SETUP(args);
+  PTR_SETUP(args);
 }
 
 inline DisplayStatement::~DisplayStatement() {
-  TREE_TEARDOWN(args);
+  PTR_TEARDOWN(args);
 }
 
 } // namespace cascade 

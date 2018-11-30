@@ -46,25 +46,25 @@ class WhileStatement : public LoopStatement {
     ~WhileStatement() override;
 
     // Node Interface:
-    NODE(WhileStatement, TREE(cond), TREE(stmt))
+    NODE(WhileStatement, PTR(cond), PTR(stmt))
     // Get/Set:
-    TREE_GET_SET(cond)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(cond)
+    PTR_GET_SET(stmt)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Expression*, cond);
+    PTR_ATTR(Statement*, stmt);
 };
 
 inline WhileStatement::WhileStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(stmt);
+  PTR_SETUP(cond);
+  PTR_SETUP(stmt);
 }
 
 inline WhileStatement::~WhileStatement() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(stmt);
 }
 
 } // namespace cascade 

@@ -53,16 +53,16 @@ class RangeExpression : public Expression {
     ~RangeExpression() override;
 
     // Node Interface:
-    NODE(RangeExpression, TREE(upper), LEAF(type), TREE(lower))
+    NODE(RangeExpression, PTR(upper), VAL(type), PTR(lower))
     // Get/Set:
-    TREE_GET_SET(upper)
-    LEAF_GET_SET(type)
-    TREE_GET_SET(lower)
+    PTR_GET_SET(upper)
+    VAL_GET_SET(type)
+    PTR_GET_SET(lower)
 
   private:
-    TREE_ATTR(Expression*, upper);
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, lower);
+    PTR_ATTR(Expression*, upper);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression*, lower);
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
@@ -78,15 +78,15 @@ inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression() {
   parent_ = nullptr;
-  TREE_SETUP(upper);
-  LEAF_SETUP(type);
-  TREE_SETUP(lower);
+  PTR_SETUP(upper);
+  VAL_SETUP(type);
+  PTR_SETUP(lower);
 }
 
 inline RangeExpression::~RangeExpression() {
-  TREE_TEARDOWN(upper);
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(lower);
+  PTR_TEARDOWN(upper);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(lower);
 }
 
 } // namespace cascade 

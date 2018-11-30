@@ -45,21 +45,21 @@ class FinishStatement : public SystemTaskEnableStatement {
     ~FinishStatement() override;
 
     // Node Interface:
-    NODE(FinishStatement, TREE(arg))
+    NODE(FinishStatement, PTR(arg))
     // Get/Set:
-    TREE_GET_SET(arg)
+    PTR_GET_SET(arg)
 
   private:
-    TREE_ATTR(Number*, arg);
+    PTR_ATTR(Number*, arg);
 };
 
 inline FinishStatement::FinishStatement(Number* arg__) : SystemTaskEnableStatement() {
   parent_ = nullptr;
-  TREE_SETUP(arg);
+  PTR_SETUP(arg);
 }
 
 inline FinishStatement::~FinishStatement() {
-  TREE_TEARDOWN(arg);
+  PTR_TEARDOWN(arg);
 }
 
 } // namespace cascade 

@@ -309,7 +309,7 @@ Expression* DeAlias::rewrite(Identifier* id) {
   // Don't rewrite references to ports. Mostly we just care about output ports.
   // We'll never find an aliasing relationship for an input, since it would have
   // to appear on the left-hand-side of an assignment.
-  if (dynamic_cast<PortDeclaration*>(r->get_parent()->get_parent())) {
+  if (dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent())) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite variables we don't have a de-aliasing relationship for.

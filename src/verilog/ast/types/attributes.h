@@ -49,9 +49,9 @@ class Attributes : public Node {
     ~Attributes() override;
 
     // Node Interface:
-    NODE(Attributes, TREE(as))
+    NODE(Attributes, PTR(as))
     // Get/Set
-    TREE_GET_SET(as)
+    PTR_GET_SET(as)
 
     // Lookup Interface:
     void erase(const std::string& s);
@@ -61,16 +61,16 @@ class Attributes : public Node {
     void set_or_replace(const std::string& s, Expression* e);
 
   private:
-    TREE_ATTR(Many<AttrSpec>*, as);
+    PTR_ATTR(Many<AttrSpec>*, as);
 };
 
 inline Attributes::Attributes(Many<AttrSpec>* as__) : Node() { 
   parent_ = nullptr;
-  TREE_SETUP(as);
+  PTR_SETUP(as);
 }
 
 inline Attributes::~Attributes() {
-  TREE_TEARDOWN(as);
+  PTR_TEARDOWN(as);
 }
 
 inline void Attributes::erase(const std::string& s) {

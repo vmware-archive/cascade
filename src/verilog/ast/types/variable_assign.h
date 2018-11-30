@@ -46,25 +46,25 @@ class VariableAssign : public Node {
     ~VariableAssign() override;
 
     // Node Interface:
-    NODE(VariableAssign, TREE(lhs), TREE(rhs))
+    NODE(VariableAssign, PTR(lhs), PTR(rhs))
     // Get/Set:
-    TREE_GET_SET(lhs)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(lhs)
+    PTR_GET_SET(rhs)
 
   private:
-    TREE_ATTR(Identifier*, lhs);
-    TREE_ATTR(Expression*, rhs);
+    PTR_ATTR(Identifier*, lhs);
+    PTR_ATTR(Expression*, rhs);
 };
 
 inline VariableAssign::VariableAssign(Identifier* lhs__, Expression* rhs__) : Node() { 
   parent_ = nullptr;
-  TREE_SETUP(lhs);
-  TREE_SETUP(rhs);
+  PTR_SETUP(lhs);
+  PTR_SETUP(rhs);
 }
 
 inline VariableAssign::~VariableAssign() {
-  TREE_TEARDOWN(lhs);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
 }
 
 } // namespace cascade

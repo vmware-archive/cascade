@@ -51,7 +51,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
       const auto r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
-      const auto is_net = dynamic_cast<NetDeclaration*>(r->get_parent()) != nullptr;
+      const auto is_net = dynamic_cast<const NetDeclaration*>(r->get_parent()) != nullptr;
       const auto is_slice = Resolve().is_slice(lhs);
       const auto is_array = Resolve().is_array(r);
       if (is_net && !is_slice && !is_array) {

@@ -45,21 +45,21 @@ class GenerateRegion : public ModuleItem {
     ~GenerateRegion() override;
 
     // Node Interface:
-    NODE(GenerateRegion, TREE(items))
+    NODE(GenerateRegion, PTR(items))
     // Get/Set:
-    TREE_GET_SET(items)
+    PTR_GET_SET(items)
 
   private:
-    TREE_ATTR(Many<ModuleItem>*, items);
+    PTR_ATTR(Many<ModuleItem>*, items);
 };
 
 inline GenerateRegion::GenerateRegion(Many<ModuleItem>* items__) : ModuleItem() {
   parent_ = nullptr;
-  TREE_SETUP(items);
+  PTR_SETUP(items);
 }
 
 inline GenerateRegion::~GenerateRegion() {
-  TREE_TEARDOWN(items);
+  PTR_TEARDOWN(items);
 }
 
 } // namespace cascade 
