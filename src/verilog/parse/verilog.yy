@@ -17,6 +17,12 @@
 
 namespace cascade {
 
+/* Typedefs, since Bison >3.1.2 uses a macro, and std::pair cannot be used. */
+typedef std::pair<bool, std::string> SignedNumber;
+typedef std::pair<size_t, NetDeclaration::Type> NetList;
+typedef std::pair<Identifier*, Maybe<RangeExpression>*> ModuleIdentifier;
+typedef std::pair<size_t, std::string> IdList;
+
 class Parser;
 
 } // namespace cascade
@@ -152,10 +158,10 @@ bool is_null(const cascade::Expression* e) {
 
 /* Numbers */
 %token <std::string> UNSIGNED_NUM
-%token <std::pair<bool, std::string>> DECIMAL_VALUE
-%token <std::pair<bool, std::string>> BINARY_VALUE
-%token <std::pair<bool, std::string>> OCTAL_VALUE
-%token <std::pair<bool, std::string>> HEX_VALUE
+%token <SignedNumber> DECIMAL_VALUE
+%token <SignedNumber> BINARY_VALUE
+%token <SignedNumber> OCTAL_VALUE
+%token <SignedNumber> HEX_VALUE
 
 /* Operator Precedence */
 %right QMARK COLON
@@ -249,7 +255,7 @@ bool is_null(const cascade::Expression* e) {
 %type <ArgAssign*> ordered_parameter_assignment
 %type <ArgAssign*> named_parameter_assignment
 %type <ModuleInstantiation*> module_instance
-%type <std::pair<Identifier*, Maybe<RangeExpression>*>> name_of_module_instance
+%type <ModuleIdentifier> name_of_module_instance
 %type <Many<ArgAssign>*> list_of_port_connections
 %type <ArgAssign*> ordered_port_connection
 %type <ArgAssign*> named_port_connection
@@ -378,7 +384,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Many<ModuleItem>*> module_or_generate_item_S
 %type <Many<ArgAssign>*> named_parameter_assignment_P
 %type <Many<ArgAssign>*> named_port_connection_P
-%type <std::pair<size_t, NetDeclaration::Type>> net_type_L
+%type <NetList> net_type_L
 %type <NetDeclaration::Type> net_type_Q
 %type <Many<ModuleItem>*> non_port_module_item_S
 %type <Many<ArgAssign>*> ordered_parameter_assignment_P
@@ -391,7 +397,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Maybe<RangeExpression>*> range_Q
 %type <size_t> reg_L
 %type <bool> signed_Q
-%type <std::pair<size_t, std::string>> simple_id_L
+%type <IdList> simple_id_L
 %type <Many<Statement>*> statement_S
 
 /* Alternate Rules */
