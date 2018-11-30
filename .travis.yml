@@ -31,6 +31,8 @@ matrix:
     env:
       - LDFLAGS="-L/usr/local/opt/flex/lib -L/usr/local/opt/bison/lib"
       - CPPFLAGS="-I/usr/local/opt/flex/include"
+      - CXXFLAGS="-I/usr/local/opt/flex/include"
+      - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
       - "export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
 compiler:
