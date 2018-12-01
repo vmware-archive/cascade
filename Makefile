@@ -133,25 +133,25 @@ submodule:
 	git submodule init
 	git submodule update
 bin/%: tools/%.cc ${FLEX_SRC} ${OBJ}
-	${CXX} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
+	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
 ${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC}
 	cd src/verilog/parse && flex verilog.ll	
 ${BISON_SRC}: src/verilog/parse/verilog.yy
 	cd src/verilog/parse && bison -d -v verilog.yy
 %.o: %.c 
-	${CC} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+	${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 %.o: %.cc 
-	${CXX} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 ${GTEST_LIB}: submodule
 	mkdir -p ${GTEST_BUILD_DIR}
-	cd ${GTEST_BUILD_DIR} && cmake .. && make
+	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
 ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
-	${CXX} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
+	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
-	${CC} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
+	${CC} ${CFLAGS} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
-	${CXX} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
+	${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc
-	${CXX} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG  ${GTEST_INC} ${INC} -c $< -o $@
+	${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG  ${GTEST_INC} ${INC} -c $< -o $@

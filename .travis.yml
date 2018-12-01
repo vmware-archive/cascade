@@ -1,22 +1,43 @@
 sudo: false
 dist: xenial
 language: cpp
+matrix:
+  fast_finish: true
+  include:
+  - os: linux
+    dist: xenial
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.8
+        packages:
+        - ccache
+        - cmake
+        - flex
+        - bison
+        - libncurses-dev
+        - g++-6
+        - clang-3.8
+  - os: osx
+    osx_image: xcode10.1
+    addons:
+      homebrew:
+        packages:
+        - ccache
+        - cmake
+        - flex
+        - bison
+    env:
+      - LDFLAGS="-L/usr/local/opt/flex/lib -L/usr/local/opt/bison/lib"
+      - CPPFLAGS="-I/usr/local/opt/flex/include"
+      - CXXFLAGS="-I/usr/local/opt/flex/include"
+      - CFLAGS="-I/usr/local/opt/flex/include"
+    before_install:
+      - "export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH"
 compiler:
   - gcc
   - clang
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.8
-    packages:
-    - ccache
-    - cmake
-    - flex
-    - bison
-    - libncurses-dev
-    - g++-6
-    - clang-3.8
 install:
 - "[ $CXX = g++ ] && export CXX=g++-6 || true"
 - "[ $CXX = clang++ ] && export CXX=clang++-3.8 || true"
