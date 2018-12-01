@@ -64,26 +64,26 @@ void DeadCodeEliminate::Index::visit(const Identifier* i) {
 }
 
 void DeadCodeEliminate::Index::visit(const IntegerDeclaration* id) {
-  id->get_val()->accept(this);
+  id->accept_val(this);
 }
 
 void DeadCodeEliminate::Index::visit(const LocalparamDeclaration* ld) {
-  ld->maybe_accept_dim(this);
-  ld->get_val()->accept(this);
+  ld->accept_dim(this);
+  ld->accept_val(this);
 }
 
 void DeadCodeEliminate::Index::visit(const NetDeclaration* nd) {
-  nd->maybe_accept_dim(this);
+  nd->accept_dim(this);
 }
 
 void DeadCodeEliminate::Index::visit(const ParameterDeclaration* pd) {
-  pd->maybe_accept_dim(this);
-  pd->get_val()->accept(this);
+  pd->accept_dim(this);
+  pd->accept_val(this);
 }
 
 void DeadCodeEliminate::Index::visit(const RegDeclaration* rd) {
-  rd->maybe_accept_dim(this);
-  rd->maybe_accept_val(this);
+  rd->accept_dim(this);
+  rd->accept_val(this);
 }
 
 void DeadCodeEliminate::edit(ModuleDeclaration* md) {

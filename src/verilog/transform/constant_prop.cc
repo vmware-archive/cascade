@@ -165,12 +165,12 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
   if (RuntimeConstant(this).check(ce->get_cond())) {
     Expression* res = nullptr;
     if (Evaluate().get_value(ce->get_cond()).to_bool()) {
-      res = ce->get_lhs()->accept(this);
+      res = ce->accept_lhs(this);
       if (res == ce->get_lhs()) {
         ce->set_lhs(new Identifier("ignore"));
       }
     } else {
-      res = ce->get_rhs()->accept(this);
+      res = ce->accept_rhs(this);
       if (res == ce->get_rhs()) {
         ce->set_rhs(new Identifier("ignore"));
       }
@@ -237,12 +237,12 @@ Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
   if (RuntimeConstant(this).check(cs->get_if())) {
     Statement* res = nullptr;
     if (Evaluate().get_value(cs->get_if()).to_bool()) {
-      res = cs->get_then()->accept(this);
+      res = cs->accept_then(this);
       if (res == cs->get_then()) {
         cs->set_then(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
       }
     } else {
-      res = cs->get_else()->accept(this);
+      res = cs->accept_else(this);
       if (res == cs->get_else()) {
         cs->set_else(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
       }

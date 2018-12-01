@@ -83,10 +83,10 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   // RECURSE: Implicit params and ports
   const auto backup = exists_bad_id_;
   for (auto p : *mi->get_params()) {
-    p->maybe_accept_imp(this);
+    p->accept_imp(this);
   }
   for (auto p : *mi->get_ports()) {
-    p->maybe_accept_imp(this);
+    p->accept_imp(this);
   }
   // EXIT: Arity checking will fail without access to resolvable ports
   if (exists_bad_id_) {
@@ -195,7 +195,7 @@ void TypeCheck::pre_elaboration_check(const CaseGenerateConstruct* cgc) {
     error("Non-constant expression appears in the guard for a case generate construct", cgc->get_cond());
   }
   // RECURSE: condition
-  cgc->get_cond()->accept(this);
+  cgc->accept_cond(this);
 }
 
 void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
@@ -208,7 +208,7 @@ void TypeCheck::pre_elaboration_check(const IfGenerateConstruct* igc) {
       error("Non-constant expression appears in the guard for an if generate construct", c->get_if());
     }
     // RECURSE: condition
-    c->get_if()->accept(this);
+    c->accept_if(this);
   }
 }
 
@@ -220,9 +220,9 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
 
   if (!deactivated_) {
     // RECURSE: Iteration space
-    lgc->get_init()->accept(this);
-    lgc->get_cond()->accept(this);
-    lgc->get_update()->accept(this);
+    lgc->accept_init(this);
+    lgc->accept_cond(this);
+    lgc->accept_update(this);
 
     // CHECK: Const loop guard
     if (!Constant().is_genvar_constant(lgc->get_cond())) {
@@ -327,8 +327,8 @@ void TypeCheck::visit(const Identifier* id) {
 
   // RECURSE: ids and dim
   auto backup = exists_bad_id_;
-  id->get_ids()->accept(this);
-  id->get_dim()->accept(this);
+  id->accept_ids(this);
+  id->accept_dim(this);
   // EXIT: Resolution will fail if there's a bad id below here
   if (exists_bad_id_) {
     exists_bad_id_ = backup;
@@ -478,15 +478,15 @@ void TypeCheck::visit(const LoopGenerateConstruct* lgc) {
 
 void TypeCheck::visit(const InitialConstruct* ic) {
   // RECURSE: body
-  ic->get_stmt()->accept(this);
+  ic->accept_stmt(this);
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
-  ca->maybe_accept_ctrl(this);
+  ca->accept_ctrl(this);
   net_lval_ = true;
-  ca->get_assign()->get_lhs()->accept(this);
+  ca->get_assign()->accept_lhs(this);
   net_lval_ = false;
-  ca->get_assign()->get_rhs()->accept(this);
+  ca->get_assign()->accept_rhs(this);
 
   const auto r = Resolve().get_resolution(ca->get_assign()->get_lhs());
   if ((r != nullptr) && (dynamic_cast<const NetDeclaration*>(r->get_parent()) == nullptr)) {
@@ -506,7 +506,7 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
 
 void TypeCheck::visit(const IntegerDeclaration* id) {
   // RECURSE: Check for unsupported language features in initial value
-  id->maybe_accept_val(this);
+  id->accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(id).find_duplicate_name(id->get_id()->get_ids()->back())) {
@@ -525,7 +525,7 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // RECURSE: Check for unsupported language features in initial value
-  ld->get_val()->accept(this);
+  ld->accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(ld).find_duplicate_name(ld->get_id()->get_ids()->back())) {
@@ -561,7 +561,7 @@ void TypeCheck::visit(const NetDeclaration* nd) {
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
   // RECURSE: Check for unsupported language features in initial value
-  pd->get_val()->accept(this);
+  pd->accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(pd).find_duplicate_name(pd->get_id()->get_ids()->back())) {
@@ -580,7 +580,7 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
 
 void TypeCheck::visit(const RegDeclaration* rd) {
   // RECURSE: Check for unsupported language features in initial value
-  rd->maybe_accept_val(this);
+  rd->accept_val(this);
 
   // CHECK: Duplicate definition
   if (Navigate(rd).find_duplicate_name(rd->get_id()->get_ids()->back())) {

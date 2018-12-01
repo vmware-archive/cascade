@@ -35,8 +35,8 @@
 namespace cascade {
 
 ArgAssign* Rewriter::rewrite(ArgAssign* aa) {
-  aa->conditional_replace_exp(aa->maybe_accept_exp(this));
-  aa->conditional_replace_imp(aa->maybe_accept_imp(this));
+  aa->accept_exp(this);
+  aa->accept_imp(this);
   return aa;
 }
 
@@ -46,38 +46,38 @@ Attributes* Rewriter::rewrite(Attributes* a) {
 }
 
 AttrSpec* Rewriter::rewrite(AttrSpec* as) {
-  as->conditional_replace_lhs(as->get_lhs()->accept(this));
-  as->conditional_replace_rhs(as->maybe_accept_rhs(this));
+  as->accept_lhs(this);
+  as->accept_rhs(this);
   return as;
 }
 
 CaseGenerateItem* Rewriter::rewrite(CaseGenerateItem* cgi) {
   cgi->get_exprs()->accept(this);
-  cgi->conditional_replace_block(cgi->maybe_accept_block(this));
+  cgi->accept_block(this);
   return cgi;
 }
 
 CaseItem* Rewriter::rewrite(CaseItem* ci) {
   ci->get_exprs()->accept(this);
-  ci->conditional_replace_stmt(ci->get_stmt()->accept(this));
+  ci->accept_stmt(this);
   return ci;
 }
 
 Event* Rewriter::rewrite(Event* e) {
-  e->conditional_replace_expr(e->get_expr()->accept(this));
+  e->accept_expr(this);
   return e;
 }
 
 Expression* Rewriter::rewrite(BinaryExpression* be) {
-  be->conditional_replace_lhs(be->get_lhs()->accept(this));
-  be->conditional_replace_rhs(be->get_rhs()->accept(this));
+  be->accept_lhs(this);
+  be->accept_rhs(this);
   return be;
 }
 
 Expression* Rewriter::rewrite(ConditionalExpression* ce) {
-  ce->conditional_replace_cond(ce->get_cond()->accept(this));
-  ce->conditional_replace_lhs(ce->get_lhs()->accept(this));
-  ce->conditional_replace_rhs(ce->get_rhs()->accept(this));
+  ce->accept_cond(this);
+  ce->accept_lhs(this);
+  ce->accept_rhs(this);
   return ce;
 }
 
@@ -93,7 +93,7 @@ Expression* Rewriter::rewrite(Identifier* id) {
 }
 
 Expression* Rewriter::rewrite(MultipleConcatenation* mc) {
-  mc->conditional_replace_expr(mc->get_expr()->accept(this));
+  mc->accept_expr(this);
   mc->get_concat()->accept(this);
   return mc;
 }
@@ -107,30 +107,30 @@ Expression* Rewriter::rewrite(String* s) {
 }
 
 Expression* Rewriter::rewrite(RangeExpression* re) {
-  re->conditional_replace_upper(re->get_upper()->accept(this));
-  re->conditional_replace_lower(re->get_lower()->accept(this));
+  re->accept_upper(this);
+  re->accept_lower(this);
   return re;
 }
 
 Expression* Rewriter::rewrite(UnaryExpression* ue) {
-  ue->conditional_replace_lhs(ue->get_lhs()->accept(this));
+  ue->accept_lhs(this);
   return ue;
 }
 
 GenerateBlock* Rewriter::rewrite(GenerateBlock* gb) {
-  gb->conditional_replace_id(gb->maybe_accept_id(this));
+  gb->accept_id(this);
   gb->get_items()->accept(this);
   return gb;
 }
 
 Id* Rewriter::rewrite(Id* i) {
-  i->conditional_replace_isel(i->maybe_accept_isel(this));
+  i->accept_isel(this);
   return i;
 }
 
 IfGenerateClause* Rewriter::rewrite(IfGenerateClause* igc) {
   igc->get_if()->accept(this);
-  igc->conditional_replace_then(igc->maybe_accept_then(this));
+  igc->accept_then(this);
   return igc;
 }
 
@@ -143,26 +143,26 @@ ModuleDeclaration* Rewriter::rewrite(ModuleDeclaration* md) {
 }
 
 ModuleItem* Rewriter::rewrite(AlwaysConstruct* ac) {
-  ac->conditional_replace_stmt(ac->get_stmt()->accept(this));
+  ac->accept_stmt(this);
   return ac;
 }
 
 ModuleItem* Rewriter::rewrite(IfGenerateConstruct* igc) {
   igc->get_attrs()->accept(this);
-  igc->conditional_replace_clauses(igc->get_clauses()->accept(this));
-  igc->conditional_replace_else(igc->maybe_accept_else(this));
+  igc->accept_clauses(this);
+  igc->accept_else(this);
   return igc;
 }
 
 ModuleItem* Rewriter::rewrite(CaseGenerateConstruct* cgc) {
-  cgc->conditional_replace_cond(cgc->get_cond()->accept(this));
+  cgc->accept_cond(this);
   cgc->get_items()->accept(this);
   return cgc;
 }
 
 ModuleItem* Rewriter::rewrite(LoopGenerateConstruct* lgc) {
   lgc->get_init()->accept(this);
-  lgc->conditional_replace_cond(lgc->get_cond()->accept(this));
+  lgc->accept_cond(this);
   lgc->get_update()->accept(this);
   lgc->get_block()->accept(this);
   return lgc;
@@ -170,12 +170,12 @@ ModuleItem* Rewriter::rewrite(LoopGenerateConstruct* lgc) {
 
 ModuleItem* Rewriter::rewrite(InitialConstruct* ic) {
   ic->get_attrs()->accept(this);
-  ic->conditional_replace_stmt(ic->get_stmt()->accept(this));
+  ic->accept_stmt(this);
   return ic;
 }
 
 ModuleItem* Rewriter::rewrite(ContinuousAssign* ca) {
-  ca->conditional_replace_ctrl(ca->maybe_accept_ctrl(this));
+  ca->accept_ctrl(this);
   ca->get_assign()->accept(this);
   return ca;
 }
@@ -189,39 +189,39 @@ ModuleItem* Rewriter::rewrite(GenvarDeclaration* gd) {
 ModuleItem* Rewriter::rewrite(IntegerDeclaration* id) {
   id->get_attrs()->accept(this);
   id->get_id()->accept(this);
-  id->conditional_replace_val(id->maybe_accept_val(this));
+  id->accept_val(this);
   return id;
 }
 
 ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
   ld->get_attrs()->accept(this);
-  ld->conditional_replace_dim(ld->maybe_accept_dim(this));
+  ld->accept_dim(this);
   ld->get_id()->accept(this);
-  ld->conditional_replace_val(ld->get_val()->accept(this));
+  ld->accept_val(this);
   return ld;
 }
 
 ModuleItem* Rewriter::rewrite(NetDeclaration* nd) {
   nd->get_attrs()->accept(this);
-  nd->conditional_replace_ctrl(nd->maybe_accept_ctrl(this));
+  nd->accept_ctrl(this);
   nd->get_id()->accept(this);
-  nd->conditional_replace_dim(nd->maybe_accept_dim(this));
+  nd->accept_dim(this);
   return nd;
 }
 
 ModuleItem* Rewriter::rewrite(ParameterDeclaration* pd) {
   pd->get_attrs()->accept(this);
-  pd->conditional_replace_dim(pd->maybe_accept_dim(this));
+  pd->accept_dim(this);
   pd->get_id()->accept(this);
-  pd->conditional_replace_val(pd->get_val()->accept(this));
+  pd->accept_val(this);
   return pd;
 }
 
 ModuleItem* Rewriter::rewrite(RegDeclaration* rd) {
   rd->get_attrs()->accept(this);
   rd->get_id()->accept(this);
-  rd->conditional_replace_dim(rd->maybe_accept_dim(this));
-  rd->conditional_replace_val(rd->maybe_accept_val(this));
+  rd->accept_dim(this);
+  rd->accept_val(this);
   return rd; 
 }
 
@@ -234,7 +234,7 @@ ModuleItem* Rewriter::rewrite(ModuleInstantiation* mi) {
   mi->get_attrs()->accept(this);
   mi->get_mid()->accept(this);
   mi->get_iid()->accept(this);
-  mi->conditional_replace_range(mi->maybe_accept_range(this));
+  mi->accept_range(this);
   mi->get_params()->accept(this);
   mi->get_ports()->accept(this);
   return mi;
@@ -247,58 +247,58 @@ ModuleItem* Rewriter::rewrite(PortDeclaration* pd) {
 }
 
 Statement* Rewriter::rewrite(BlockingAssign* ba) {
-  ba->conditional_replace_ctrl(ba->maybe_accept_ctrl(this));
+  ba->accept_ctrl(this);
   ba->get_assign()->accept(this);
   return ba;
 }
 
 Statement* Rewriter::rewrite(NonblockingAssign* na) {
-  na->conditional_replace_ctrl(na->maybe_accept_ctrl(this));
+  na->accept_ctrl(this);
   na->get_assign()->accept(this);
   return na;
 }
 
 Statement* Rewriter::rewrite(CaseStatement* cs) {
-  cs->conditional_replace_cond(cs->get_cond()->accept(this));
+  cs->accept_cond(this);
   cs->get_items()->accept(this);
   return cs;
 }
 
 Statement* Rewriter::rewrite(ConditionalStatement* cs) {
-  cs->conditional_replace_if(cs->get_if()->accept(this));
-  cs->conditional_replace_then(cs->get_then()->accept(this));
-  cs->conditional_replace_else(cs->get_else()->accept(this));
+  cs->accept_if(this);
+  cs->accept_then(this);
+  cs->accept_else(this);
   return cs;
 }
 
 Statement* Rewriter::rewrite(ForStatement* fs) {
   fs->get_init()->accept(this);
-  fs->conditional_replace_cond(fs->get_cond()->accept(this));
+  fs->accept_cond(this);
   fs->get_update()->accept(this);
-  fs->conditional_replace_stmt(fs->get_stmt()->accept(this));
+  fs->accept_stmt(this);
   return fs;
 }
 
 Statement* Rewriter::rewrite(ForeverStatement* fs) {
-  fs->conditional_replace_stmt(fs->get_stmt()->accept(this));
+  fs->accept_stmt(this);
   return fs;
 }
 
 Statement* Rewriter::rewrite(RepeatStatement* rs) {
-  rs->conditional_replace_cond(rs->get_cond()->accept(this));
-  rs->conditional_replace_stmt(rs->get_stmt()->accept(this));
+  rs->accept_cond(this);
+  rs->accept_stmt(this);
   return rs;
 }
 
 Statement* Rewriter::rewrite(ParBlock* pb) {
-  pb->conditional_replace_id(pb->maybe_accept_id(this));
+  pb->accept_id(this);
   pb->get_decls()->accept(this);
   pb->get_stmts()->accept(this);
   return pb;
 }
 
 Statement* Rewriter::rewrite(SeqBlock* sb) {
-  sb->conditional_replace_id(sb->maybe_accept_id(this));
+  sb->accept_id(this);
   sb->get_decls()->accept(this);
   sb->get_stmts()->accept(this);
   return sb;
@@ -306,7 +306,7 @@ Statement* Rewriter::rewrite(SeqBlock* sb) {
 
 Statement* Rewriter::rewrite(TimingControlStatement* tcs) {
   tcs->get_ctrl()->accept(this);
-  tcs->conditional_replace_stmt(tcs->get_stmt()->accept(this));
+  tcs->accept_stmt(this);
   return tcs;
 }
 
@@ -326,14 +326,14 @@ Statement* Rewriter::rewrite(WriteStatement* ws) {
 }
 
 Statement* Rewriter::rewrite(WaitStatement* ws) {
-  ws->conditional_replace_cond(ws->get_cond()->accept(this));
-  ws->conditional_replace_stmt(ws->get_stmt()->accept(this));
+  ws->accept_cond(this);
+  ws->accept_stmt(this);
   return ws;
 }
 
 Statement* Rewriter::rewrite(WhileStatement* ws) {
-  ws->conditional_replace_cond(ws->get_cond()->accept(this));
-  ws->conditional_replace_stmt(ws->get_stmt()->accept(this));
+  ws->accept_cond(this);
+  ws->accept_stmt(this);
   return ws;
 }
 
@@ -348,8 +348,8 @@ TimingControl* Rewriter::rewrite(EventControl* ec) {
 }
 
 VariableAssign* Rewriter::rewrite(VariableAssign* va) {
-  va->conditional_replace_lhs(va->get_lhs()->accept(this));
-  va->conditional_replace_rhs(va->get_rhs()->accept(this));
+  va->accept_lhs(this);
+  va->accept_rhs(this);
   return va;
 }
 

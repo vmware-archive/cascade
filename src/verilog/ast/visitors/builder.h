@@ -35,10 +35,12 @@
 
 namespace cascade {
 
-// A non-intrusive visitor. The default implementation of this class performs a
-// recursive descent over the AST and returns a clone of the nodes that it
-// encounters. By convention, overriding any of the methods in this class to to
-// return nullptr will remove those nodes from the resulting AST.
+// A non-intrusive visitor.  This class assumes the following convention:
+// returning nullptr for an AST node which appears in a combinator (a many or a
+// maybe) will result in that node being removed from the AST.  Returning
+// nullptr for a non which does not appear in a combinator is undefined.  The
+// default implementation of this class performs a recursive descent over the
+// AST and returns a clone of the nodes that it encounters. 
 
 struct Builder {
   virtual ~Builder() = default;

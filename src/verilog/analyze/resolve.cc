@@ -304,26 +304,26 @@ void Resolve::CacheUses::edit(GenvarDeclaration* gd) {
 }
 
 void Resolve::CacheUses::edit(IntegerDeclaration* id) {
-  id->maybe_accept_val(this);
+  id->accept_val(this);
 }
 
 void Resolve::CacheUses::edit(LocalparamDeclaration* ld) {
-  ld->maybe_accept_dim(this);
-  ld->get_val()->accept(this);
+  ld->accept_dim(this);
+  ld->accept_val(this);
 }
 
 void Resolve::CacheUses::edit(NetDeclaration* nd) {
-  nd->maybe_accept_dim(this);
+  nd->accept_dim(this);
 }
 
 void Resolve::CacheUses::edit(ParameterDeclaration* pd) {
-  pd->maybe_accept_dim(this);
-  pd->get_val()->accept(this);
+  pd->accept_dim(this);
+  pd->accept_val(this);
 }
 
 void Resolve::CacheUses::edit(RegDeclaration* rd) {
-  rd->maybe_accept_dim(this);
-  rd->maybe_accept_val(this);
+  rd->accept_dim(this);
+  rd->accept_val(this);
 }
 
 void Resolve::CacheUses::edit(ModuleInstantiation* mi) {

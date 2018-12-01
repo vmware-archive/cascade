@@ -88,7 +88,7 @@ Expression* Inline::Qualify::build(const Identifier* id) {
   const auto fid = Resolve().get_full_id(r);
   auto res =  new Identifier(
     fid->get_ids()->clone(),
-    id->get_dim()->accept(this)
+    id->accept_dim(this)
   );
   delete fid;
 
@@ -177,7 +177,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       auto ld = new LocalparamDeclaration(
         new Attributes(new Many<AttrSpec>()),
         pd->get_signed(),
-        pd->maybe_clone_dim(),
+        pd->clone_dim(),
         pd->get_id()->clone(),
         pd->get_val()->clone()
       );
@@ -242,7 +242,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
         auto pd = new ParameterDeclaration(
           new Attributes(new Many<AttrSpec>()),
           ld->get_signed(),
-          ld->maybe_clone_dim(),
+          ld->clone_dim(),
           ld->get_id()->clone(),
           ld->get_val()->clone()
         );

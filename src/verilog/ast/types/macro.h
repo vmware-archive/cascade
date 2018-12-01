@@ -166,7 +166,8 @@
   }
 // Pointer attributes are set and returned by pointers. The pointer API
 // guarantees that parent pointers are set when elements are attached and
-// removed from this node.
+// removed from this node. The pointer API also provides convenience methods
+// for recursive invocations of clone and visitors.
 #define PTR_GET_SET(T, t) \
   auto& get_##t() { \
     return PRIVATE(t); \
@@ -175,25 +176,13 @@
     return PRIVATE(t); \
   } \
   void set_##t(T rhs) { \
-    assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
     PRIVATE(t)->parent_ = nullptr; \
     PRIVATE(t) = rhs; \
     PRIVATE(t)->parent_ = this; \
   } \
   void replace_##t(T rhs) { \
-    assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
-    delete PRIVATE(t); \
-    PRIVATE(t) = rhs; \
-    PRIVATE(t)->parent_ = this; \
-  } \
-  void conditional_replace_##t(T rhs) { \
-    assert(PRIVATE(t) != nullptr); \
-    assert(rhs != nullptr); \
-    if (PRIVATE(t) == rhs) { \
-      return; \
-    } \
     delete PRIVATE(t); \
     PRIVATE(t) = rhs; \
     PRIVATE(t)->parent_ = this; \
@@ -203,6 +192,30 @@
     assert(rhs != nullptr); \
     std::swap(PRIVATE(t), rhs); \
     std::swap(PRIVATE(t)->parent_, rhs->parent_); \
+  } \
+  T clone_##t() const { \
+    return PRIVATE(t)->clone(); \
+  } \
+  void accept_##t(Visitor* v) const { \
+    PRIVATE(t)->accept(v); \
+  } \
+  void accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
+    pre(); \
+    PRIVATE(t)->accept(v); \
+    post(); \
+  } \
+  void accept_##t(Editor* e) { \
+    PRIVATE(t)->accept(e); \
+  } \
+  T accept_##t(Builder* b) const { \
+    return (T) PRIVATE(t)->accept(b); \
+  } \
+  T accept_##t(Rewriter* r) { \
+    auto res = PRIVATE(t)->accept(r); \
+    if (res != PRIVATE(t)) { \
+      replace_##t(res); \
+    } \
+    return PRIVATE(t); \
   }
 // Maybe attributes are handled similarly to pointer attributes. The only notable
 // difference is an extended set of query operators and the absence of a swap
@@ -247,46 +260,164 @@
       PRIVATE(t)->parent_ = this; \
     } \
   } \
-  void conditional_replace_##t(T rhs) { \
-    if (PRIVATE(t) == rhs) { \
-      return; \
-    } \
-    if (PRIVATE(t) != nullptr) { \
-      delete PRIVATE(t); \
-    } \
-    PRIVATE(t) = rhs; \
-    if (PRIVATE(t) != nullptr) { \
-      PRIVATE(t)->parent_ = this; \
-    } \
-  } \
-  T maybe_clone_##t() const { \
+  T clone_##t() const { \
     return (PRIVATE(t) != nullptr) ? PRIVATE(t)->clone() : nullptr; \
   } \
-  void maybe_accept_##t(Visitor* v) const { \
+  void accept_##t(Visitor* v) const { \
     if (PRIVATE(t) != nullptr) { \
       PRIVATE(t)->accept(v); \
     } \
   } \
-  void maybe_accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
+  void accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
     if (PRIVATE(t) != nullptr) { \
       pre(); \
       PRIVATE(t)->accept(v); \
       post(); \
     } \
   } \
-  void maybe_accept_##t(Editor* e) { \
+  void accept_##t(Editor* e) { \
     if (PRIVATE(t) != nullptr) { \
       PRIVATE(t)->accept(e); \
     } \
   } \
-  T maybe_accept_##t(Builder* b) const { \
+  T accept_##t(Builder* b) const { \
     return (PRIVATE(t) != nullptr) ? (T) PRIVATE(t)->accept(b) : nullptr; \
   } \
-  T maybe_accept_##t(Rewriter* r) { \
-    return (PRIVATE(t) != nullptr) ? (T) PRIVATE(t)->accept(r) : nullptr; \
+  T accept_##t(Rewriter* r) { \
+    if (PRIVATE(t) != nullptr) { \
+      auto res = PRIVATE(t)->accept(r); \
+      if (res != PRIVATE(t)) { \
+        replace_##t(res); \
+      } \
+    } \
+    return PRIVATE(t); \
   }
-// WHAT TO SAY ABOUT THESE?
-
+// The many API provides the usual suite of iterator accessors in place of
+// direct pointer access to the underlying container.  The many API also
+// provides convenience methods for recursive invocations of clone and
+// visitors.
+#define MANY_GET_SET(T, t) \
+  typedef typename Vector<T>::iterator iterator_##t; \
+  typedef typename Vector<T>::const_iterator const_iterator_##t; \
+  size_t size_##t() const { \
+    return PRIVATE(t).size(); \
+  } \
+  bool empty_##t() const { \
+    return PRIVATE(t).empty(); \
+  } \
+  iterator_##t begin_##t() { \
+    return PRIVATE(t).begin(); \
+  } \
+  iterator_##t end_##t() { \
+    return PRIVATE(t).end(); \
+  } \
+  const_iterator_##t begin_##t() const { \
+    return PRIVATE(t).begin(); \
+  } \
+  const_iterator_##t end_##t() const { \
+    return PRIVATE(t).end(); \
+  } \
+  T* get_##t(size_t n) { \
+    return PRIVATE(t)[n]; \
+  } \
+  const T* get_##t(size_t n) const { \
+    return PRIVATE(t)[n]; \
+  } \
+  T* front_##t() { \
+    return PRIVATE(t).front(); \
+  } \
+  const T* front_##t() const { \
+    return PRIVATE(t).front(); \
+  } \
+  T* back_##t() { \
+    return PRIVATE(t).back(); \
+  } \
+  const T* back_##t() const { \
+    return PRIVATE(t).back(); \
+  } \
+  void set_##t(size_t n, T* val) { \
+    assert(val != nullptr); \
+    PRIVATE(t)[n]->parent_ = nullptr; \
+    PRIVATE(t)[n] = val; \
+    val->parent_ = this; \
+  } \
+  void replace_##t(size_t n, T* val) { \
+    assert(val != nullptr); \
+    delete PRIVATE(t)[n]; \
+    PRIVATE(t)[n] = val; \
+    val->parent_ = this; \
+  } \
+  void conditional_replace_##t(size_t n, T* val) { \
+    assert(val != nullptr); \
+    if (val != PRIVATE(t)[n]) { \
+      delete PRIVATE(t)[n]; \
+      PRIVATE(t)[n] = val; \
+      val->parent_ = this; \
+    } \
+  } \
+  void push_front_##t(T* val) { \
+    assert(val != nullptr); \
+    val->parent_ = this; \
+    PRIVATE(t).insert(PRIVATE(t).begin(), val); \
+  } \
+  void push_back_##t(T* val) { \
+    assert(val != nullptr); \
+    val->parent_ = this; \
+    PRIVATE(t).push_back(val); \
+  } \
+  void pop_front_##t() { \
+    assert(!PRIVATE(t).empty()); \
+    PRIVATE(t).front()->parent_ = nullptr; \
+    PRIVATE(t).erase(PRIVATE(t).begin()); \
+  } \
+  void pop_back_##t() { \
+    assert(!PRIVATE(t).empty()); \
+    PRIVATE(t).back()->parent_ = nullptr; \
+    PRIVATE(t).pop_back(); \
+  } \
+  T* remove_front_##t() { \
+    auto res = front_##t(); \
+    pop_front_##t(); \
+    return res; \
+  } \
+  T* remove_back_##t() { \
+    auto res = back_##t(); \
+    pop_back_##t(); \
+    return res; \
+  } \
+  void clear_##t() { \
+    for (auto n : PRIVATE(t)) { \
+      n->parent_ = nullptr; \
+    } \
+    clear_##t(); \
+  } \
+  iterator_##t purge_##t(iterator_##t itr) { \
+    assert(itr != end()); \
+    delete *itr; \
+    return PRIVATE(t).erase(itr); \
+  } \
+  void purge_to_##t(size_t n) { \
+    while (PRIVATE(T).size() > n) { \
+      auto n = back_##t(); \
+      pop_back_##t(); \
+      delete n; \
+    } \
+  } \
+  void purge_##t() { \
+    purge_to_##t(0); \
+  } \
+  T clone_##t() const { \
+  } \
+  void accept_##t(Visitor* v) const { \
+  } \
+  void accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
+  } \
+  void accept_##t(Editor* e) { \
+  } \
+  T accept_##t(Builder* b) const { \
+  } \
+  T accept_##t(Rewriter* r) { \
+  }
 
 // Attribute Declaration Helpers:
 //

@@ -101,7 +101,7 @@ ModuleItem* Isolate::build(const InitialConstruct* ic) {
   }
   return new InitialConstruct (
     attrs,
-    (Statement*) ic->get_stmt()->accept(this)
+    (Statement*) ic->accept_stmt(this)
   );
 }
 
@@ -117,7 +117,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
   // Careful: We aren't allowed to have initial values for arrays
   auto res = new RegDeclaration(
     id->get_attrs()->accept(this),
-    id->get_id()->accept(this),
+    id->accept_id(this),
     true,
     new RangeExpression(32,0),
     id->get_id()->get_dim()->empty() ? 
@@ -133,8 +133,8 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   auto res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
-    ld->maybe_accept_dim(this),
-    ld->get_id()->accept(this),
+    ld->accept_dim(this),
+    ld->accept_id(this),
     new Number(Evaluate().get_value(ld->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
@@ -151,8 +151,8 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   auto res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
-    pd->maybe_accept_dim(this),
-    pd->get_id()->accept(this),
+    pd->accept_dim(this),
+    pd->accept_id(this),
     new Number(Evaluate().get_value(pd->get_id()), Number::HEX)
   );
   res->get_attrs()->get_as()->push_back(new AttrSpec(
@@ -168,9 +168,9 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
   // Careful: We aren't allowed to have initial values for arrays
   auto res = new RegDeclaration(
     rd->get_attrs()->accept(this),
-    rd->get_id()->accept(this),
+    rd->accept_id(this),
     rd->get_signed(),
-    rd->maybe_accept_dim(this),
+    rd->accept_dim(this),
     rd->get_id()->get_dim()->empty() ? 
       new Number(Evaluate().get_value(rd->get_id()), Number::HEX) :
       nullptr
@@ -201,7 +201,7 @@ Identifier* Isolate::to_local_id(const Identifier* id) {
   ss << "__l" << isolate(id);
   return new Identifier(
     new Many<Id>(new Id(ss.str(), nullptr)),
-    id->get_dim()->accept(this)
+    id->accept_dim(this)
   );
 }
 
@@ -210,7 +210,7 @@ Identifier* Isolate::to_global_id(const Identifier* id) {
   ss << "__x" << isolate(id);
   return new Identifier(
     new Many<Id>(new Id(ss.str(), nullptr)),
-    id->get_dim()->accept(this)
+    id->accept_dim(this)
   );
 }
 
@@ -250,7 +250,7 @@ ModuleDeclaration* Isolate::get_shell() {
           to_global_id(p),
           dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
           width == 1 ? nullptr : new RangeExpression(width),
-          dynamic_cast<const RegDeclaration*>(p->get_parent())->maybe_clone_val()
+          dynamic_cast<const RegDeclaration*>(p->get_parent())->clone_val()
         ) : 
         (Declaration*) new NetDeclaration(
           new Attributes(new Many<AttrSpec>()),

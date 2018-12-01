@@ -466,7 +466,7 @@ void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
   mc->bit_val_.clear();
   mc->set_flag<0>(true);
   // Don't descend into a different subtree
-  mc->get_concat()->accept(this);
+  mc->accept_concat(this);
 }
 
 void Evaluate::Invalidate::edit(Number* n) {
@@ -489,26 +489,26 @@ void Evaluate::Invalidate::edit(UnaryExpression* ue) {
 }
 
 void Evaluate::Invalidate::edit(LocalparamDeclaration* ld) {
-  ld->get_id()->accept(this);
+  ld->accept_id(this);
   // Ignore dim: Don't descend into a different subtree
-  ld->get_val()->accept(this);
+  ld->accept_val(this);
 }
 
 void Evaluate::Invalidate::edit(NetDeclaration* nd) { 
-  nd->get_id()->accept(this);
+  nd->accept_id(this);
   // Ignore dim: Don't descend into a different subtree
 }
 
 void Evaluate::Invalidate::edit(ParameterDeclaration* pd) {
-  pd->get_id()->accept(this);
+  pd->accept_id(this);
   // Ignore dim: Don't descend into a different subtree
-  pd->get_val()->accept(this);
+  pd->accept_val(this);
 }
 
 void Evaluate::Invalidate::edit(RegDeclaration* rd) {
-  rd->get_id()->accept(this);
+  rd->accept_id(this);
   // Ignore dim: Don't descend into a different subtree
-  rd->maybe_accept_val(this);
+  rd->accept_val(this);
 }
 
 void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
@@ -611,7 +611,7 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
 
 void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
   // Don't descend on expr, this is a separate expression tree.
-  mc->get_concat()->accept(this);
+  mc->accept_concat(this);
 
   size_t w = Evaluate().get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
   mc->bit_val_.emplace_back(Bits(w, 0));
@@ -674,7 +674,7 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
 
 void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
   // Don't descend on id, we handle it below
-  id->maybe_accept_val(this);
+  id->accept_val(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -696,7 +696,7 @@ void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
 
 void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  ld->get_val()->accept(this);
+  ld->accept_val(this);
 
   // Start out with a basic allocation of bits
   ld->get_id()->bit_val_.emplace_back(Bits(false));
@@ -714,7 +714,7 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
 
 void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  nd->maybe_accept_ctrl(this);
+  nd->accept_ctrl(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -742,7 +742,7 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
 
 void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  pd->get_val()->accept(this);
+  pd->accept_val(this);
 
   // Start out with a basic allocation of bits
   pd->get_id()->bit_val_.emplace_back(Bits(false));
@@ -760,7 +760,7 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
 
 void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  rd->maybe_accept_val(this);
+  rd->accept_val(this);
 
   // Calculate arity
   size_t arity = 1;
@@ -871,7 +871,7 @@ void Evaluate::ContextDetermine::edit(Identifier* id) {
 
 void Evaluate::ContextDetermine::edit(MultipleConcatenation* mc) {
   // Don't descend on expr, this is a separate expression tree.
-  mc->get_concat()->accept(this);
+  mc->accept_concat(this);
 }
 
 void Evaluate::ContextDetermine::edit(Number* n) {
@@ -926,7 +926,7 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   if (id->get_val()->bit_val_[0].size() < 32) {
     id->get_val()->bit_val_[0].resize(32);
   }
-  id->get_val()->accept(this);
+  id->accept_val(this);
 
   // Now that we're context determined, we can perform initial assignment
   id->get_id()->bit_val_[0].assign(Evaluate().get_value(id->get_val()));
@@ -934,7 +934,7 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
 
 void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   // Parameters don't impose constraints on their rhs
-  ld->get_val()->accept(this);
+  ld->accept_val(this);
   // But they inherit size and width from their rhs unless otherwise specified
   if (!ld->get_signed()) {
     ld->get_id()->bit_val_[0].set_signed(ld->get_val()->bit_val_[0].is_signed());
@@ -954,7 +954,7 @@ void Evaluate::ContextDetermine::edit(NetDeclaration* nd) {
 
 void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   // Parameters don't impose constraints on their rhs
-  pd->get_val()->accept(this);
+  pd->accept_val(this);
   // But they inherit size and width from their rhs unless otherwise specified
   if (!pd->get_signed()) {
     pd->get_id()->bit_val_[0].set_signed(pd->get_val()->bit_val_[0].is_signed());
@@ -980,7 +980,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   if (rd->get_id()->bit_val_[0].size() > rd->get_val()->bit_val_[0].size()) {
     rd->get_val()->bit_val_[0].resize(rd->get_id()->bit_val_[0].size());
   }
-  rd->get_val()->accept(this);
+  rd->accept_val(this);
 
   // Now that we're context determined, we can perform initial assignment
   rd->get_id()->bit_val_[0].assign(Evaluate().get_value(rd->get_val()));
@@ -991,7 +991,7 @@ void Evaluate::ContextDetermine::edit(VariableAssign* va) {
   if (va->get_lhs()->bit_val_[0].size() > va->get_rhs()->bit_val_[0].size()) {
     va->get_rhs()->bit_val_[0].resize(va->get_lhs()->bit_val_[0].size());
   }
-  va->get_rhs()->accept(this);
+  va->accept_rhs(this);
 
   // We're context determined, but these assignments happen dynamically.
   // Nothing more to do here.

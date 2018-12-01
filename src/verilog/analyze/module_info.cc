@@ -420,7 +420,7 @@ void ModuleInfo::visit(const Identifier* i) {
 }
 
 void ModuleInfo::visit(const CaseGenerateConstruct* cgc) {
-  cgc->get_cond()->accept(this);
+  cgc->accept_cond(this);
   if (Elaborate().is_elaborated(cgc)) {
     Elaborate().get_elaboration(cgc)->accept(this);
   }
@@ -428,7 +428,7 @@ void ModuleInfo::visit(const CaseGenerateConstruct* cgc) {
 
 void ModuleInfo::visit(const IfGenerateConstruct* igc) {
   for (auto c : *igc->get_clauses()) {
-    c->get_if()->accept(this);
+    c->accept_if(this);
   }
   if (Elaborate().is_elaborated(igc)) {
     Elaborate().get_elaboration(igc)->accept(this);
@@ -436,9 +436,9 @@ void ModuleInfo::visit(const IfGenerateConstruct* igc) {
 }
 
 void ModuleInfo::visit(const LoopGenerateConstruct* lgc) {
-  lgc->get_init()->accept(this);
-  lgc->get_cond()->accept(this);
-  lgc->get_update()->accept(this);
+  lgc->accept_init(this);
+  lgc->accept_cond(this);
+  lgc->accept_update(this);
   if (Elaborate().is_elaborated(lgc)) {
     Elaborate().get_elaboration(lgc)->accept(this);
   }
@@ -485,10 +485,10 @@ void ModuleInfo::visit(const ModuleInstantiation* mi) {
 
   // Descend on implicit ports. These are syntactically part of this module.
   for (auto p : *mi->get_params()) {
-    p->maybe_accept_imp(this);
+    p->accept_imp(this);
   }
   for (auto p : *mi->get_ports()) {
-    p->maybe_accept_imp(this);
+    p->accept_imp(this);
   }
 
   // Nothing else to do if this module wasn't instantiated.
@@ -524,7 +524,7 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
   md_->ordered_ports_.push_back(pd->get_decl()->get_id());
   
   // Descend on declaration
-  pd->get_decl()->accept(this);
+  pd->accept_decl(this);
 
   // Nothing else to do if this is a declaration
   if (is_declaration()) {
@@ -541,7 +541,7 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
 }
 
 void ModuleInfo::visit(const NonblockingAssign* na) {
-  na->get_assign()->accept(this);
+  na->accept_assign(this);
 
   auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
   assert(r != nullptr);
@@ -557,9 +557,9 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
 
 void ModuleInfo::visit(const VariableAssign* va) {
   lhs_ = true;
-  va->get_lhs()->accept(this);
+  va->accept_lhs(this);
   lhs_ = false;
-  va->get_rhs()->accept(this);
+  va->accept_rhs(this);
 }
 
 void ModuleInfo::refresh() {

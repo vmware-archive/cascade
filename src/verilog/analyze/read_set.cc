@@ -58,16 +58,16 @@ void ReadSet::visit(const Identifier* id) {
   }
 
   id->get_ids()->accept(this);
-  id->get_dim()->accept(this);
+  id->accept_dim(this);
 
   reads_.insert(id);
 }
 
 void ReadSet::visit(const VariableAssign* va) {
   lhs_ = true;
-  va->get_lhs()->accept(this);
+  va->accept_lhs(this);
   lhs_ = false;
-  va->get_rhs()->accept(this);
+  va->accept_rhs(this);
 }
 
 } // namespace cascade

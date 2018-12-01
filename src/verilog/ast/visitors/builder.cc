@@ -36,8 +36,8 @@ namespace cascade {
 
 ArgAssign* Builder::build(const ArgAssign* aa) {
   return new ArgAssign(
-    aa->maybe_accept_exp(this),
-    aa->maybe_accept_imp(this)
+    aa->accept_exp(this),
+    aa->accept_imp(this)
   );
 }
 
@@ -56,7 +56,7 @@ Attributes* Builder::build(const Attributes* a) {
 AttrSpec* Builder::build(const AttrSpec* as) {
   return new AttrSpec(
     as->get_lhs()->accept(this),
-    as->maybe_accept_rhs(this)
+    as->accept_rhs(this)
   );
 }
 
@@ -69,7 +69,7 @@ CaseGenerateItem* Builder::build(const CaseGenerateItem* cgi) {
   }
   return new CaseGenerateItem(
     exprs,
-    cgi->maybe_accept_block(this)
+    cgi->accept_block(this)
   );
 }
 
@@ -175,7 +175,7 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
     }
   }
   return new GenerateBlock(
-    gb->maybe_accept_id(this),
+    gb->accept_id(this),
     gb->get_scope(),
     items
   );
@@ -184,14 +184,14 @@ GenerateBlock* Builder::build(const GenerateBlock* gb) {
 Id* Builder::build(const Id* i) {
   return new Id(
     i->get_sid(),
-    i->maybe_accept_isel(this)
+    i->accept_isel(this)
   );
 }
 
 IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
   return new IfGenerateClause(
     igc->get_if()->accept(this),
-    igc->maybe_accept_then(this)
+    igc->accept_then(this)
   );
 }
 
@@ -226,7 +226,7 @@ ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
   return new IfGenerateConstruct(
     igc->get_attrs()->accept(this),
     igc->get_clauses()->accept(this),
-    igc->maybe_accept_else(this)
+    igc->accept_else(this)
   );
 }
 
@@ -261,7 +261,7 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->maybe_accept_ctrl(this),
+    ca->accept_ctrl(this),
     ca->get_assign()->accept(this)
   );
 }
@@ -277,7 +277,7 @@ ModuleItem* Builder::build(const IntegerDeclaration* id) {
   return new IntegerDeclaration(
     id->get_attrs()->accept(this),
     id->get_id()->accept(this),
-    id->maybe_accept_val(this)
+    id->accept_val(this)
   );
 }
 
@@ -285,7 +285,7 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
-    ld->maybe_accept_dim(this),
+    ld->accept_dim(this),
     ld->get_id()->accept(this),
     ld->get_val()->accept(this)
   );
@@ -295,10 +295,10 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->get_attrs()->accept(this),
     nd->get_type(),
-    nd->maybe_accept_ctrl(this),
+    nd->accept_ctrl(this),
     nd->get_id()->accept(this),
     nd->get_signed(),
-    nd->maybe_accept_dim(this)
+    nd->accept_dim(this)
   );
 }
 
@@ -306,7 +306,7 @@ ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
-    pd->maybe_accept_dim(this),
+    pd->accept_dim(this),
     pd->get_id()->accept(this),
     pd->get_val()->accept(this)
   );
@@ -317,8 +317,8 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
     rd->get_attrs()->accept(this),
     rd->get_id()->accept(this),
     rd->get_signed(),
-    rd->maybe_accept_dim(this),
-    rd->maybe_accept_val(this)
+    rd->accept_dim(this),
+    rd->accept_val(this)
   );
 }
 
@@ -351,7 +351,7 @@ ModuleItem* Builder::build(const ModuleInstantiation* mi) {
     mi->get_attrs()->accept(this),
     mi->get_mid()->accept(this),
     mi->get_iid()->accept(this),
-    mi->maybe_accept_range(this),
+    mi->accept_range(this),
     params,
     ports
   );
@@ -367,14 +367,14 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 
 Statement* Builder::build(const BlockingAssign* ba) {
   return new BlockingAssign(
-    ba->maybe_accept_ctrl(this),
+    ba->accept_ctrl(this),
     ba->get_assign()->accept(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
   return new NonblockingAssign(
-    na->maybe_accept_ctrl(this),
+    na->accept_ctrl(this),
     na->get_assign()->accept(this)
   );
 }
@@ -437,7 +437,7 @@ Statement* Builder::build(const ParBlock* pb) {
     }
   }
   return new ParBlock(
-    pb->maybe_accept_id(this),
+    pb->accept_id(this),
     decls,
     stmts
   );
@@ -457,7 +457,7 @@ Statement* Builder::build(const SeqBlock* sb) {
     }
   }
   return new SeqBlock(
-    sb->maybe_accept_id(this),
+    sb->accept_id(this),
     decls,
     stmts
   );

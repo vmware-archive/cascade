@@ -99,7 +99,7 @@ inline void Attributes::set_or_replace(const Attributes* rhs) {
   for (auto rva : *rhs->as_) {
     for (auto va : *as_) {
       if (EqId()(va->get_lhs(), rva->get_lhs())) {
-        va->replace_rhs(rva->maybe_clone_rhs());
+        va->replace_rhs(rva->clone_rhs());
         break;
       }
     }
