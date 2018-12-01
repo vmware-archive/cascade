@@ -47,8 +47,8 @@ class TimingControlStatement : public Statement {
     // Node Interface:
     NODE(TimingControlStatement, PTR(ctrl), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(ctrl)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(TimingControl*, ctrl)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(TimingControl*, ctrl);

@@ -47,7 +47,7 @@ class FinishStatement : public SystemTaskEnableStatement {
     // Node Interface:
     NODE(FinishStatement, PTR(arg))
     // Get/Set:
-    PTR_GET_SET(arg)
+    PTR_GET_SET(Number*, arg)
 
   private:
     PTR_ATTR(Number*, arg);

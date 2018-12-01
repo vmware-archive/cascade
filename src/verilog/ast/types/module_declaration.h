@@ -56,10 +56,10 @@ class ModuleDeclaration : public Node, public Scope {
     // Node Interface:
     NODE(ModuleDeclaration, PTR(attrs), PTR(id), PTR(ports), PTR(items))
     // Get/Set:
-    PTR_GET_SET(attrs)
-    PTR_GET_SET(id)
-    PTR_GET_SET(ports)
-    PTR_GET_SET(items)
+    PTR_GET_SET(Attributes*, attrs)
+    PTR_GET_SET(Identifier*, id)
+    PTR_GET_SET(Many<ArgAssign>*, ports)
+    PTR_GET_SET(Many<ModuleItem>*, items)
 
   private:
     PTR_ATTR(Attributes*, attrs);

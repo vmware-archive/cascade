@@ -54,8 +54,8 @@ class Identifier : public Primary {
     // Node Interface:
     NODE(Identifier, PTR(ids), PTR(dim))
     // Get/Set:
-    PTR_GET_SET(ids)
-    PTR_GET_SET(dim)
+    PTR_GET_SET(Many<Id>*, ids)
+    PTR_GET_SET(Many<Expression>*, dim)
 
     // Comparison Operators:
     bool eq(const std::string& rhs) const;

@@ -47,9 +47,9 @@ class ParameterDeclaration : public Declaration {
     // Node Interface:
     NODE(ParameterDeclaration, PTR(attrs), VAL(signed), MAYBE(dim), PTR(id), PTR(val))
     // Get/Set:
-    VAL_GET_SET(signed)
+    VAL_GET_SET(bool, signed)
     MAYBE_GET_SET(RangeExpression*, dim)
-    PTR_GET_SET(val)
+    PTR_GET_SET(Expression*, val)
 
   private:
     VAL_ATTR(bool, signed);

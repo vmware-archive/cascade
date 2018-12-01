@@ -60,8 +60,8 @@ class UnaryExpression : public Expression {
     // Node Interface:
     NODE(UnaryExpression, VAL(op), PTR(lhs))
     // Get/Set:
-    VAL_GET_SET(op)
-    PTR_GET_SET(lhs)
+    VAL_GET_SET(Op, op)
+    PTR_GET_SET(Expression*, lhs)
 
   private:
     VAL_ATTR(Op, op);

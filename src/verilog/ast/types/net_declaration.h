@@ -54,9 +54,9 @@ class NetDeclaration : public Declaration {
     // Node Interface:
     NODE(NetDeclaration, PTR(attrs), VAL(type), MAYBE(ctrl), PTR(id), VAL(signed), MAYBE(dim))
     // Get/Set:
-    VAL_GET_SET(type)
+    VAL_GET_SET(Type, type)
     MAYBE_GET_SET(DelayControl*, ctrl)
-    VAL_GET_SET(signed)
+    VAL_GET_SET(bool, signed)
     MAYBE_GET_SET(RangeExpression*, dim)
 
   private:

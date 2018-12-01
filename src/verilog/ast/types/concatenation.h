@@ -48,7 +48,7 @@ class Concatenation : public Primary {
     // Node Interface:
     NODE(Concatenation, PTR(exprs))
     // Get/Set:
-    PTR_GET_SET(exprs)
+    PTR_GET_SET(Many<Expression>*, exprs)
 
   private:
     PTR_ATTR(Many<Expression>*, exprs);

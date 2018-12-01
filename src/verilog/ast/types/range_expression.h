@@ -55,9 +55,9 @@ class RangeExpression : public Expression {
     // Node Interface:
     NODE(RangeExpression, PTR(upper), VAL(type), PTR(lower))
     // Get/Set:
-    PTR_GET_SET(upper)
-    VAL_GET_SET(type)
-    PTR_GET_SET(lower)
+    PTR_GET_SET(Expression*, upper)
+    VAL_GET_SET(Type, type)
+    PTR_GET_SET(Expression*, lower)
 
   private:
     PTR_ATTR(Expression*, upper);

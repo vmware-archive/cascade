@@ -151,32 +151,29 @@
 // Attribute API Helpers: 
 //
 // Value attributes are set and returned by reference.
-#define VAL_GET_SET(t) \
+#define VAL_GET_SET(T, t) \
   auto& get_##t() { \
     return PRIVATE(t); \
   } \
   const auto& get_##t() const { \
     return PRIVATE(t); \
   } \
-  template <typename T> \
   void set_##t(T rhs) { \
     PRIVATE(t) = rhs; \
   } \
-  template <typename T> \
   void swap_##t(T& rhs) { \
     std::swap(PRIVATE(t), rhs); \
   }
 // Pointer attributes are set and returned by pointers. The pointer API
 // guarantees that parent pointers are set when elements are attached and
 // removed from this node.
-#define PTR_GET_SET(t) \
+#define PTR_GET_SET(T, t) \
   auto& get_##t() { \
     return PRIVATE(t); \
   } \
   const auto& get_##t() const { \
     return PRIVATE(t); \
   } \
-  template <typename T> \
   void set_##t(T rhs) { \
     assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
@@ -184,7 +181,6 @@
     PRIVATE(t) = rhs; \
     PRIVATE(t)->parent_ = this; \
   } \
-  template <typename T> \
   void replace_##t(T rhs) { \
     assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
@@ -192,7 +188,6 @@
     PRIVATE(t) = rhs; \
     PRIVATE(t)->parent_ = this; \
   } \
-  template <typename T> \
   void conditional_replace_##t(T rhs) { \
     assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
@@ -203,7 +198,6 @@
     PRIVATE(t) = rhs; \
     PRIVATE(t)->parent_ = this; \
   } \
-  template <typename T> \
   void swap_##t(T& rhs) { \
     assert(PRIVATE(t) != nullptr); \
     assert(rhs != nullptr); \
@@ -291,6 +285,8 @@
   T maybe_accept_##t(Rewriter* r) { \
     return (PRIVATE(t) != nullptr) ? (T) PRIVATE(t)->accept(r) : nullptr; \
   }
+// WHAT TO SAY ABOUT THESE?
+
 
 // Attribute Declaration Helpers:
 //
@@ -298,6 +294,7 @@
 // down on to PRIVATE.
 #define VAL_ATTR(T, t) T PRIVATE(t)
 #define MAYBE_ATTR(T, t) T PRIVATE(t)
+#define MANY_ATTR(T, t) T PRIVATE(t)
 #define PTR_ATTR(T, t) T PRIVATE(t)
 #define DECORATION(T, t) T PRIVATE(t)
 

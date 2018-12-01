@@ -48,8 +48,8 @@ class MultipleConcatenation : public Primary {
     // Node Interface:
     NODE(MultipleConcatenation, PTR(expr), PTR(concat))
     // Get/Set:
-    PTR_GET_SET(expr)
-    PTR_GET_SET(concat)
+    PTR_GET_SET(Expression*, expr)
+    PTR_GET_SET(Concatenation*, concat)
 
   private:
     PTR_ATTR(Expression*, expr);

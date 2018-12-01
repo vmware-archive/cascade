@@ -51,8 +51,8 @@ class SeqBlock : public BlockStatement, public Scope {
     // Node Interface:
     NODE(SeqBlock, MAYBE(id), PTR(decls), PTR(stmts))
     // Get/Set:
-    PTR_GET_SET(decls)
-    PTR_GET_SET(stmts)
+    PTR_GET_SET(Many<Declaration>*, decls)
+    PTR_GET_SET(Many<Statement>*, stmts)
 
   private:
     PTR_ATTR(Many<Declaration>*, decls);

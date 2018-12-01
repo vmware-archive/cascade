@@ -48,7 +48,7 @@ class RegDeclaration : public Declaration {
     // Node Interface:
     NODE(RegDeclaration, PTR(attrs), PTR(id), VAL(signed), MAYBE(dim), MAYBE(val))
     // Get/Set:
-    VAL_GET_SET(signed)
+    VAL_GET_SET(bool, signed)
     MAYBE_GET_SET(RangeExpression*, dim)
     MAYBE_GET_SET(Expression*, val)
 

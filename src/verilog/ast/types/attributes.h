@@ -51,7 +51,7 @@ class Attributes : public Node {
     // Node Interface:
     NODE(Attributes, PTR(as))
     // Get/Set
-    PTR_GET_SET(as)
+    PTR_GET_SET(Many<AttrSpec>*, as)
 
     // Lookup Interface:
     void erase(const std::string& s);

@@ -47,7 +47,7 @@ class AlwaysConstruct : public Construct {
     // Node Interface:
     NODE(AlwaysConstruct, PTR(stmt))
     // Get/Set
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(Statement*, stmt);

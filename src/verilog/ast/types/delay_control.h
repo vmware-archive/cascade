@@ -47,7 +47,7 @@ class DelayControl : public TimingControl {
     // Node Interface:
     NODE(DelayControl, PTR(delay))
     // Get/Set:
-    PTR_GET_SET(delay)
+    PTR_GET_SET(Expression*, delay)
 
   private:
     PTR_ATTR(Expression*, delay);

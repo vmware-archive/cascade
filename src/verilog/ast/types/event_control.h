@@ -48,7 +48,7 @@ class EventControl : public TimingControl {
     // Node Interface:
     NODE(EventControl, PTR(events))
     // Get/Set:
-    PTR_GET_SET(events)
+    PTR_GET_SET(Many<Event>*, events)
 
   private:
     PTR_ATTR(Many<Event>*, events);

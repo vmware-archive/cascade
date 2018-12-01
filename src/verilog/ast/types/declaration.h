@@ -54,8 +54,8 @@ class Declaration : public ModuleItem {
     Declaration* accept(Rewriter* r) override = 0;
 
     // Get/Set:
-    PTR_GET_SET(attrs)
-    PTR_GET_SET(id)
+    PTR_GET_SET(Attributes*, attrs)
+    PTR_GET_SET(Identifier*, id)
 
   protected:
     PTR_ATTR(Attributes*, attrs);

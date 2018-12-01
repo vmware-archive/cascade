@@ -48,8 +48,8 @@ class VariableAssign : public Node {
     // Node Interface:
     NODE(VariableAssign, PTR(lhs), PTR(rhs))
     // Get/Set:
-    PTR_GET_SET(lhs)
-    PTR_GET_SET(rhs)
+    PTR_GET_SET(Identifier*, lhs)
+    PTR_GET_SET(Expression*, rhs)
 
   private:
     PTR_ATTR(Identifier*, lhs);

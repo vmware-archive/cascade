@@ -48,7 +48,7 @@ class DisplayStatement : public SystemTaskEnableStatement {
     // Node Interface:
     NODE(DisplayStatement, PTR(args))
     // Get/Set:
-    PTR_GET_SET(args)
+    PTR_GET_SET(Many<Expression>*, args)
 
   private:
     PTR_ATTR(Many<Expression>*, args);

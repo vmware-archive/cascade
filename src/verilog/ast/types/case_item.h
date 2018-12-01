@@ -49,8 +49,8 @@ class CaseItem : public Node {
     // Node Interface:
     NODE(CaseItem, PTR(exprs), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(exprs)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(Many<Expression>*, exprs)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(Many<Expression>*, exprs);

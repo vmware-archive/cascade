@@ -47,9 +47,9 @@ class ConditionalStatement : public Statement {
     // Node Interface:
     NODE(ConditionalStatement, PTR(if), PTR(then), PTR(else))
     // Get/Set:
-    PTR_GET_SET(if)
-    PTR_GET_SET(then)
-    PTR_GET_SET(else)
+    PTR_GET_SET(Expression*, if)
+    PTR_GET_SET(Statement*, then)
+    PTR_GET_SET(Statement*, else)
 
   private:
     PTR_ATTR(Expression*, if);

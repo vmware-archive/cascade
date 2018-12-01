@@ -48,7 +48,7 @@ class AttrSpec : public Node {
     // Node Interface:
     NODE(AttrSpec, PTR(lhs), MAYBE(rhs))
     // Get/Set:
-    PTR_GET_SET(lhs)
+    PTR_GET_SET(Identifier*, lhs)
     MAYBE_GET_SET(Expression*, rhs)
 
   private:

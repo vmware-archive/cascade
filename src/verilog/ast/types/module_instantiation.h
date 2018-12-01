@@ -53,12 +53,12 @@ class ModuleInstantiation : public Instantiation {
     // Node Interface:
     NODE(ModuleInstantiation, PTR(attrs), PTR(mid), PTR(iid), MAYBE(range), PTR(params), PTR(ports))
     // Get/Set:
-    PTR_GET_SET(attrs)
-    PTR_GET_SET(mid)
-    PTR_GET_SET(iid)
+    PTR_GET_SET(Attributes*, attrs)
+    PTR_GET_SET(Identifier*, mid)
+    PTR_GET_SET(Identifier*, iid)
     MAYBE_GET_SET(RangeExpression*, range)
-    PTR_GET_SET(params)
-    PTR_GET_SET(ports)
+    PTR_GET_SET(Many<ArgAssign>*, params)
+    PTR_GET_SET(Many<ArgAssign>*, ports)
 
     // Convention Interface:
     bool uses_named_params() const;

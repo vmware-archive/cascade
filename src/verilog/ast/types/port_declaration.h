@@ -55,9 +55,9 @@ class PortDeclaration : public ModuleItem {
     // Node Interface:
     NODE(PortDeclaration, PTR(attrs), VAL(type), PTR(decl))
     // Get/Set:
-    PTR_GET_SET(attrs)
-    VAL_GET_SET(type)
-    PTR_GET_SET(decl)
+    PTR_GET_SET(Attributes*, attrs)
+    VAL_GET_SET(Type, type)
+    PTR_GET_SET(Declaration*, decl)
 
   private:
     PTR_ATTR(Attributes*, attrs);

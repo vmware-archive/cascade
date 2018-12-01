@@ -51,10 +51,10 @@ class LoopGenerateConstruct : public GenerateConstruct {
     // Node Interface:
     NODE(LoopGenerateConstruct, PTR(init), PTR(cond), PTR(update), PTR(block))
     // Get/Set:
-    PTR_GET_SET(init)
-    PTR_GET_SET(cond)
-    PTR_GET_SET(update)
-    PTR_GET_SET(block)
+    PTR_GET_SET(VariableAssign*, init)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(VariableAssign*, update)
+    PTR_GET_SET(GenerateBlock*, block)
 
   private:
     PTR_ATTR(VariableAssign*, init);

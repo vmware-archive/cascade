@@ -56,9 +56,9 @@ class CaseStatement : public Statement {
     // Node Interface:
     NODE(CaseStatement, VAL(type), PTR(cond), PTR(items))
     // Get/Set:
-    VAL_GET_SET(type)
-    PTR_GET_SET(cond)
-    PTR_GET_SET(items)
+    VAL_GET_SET(Type, type)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(Many<CaseItem>*, items)
 
   private:
     VAL_ATTR(Type, type);

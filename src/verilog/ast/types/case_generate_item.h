@@ -49,7 +49,7 @@ class CaseGenerateItem : public Node {
     // Node Interface:
     NODE(CaseGenerateItem, PTR(exprs), MAYBE(block))
     // Get/Set:
-    PTR_GET_SET(exprs)
+    PTR_GET_SET(Many<Expression>*, exprs)
     MAYBE_GET_SET(GenerateBlock*, block)
 
   private:

@@ -49,7 +49,7 @@ class BlockingAssign : public AssignStatement {
     NODE(BlockingAssign, MAYBE(ctrl), PTR(assign))
     // Get/Set
     MAYBE_GET_SET(TimingControl*, ctrl)
-    PTR_GET_SET(assign)
+    PTR_GET_SET(VariableAssign*, assign)
 
   private:
     MAYBE_ATTR(TimingControl*, ctrl);

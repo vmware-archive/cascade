@@ -51,8 +51,8 @@ class GenerateBlock : public Node, public Scope {
     NODE(GenerateBlock, MAYBE(id), VAL(scope), PTR(items))
     // Get/Set:
     MAYBE_GET_SET(Identifier*, id)
-    VAL_GET_SET(scope)
-    PTR_GET_SET(items)
+    VAL_GET_SET(bool, scope)
+    PTR_GET_SET(Many<ModuleItem>*, items)
 
   private:
     MAYBE_ATTR(Identifier*, id);

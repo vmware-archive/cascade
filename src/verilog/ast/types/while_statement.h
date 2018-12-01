@@ -48,8 +48,8 @@ class WhileStatement : public LoopStatement {
     // Node Interface:
     NODE(WhileStatement, PTR(cond), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(cond)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(Expression*, cond);

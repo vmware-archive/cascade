@@ -74,9 +74,9 @@ class BinaryExpression : public Expression {
     // Node Interface:
     NODE(BinaryExpression, PTR(lhs), VAL(op), PTR(rhs))
     // Get/Set
-    PTR_GET_SET(lhs)
-    VAL_GET_SET(op)
-    PTR_GET_SET(rhs)
+    PTR_GET_SET(Expression*, lhs)
+    VAL_GET_SET(Op, op)
+    PTR_GET_SET(Expression*, rhs)
 
   private:
     PTR_ATTR(Expression*, lhs);

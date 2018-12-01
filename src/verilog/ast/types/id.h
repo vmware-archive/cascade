@@ -51,7 +51,7 @@ class Id : public Node {
     // Node Interface:
     NODE(Id, VAL(sid), MAYBE(isel))
     // Get/Set:
-    VAL_GET_SET(sid)
+    VAL_GET_SET(Tokenize::Token, sid)
     MAYBE_GET_SET(Expression*, isel)
     // Additional Get/Set:
     const std::string& get_readable_sid();

@@ -47,7 +47,7 @@ class GenerateRegion : public ModuleItem {
     // Node Interface:
     NODE(GenerateRegion, PTR(items))
     // Get/Set:
-    PTR_GET_SET(items)
+    PTR_GET_SET(Many<ModuleItem>*, items)
 
   private:
     PTR_ATTR(Many<ModuleItem>*, items);

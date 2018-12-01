@@ -46,9 +46,9 @@ class ConditionalExpression : public Expression {
     // Node Interface:
     NODE(ConditionalExpression, PTR(cond), PTR(lhs), PTR(rhs))
     // Get/Set:
-    PTR_GET_SET(cond)
-    PTR_GET_SET(lhs)
-    PTR_GET_SET(rhs)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(Expression*, lhs)
+    PTR_GET_SET(Expression*, rhs)
 
   private:
     PTR_ATTR(Expression*, cond);

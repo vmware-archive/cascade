@@ -48,8 +48,8 @@ class InitialConstruct : public Construct {
     // Node Interface:
     NODE(InitialConstruct, PTR(attrs), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(attrs)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(Attributes*, attrs)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(Attributes*, attrs);

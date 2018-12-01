@@ -49,10 +49,10 @@ class ForStatement : public LoopStatement {
     // Node Interface:
     NODE(ForStatement, PTR(init), PTR(cond), PTR(update), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(init)
-    PTR_GET_SET(cond)
-    PTR_GET_SET(update)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(VariableAssign*, init)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(VariableAssign*, update)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(VariableAssign*, init);

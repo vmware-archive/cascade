@@ -51,8 +51,8 @@ class IfGenerateConstruct : public ConditionalGenerateConstruct {
     // Node Interface:
     NODE(IfGenerateConstruct, PTR(attrs), PTR(clauses), MAYBE(else))
     // Get/Set:
-    PTR_GET_SET(attrs)
-    PTR_GET_SET(clauses)
+    PTR_GET_SET(Attributes*, attrs)
+    PTR_GET_SET(Many<IfGenerateClause>*, clauses)
     MAYBE_GET_SET(GenerateBlock*, else)
 
   private:

@@ -48,7 +48,7 @@ class IfGenerateClause : public Node {
     // Node Interface:
     NODE(IfGenerateClause, PTR(if), MAYBE(then))
     // Get/Set:
-    PTR_GET_SET(if)
+    PTR_GET_SET(Expression*, if)
     MAYBE_GET_SET(GenerateBlock*, then)
 
   private:

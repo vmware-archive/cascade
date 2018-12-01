@@ -48,7 +48,7 @@ class String : public Primary {
     // Node Interface:
     NODE(String, VAL(val))
     // Get/Set:
-    VAL_GET_SET(val)
+    VAL_GET_SET(Tokenize::Token, val)
     // Additional Get/Set:
     const std::string& get_readable_val();
     const std::string& get_readable_val() const;

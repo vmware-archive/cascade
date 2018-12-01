@@ -49,7 +49,7 @@ class ContinuousAssign : public ModuleItem {
     NODE(ContinuousAssign, MAYBE(ctrl), PTR(assign))
     // Get/Set:
     MAYBE_GET_SET(DelayControl*, ctrl)
-    PTR_GET_SET(assign)
+    PTR_GET_SET(VariableAssign*, assign)
 
   private:
     MAYBE_ATTR(DelayControl*, ctrl);

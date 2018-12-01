@@ -48,8 +48,8 @@ class RepeatStatement : public LoopStatement {
     // Node Interface:
     NODE(RepeatStatement, PTR(cond), PTR(stmt))
     // Get/Set:
-    PTR_GET_SET(cond)
-    PTR_GET_SET(stmt)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(Statement*, stmt)
 
   private:
     PTR_ATTR(Expression*, cond);

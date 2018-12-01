@@ -54,8 +54,8 @@ class Event : public Node {
     // Node Interface:
     NODE(Event, VAL(type), PTR(expr))
     // Get/Set:
-    VAL_GET_SET(type)
-    PTR_GET_SET(expr)
+    VAL_GET_SET(Type, type)
+    PTR_GET_SET(Expression*, expr)
 
   private:
     VAL_ATTR(Type, type);

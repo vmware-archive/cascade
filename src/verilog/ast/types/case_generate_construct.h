@@ -49,8 +49,8 @@ class CaseGenerateConstruct : public ConditionalGenerateConstruct {
     // Node Interface:
     NODE(CaseGenerateConstruct, PTR(cond), PTR(items))
     // Get/Set
-    PTR_GET_SET(cond)
-    PTR_GET_SET(items)
+    PTR_GET_SET(Expression*, cond)
+    PTR_GET_SET(Many<CaseGenerateItem>*, items)
 
   private:
     PTR_ATTR(Expression*, cond);
