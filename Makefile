@@ -144,9 +144,9 @@ ${BISON_SRC}: src/verilog/parse/verilog.yy
 	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 ${GTEST_LIB}: submodule
 	mkdir -p ${GTEST_BUILD_DIR}
-	cd ${GTEST_BUILD_DIR} && cmake .. && make
+	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
 ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
-	${CXX} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
+	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
