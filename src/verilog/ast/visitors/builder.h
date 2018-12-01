@@ -35,10 +35,10 @@
 
 namespace cascade {
 
-// A non-intrusive visitor.  This class assumes the following convention:
+// A non-intrusive visitor.  This class uses the following convention:
 // returning nullptr for an AST node which appears in a combinator (a many or a
 // maybe) will result in that node being removed from the AST.  Returning
-// nullptr for a non which does not appear in a combinator is undefined.  The
+// nullptr for a node which does not appear in a combinator is undefined.  The
 // default implementation of this class performs a recursive descent over the
 // AST and returns a clone of the nodes that it encounters. 
 

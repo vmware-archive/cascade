@@ -35,11 +35,11 @@
 
 namespace cascade {
 
-// An intrusive visitor. The default implementation of this class performs a
-// recursive descent over the AST and provides write access to the nodes that
-// it enounters. By convention, returning a new AST node rather than editting
-// the contents of that node will cause the original node to be deleted and
-// replaced by the new node.
+// An intrusive visitor. This class uses the following convention: returning a
+// new AST node instead of editting the contents of that node will cause the
+// original node to be deleted and replaced by the new one. The default
+// implementation of this class performs a recursive descent of the AST and
+// leaves nodes unmodified.
 
 struct Rewriter {
   virtual ~Rewriter() = default;

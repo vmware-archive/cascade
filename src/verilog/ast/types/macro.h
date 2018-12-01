@@ -347,14 +347,6 @@
     PRIVATE(t)[n] = val; \
     val->parent_ = this; \
   } \
-  void conditional_replace_##t(size_t n, T* val) { \
-    assert(val != nullptr); \
-    if (val != PRIVATE(t)[n]) { \
-      delete PRIVATE(t)[n]; \
-      PRIVATE(t)[n] = val; \
-      val->parent_ = this; \
-    } \
-  } \
   void push_front_##t(T* val) { \
     assert(val != nullptr); \
     val->parent_ = this; \
@@ -364,6 +356,12 @@
     assert(val != nullptr); \
     val->parent_ = this; \
     PRIVATE(t).push_back(val); \
+  } \
+  template <typename Itr> \
+  void push_back_##t(Itr begin, Itr end) { \
+    for (; begin != end; ++begin) { \
+      push_back_##t(*begin); \
+    } \
   } \
   void pop_front_##t() { \
     assert(!PRIVATE(t).empty()); \
@@ -407,16 +405,28 @@
     purge_to_##t(0); \
   } \
   T clone_##t() const { \
+    TODO... \
   } \
   void accept_##t(Visitor* v) const { \
+    for (auto n : PRIVATE(t)) { \
+      n->accept(v); \
+    } \
   } \
   void accept_##t(Visitor* v, std::function<void()> pre, std::function<void()> post) const { \
+    for (auto n : PRIVATE(t)) { \
+      pre(); \
+      n->accept(v); \
+      post(); \
+    } \
   } \
   void accept_##t(Editor* e) { \
+    for (auto n : PRIVATE(t)) { \
+      n->accept(v); \
+    } \
   } \
-  T accept_##t(Builder* b) const { \
+  void accept_##t(Builder* b) const { \
   } \
-  T accept_##t(Rewriter* r) { \
+  void accept_##t(Rewriter* r) { \
   }
 
 // Attribute Declaration Helpers:
