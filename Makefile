@@ -138,9 +138,9 @@ ${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC}
 	cd src/verilog/parse && flex verilog.ll	
 ${BISON_SRC}: src/verilog/parse/verilog.yy
 	cd src/verilog/parse && bison -d -v verilog.yy
-%.o: %.c 
+%.o: %.c ${FLEX_SRC} ${BISON_SRC}
 	${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
-%.o: %.cc 
+%.o: %.cc ${FLEX_SRC} ${BISON_SRC} 
 	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 ${GTEST_LIB}: submodule
 	mkdir -p ${GTEST_BUILD_DIR}
