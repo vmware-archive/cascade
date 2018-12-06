@@ -74,7 +74,7 @@ install:
   $CXXFLAGS && export LDFLAGS=-coverage $LDFLAGS || true"
 script:
 - "[ $COVERAGE = 1 ] && build-wrapper-linux-x86-64 --out-dir bw-output make -j $(getconf _NPROCESSORS_ONLN) || make -j $(getconf _NPROCESSORS_ONLN)"
-- "[ $COVERAGE = 1 ] && make -j $(getconf _NPROCESSORS_ONLN) test && gcov . || make -j $(getconf _NPROCESSORS_ONLN) test"
+- "[ $COVERAGE = 1 ] && make test && gcov . || make test"
 after_success:
 - "[ $COVERAGE = 1 ] && bash <(curl -s https://codecov.io/bash) && sonar-scanner -Dsonar.projectKey=cascade
   -Dsonar.organization=cascade -Dsonar.sources=. -Dsonar.cfamily.build-wrapper-output=bw-output
