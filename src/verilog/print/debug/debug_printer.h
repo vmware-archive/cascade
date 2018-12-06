@@ -191,7 +191,9 @@ void DebugPrinter<T>::visit(const LoopGenerateConstruct* lgc) {
   *this << Color::GREY << "// for (...)" << Color::RESET;
   if (Elaborate().is_elaborated(lgc)) {
     *this << "\n";
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 

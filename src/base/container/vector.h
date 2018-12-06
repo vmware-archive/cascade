@@ -41,15 +41,15 @@ namespace cascade {
 template <typename T>
 class Vector {
   public:
-    typedef T	value_type;
-    typedef T* pointer;
-    typedef const T* const_pointer;
+    typedef size_t size_type;
+    typedef ptrdiff_t	difference_type;
     typedef T& reference;
     typedef const T& const_reference;
     typedef T* iterator;
     typedef const T* const_iterator; 
-    typedef size_t size_type;
-    typedef ptrdiff_t	difference_type;
+    typedef T* pointer;
+    typedef const T* const_pointer;
+    typedef T	value_type;
 
     Vector();
     Vector(size_type n, const value_type& v = value_type());

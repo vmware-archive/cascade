@@ -64,12 +64,11 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
 
 Identifier* Resolve::get_full_id(const Identifier* id) {
   Navigate nav(id);
-  auto fid = new Identifier(
-    new Many<Id>(id->get_ids()->back()->clone()),
-    id->get_dim()->clone()
-  );
+  auto fid = id->clone();
+  fid->purge_ids();
+  fid->push_back_ids(id->back_ids()->clone());
   while (!nav.lost() && nav.name() != nullptr) {
-    fid->get_ids()->push_front(nav.name()->get_ids()->front()->clone());
+    fid->push_front_ids(nav.name()->front_ids()->clone());
     nav.up();
   }
   return fid;
@@ -91,13 +90,13 @@ const ModuleDeclaration* Resolve::get_origin(const Identifier* id) {
 bool Resolve::is_slice(const Identifier* id) {
   const auto r = get_resolution(id);
   assert(r != nullptr);
-  return (r == id) ? false : (id->get_dim()->size() > r->get_dim()->size());
+  return (r == id) ? false : (id->size_dim() > r->size_dim());
 }
 
 bool Resolve::is_scalar(const Identifier* id) {
   const auto r = get_resolution(id);
   assert(r != nullptr);
-  return (id != r) || r->get_dim()->empty();
+  return (id != r) || r->empty_dim();
 }
 
 bool Resolve::is_array(const Identifier* id) {
@@ -136,9 +135,9 @@ const Identifier* Resolve::cache_resolution(const Identifier* id) {
   } 
 
   // Easy Case: Id has arity 1; seek up the hierarchy until we find id
-  if (id->get_ids()->size() == 1) {
+  if (id->size_ids() == 1) {
     while (!nav.lost()) {
-      const auto r = nav.find_name(id->get_ids()->front());
+      const auto r = nav.find_name(id->front_ids());
       if (r != nullptr) {
         return r;
       }
@@ -148,20 +147,20 @@ const Identifier* Resolve::cache_resolution(const Identifier* id) {
   }
 
   // Hard Case (1/3): Seek up the hierarchy
-  while (!nav.down(id->get_ids()->front()) && !nav.root()) { 
+  while (!nav.down(id->front_ids()) && !nav.root()) { 
     nav.up();
   }
-  if (nav.root() && (nav.name() == nullptr || !EqId()(nav.name()->get_ids()->front(), id->get_ids()->front()))) {
+  if (nav.root() && (nav.name() == nullptr || !EqId()(nav.name()->front_ids(), id->front_ids()))) {
     return nullptr;
   }
   // Hard Case (2/3): Seek down the hierarchy
-  for (size_t i = 1; i < id->get_ids()->size()-1; ++i) {
-    if (!nav.down(id->get_ids()->get(i))) {
+  for (size_t i = 1; i < id->size_ids()-1; ++i) {
+    if (!nav.down(id->get_ids(i))) {
       return nullptr;
     }  
   }
   // Hard Case (3/3): It's either here or it isn't
-  return nav.find_name(id->get_ids()->back());
+  return nav.find_name(id->back_ids());
 }
 
 void Resolve::cache_uses(const Declaration* d) {
@@ -196,7 +195,9 @@ void Resolve::InitCacheUses::edit(IfGenerateConstruct* igc) {
 void Resolve::InitCacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 
@@ -271,7 +272,7 @@ void Resolve::CacheUses::edit(Identifier* i) {
       if (find(d->uses_->begin(), d->uses_->end(), e) == d->uses_->end()) {
         d->uses_->push_back(e);
       }
-    } else if (dynamic_cast<const Combinator*>(n) == nullptr) {
+    } else {
       break;
     }
   }
@@ -294,7 +295,9 @@ void Resolve::CacheUses::edit(IfGenerateConstruct* igc) {
 void Resolve::CacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 
@@ -363,7 +366,9 @@ void Resolve::Invalidate::edit(IfGenerateConstruct* igc) {
 void Resolve::Invalidate::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 

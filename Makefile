@@ -64,7 +64,6 @@ OBJ=\
 	src/verilog/analyze/indices.o\
 	src/verilog/analyze/module_info.o\
 	src/verilog/analyze/navigate.o\
-	src/verilog/analyze/printf.o\
 	src/verilog/analyze/read_set.o\
 	src/verilog/analyze/resolve.o\
 	\

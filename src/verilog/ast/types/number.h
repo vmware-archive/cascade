@@ -55,9 +55,9 @@ class Number : public Primary {
     Number(const Bits& val, Format format = UNBASED);
     ~Number() override = default;
 
-    // Node Interface (custom implementation which uses Expression::bit_val_ to store val)
+    // Node Interface 
+    NODE(Number)
     Number* clone() const override;
-    NODE_NO_CLONE(Number)
 
     // Stripped down get/set:
     const Bits& get_val() const;

@@ -293,7 +293,7 @@ void Compiler::StubCheck::visit(const WriteStatement* ws) {
 }
 
 void Compiler::Masker::mask(ModuleDeclaration* md) {
-  md->get_items()->accept(this);
+  md->accept_items(this);
 }
 
 void Compiler::Masker::edit(InitialConstruct* ic) {

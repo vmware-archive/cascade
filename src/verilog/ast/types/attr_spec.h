@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ATTR_SPEC_H
 #define CASCADE_SRC_VERILOG_AST_ATTR_SPEC_H
 
-#include <cassert>
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class AttrSpec : public Node {
     ~AttrSpec() override;
 
     // Node Interface:
-    NODE(AttrSpec, PTR(lhs), MAYBE(rhs))
+    NODE(AttrSpec)
+    AttrSpec* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Identifier*, lhs)
-    MAYBE_GET_SET(Expression*, rhs)
+    PTR_GET_SET(AttrSpec, Identifier, lhs)
+    MAYBE_GET_SET(AttrSpec, Expression, rhs)
 
   private:
-    PTR_ATTR(Identifier*, lhs);
-    MAYBE_ATTR(Expression*, rhs);
+    PTR_ATTR(Identifier, lhs);
+    MAYBE_ATTR(Expression, rhs);
 };
 
 inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node() { 
-  parent_ = nullptr;
   PTR_SETUP(lhs);
   MAYBE_SETUP(rhs);
+  parent_ = nullptr;
 }
 
 inline AttrSpec::~AttrSpec() {
   PTR_TEARDOWN(lhs);
   MAYBE_TEARDOWN(rhs);
+}
+
+inline AttrSpec* AttrSpec::clone() const {
+  return new AttrSpec(lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade

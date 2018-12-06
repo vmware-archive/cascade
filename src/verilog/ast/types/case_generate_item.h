@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_GENERATE_ITEM_H
 #define CASCADE_SRC_VERILOG_AST_CASE_GENERATE_ITEM_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/node.h"
 
 namespace cascade {
@@ -43,29 +41,46 @@ namespace cascade {
 class CaseGenerateItem : public Node {
   public:
     // Constructors:
-    CaseGenerateItem(Many<Expression>* exprs__, GenerateBlock* block__);
+    CaseGenerateItem();
+    template <typename ExprsItr>
+    CaseGenerateItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, GenerateBlock* block__);
     ~CaseGenerateItem() override;
 
     // Node Interface:
-    NODE(CaseGenerateItem, PTR(exprs), MAYBE(block))
+    NODE(CaseGenerateItem)
+    CaseGenerateItem* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Many<Expression>*, exprs)
-    MAYBE_GET_SET(GenerateBlock*, block)
+    MANY_GET_SET(CaseGenerateItem, Expression, exprs)
+    MAYBE_GET_SET(CaseGenerateItem, GenerateBlock, block)
 
   private:
-    PTR_ATTR(Many<Expression>*, exprs);
-    MAYBE_ATTR(GenerateBlock*, block);
+    MANY_ATTR(Expression, exprs);
+    MAYBE_ATTR(GenerateBlock, block);
 };
 
-inline CaseGenerateItem::CaseGenerateItem(Many<Expression>* exprs__, GenerateBlock* block__) : Node() {
+inline CaseGenerateItem::CaseGenerateItem() : Node() {
+  MANY_DEFAULT_SETUP(exprs);
+  MAYBE_DEFAULT_SETUP(block);
   parent_ = nullptr;
-  PTR_SETUP(exprs);
+}
+
+template <typename ExprsItr>
+inline CaseGenerateItem::CaseGenerateItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, GenerateBlock* block__) : CaseGenerateItem() {
+  MANY_SETUP(exprs);
   MAYBE_SETUP(block);
 }
 
 inline CaseGenerateItem::~CaseGenerateItem() {
-  PTR_TEARDOWN(exprs);
+  MANY_TEARDOWN(exprs);
   MAYBE_TEARDOWN(block);
+}
+
+inline CaseGenerateItem* CaseGenerateItem::clone() const {
+  auto res = new CaseGenerateItem();
+  MANY_CLONE(exprs);
+  MAYBE_CLONE(block);
+  return res;
 }
 
 } // namespace cascade 

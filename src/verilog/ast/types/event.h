@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EVENT_H
 #define CASCADE_SRC_VERILOG_AST_EVENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
@@ -52,25 +51,31 @@ class Event : public Node {
     ~Event() override;
 
     // Node Interface:
-    NODE(Event, VAL(type), PTR(expr))
+    NODE(Event)
+    Event* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(Type, type)
-    PTR_GET_SET(Expression*, expr)
+    VAL_GET_SET(Event, Type, type)
+    PTR_GET_SET(Event, Expression, expr)
 
   private:
     VAL_ATTR(Type, type);
-    PTR_ATTR(Expression*, expr);
+    PTR_ATTR(Expression, expr);
 };
 
 inline Event::Event(Type type__, Expression* expr__) : Node() {
-  parent_ = nullptr;
   VAL_SETUP(type);
   PTR_SETUP(expr);
+  parent_ = nullptr;
 }
 
 inline Event::~Event() {
   VAL_TEARDOWN(type);
   PTR_TEARDOWN(expr);
+}
+
+inline Event* Event::clone() const {
+  return new Event(type_, expr_->clone());
 }
 
 } // namespace cascade 

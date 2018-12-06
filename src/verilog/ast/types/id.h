@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ID_H
 #define CASCADE_SRC_VERILOG_AST_ID_H
 
-#include <cassert>
 #include <string>
 #include "src/base/token/tokenize.h"
 #include "src/verilog/ast/types/expression.h"
@@ -44,16 +43,19 @@ namespace cascade {
 class Id : public Node {
   public:
     // Constructors:
+    Id(const std::string& sid__);
     Id(const std::string& sid__, Expression* isel__);
+    Id(Tokenize::Token sid__);
     Id(Tokenize::Token sid__, Expression* isel__);
     ~Id() override;
 
     // Node Interface:
-    NODE(Id, VAL(sid), MAYBE(isel))
+    NODE(Id);
+    Id* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(Tokenize::Token, sid)
-    MAYBE_GET_SET(Expression*, isel)
-    // Additional Get/Set:
+    VAL_GET_SET(Id, Tokenize::Token, sid)
+    MAYBE_GET_SET(Id, Expression, isel)
     const std::string& get_readable_sid();
     const std::string& get_readable_sid() const;
     void set_sid(const std::string& sid);
@@ -65,20 +67,32 @@ class Id : public Node {
 
   private:
     VAL_ATTR(Tokenize::Token, sid);
-    MAYBE_ATTR(Expression*, isel);
+    MAYBE_ATTR(Expression, isel);
 };
+
+inline Id::Id(const std::string& sid__) : Id(Tokenize().map(sid__)) { }
 
 inline Id::Id(const std::string& sid__, Expression* isel__) : Id(Tokenize().map(sid__), isel__) { }
 
-inline Id::Id(Tokenize::Token sid__, Expression* isel__) : Node() {
-  parent_ = nullptr;
+inline Id::Id(Tokenize::Token sid__) : Node() {
   VAL_SETUP(sid);
+  MAYBE_DEFAULT_SETUP(isel);
+  parent_ = nullptr;
+}
+
+inline Id::Id(Tokenize::Token sid__, Expression* isel__) : Id(sid__) {
   MAYBE_SETUP(isel);
 }
 
 inline Id::~Id() {
   VAL_TEARDOWN(sid);
   MAYBE_TEARDOWN(isel);
+}
+
+inline Id* Id::clone() const {
+  auto res = new Id(sid_);
+  MAYBE_CLONE(isel);
+  return res;
 }
 
 inline const std::string& Id::get_readable_sid() {

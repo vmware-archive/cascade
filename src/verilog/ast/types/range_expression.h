@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
-#include <cassert>
 #include <sstream>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -53,16 +52,18 @@ class RangeExpression : public Expression {
     ~RangeExpression() override;
 
     // Node Interface:
-    NODE(RangeExpression, PTR(upper), VAL(type), PTR(lower))
+    NODE(RangeExpression)
+    RangeExpression* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Expression*, upper)
-    VAL_GET_SET(Type, type)
-    PTR_GET_SET(Expression*, lower)
+    PTR_GET_SET(RangeExpression, Expression, upper)
+    VAL_GET_SET(RangeExpression, Type, type)
+    PTR_GET_SET(RangeExpression, Expression, lower)
 
   private:
-    PTR_ATTR(Expression*, upper);
+    PTR_ATTR(Expression, upper);
     VAL_ATTR(Type, type);
-    PTR_ATTR(Expression*, lower);
+    PTR_ATTR(Expression, lower);
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
@@ -87,6 +88,10 @@ inline RangeExpression::~RangeExpression() {
   PTR_TEARDOWN(upper);
   VAL_TEARDOWN(type);
   PTR_TEARDOWN(lower);
+}
+
+inline RangeExpression* RangeExpression::clone() const {
+  return new RangeExpression(upper_->clone(), type_, lower_->clone());
 }
 
 } // namespace cascade 

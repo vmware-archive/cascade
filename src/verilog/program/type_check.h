@@ -121,11 +121,11 @@ class TypeCheck : public Visitor {
     // Checks whether a range is little-endian and begins at 0
     void check_width(const RangeExpression* re);
     // Checks whether array dimensions are little-endian and begin at 0
-    void check_array(const Many<Expression>* es);
+    void check_array(Identifier::const_iterator_dim begin, Identifier::const_iterator_dim end);
     // Checks whether a potentially subscripted identifier is a valid array
     // dereference, returns a pointer to the last unused element in its
     // dimensions so that further operations may check its slice.
-    Many<Expression>::const_iterator check_deref(const Identifier* r, const Identifier* i);
+    Identifier::const_iterator_dim check_deref(const Identifier* r, const Identifier* i);
     // Instantiation Array Checking Helpers:
     void check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg);
 };

@@ -90,7 +90,7 @@ Navigate::Navigate(const Node* n) : Visitor() {
   auto p = n->get_parent();
   if (auto aa = dynamic_cast<const ArgAssign*>(p)) {
     if (n == aa->get_exp()) {
-      auto mi = dynamic_cast<const ModuleInstantiation*>(p->get_parent()->get_parent());
+      auto mi = dynamic_cast<const ModuleInstantiation*>(aa->get_parent());
       assert(mi != nullptr);
       if (Elaborate().is_elaborated(mi)) {
         where_ = const_cast<ModuleDeclaration*>(Elaborate().get_elaboration(mi));
@@ -219,7 +219,7 @@ const Identifier* Navigate::find_duplicate_name(const Id* id) {
   if (itr == s->snames_.end() || (itr->second.second == nullptr)) {
     return nullptr;
   }
-  return itr->second.first->get_ids()->back() != id ? 
+  return itr->second.first->back_ids() != id ? 
     itr->second.first :
     itr->second.second;
 }
@@ -281,7 +281,7 @@ void Navigate::cache_name(const Identifier* id) {
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
 
-  const auto i = id->get_ids()->front();
+  const auto i = id->front_ids();
   auto itr = s->snames_.find(i);
   if (itr == s->snames_.end()) {
     s->snames_.insert(make_pair(i, make_pair(id, nullptr)));
@@ -293,13 +293,13 @@ void Navigate::cache_name(const Identifier* id) {
 void Navigate::visit(const GenerateBlock* gb) {
   // Only descend through this scope's root or unnamed blocks
   if (where_ == gb || gb->is_null_id()) {
-    gb->get_items()->accept(this);        
+    gb->accept_items(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(gb->get_id()->get_ids()->front(), gb));
+  s->schildren_.insert(make_pair(gb->get_id()->front_ids(), gb));
 }
 
 void Navigate::visit(const CaseGenerateConstruct* cgc) {
@@ -316,7 +316,9 @@ void Navigate::visit(const IfGenerateConstruct* igc) {
 
 void Navigate::visit(const LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 
@@ -355,42 +357,42 @@ void Navigate::visit(const ModuleInstantiation* mi) {
     const auto s = dynamic_cast<Scope*>(where_);
     assert(s != nullptr);
     const auto md = Elaborate().get_elaboration(mi);
-    s->schildren_.insert(make_pair(mi->get_iid()->get_ids()->front(), md));
+    s->schildren_.insert(make_pair(mi->get_iid()->front_ids(), md));
   } 
 }
 
 void Navigate::visit(const ParBlock* pb) {
   // Only descend through this scope's root or unnamed blocks
   if (where_ == pb || pb->is_null_id()) {
-    pb->get_decls()->accept(this);        
-    pb->get_stmts()->accept(this);        
+    pb->accept_decls(this);        
+    pb->accept_stmts(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(pb->get_id()->get_ids()->front(), pb));
+  s->schildren_.insert(make_pair(pb->get_id()->front_ids(), pb));
 }
 
 void Navigate::visit(const SeqBlock* sb) {
   // Only descend through this scope's root or unnamed blocks
   if (where_ == sb || sb->is_null_id()) {
-    sb->get_decls()->accept(this);        
-    sb->get_stmts()->accept(this);        
+    sb->accept_decls(this);        
+    sb->accept_stmts(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(sb->get_id()->get_ids()->front(), sb));
+  s->schildren_.insert(make_pair(sb->get_id()->front_ids(), sb));
 }
 
 void Navigate::refresh() {
   assert(location_check());
   auto s = dynamic_cast<Scope*>(where_);
   if (auto md = dynamic_cast<ModuleDeclaration*>(where_)) {
-    for (auto e = md->get_items()->size(); s->next_supdate_ < e; ++s->next_supdate_) {
-      md->get_items()->get(s->next_supdate_)->accept(this);
+    for (auto e = md->size_items(); s->next_supdate_ < e; ++s->next_supdate_) {
+      md->get_items(s->next_supdate_)->accept(this);
     }
   } else if (s->next_supdate_ == 0) {
     where_->accept(this);

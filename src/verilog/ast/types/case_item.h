@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_ITEM_H
 #define CASCADE_SRC_VERILOG_AST_CASE_ITEM_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/statement.h"
 
 namespace cascade {
@@ -43,29 +41,44 @@ namespace cascade {
 class CaseItem : public Node {
   public:
     // Constructors:
-    CaseItem(Many<Expression>* exprs__, Statement* stmt__);
+    CaseItem(Statement* stmt__);
+    template<typename ExprsItr>
+    CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__);
     ~CaseItem() override;
 
     // Node Interface:
-    NODE(CaseItem, PTR(exprs), PTR(stmt))
+    NODE(CaseItem)
+    CaseItem* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Many<Expression>*, exprs)
-    PTR_GET_SET(Statement*, stmt)
+    MANY_GET_SET(CaseItem, Expression, exprs)
+    PTR_GET_SET(CaseItem, Statement, stmt)
 
   private:
-    PTR_ATTR(Many<Expression>*, exprs);
-    PTR_ATTR(Statement*, stmt);
+    MANY_ATTR(Expression, exprs);
+    PTR_ATTR(Statement, stmt);
 };
 
-inline CaseItem::CaseItem(Many<Expression>* exprs__, Statement* stmt__) : Node() {
-  parent_ = nullptr;
-  PTR_SETUP(exprs);
+inline CaseItem::CaseItem(Statement* stmt__) : Node() {
+  MANY_DEFAULT_SETUP(exprs);
   PTR_SETUP(stmt);
+  parent_ = nullptr;
+}
+
+template <typename ExprsItr>
+inline CaseItem::CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__) : CaseItem(stmt__) {
+  MANY_SETUP(exprs);
 }
 
 inline CaseItem::~CaseItem() {
-  PTR_TEARDOWN(exprs);
+  MANY_TEARDOWN(exprs);
   PTR_TEARDOWN(stmt);
+}
+
+inline CaseItem* CaseItem::clone() const {
+  auto res = new CaseItem(stmt_->clone());
+  MANY_CLONE(exprs);
+  return res;
 }
 
 } // namespace cascade 

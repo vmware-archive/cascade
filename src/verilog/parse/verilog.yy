@@ -13,6 +13,7 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
 #include "src/base/log/log.h"
 #include "src/verilog/ast/ast.h"
 
@@ -192,33 +193,33 @@ bool is_null(const cascade::Expression* e) {
 %type <ModuleDeclaration*> module_declaration
 
 /* A.1.3 Module Parameters and Ports */
-%type <Many<ModuleItem>*> module_parameter_port_list
-%type <Many<ArgAssign>*> list_of_ports
-%type <Many<ModuleItem>*> list_of_port_declarations
+%type <std::vector<ModuleItem*>> module_parameter_port_list
+%type <std::vector<ArgAssign*>> list_of_ports
+%type <std::vector<ModuleItem*>> list_of_port_declarations
 %type <ArgAssign*> port
 %type <Identifier*> port_expression
 %type <Identifier*> port_reference
-%type <Many<ModuleItem>*> port_declaration
+%type <std::vector<ModuleItem*>> port_declaration
 
 /* A.1.4 Module Items */
-%type <Many<ModuleItem>*> module_item
-%type <Many<ModuleItem>*> module_or_generate_item
-%type <Many<ModuleItem>*> module_or_generate_item_declaration
-%type <Many<ModuleItem>*> non_port_module_item
+%type <std::vector<ModuleItem*>> module_item
+%type <std::vector<ModuleItem*>> module_or_generate_item
+%type <std::vector<ModuleItem*>> module_or_generate_item_declaration
+%type <std::vector<ModuleItem*>> non_port_module_item
 
 /* A.2.1.1 Module Parameter Declarations */
-%type <Many<Declaration>*> local_parameter_declaration
-%type <Many<Declaration>*> parameter_declaration
+%type <std::vector<Declaration*>> local_parameter_declaration
+%type <std::vector<Declaration*>> parameter_declaration
 
 /* A.2.1.2 Port Declarations */
-%type <Many<ModuleItem>*> inout_declaration
-%type <Many<ModuleItem>*> input_declaration
-%type <Many<ModuleItem>*> output_declaration
+%type <std::vector<ModuleItem*>> inout_declaration
+%type <std::vector<ModuleItem*>> input_declaration
+%type <std::vector<ModuleItem*>> output_declaration
 
 /* A.2.1.3 Type Declarations */
-%type <Many<ModuleItem>*> integer_declaration
-%type <Many<ModuleItem>*> net_declaration
-%type <Many<ModuleItem>*> reg_declaration
+%type <std::vector<ModuleItem*>> integer_declaration
+%type <std::vector<ModuleItem*>> net_declaration
+%type <std::vector<ModuleItem*>> reg_declaration
 
 /* A.2.2.1 Net and Variable Types */
 %type <NetDeclaration::Type> net_type
@@ -229,12 +230,12 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> delay_value
 
 /* A.2.3 Declaration Lists */
-%type <Many<VariableAssign>*> list_of_net_decl_assignments
-%type <Many<Identifier>*> list_of_net_identifiers
-%type <Many<VariableAssign>*> list_of_param_assignments
-%type <Many<Identifier>*> list_of_port_identifiers
-%type <Many<VariableAssign>*> list_of_variable_identifiers
-%type <Many<VariableAssign>*> list_of_variable_port_identifiers
+%type <std::vector<VariableAssign*>> list_of_net_decl_assignments
+%type <std::vector<Identifier*>> list_of_net_identifiers
+%type <std::vector<VariableAssign*>> list_of_param_assignments
+%type <std::vector<Identifier*>> list_of_port_identifiers
+%type <std::vector<VariableAssign*>> list_of_variable_identifiers
+%type <std::vector<VariableAssign*>> list_of_variable_port_identifiers
 
 /* A.2.4 Declaration Assignments */
 %type <VariableAssign*> net_decl_assignment
@@ -245,26 +246,26 @@ bool is_null(const cascade::Expression* e) {
 %type <RangeExpression*> range
 
 /* A.2.8 Block Item Declarations */
-%type <Many<Declaration>*> block_item_declaration
-%type <Many<Identifier>*> list_of_block_variable_identifiers
+%type <std::vector<Declaration*>> block_item_declaration
+%type <std::vector<Identifier*>> list_of_block_variable_identifiers
 %type <Identifier*> block_variable_type
 
 /* A.4.1 Module Instantiation */
-%type <Many<ModuleItem>*> module_instantiation 
-%type <Many<ArgAssign>*> parameter_value_assignment
-%type <Many<ArgAssign>*> list_of_parameter_assignments
+%type <std::vector<ModuleItem*>> module_instantiation 
+%type <std::vector<ArgAssign*>> parameter_value_assignment
+%type <std::vector<ArgAssign*>> list_of_parameter_assignments
 %type <ArgAssign*> ordered_parameter_assignment
 %type <ArgAssign*> named_parameter_assignment
 %type <ModuleInstantiation*> module_instance
 %type <ModuleIdentifier> name_of_module_instance
-%type <Many<ArgAssign>*> list_of_port_connections
+%type <std::vector<ArgAssign*>> list_of_port_connections
 %type <ArgAssign*> ordered_port_connection
 %type <ArgAssign*> named_port_connection
 
 /* A.4.2 Generate Construct */
 %type <GenerateRegion*> generate_region
-%type <Many<ModuleItem>*> genvar_declaration
-%type <Many<Identifier>*> list_of_genvar_identifiers
+%type <std::vector<ModuleItem*>> genvar_declaration
+%type <std::vector<Identifier*>> list_of_genvar_identifiers
 %type <LoopGenerateConstruct*> loop_generate_construct
 %type <VariableAssign*> genvar_initialization
 %type <Expression*> genvar_expression
@@ -278,8 +279,8 @@ bool is_null(const cascade::Expression* e) {
 %type <GenerateBlock*> generate_block_or_null
 
 /* A.6.1 Continuous Assignment Statements */
-%type <Many<ModuleItem>*> continuous_assign
-%type <Many<VariableAssign>*> list_of_net_assignments
+%type <std::vector<ModuleItem*>> continuous_assign
+%type <std::vector<VariableAssign*>> list_of_net_assignments
 %type <VariableAssign*> net_assignment
 
 /* A.6.2 Procedural Blocks and Assignments */
@@ -301,7 +302,7 @@ bool is_null(const cascade::Expression* e) {
 %type <DelayControl*> delay_control
 %type <TimingControl*> delay_or_event_control
 %type <EventControl*> event_control
-%type <Many<Event>*> event_expression
+%type <std::vector<Event*>> event_expression
 %type <TimingControl*> procedural_timing_control
 %type <TimingControlStatement*> procedural_timing_control_statement
 %type <WaitStatement*> wait_statement
@@ -353,7 +354,7 @@ bool is_null(const cascade::Expression* e) {
 %type <String*> string_
 
 /* A.9.1 Attributes */
-%type <Many<AttrSpec>*> attribute_instance 
+%type <std::vector<AttrSpec*>> attribute_instance 
 %type <AttrSpec*> attr_spec          
 %type <Identifier*> attr_name
 
@@ -362,44 +363,44 @@ bool is_null(const cascade::Expression* e) {
 %type <Identifier*> identifier 
 
 /* Auxiliary Rules */
-%type <Many<AttrSpec>*> attr_spec_P
+%type <std::vector<AttrSpec*>> attr_spec_P
 %type <Attributes*> attribute_instance_S 
-%type <Many<Declaration>*> block_item_declaration_S
-%type <Many<Expression>*> braced_rexp_S
-%type <Many<CaseGenerateItem>*> case_generate_item_P
-%type <Many<CaseItem>*> case_item_P
+%type <std::vector<Declaration*>> block_item_declaration_S
+%type <std::vector<Expression*>> braced_rexp_S
+%type <std::vector<CaseGenerateItem*>> case_generate_item_P
+%type <std::vector<CaseItem*>> case_item_P
 %type <DelayControl*> delay3_Q
 %type <TimingControl*> delay_or_event_control_Q
-%type <Many<Expression>*> dimension_S
+%type <std::vector<Expression*>> dimension_S
 %type <Expression*> eq_ce_Q
-%type <Many<Expression>*> expression_P
+%type <std::vector<Expression*>> expression_P
 %type <Expression*> expression_Q
 %type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
-%type <Many<ModuleItem>*> list_of_port_declarations_Q
+%type <std::vector<ModuleItem*>> list_of_port_declarations_Q
 %type <size_t> localparam_L
 %type <Expression*> mintypmax_expression_Q
-%type <Many<ModuleInstantiation>*> module_instance_P
-%type <Many<ModuleItem>*> module_item_S
+%type <std::vector<ModuleInstantiation*>> module_instance_P
+%type <std::vector<ModuleItem*>> module_item_S
 %type <size_t> module_keyword_L
-%type <Many<ModuleItem>*> module_or_generate_item_S
-%type <Many<ArgAssign>*> named_parameter_assignment_P
-%type <Many<ArgAssign>*> named_port_connection_P
+%type <std::vector<ModuleItem*>> module_or_generate_item_S
+%type <std::vector<ArgAssign*>> named_parameter_assignment_P
+%type <std::vector<ArgAssign*>> named_port_connection_P
 %type <NetList> net_type_L
 %type <NetDeclaration::Type> net_type_Q
-%type <Many<ModuleItem>*> non_port_module_item_S
-%type <Many<ArgAssign>*> ordered_parameter_assignment_P
-%type <Many<ArgAssign>*> ordered_port_connection_P
-%type <Many<Declaration>*> parameter_declaration_P
+%type <std::vector<ModuleItem*>> non_port_module_item_S
+%type <std::vector<ArgAssign*>> ordered_parameter_assignment_P
+%type <std::vector<ArgAssign*>> ordered_port_connection_P
+%type <std::vector<Declaration*>> parameter_declaration_P
 %type <size_t> parameter_L
-%type <Many<ArgAssign>*> parameter_value_assignment_Q
-%type <Many<ModuleItem>*> port_declaration_P
-%type <Many<ArgAssign>*> port_P
+%type <std::vector<ArgAssign*>> parameter_value_assignment_Q
+%type <std::vector<ModuleItem*>> port_declaration_P
+%type <std::vector<ArgAssign*>> port_P
 %type <RangeExpression*> range_Q
 %type <size_t> reg_L
 %type <bool> signed_Q
 %type <IdList> simple_id_L
-%type <Many<Statement>*> statement_S
+%type <std::vector<Statement*>> statement_S
 
 /* Alternate Rules */
 /* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
@@ -411,10 +412,10 @@ bool is_null(const cascade::Expression* e) {
 %%
 
 main 
-  : restore include_statement { parser->res_ = $2; YYACCEPT; }
-  | restore module_declaration { parser->res_ = $2; YYACCEPT; }
-  | restore non_port_module_item backup { parser->res_ = $2; YYACCEPT; }
-  | restore END_OF_FILE { parser->eof_ = true; parser->res_ = nullptr; YYACCEPT; }
+  : restore include_statement { parser->res_.push_back($2); YYACCEPT; }
+  | restore module_declaration { parser->res_.push_back($2); YYACCEPT; }
+  | restore non_port_module_item backup { parser->res_.insert(parser->res_.end(), $2.begin(), $2.end()); YYACCEPT; }
+  | restore END_OF_FILE { parser->eof_ = true; YYACCEPT; }
   ;
 
 backup : %empty {
@@ -439,27 +440,21 @@ module_declaration
   : attribute_instance_S module_keyword_L identifier module_parameter_port_list
       list_of_ports SCOLON module_item_S
       ENDMODULE {
-      auto mis = $4;
-      mis->concat($7);
-      $$ = new ModuleDeclaration($1,$3,$5,mis);
+      $4.insert($4.end(), $7.begin(), $7.end());
+      $$ = new ModuleDeclaration($1, $3, $5.begin(), $5.end(), $4.begin(), $4.end());
       parser->set_loc($$, $2);
     }
   | attribute_instance_S module_keyword_L identifier module_parameter_port_list 
       list_of_port_declarations_Q SCOLON non_port_module_item_S
       ENDMODULE {
-      auto ps = new Many<ArgAssign>();
-      for (auto p : *$5) {
+      std::vector<ArgAssign*> ps;
+      for (auto p : $5) {
         auto d = dynamic_cast<PortDeclaration*>(p)->get_decl();
-        auto aa = new ArgAssign(
-          nullptr,
-          d->get_id()->clone()
-        ); 
-        ps->push_back(aa); 
+        ps.push_back(new ArgAssign(nullptr, d->get_id()->clone()));
       }
-      auto mis = $4;
-      mis->concat($5);
-      mis->concat($7);
-      $$ = new ModuleDeclaration($1,$3,ps,mis);
+      $4.insert($4.end(), $5.begin(), $5.end());
+      $4.insert($4.end(), $7.begin(), $7.end());
+      $$ = new ModuleDeclaration($1, $3, ps.begin(), ps.end(), $4.begin(), $4.end());
       parser->set_loc($$, $2);
     }
   ;
@@ -470,13 +465,9 @@ module_keyword
 
 /* A.1.3 Module Parameters and Ports */
 module_parameter_port_list
-  : %empty { $$ = new Many<ModuleItem>(); }
+  : %empty { }
   | POUND OPAREN parameter_declaration_P CPAREN { 
-    $$ = new Many<ModuleItem>();
-    while (!$3->empty()) {
-      $$->push_back($3->remove_front());
-    }
-    delete $3; 
+    $$.insert($$.end(), $3.begin(), $3.end());
   }
   ;
 list_of_ports
@@ -500,21 +491,21 @@ port_reference
   ;
 port_declaration
   : attribute_instance_S inout_declaration { 
-    for (auto pd : *$2) {
+    for (auto pd : $2) {
       dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
   }
   | attribute_instance_S input_declaration {
-    for (auto pd : *$2) {
+    for (auto pd : $2) {
       dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
   }
   | attribute_instance_S output_declaration {
-    for (auto pd : *$2) {
+    for (auto pd : $2) {
       dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
@@ -530,33 +521,36 @@ module_item
 module_or_generate_item
   : /*attribute_instance_S*/ module_or_generate_item_declaration { $$ = $1; }
   | /*attribute_instance_S*/ local_parameter_declaration SCOLON { 
-    $$ = new Many<ModuleItem>();
-    while (!$1->empty()) {
-      $$->push_back($1->remove_front());
-    }; 
-    delete $1;
+    $$.insert($$.end(), $1.begin(), $1.end());
   }
   /* TODO | attribute_instance_S parameter_override */
   | /*attribute_instance_S*/ continuous_assign { $$ = $1; }
   /* TODO | attribute_instance_S gate_instantiation */
   /* TODO | attribute_instance_S udp_instantiation */
   | attribute_instance_S module_instantiation { 
-    for (auto mi : *$2) {
+    for (auto mi : $2) {
       dynamic_cast<ModuleInstantiation*>(mi)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
   }
-  | attribute_instance_S initial_construct { $2->replace_attrs($1); $$ = new Many<ModuleItem>($2); }
-  | /*attribute_instance_S*/ always_construct { $$ = new Many<ModuleItem>($1); }
-  | /*attribute_instance_S*/ loop_generate_construct { $$ = new Many<ModuleItem>($1); }
+  | attribute_instance_S initial_construct { 
+    $2->replace_attrs($1); 
+    $$.push_back($2); 
+  }
+  | /*attribute_instance_S*/ always_construct { 
+    $$.push_back($1); 
+  }
+  | /*attribute_instance_S*/ loop_generate_construct { 
+    $$.push_back($1); 
+  }
   | attribute_instance_S conditional_generate_construct { 
     if (auto igc = dynamic_cast<IfGenerateConstruct*>($2)) {
       igc->replace_attrs($1);
     } else {
       delete $1;
     }
-    $$ = new Many<ModuleItem>($2); 
+    $$.push_back($2); 
   }
   ;
 module_or_generate_item_declaration
@@ -573,14 +567,12 @@ module_or_generate_item_declaration
   ;
 non_port_module_item
   : module_or_generate_item { $$ = $1; }
-  | generate_region { $$ = new Many<ModuleItem>($1); }
+  | generate_region { 
+    $$.push_back($1); 
+  }
   /* TODO | specify_block */
   | /*attribute_instance_S*/ parameter_declaration SCOLON { 
-    $$ = new Many<ModuleItem>();
-    while (!$1->empty()) {
-      $$->push_back($1->remove_front());
-    }
-    delete $1; 
+    $$.insert($$.end(), $1.begin(), $1.end());
   }
   /* TODO | attribute_instance_S specparam_declaration SCOLON */
   ;
@@ -588,68 +580,56 @@ non_port_module_item
 /* A.2.1.1 Module Parameter Declarations */
 local_parameter_declaration
   : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
-    $$ = new Many<Declaration>();
-    while (!$5->empty()) {
-      auto va = $5->remove_front();
+    for (auto va : $5) {
       auto lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
       parser->set_loc(lpd->get_val(), $2);
-      $$->push_back(lpd);
+      $$.push_back(lpd);
     }
     delete $1;
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
-    $$ = new Many<Declaration>();
-    while ($4->empty()) {
-      auto va = $4->remove_front();
+    for (auto va : $4) {
       auto lpd = new LocalparamDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
       parser->set_loc(lpd->get_val(), $2);
-      $$->push_back(lpd);
+      $$.push_back(lpd);
     }
     delete $1;
-    delete $4;
   }
   ;
 parameter_declaration
   : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
-    $$ = new Many<Declaration>();
-    while (!$5->empty()) {
-      auto va = $5->remove_front();
+    for (auto va : $5) {
       auto pd = new ParameterDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
       parser->set_loc(pd->get_val(), $2);
-      $$->push_back(pd);
+      $$.push_back(pd);
     }
     delete $1;
     if ($4 == nullptr) {
       delete $4;
     }
-    delete $5;
   }
   | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
-    $$ = new Many<Declaration>();
-    while ($4->empty()) {
-      auto va = $4->remove_front();
+    for (auto va : $4) {
       auto pd = new ParameterDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
       parser->set_loc(pd->get_val(), $2);
-      $$->push_back(pd);
+      $$.push_back(pd);
     }
     delete $1;
-    delete $4;
   }
   ;
 parameter_type
@@ -658,58 +638,49 @@ parameter_type
 /* A.2.1.2 Port Declarations */
 inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
-    $$ = new Many<ModuleItem>();
-    while (!$5->empty()) {
+    for (auto id : $5) {
       auto t = PortDeclaration::INOUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
-      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
+      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   ;
 input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
-    $$ = new Many<ModuleItem>();
-    while (!$5->empty()) {
+    for (auto id : $5) {
       auto t = PortDeclaration::INPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
-      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
+      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   ;
 output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
-    $$ = new Many<ModuleItem>();
-    while (!$5->empty()) {
+    for (auto id : $5) {
       auto t = PortDeclaration::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(new Many<AttrSpec>()), $2, nullptr, $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
-      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
+      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
-    $$ = new Many<ModuleItem>();
-    while (!$5->empty()) {
-      auto va = $5->remove_front();
+    for (auto va : $5) {
       auto t = PortDeclaration::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(new Many<AttrSpec>()), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
-      $$->push_back(new PortDeclaration(new Attributes(new Many<AttrSpec>()), t,d));
+      $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
   ;
@@ -717,27 +688,23 @@ output_declaration
 /* A.2.1.3 Type Declarations */
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$3->empty()) {
-      auto va = $3->remove_front();
+    for (auto va : $3) {
       auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(id, $2);
       parser->set_loc(id->get_id(), $2);
-      $$->push_back(id);
+      $$.push_back(id);
     }
     delete $1;
-    delete $3;
   }
 net_declaration 
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$6->empty()) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), $6->remove_front(), $3, $4 == nullptr ? $4 : $4->clone());
+    for (auto id : $6) {
+      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2.first);
       parser->set_loc(nd->get_id(), $2.first);
-      $$->push_back(nd);
+      $$.push_back(nd);
     }
     delete $1;
     if ($4 != nullptr) {
@@ -746,20 +713,17 @@ net_declaration
     if ($5 != nullptr) {
       delete $5;
     }
-    delete $6;
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$6->empty()) {
-      auto va = $6->remove_front();
+    for (auto va : $6) {
       auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2.first);
       parser->set_loc(nd->get_id(), $2.first);
-      $$->push_back(nd);
+      $$.push_back(nd);
 
-      auto ca = new ContinuousAssign(nullptr, va);
-      $$->push_back(ca);
+      auto ca = new ContinuousAssign(va);
+      $$.push_back(ca);
     }
     delete $1;
     if ($4 != nullptr) {
@@ -768,26 +732,22 @@ net_declaration
     if ($5 != nullptr) {
       delete $5;
     }
-    delete $6;
   }
   /* TODO | ... lots of cases */
   ;
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$5->empty()) {
-      auto va = $5->remove_front();
+    for (auto va : $5) {
       auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
-      $$->push_back(rd);
+      $$.push_back(rd);
     }
     delete $1;
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   ;
 
@@ -808,7 +768,8 @@ net_type
 variable_type
   : identifier dimension_S { 
     $$ = new VariableAssign($1, new Identifier("__null")); 
-    $$->get_lhs()->replace_dim($2); 
+    $$->get_lhs()->purge_dim(); 
+    $$->get_lhs()->push_back_dim($2.begin(), $2.end()); 
     parser->set_loc($$, $1);
   }
   | identifier EQ expression { 
@@ -833,49 +794,61 @@ delay_value
 
 /* A.2.3 Declaration Lists */
 list_of_net_decl_assignments
-  : net_decl_assignment { $$ = new Many<VariableAssign>($1); }
+  : net_decl_assignment { 
+    $$.push_back($1); 
+  }
   | list_of_net_decl_assignments COMMA net_decl_assignment {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 list_of_net_identifiers
   : identifier dimension_S { 
-    $$ = new Many<Identifier>($1); 
-    $$->back()->replace_dim($2);
+    $$.push_back($1); 
+    $$.back()->purge_dim();
+    $$.back()->push_back_dim($2.begin(), $2.end());
   }
   | list_of_net_identifiers COMMA identifier dimension_S {
     $$ = $1;
-    $$->push_back($3);
-    $$->back()->replace_dim($4);
+    $$.push_back($3);
+    $$.back()->purge_dim();
+    $$.back()->push_back_dim($4.begin(), $4.end());
   }
   ;
 list_of_param_assignments 
-  : param_assignment { $$ = new Many<VariableAssign>($1); }
+  : param_assignment { 
+    $$.push_back($1); 
+  }
   | list_of_param_assignments COMMA param_assignment {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 list_of_port_identifiers
-  : identifier { $$ = new Many<Identifier>($1); }
+  : identifier { 
+    $$.push_back($1); 
+  }
   | list_of_port_identifiers COMMA identifier {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 list_of_variable_identifiers
-  : variable_type { $$ = new Many<VariableAssign>($1); }
+  : variable_type { 
+    $$.push_back($1); 
+  }
   | list_of_variable_identifiers COMMA variable_type {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 list_of_variable_port_identifiers
-  : identifier eq_ce_Q { $$ = new Many<VariableAssign>(new VariableAssign($1,$2)); }
+  : identifier eq_ce_Q { 
+    $$.push_back(new VariableAssign($1, $2)); 
+  }
   | list_of_variable_port_identifiers COMMA identifier eq_ce_Q {
     $$ = $1;
-    $$->push_back(new VariableAssign($3,$4));
+    $$.push_back(new VariableAssign($3,$4));
   }
 
 /* A.2.4 Declaration Assignments */
@@ -903,23 +876,19 @@ range
 /* A.2.8 Block Item Declarations */
 block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
-    $$ = new Many<Declaration>();
-    while (!$5->empty()) {
-      $$->push_back(new RegDeclaration($1->clone(), $5->remove_front(), $3, $4 == nullptr ? $4 : $4->clone(), nullptr));
+    for (auto id : $5) {
+      $$.push_back(new RegDeclaration($1->clone(), id, $3, $4 == nullptr ? $4 : $4->clone(), nullptr));
     }
     delete $1;
     if ($4 != nullptr) {
       delete $4;
     }
-    delete $5;
   }
   | attribute_instance_S INTEGER list_of_block_variable_identifiers SCOLON { 
-    $$ = new Many<Declaration>();
-    while (!$3->empty()) {
-      $$->push_back(new IntegerDeclaration($1->clone(), $3->remove_front(), nullptr));
+    for (auto id : $3) {
+      $$.push_back(new IntegerDeclaration($1->clone(), id, nullptr));
     }
     delete $1;
-    delete $3;
   }
   /* TODO | attribute_instance_S TIME list_of_block_variable_identifiers SCOLON { } */
   /* TODO | attribute_instance_S REAL list_of_block_variable_identifiers SCOLON { } */
@@ -929,33 +898,32 @@ block_item_declaration
   | /*attribute_instance_S*/ parameter_declaration SCOLON { $$ = $1; }
   ;
 list_of_block_variable_identifiers 
-  : block_variable_type { $$ = new Many<Identifier>($1); } 
+  : block_variable_type { 
+    $$.push_back($1); } 
   | list_of_block_variable_identifiers COMMA block_variable_type { 
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 block_variable_type 
   : identifier dimension_S { 
     $$ = $1; 
-    $$->replace_dim($2);
+    $$->purge_dim();
+    $$->push_back_dim($2.begin(), $2.end());
   }
   ;
 
 /* A.4.1 Module Instantiation */
 module_instantiation 
   : identifier parameter_value_assignment_Q module_instance_P SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$3->empty()) {
-      auto mi = $3->remove_front();
+    for (auto mi : $3) {
       mi->replace_mid($1->clone());
-      mi->replace_params($2->clone());
+      mi->purge_params();
+      mi->push_back_params($2.begin(), $2.end());
       parser->set_loc(mi, $1);
-      $$->push_back(mi);
+      $$.push_back(mi);
     }
     delete $1;
-    delete $2;
-    delete $3;
   }
   ;
 parameter_value_assignment
@@ -975,7 +943,9 @@ named_parameter_assignment
   ; 
 module_instance
   : name_of_module_instance OPAREN list_of_port_connections CPAREN { 
-    $$ = new ModuleInstantiation(new Attributes(new Many<AttrSpec>()), new Identifier(""), $1.first, $1.second, new Many<ArgAssign>(), $3);
+    $$ = new ModuleInstantiation(new Attributes(), new Identifier(""), $1.first);
+    $$->replace_range($1.second);
+    $$->push_back_ports($3.begin(), $3.end());
   }
   ;
 name_of_module_instance
@@ -998,28 +968,28 @@ named_port_connection
 
 /* A.4.2 Generate Construct */
 generate_region
-  : GENERATE module_or_generate_item_S ENDGENERATE { $$ = new GenerateRegion($2); }
+  : GENERATE module_or_generate_item_S ENDGENERATE { $$ = new GenerateRegion($2.begin(), $2.end()); }
   ;
 genvar_declaration
   : attribute_instance_S GENVAR list_of_genvar_identifiers SCOLON { 
-    $$ = new Many<ModuleItem>();
-    while (!$3->empty()) {
-      $$->push_back(new GenvarDeclaration($1->clone(), $3->remove_front()));
+    for (auto id : $3) {
+      $$.push_back(new GenvarDeclaration($1->clone(), id));
     }
     delete $1;
-    delete $3;
   }
   ;
 list_of_genvar_identifiers
-  : identifier { $$ = new Many<Identifier>($1); }
+  : identifier { 
+    $$.push_back($1); 
+  }
   | list_of_genvar_identifiers COMMA identifier { 
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 loop_generate_construct
   : FOR OPAREN genvar_initialization SCOLON genvar_expression SCOLON genvar_iteration CPAREN generate_block { 
-    $$ = new LoopGenerateConstruct($3,$5,$7,$9);
+    $$ = new LoopGenerateConstruct($3, $5, $7, $9);
   }
   ;
 genvar_initialization
@@ -1121,20 +1091,20 @@ conditional_generate_construct
   ;
 if_generate_construct
   : IF OPAREN expression CPAREN generate_block_or_null %prec THEN { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), nullptr);
+    $$ = new IfGenerateConstruct(new Attributes(), new IfGenerateClause($3, $5), nullptr);
   }
   | IF OPAREN expression CPAREN generate_block_or_null ELSE generate_block_or_null { 
-    $$ = new IfGenerateConstruct(new Attributes(new Many<AttrSpec>()), new IfGenerateClause($3, $5), nullptr);
+    $$ = new IfGenerateConstruct(new Attributes(), new IfGenerateClause($3, $5), nullptr);
     // Was the remainder of this parse an empty block?
     if ($7 == nullptr) {
       // Nothing to do.
     }
     // Was it an unscoped if/then?
-    else if (!$7->get_scope() && ($7->get_items()->size() == 1) && dynamic_cast<IfGenerateConstruct*>($7->get_items()->front())) {
-      auto igc = dynamic_cast<IfGenerateConstruct*>($7->get_items()->remove_front());
+    else if (!$7->get_scope() && ($7->size_items() == 1) && dynamic_cast<IfGenerateConstruct*>($7->front_items())) {
+      auto igc = dynamic_cast<IfGenerateConstruct*>($7->remove_front_items());
       delete $7;
-      while (!igc->get_clauses()->empty()) {
-        $$->get_clauses()->push_back(igc->get_clauses()->remove_front());
+      while (!igc->empty_clauses()) {
+        $$->push_back_clauses(igc->remove_front_clauses());
       }
       auto e = igc->get_else();
       igc->set_else(nullptr); 
@@ -1150,32 +1120,33 @@ if_generate_construct
 case_generate_construct
   : CASE OPAREN expression CPAREN case_generate_item_P ENDCASE { 
     auto has_default = false;
-    for (auto cgi : *$5) {
-      if (cgi->get_exprs()->empty()) {
+    for (auto cgi : $5) {
+      if (cgi->empty_exprs()) {
         has_default = true;
         break;
       }
     }
     if (!has_default) {
-      $5->push_back(new CaseGenerateItem(new Many<Expression>(), nullptr));
+      $5.push_back(new CaseGenerateItem());
     }
-    $$ = new CaseGenerateConstruct($3,$5);
+    $$ = new CaseGenerateConstruct($3, $5.begin(), $5.end());
   }
   ;
 case_generate_item
   : expression_P COLON generate_block_or_null { 
-    $$ = new CaseGenerateItem($1, $3);
+    $$ = new CaseGenerateItem($1.begin(), $1.end(), $3);
   }
   | DEFAULT colon_Q generate_block_or_null { 
-    $$ = new CaseGenerateItem(new Many<Expression>(), $3);
+    $$ = new CaseGenerateItem();
+    $$->replace_block($3);
   }
   ; 
 generate_block
   : module_or_generate_item { 
-    $$ = new GenerateBlock(nullptr, false, $1); 
+    $$ = new GenerateBlock(nullptr, false, $1.begin(), $1.end()); 
   }
   | BEGIN_ generate_block_id_Q module_or_generate_item_S END { 
-    $$ = new GenerateBlock($2, true, $3);   
+    $$ = new GenerateBlock($2, true, $3.begin(), $3.end());   
   }
   ;
 generate_block_or_null
@@ -1186,23 +1157,23 @@ generate_block_or_null
 /* A.6.1 Continuous Assignment Statements */
 continuous_assign
   : ASSIGN /* TODO drive_strength? */ delay3_Q list_of_net_assignments SCOLON {
-    $$ = new Many<ModuleItem>();
-    while (!$3->empty()) {
-      auto ca = new ContinuousAssign($2 == nullptr ? $2 : $2->clone(), $3->remove_front());
+    for (auto id : $3) {
+      auto ca = new ContinuousAssign($2 == nullptr ? $2 : $2->clone(), id);
       parser->set_loc(ca, ca->get_assign());
-      $$->push_back(ca);
+      $$.push_back(ca);
     }
     if ($2 != nullptr) {
       delete $2;
     }
-    delete $3;
   }
   ;
 list_of_net_assignments
-  : net_assignment { $$ = new Many<VariableAssign>($1); }
+  : net_assignment { 
+    $$.push_back($1); 
+  }
   | list_of_net_assignments COMMA net_assignment {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 net_assignment
@@ -1214,7 +1185,7 @@ net_assignment
 
 /* A.6.2 Procedural Blocks and Assignments */
 initial_construct
-  : INITIAL_ statement { $$ = new InitialConstruct(new Attributes(new Many<AttrSpec>()), $2); }
+  : INITIAL_ statement { $$ = new InitialConstruct(new Attributes(), $2); }
   ;
 always_construct
   : ALWAYS statement { $$ = new AlwaysConstruct($2); }
@@ -1241,18 +1212,20 @@ variable_assignment
 /* A.6.3 Parallel and Sequential Blocks */
 par_block 
   : FORK statement_S JOIN {
-    $$ = new ParBlock(nullptr, new Many<Declaration>(), $2);
+    $$ = new ParBlock();
+    $$->push_back_stmts($2.begin(), $2.end());
   }
   | FORK COLON identifier block_item_declaration_S statement_S JOIN {
-    $$ = new ParBlock($3, $4, $5); 
+    $$ = new ParBlock($3, $4.begin(), $4.end(), $5.begin(), $5.end()); 
   }
   ;
 seq_block 
   : BEGIN_ statement_S END {
-    $$ = new SeqBlock(nullptr, new Many<Declaration>(), $2);
+    $$ = new SeqBlock();
+    $$->push_back_stmts($2.begin(), $2.end());
   }
   | BEGIN_ COLON identifier block_item_declaration_S statement_S END {
-    $$ = new SeqBlock($3, $4, $5); 
+    $$ = new SeqBlock($3, $4.begin(), $4.end(), $5.begin(), $5.end()); 
   }
   ;
 
@@ -1276,7 +1249,7 @@ statement
 statement_or_null
   : statement { $$ = $1; }
   | /*attribute_instance_S*/ SCOLON { 
-    $$ = new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()); 
+    $$ = new SeqBlock();
   }
   ;
 
@@ -1298,27 +1271,27 @@ delay_or_event_control
   ;
 event_control
   /* TODO : AT hierarchical_event_identifier */ 
-  : AT OPAREN event_expression CPAREN { $$ = new EventControl($3); }
-  | AT TIMES { $$ = new EventControl(new Many<Event>()); }
-  | AT STAR { $$ = new EventControl(new Many<Event>()); }
+  : AT OPAREN event_expression CPAREN { $$ = new EventControl($3.begin(), $3.end()); }
+  | AT TIMES { $$ = new EventControl(); }
+  | AT STAR { $$ = new EventControl(); }
   ;
 event_expression
   : expression {
-    $$ = new Many<Event>(new Event(Event::EDGE, $1));
+    $$.push_back(new Event(Event::EDGE, $1));
   }
   | POSEDGE expression {
-    $$ = new Many<Event>(new Event(Event::POSEDGE, $2));
+    $$.push_back(new Event(Event::POSEDGE, $2));
   }
   | NEGEDGE expression {
-    $$ = new Many<Event>(new Event(Event::NEGEDGE, $2));
+    $$.push_back(new Event(Event::NEGEDGE, $2));
   }
   | event_expression OR event_expression {
     $$ = $1;
-    $$->concat($3);
+    $$.insert($$.end(), $3.begin(), $3.end());
   }
   | event_expression COMMA event_expression {
     $$ = $1;
-    $$->concat($3);
+    $$.insert($$.end(), $3.begin(), $3.end());
   }
   ;
 procedural_timing_control
@@ -1338,28 +1311,28 @@ wait_statement
 /* A.6.6 Conditional Statements */
 conditional_statement
   : IF OPAREN expression CPAREN statement_or_null %prec THEN {
-    $$ = new ConditionalStatement($3,$5, new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));
+    $$ = new ConditionalStatement($3, $5, new SeqBlock());
   }
   | IF OPAREN expression CPAREN statement_or_null ELSE statement_or_null {
-    $$ = new ConditionalStatement($3,$5,$7);
+    $$ = new ConditionalStatement($3, $5, $7);
   }
   ; 
 
 /* A.6.7 Case Statements */
 case_statement
   : CASE OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASE,$3,$5);
+    $$ = new CaseStatement(CaseStatement::CASE, $3, $5.begin(), $5.end());
   }
   | CASEZ OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASEZ,$3,$5);
+    $$ = new CaseStatement(CaseStatement::CASEZ, $3, $5.begin(), $5.end());
   }
   | CASEX OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASEX,$3,$5);
+    $$ = new CaseStatement(CaseStatement::CASEX, $3, $5.begin(), $5.end());
   }
   ;
 case_item
-  : expression_P COLON statement_or_null { $$ = new CaseItem($1,$3); }
-  | DEFAULT colon_Q statement_or_null { $$ = new CaseItem(new Many<Expression>(),$3); }
+  : expression_P COLON statement_or_null { $$ = new CaseItem($1.begin(), $1.end(), $3); }
+  | DEFAULT colon_Q statement_or_null { $$ = new CaseItem($3); }
 
 /* A.6.8 Looping Statements */
 loop_statement
@@ -1383,19 +1356,19 @@ loop_statement
 
 /* A.6.9 Task Enable Statements */
 system_task_enable
-  : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
-  | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(new Many<Expression>()); }
-  | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3); }
+  : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(); }
+  | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(); }
+  | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3.begin(), $3.end()); }
   | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); }
   | SYS_FINISH OPAREN number CPAREN SCOLON { $$ = new FinishStatement($3); }
-  | SYS_WRITE SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
-  | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(new Many<Expression>()); }
-  | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3); }
+  | SYS_WRITE SCOLON { $$ = new WriteStatement(); }
+  | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(); }
+  | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3.begin(), $3.end()); }
   ;
 
 /* A.8.1 Concatenations */
 concatenation 
-  : OCURLY expression_P CCURLY { $$ = new Concatenation($2); }
+  : OCURLY expression_P CCURLY { $$ = new Concatenation($2.begin(), $2.end()); }
   ;
 multiple_concatenation
   : OCURLY expression concatenation CCURLY { $$ = new MultipleConcatenation($2, $3); }
@@ -1404,7 +1377,7 @@ multiple_concatenation
 /* A.8.3 Expressions */
 conditional_expression
   : expression QMARK /*attribute_instance_S*/ expression COLON expression {
-    $$ = new ConditionalExpression($1,$3,$5);
+    $$ = new ConditionalExpression($1, $3, $5);
   }
   ;
 expression
@@ -1594,11 +1567,10 @@ attr_name
 /* contexts in which we use it: primary, net_lvalue, and variable_lvalue */
 hierarchical_identifier
   : simple_id_L braced_rexp_S { 
-    const auto id = new Id($1.second, nullptr);
-    $$ = new Identifier(new Many<Id>(id), $2); 
+    $$ = new Identifier(new Id($1.second), $2.begin(), $2.end()); 
     parser->set_loc($$, $1.first);
-    for (auto e : *$2) {
-      if ((e != $2->back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
+    for (auto e : $2) {
+      if ((e != $2.back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
@@ -1606,21 +1578,22 @@ hierarchical_identifier
   }
   | hierarchical_identifier DOT SIMPLE_ID braced_rexp_S {
     $$ = $1;
-    if ($$->get_dim()->size() > 1) {
+    if ($$->size_dim() > 1) {
       error(parser->get_loc(), "Unexpected multiplie instance selects");
       YYERROR;
     }
-    if (!$$->get_dim()->empty()) {
-      if (dynamic_cast<RangeExpression*>($$->get_dim()->back()) != nullptr) {
+    if (!$$->empty_dim()) {
+      if (dynamic_cast<RangeExpression*>($$->back_dim()) != nullptr) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
-      $$->get_ids()->back()->replace_isel($$->get_dim()->remove_back());
+      $$->back_ids()->replace_isel($$->remove_back_dim());
     }
-    $$->get_ids()->push_back(new Id($3, nullptr));
-    $$->replace_dim($4);
-    for (auto e : *$4) {
-      if ((e != $4->back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
+    $$->push_back_ids(new Id($3));
+    $$->purge_dim();
+    $$->push_back_dim($4.begin(), $4.end());
+    for (auto e : $4) {
+      if ((e != $4.back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
@@ -1629,8 +1602,7 @@ hierarchical_identifier
   ;
 identifier 
   : simple_id_L { 
-    const auto id = new Id($1.second, nullptr);
-    $$ = new Identifier(new Many<Id>(id), new Many<Expression>()); 
+    $$ = new Identifier(new Id($1.second)); 
     parser->set_loc($$, $1.first);
   }
   /* TODO | ESCAPED_ID */
@@ -1639,45 +1611,51 @@ identifier
 
 /* Auxiliary Rules */
 attr_spec_P
-  : attr_spec { $$ = new Many<AttrSpec>($1); }
+  : attr_spec { 
+    $$.push_back($1); 
+  }
   | attr_spec_P COMMA attr_spec {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 attribute_instance_S 
-  : %empty { $$ = new Attributes(new Many<AttrSpec>()); }
+  : %empty { $$ = new Attributes(); }
   | attribute_instance_S attribute_instance {
     $$ = $1;
-    $$->get_as()->concat($2);
+    $$->push_back_as($2.begin(), $2.end());
   }
   ;
 block_item_declaration_S
-  : %empty { $$ = new Many<Declaration>(); }
+  : %empty { }
   | block_item_declaration_S block_item_declaration { 
     $$ = $1;
-    $$->concat($2);
+    $$.insert($$.end(), $2.begin(), $2.end());
   }
   ;
 braced_rexp_S
-  : %empty { $$ = new Many<Expression>(); }
+  : %empty { }
   | braced_rexp_S OSQUARE range_expression CSQUARE { 
     $$ = $1;
-    $$->push_back($3); 
+    $$.push_back($3); 
   }
   ;
 case_generate_item_P
-  : case_generate_item { $$ = new Many<CaseGenerateItem>($1); }
+  : case_generate_item { 
+    $$.push_back($1); 
+  }
   | case_generate_item_P case_generate_item { 
     $$ = $1;
-    $$->push_back($2);
+    $$.push_back($2);
   }
   ;
 case_item_P
-  : case_item { $$ = new Many<CaseItem>($1); }
+  : case_item { 
+    $$.push_back($1); 
+  }
   | case_item_P case_item {
     $$ = $1;
-    $$->push_back($2);
+    $$.push_back($2);
   }
   ;
 colon_Q
@@ -1693,10 +1671,10 @@ delay_or_event_control_Q
   | delay_or_event_control { $$ = $1; }
   ;
 dimension_S
-  : %empty { $$ = new Many<Expression>(); }
+  : %empty { }
   | dimension_S dimension { 
     $$ = $1;
-    $$->push_back($2);
+    $$.push_back($2);
   }
   ;
 eq_ce_Q
@@ -1704,10 +1682,12 @@ eq_ce_Q
   | EQ expression { $$ = $2; }
   ;
 expression_P
-  : expression { $$ = new Many<Expression>($1); }
+  : expression { 
+    $$.push_back($1); 
+  }
   | expression_P COMMA expression {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 expression_Q
@@ -1722,7 +1702,7 @@ integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
-  : %empty { $$ = new Many<ModuleItem>(); } 
+  : %empty { }
   | list_of_port_declarations { $$ = $1; }
   ;
 localparam_L
@@ -1733,41 +1713,47 @@ mintypmax_expression_Q
   | mintypmax_expression { $$ = $1; }
   ;
 module_instance_P
-  : module_instance { $$ = new Many<ModuleInstantiation>($1); }
+  : module_instance { 
+    $$.push_back($1); 
+  }
   | module_instance_P COMMA module_instance {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 module_item_S
-  : %empty { $$ = new Many<ModuleItem>(); }
+  : %empty { }
   | module_item_S module_item { 
     $$ = $1;
-    $$->concat($2);
+    $$.insert($$.end(), $2.begin(), $2.end());
   }
   ;
 module_keyword_L
   : module_keyword { $$ = parser->get_loc().begin.line; }
   ;
 module_or_generate_item_S
-  : %empty { $$ = new Many<ModuleItem>(); }
+  : %empty { }
   | module_or_generate_item_S module_or_generate_item {
     $$ = $1;
-    $$->concat($2);
+    $$.insert($$.end(), $2.begin(), $2.end());
   }
   ;
 named_parameter_assignment_P
-  : named_parameter_assignment { $$ = new Many<ArgAssign>($1); }
+  : named_parameter_assignment { 
+    $$.push_back($1);
+  }
   | named_parameter_assignment_P COMMA named_parameter_assignment { 
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 named_port_connection_P
-  : named_port_connection { $$ = new Many<ArgAssign>($1); }
+  : named_port_connection { 
+    $$.push_back($1);
+  }
   | named_port_connection_P COMMA named_port_connection {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 net_type_L
@@ -1778,64 +1764,65 @@ net_type_Q
   | net_type { $$ = $1; }
   ;
 non_port_module_item_S
-  : %empty { $$ = new Many<ModuleItem>(); }
+  : %empty { }
   | non_port_module_item_S non_port_module_item {
     $$ = $1;
-    $$->concat($2);
+    $$.insert($$.end(), $2.begin(), $2.end());
   }
   ;
 ordered_parameter_assignment_P
-  : ordered_parameter_assignment { $$ = new Many<ArgAssign>($1); }
+  : ordered_parameter_assignment { 
+    $$.push_back($1);
+  }
   | ordered_parameter_assignment_P COMMA ordered_parameter_assignment { 
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 ordered_port_connection_P
-  : ordered_port_connection { $$ = new Many<ArgAssign>($1); }
+  : ordered_port_connection { 
+    $$.push_back($1);
+  }
   | ordered_port_connection_P COMMA ordered_port_connection {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 parameter_declaration_P
   : parameter_declaration_P COMMA alt_parameter_declaration {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   } 
   | parameter_declaration_P COMMA list_of_param_assignments {
     $$ = $1;
-    while (!$3->empty()) {
-      auto va = $3->remove_front();
-      auto pd = dynamic_cast<ParameterDeclaration*>($1->back()->clone());
+    for (auto va : $3) {
+      auto pd = dynamic_cast<ParameterDeclaration*>($1.back()->clone());
       pd->replace_id(va->get_lhs()->clone());
       pd->replace_val(va->get_rhs()->clone());
       delete va; 
-      $$->push_back(pd);
+      $$.push_back(pd);
     }
-    delete $3;
   }
   | alt_parameter_declaration {
-    $$ = new Many<Declaration>($1);
+    $$.push_back($1);
   }
   ;
 parameter_L
   : PARAMETER { $$ = parser->get_loc().begin.line; }
   ;
 parameter_value_assignment_Q
-  : %empty { $$ = new Many<ArgAssign>(); }
+  : %empty { }
   | parameter_value_assignment { $$ = $1; }
   ;
 port_declaration_P
   : port_declaration_P COMMA alt_port_declaration {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   | port_declaration_P COMMA list_of_variable_port_identifiers {
     $$ = $1;
-    while (!$3->empty()) {
-      auto va = $3->remove_front();
-      auto pd = dynamic_cast<PortDeclaration*>($1->back()->clone());
+    for (auto va : $3) {
+      auto pd = dynamic_cast<PortDeclaration*>($1.back()->clone());
       if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
@@ -1851,19 +1838,20 @@ port_declaration_P
         assert(false);
       }
       delete va;
-      $$->push_back(pd);
+      $$.push_back(pd);
     }
-    delete $3;
   }
   | alt_port_declaration {
-    $$ = new Many<ModuleItem>($1);
+    $$.push_back($1);
   }
   ;
 port_P
-  : port { $$ = new Many<ArgAssign>($1); }
+  : port { 
+    $$.push_back($1);
+  }
   | port_P COMMA port {
     $$ = $1;
-    $$->push_back($3);
+    $$.push_back($3);
   }
   ;
 range_Q
@@ -1880,10 +1868,10 @@ signed_Q
 simple_id_L
   : SIMPLE_ID { $$ = make_pair(parser->get_loc().begin.line, $1); }
 statement_S
-  : %empty { $$ = new Many<Statement>(); }
+  : %empty { }
   | statement_S statement {
     $$ = $1;
-    $$->push_back($2);
+    $$.push_back($2);
   }
   ;
 
@@ -1906,10 +1894,10 @@ alt_port_declaration
       YYERROR;
     }
     auto d = $2 ? 
-      (Declaration*) new RegDeclaration(new Attributes(new Many<AttrSpec>()), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(new Many<AttrSpec>()), NetDeclaration::WIRE, nullptr, $5, $3, $4);
+      (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
+      (Declaration*) new NetDeclaration(new Attributes(), NetDeclaration::WIRE, nullptr, $5, $3, $4);
     delete $6;
-    $$ = new PortDeclaration(new Attributes(new Many<AttrSpec>()), $1, d);
+    $$ = new PortDeclaration(new Attributes(), $1, d);
   }
   ;
 alt_port_type

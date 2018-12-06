@@ -47,8 +47,8 @@ size_t HashId::operator()(const Id* id) const {
 
 size_t HashId::operator()(const Identifier* id) const {
   size_t res = 0;
-  for (auto i : *id->get_ids()) {
-    res += this->operator()(i);
+  for (auto i = id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
+    res += this->operator()(*i);
   }
   return res;
 }
@@ -68,10 +68,10 @@ bool EqId::operator()(const Id* id1, const Id* id2) const {
 }
 
 bool EqId::operator()(const Identifier* id1, const Identifier* id2) const {
-  if (id1->get_ids()->size() != id2->get_ids()->size()) {
+  if (id1->size_ids() != id2->size_ids()) {
     return false;
   }
-  for (auto i = id1->get_ids()->begin(), j = id2->get_ids()->begin(), ie = id1->get_ids()->end(); i != ie; ++i, ++j) {
+  for (auto i = id1->begin_ids(), j = id2->begin_ids(), ie = id1->end_ids(); i != ie; ++i, ++j) {
     if (!this->operator()(*i, *j)) {
       return false;
     }
@@ -100,13 +100,13 @@ bool LtId::operator()(const Id* id1, const Id* id2) const {
 }
 
 bool LtId::operator()(const Identifier* id1, const Identifier* id2) const {
-  if (id1->get_ids()->size() < id2->get_ids()->size()) {
+  if (id1->size_ids() < id2->size_ids()) {
     return true;
   } 
-  if (id1->get_ids()->size() > id2->get_ids()->size()) {
+  if (id1->size_ids() > id2->size_ids()) {
     return false;
   }
-  for (auto i = id1->get_ids()->begin(), j = id2->get_ids()->begin(), ie = id1->get_ids()->end(); i != ie; ++i, ++j) {
+  for (auto i = id1->begin_ids(), j = id2->begin_ids(), ie = id1->end_ids(); i != ie; ++i, ++j) {
     if (this->operator()(*i, *j)) {
       return true;
     }

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_REG_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_REG_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -42,27 +41,35 @@ namespace cascade {
 class RegDeclaration : public Declaration {
   public:
     // Constructors:
+    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__);
     RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__);
     ~RegDeclaration() override;
 
     // Node Interface:
-    NODE(RegDeclaration, PTR(attrs), PTR(id), VAL(signed), MAYBE(dim), MAYBE(val))
+    NODE(RegDeclaration)
+    RegDeclaration* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(bool, signed)
-    MAYBE_GET_SET(RangeExpression*, dim)
-    MAYBE_GET_SET(Expression*, val)
+    VAL_GET_SET(RegDeclaration, bool, signed)
+    MAYBE_GET_SET(RegDeclaration, RangeExpression, dim)
+    MAYBE_GET_SET(RegDeclaration, Expression, val)
 
   private:
     VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression*, dim);
-    MAYBE_ATTR(Expression*, val);
+    MAYBE_ATTR(RangeExpression, dim);
+    MAYBE_ATTR(Expression, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : Declaration() {
-  parent_ = nullptr;
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration() {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
+  MAYBE_DEFAULT_SETUP(val);
+  parent_ = nullptr;
+}
+
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : RegDeclaration(attrs__, id__, signed__) {
   MAYBE_SETUP(dim);
   MAYBE_SETUP(val);
 }
@@ -73,6 +80,13 @@ inline RegDeclaration::~RegDeclaration() {
   VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
   MAYBE_TEARDOWN(val);
+}
+
+inline RegDeclaration* RegDeclaration::clone() const {
+  auto res = new RegDeclaration(attrs_->clone(), id_->clone(), signed_);
+  MAYBE_CLONE(dim);
+  MAYBE_CLONE(val);
+  return res;
 }
 
 } // namespace cascade 

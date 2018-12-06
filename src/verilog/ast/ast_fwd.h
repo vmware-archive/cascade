@@ -39,9 +39,6 @@ class Node;
   class AttrSpec;
   class CaseGenerateItem;
   class CaseItem;
-  class Combinator;
-    template <typename T>
-    class Many;
   class Event;
   class Expression;
     class BinaryExpression;

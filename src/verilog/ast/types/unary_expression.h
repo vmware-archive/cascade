@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_UNARY_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_UNARY_EXPRESSION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -58,14 +57,16 @@ class UnaryExpression : public Expression {
     ~UnaryExpression() override;
 
     // Node Interface:
-    NODE(UnaryExpression, VAL(op), PTR(lhs))
+    NODE(UnaryExpression)
+    UnaryExpression* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(Op, op)
-    PTR_GET_SET(Expression*, lhs)
+    VAL_GET_SET(UnaryExpression, Op, op)
+    PTR_GET_SET(UnaryExpression, Expression, lhs)
 
   private:
     VAL_ATTR(Op, op);
-    PTR_ATTR(Expression*, lhs);
+    PTR_ATTR(Expression, lhs);
 };
 
 inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression() {
@@ -77,6 +78,10 @@ inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression
 inline UnaryExpression::~UnaryExpression() {
   VAL_TEARDOWN(op);
   PTR_TEARDOWN(lhs);
+}
+
+inline UnaryExpression* UnaryExpression::clone() const {
+  return new UnaryExpression(op_, lhs_->clone());
 }
 
 } // namespace cascade 

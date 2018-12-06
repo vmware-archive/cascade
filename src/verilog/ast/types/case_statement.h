@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_CASE_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/case_item.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/statement.h"
 
 namespace cascade {
@@ -50,33 +48,47 @@ class CaseStatement : public Statement {
     };
 
     // Constructors:
-    CaseStatement(Type type__, Expression* cond__, Many<CaseItem>* items__);
+    CaseStatement(Type type__, Expression* cond__);
+    template <typename ItemsItr>
+    CaseStatement(Type type__, Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__);
     ~CaseStatement() override;
 
     // Node Interface:
-    NODE(CaseStatement, VAL(type), PTR(cond), PTR(items))
+    NODE(CaseStatement)
+    CaseStatement* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(Type, type)
-    PTR_GET_SET(Expression*, cond)
-    PTR_GET_SET(Many<CaseItem>*, items)
+    VAL_GET_SET(CaseStatement, Type, type)
+    PTR_GET_SET(CaseStatement, Expression, cond)
+    MANY_GET_SET(CaseStatement, CaseItem, items)
 
   private:
     VAL_ATTR(Type, type);
-    PTR_ATTR(Expression*, cond);
-    PTR_ATTR(Many<CaseItem>*, items);
+    PTR_ATTR(Expression, cond);
+    MANY_ATTR(CaseItem, items);
 };
 
-inline CaseStatement::CaseStatement(Type type__, Expression* cond__, Many<CaseItem>* items__) : Statement() {
-  parent_ = nullptr;
+inline CaseStatement::CaseStatement(Type type__, Expression* cond__) : Statement() {
   VAL_SETUP(type);
   PTR_SETUP(cond);
-  PTR_SETUP(items);
+  parent_ = nullptr;
+}
+
+template <typename ItemsItr>
+inline CaseStatement::CaseStatement(Type type__, Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__) : CaseStatement(type__, cond__) {
+  MANY_SETUP(items);
 }
 
 inline CaseStatement::~CaseStatement() {
   VAL_TEARDOWN(type);
   PTR_TEARDOWN(cond);
-  PTR_TEARDOWN(items);
+  MANY_TEARDOWN(items);
+}
+
+inline CaseStatement* CaseStatement::clone() const {
+  auto res = new CaseStatement(type_, cond_->clone());
+  MANY_CLONE(items);
+  return res;
 }
 
 } // namespace cascade 

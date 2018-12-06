@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENVAR_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_GENVAR_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -44,18 +43,23 @@ class GenvarDeclaration : public Declaration {
     ~GenvarDeclaration() override;
 
     // Node Interface:
-    NODE(GenvarDeclaration, PTR(attrs), PTR(id));
+    NODE(GenvarDeclaration)
+    GenvarDeclaration* clone() const override;
 };
 
 inline GenvarDeclaration::GenvarDeclaration(Attributes* attrs__, Identifier* id__) : Declaration() {
-  parent_ = nullptr;
   PTR_SETUP(attrs);
   PTR_SETUP(id);
+  parent_ = nullptr;
 }
 
 inline GenvarDeclaration::~GenvarDeclaration() {
   PTR_TEARDOWN(attrs);
   PTR_TEARDOWN(id);
+}
+
+inline GenvarDeclaration* GenvarDeclaration::clone() const {
+  return new GenvarDeclaration(attrs_->clone(), id_->clone());
 }
 
 } // namespace cascade 

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_REPEAT_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_REPEAT_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/loop_statement.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class RepeatStatement : public LoopStatement {
     ~RepeatStatement() override;
 
     // Node Interface:
-    NODE(RepeatStatement, PTR(cond), PTR(stmt))
+    NODE(RepeatStatement)
+    RepeatStatement* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Expression*, cond)
-    PTR_GET_SET(Statement*, stmt)
+    PTR_GET_SET(RepeatStatement, Expression, cond)
+    PTR_GET_SET(RepeatStatement, Statement, stmt)
 
   private:
-    PTR_ATTR(Expression*, cond);
-    PTR_ATTR(Statement*, stmt);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline RepeatStatement::RepeatStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
-  parent_ = nullptr;
   PTR_SETUP(cond);
   PTR_SETUP(stmt);
+  parent_ = nullptr;
 }
 
 inline RepeatStatement::~RepeatStatement() {
   PTR_TEARDOWN(cond);
   PTR_TEARDOWN(stmt);
+}
+
+inline RepeatStatement* RepeatStatement::clone() const {
+  return new RepeatStatement(cond_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 

@@ -31,13 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_AST_IDENTIFIER_H
 #define CASCADE_SRC_VERILOG_AST_IDENTIFIER_H
 
-#include <cassert>
 #include <string>
-#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/id.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/primary.h"
 #include "src/verilog/ast/types/string.h"
 
@@ -46,24 +43,31 @@ namespace cascade {
 class Identifier : public Primary {
   public:
     // Constructors:
+    Identifier();
     Identifier(const std::string& id__);
-    Identifier(Id* id__, Many<Expression>* dim__);
-    Identifier(Many<Id>* ids__, Many<Expression>* dim__);
+    Identifier(Id* id__);
+    Identifier(Id* id__, Expression* dim__);
+    template <typename DimItr>
+    Identifier(Id* id__, DimItr begin_dim__, DimItr end_dim__);
+    template <typename IdsItr, typename DimItr>
+    Identifier(IdsItr ids_begin__, IdsItr ids_end__, DimItr dim_begin__, DimItr dim_end__);
     ~Identifier() override;
 
     // Node Interface:
-    NODE(Identifier, PTR(ids), PTR(dim))
+    NODE(Identifier)
+    Identifier* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Many<Id>*, ids)
-    PTR_GET_SET(Many<Expression>*, dim)
+    MANY_GET_SET(Identifier, Id, ids)
+    MANY_GET_SET(Identifier, Expression, dim)
 
     // Comparison Operators:
     bool eq(const std::string& rhs) const;
     bool eq(const String* rhs) const;
 
   private:
-    PTR_ATTR(Many<Id>*, ids);
-    PTR_ATTR(Many<Expression>*, dim);
+    MANY_ATTR(Id, ids);
+    MANY_ATTR(Expression, dim);
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
@@ -72,28 +76,53 @@ class Identifier : public Primary {
     DECORATION(Vector<const Node*>, monitor);
 };
 
-inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__, nullptr), new Many<Expression>()) { }
-
-inline Identifier::Identifier(Id* id__, Many<Expression>* dim__) : Identifier(new Many<Id>(id__), dim__) { }
-
-inline Identifier::Identifier(Many<Id>* ids__, Many<Expression>* dim__) : Primary() {
+inline Identifier::Identifier() { 
+  MANY_DEFAULT_SETUP(ids);
+  MANY_DEFAULT_SETUP(dim);
   parent_ = nullptr;
-  PTR_SETUP(ids);
-  PTR_SETUP(dim);
   resolution_ = nullptr;
 }
 
+inline Identifier::Identifier(const std::string& id__) : Identifier(new Id(id__)) { }
+
+inline Identifier::Identifier(Id* id__) : Identifier() {
+  push_back_ids(id__);
+}
+
+inline Identifier::Identifier(Id* id__, Expression* dim__) : Identifier() {
+  push_back_ids(id__);
+  push_back_dim(dim__);
+}
+
+template <typename DimItr>
+inline Identifier::Identifier(Id* id__, DimItr dim_begin__, DimItr dim_end__) : Identifier(id__) {
+  MANY_SETUP(dim);
+}
+
+template <typename IdsItr, typename DimItr>
+inline Identifier::Identifier(IdsItr ids_begin__, IdsItr ids_end__, DimItr dim_begin__, DimItr dim_end__) : Identifier() {
+  MANY_SETUP(ids);
+  MANY_SETUP(dim);
+}
+
 inline Identifier::~Identifier() {
-  PTR_TEARDOWN(ids);
-  PTR_TEARDOWN(dim);
+  MANY_TEARDOWN(ids);
+  MANY_TEARDOWN(dim);
+}
+
+inline Identifier* Identifier::clone() const {
+  auto res = new Identifier();
+  MANY_CLONE(ids);
+  MANY_CLONE(dim);
+  return res;
 }
 
 inline bool Identifier::eq(const std::string& rhs) const {
-  return ids_->size() == 1 && ids_->front()->eq(rhs);
+  return (size_ids() == 1) && front_ids()->eq(rhs);
 }
 
 inline bool Identifier::eq(const String* rhs) const {
-  return ids_->size() == 1 && ids_->front()->eq(rhs);
+  return (size_ids() == 1) && front_ids()->eq(rhs);
 }
 
 } // namespace cascade 

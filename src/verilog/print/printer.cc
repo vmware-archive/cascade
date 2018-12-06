@@ -55,12 +55,12 @@ void Printer::visit(const ArgAssign* aa) {
 }
 
 void Printer::visit(const Attributes* as) {
-  if (as->get_as()->empty()) {
+  if (as->empty_as()) {
     return;
   }
   *this << Color::RED << "(*" << Color::RESET;
   int cnt = 0;
-  as->get_as()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  as->accept_as(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << "*) " << Color::RESET;
 }
 
@@ -73,21 +73,21 @@ void Printer::visit(const AttrSpec* as) {
 }
 
 void Printer::visit(const CaseGenerateItem* cgi) {
-  if (cgi->get_exprs()->empty()) {
+  if (cgi->empty_exprs()) {
     *this << Color::GREEN << "default" << Color::RESET;
   } 
   int cnt = 0;
-  cgi->get_exprs()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << ",\n" << Color::RESET;}, []{});
+  cgi->accept_exprs(this, [this,&cnt]{if (cnt++) *this << Color::RED << ",\n" << Color::RESET;}, []{});
   *this << Color::RED << ": " << Color::RESET;
   cgi->accept_block(this);
 }
 
 void Printer::visit(const CaseItem* ci) {
-  if (ci->get_exprs()->empty()) {
+  if (ci->empty_exprs()) {
     *this << Color::GREEN << "default" << Color::RESET;
   } 
   int cnt = 0;
-  ci->get_exprs()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << ",\n" << Color::RESET;}, []{});
+  ci->accept_exprs(this, [this,&cnt]{if (cnt++) *this << Color::RED << ",\n" << Color::RESET;}, []{});
   *this << Color::RED << ": " << Color::RESET;
   ci->accept_stmt(this);
 }
@@ -126,16 +126,16 @@ void Printer::visit(const ConditionalExpression* ce) {
 void Printer::visit(const Concatenation* c) {
   *this << Color::RED << "{" << Color::RESET;
   int cnt = 0;
-  c->get_exprs()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  c->accept_exprs(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << "}" << Color::RESET;
 }
 
 void Printer::visit(const Identifier* id) {
   int cnt = 0;
-  id->get_ids()->accept(this, [this,&cnt]{if (cnt++) *this << ".";}, []{});
-  for (auto d : *id->get_dim()) {
+  id->accept_ids(this, [this,&cnt]{if (cnt++) *this << ".";}, []{});
+  for (auto i = id->begin_dim(), ie = id->end_dim(); i != ie; ++i) {
     *this << Color::RED << "[" << Color::RESET;
-    d->accept(this);
+    (*i)->accept(this);
     *this << Color::RED << "]" << Color::RESET;
   }
 }
@@ -192,7 +192,7 @@ void Printer::visit(const UnaryExpression* ue) {
 }
 
 void Printer::visit(const GenerateBlock* gb) {
-  const auto surround = gb->get_scope() || (gb->get_items()->size() > 1) || gb->is_non_null_id();
+  const auto surround = gb->get_scope() || (gb->size_items() > 1) || gb->is_non_null_id();
   if (surround) {
     *this << Color::GREEN << "begin" << Color::RESET;
   }
@@ -201,7 +201,7 @@ void Printer::visit(const GenerateBlock* gb) {
     gb->accept_id(this);
   }
   os_.tab();
-  gb->get_items()->accept(this, [this]{*this << "\n";}, []{});
+  gb->accept_items(this, [this]{*this << "\n";}, []{});
   os_.untab();
   if (surround) {
     *this << Color::GREEN << "\nend " << Color::RESET;
@@ -226,31 +226,31 @@ void Printer::visit(const IfGenerateClause* igc) {
 }
 
 void Printer::visit(const ModuleDeclaration* md) {
-  md->get_attrs()->accept(this);
-  if (!md->get_attrs()->get_as()->empty()) {
+  md->accept_attrs(this);
+  if (!md->get_attrs()->empty_as()) {
     *this << "\n";
   }
   *this << Color::GREEN << "module " << Color::RESET;
   md->accept_id(this);
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
-  md->get_ports()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  md->accept_ports(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << ");" << Color::RESET << "\n";
   os_.tab();
-  md->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  md->accept_items(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "endmodule" << Color::RESET;
 }
 
 void Printer::visit(const IfGenerateConstruct* igc) {
-  igc->get_attrs()->accept(this);
-  if (!igc->get_attrs()->get_as()->empty()) {
+  igc->accept_attrs(this);
+  if (!igc->get_attrs()->empty_as()) {
     *this << "\n";
   }
-  auto c = igc->get_clauses()->begin();
+  auto c = igc->begin_clauses();
   (*c)->accept(this);
   ++c;
-  for (auto ce = igc->get_clauses()->end(); c != ce; ++c) {
+  for (auto ce = igc->end_clauses(); c != ce; ++c) {
     *this << Color::GREEN << "else " << Color::RESET;
     (*c)->accept(this);
   }
@@ -271,7 +271,7 @@ void Printer::visit(const CaseGenerateConstruct* cgc) {
   cgc->accept_cond(this);
   *this << Color::RED << ")" << Color::RESET << "\n";
   os_.tab();
-  cgc->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  cgc->accept_items(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "endcase" << Color::RESET;
 }
@@ -289,8 +289,8 @@ void Printer::visit(const LoopGenerateConstruct* lgc) {
 }
 
 void Printer::visit(const InitialConstruct* ic) {
-  ic->get_attrs()->accept(this);
-  if (!ic->get_attrs()->get_as()->empty()) {
+  ic->accept_attrs(this);
+  if (!ic->get_attrs()->empty_as()) {
     *this << "\n";
   }
   *this << Color::GREEN << "initial " << Color::RESET;
@@ -305,14 +305,14 @@ void Printer::visit(const ContinuousAssign* ca) {
 }
 
 void Printer::visit(const GenvarDeclaration* gd) {
-  gd->get_attrs()->accept(this);
+  gd->accept_attrs(this);
   *this << Color::GREEN << "genvar " << Color::RESET;
   gd->accept_id(this);
   *this << Color::RED << ";" << Color::RESET;
 }
 
 void Printer::visit(const IntegerDeclaration* id) {
-  id->get_attrs()->accept(this);
+  id->accept_attrs(this);
   *this << Color::GREEN << "integer " << Color::RESET;
   id->accept_id(this);
   if (id->is_non_null_val()) {
@@ -323,7 +323,7 @@ void Printer::visit(const IntegerDeclaration* id) {
 }
 
 void Printer::visit(const LocalparamDeclaration* ld) {
-  ld->get_attrs()->accept(this);
+  ld->accept_attrs(this);
   *this << Color::GREEN << "localparam" << Color::RESET;
   if (ld->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
@@ -341,7 +341,7 @@ void Printer::visit(const LocalparamDeclaration* ld) {
 }
 
 void Printer::visit(const NetDeclaration* nd) {
-  nd->get_attrs()->accept(this);
+  nd->accept_attrs(this);
   static array<string,1> nts_ {{"wire"}};
   *this << Color::GREEN << nts_[(size_t)nd->get_type()] << Color::RESET;
   if (nd->get_signed()) {
@@ -359,7 +359,7 @@ void Printer::visit(const NetDeclaration* nd) {
 }
 
 void Printer::visit(const ParameterDeclaration* pd) {
-  pd->get_attrs()->accept(this);
+  pd->accept_attrs(this);
   *this << Color::GREEN << "parameter" << Color::RESET;
   if (pd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
@@ -377,7 +377,7 @@ void Printer::visit(const ParameterDeclaration* pd) {
 }
 
 void Printer::visit(const RegDeclaration* rd) {
-  rd->get_attrs()->accept(this);
+  rd->accept_attrs(this);
   *this << Color::GREEN << "reg" << Color::RESET;
   if (rd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
@@ -399,22 +399,22 @@ void Printer::visit(const RegDeclaration* rd) {
 void Printer::visit(const GenerateRegion* gr) {
   *this << Color::GREEN << "generate" << Color::RESET << "\n";
   os_.tab();
-  gr->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  gr->accept_items(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "endgenerate" << Color::RESET;
 }
 
 void Printer::visit(const ModuleInstantiation* mi) {
-  mi->get_attrs()->accept(this);
-  if (!mi->get_attrs()->get_as()->empty()) {
+  mi->accept_attrs(this);
+  if (!mi->get_attrs()->empty_as()) {
     *this << "\n";
   }
   mi->accept_mid(this);
   *this << " ";
-  if (!mi->get_params()->empty()) {
+  if (!mi->empty_params()) {
     *this << Color::RED << "#(" << Color::RESET;
     int cnt = 0;
-    mi->get_params()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+    mi->accept_params(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
     *this << Color::RED << ") " << Color::RESET;
   }
   mi->accept_iid(this);
@@ -425,13 +425,13 @@ void Printer::visit(const ModuleInstantiation* mi) {
   }
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
-  mi->get_ports()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  mi->accept_ports(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 
 void Printer::visit(const PortDeclaration* pd) { 
   static array<string,3> pts_ {{"inout","input","output"}};
-  pd->get_attrs()->accept(this);
+  pd->accept_attrs(this);
   *this << Color::GREEN << pts_[(size_t)pd->get_type()] << Color::RESET;
   *this << " ";
   pd->accept_decl(this);
@@ -460,7 +460,7 @@ void Printer::visit(const CaseStatement* cs) {
   cs->accept_cond(this);
   *this << Color::RED << ")" << Color::RESET << "\n";
   os_.tab();
-  cs->get_items()->accept(this, []{}, [this]{*this << "\n";});
+  cs->accept_items(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "endcase" << Color::RESET;
 }
@@ -491,7 +491,7 @@ void Printer::visit(const ConditionalStatement* cs) {
     *this << "\n";
     cs->accept_else(this);
     os_.untab();
-  } else if (((epb != nullptr) && !epb->get_stmts()->empty()) || ((esb != nullptr) && !esb->get_stmts()->empty())) {
+  } else if (((epb != nullptr) && !epb->empty_stmts()) || ((esb != nullptr) && !esb->empty_stmts())) {
     *this << "\n";
     *this << Color::GREEN << "else " << Color::RESET;
     cs->accept_else(this);
@@ -531,8 +531,8 @@ void Printer::visit(const ParBlock* pb) {
   }
   *this << "\n";
   os_.tab();
-  pb->get_decls()->accept(this, []{}, [this]{*this << "\n";});
-  pb->get_stmts()->accept(this, []{}, [this]{*this << "\n";});
+  pb->accept_decls(this, []{}, [this]{*this << "\n";});
+  pb->accept_stmts(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "join " << Color::RESET;
 }
@@ -545,8 +545,8 @@ void Printer::visit(const SeqBlock* sb) {
   }
   os_.tab();
   *this << "\n";
-  sb->get_decls()->accept(this, []{}, [this]{*this << "\n";});
-  sb->get_stmts()->accept(this, []{}, [this]{*this << "\n";});
+  sb->accept_decls(this, []{}, [this]{*this << "\n";});
+  sb->accept_stmts(this, []{}, [this]{*this << "\n";});
   os_.untab();
   *this << Color::GREEN << "end " << Color::RESET;
 }
@@ -561,7 +561,7 @@ void Printer::visit(const DisplayStatement* ds) {
   *this << Color::YELLOW << "$display" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
-  ds->get_args()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  ds->accept_args(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 
@@ -576,7 +576,7 @@ void Printer::visit(const WriteStatement* ws) {
   *this << Color::YELLOW << "$write" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
-  ws->get_args()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
+  ws->accept_args(this, [this,&cnt]{if (cnt++) *this << Color::RED << "," << Color::RESET;}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 
@@ -604,13 +604,13 @@ void Printer::visit(const DelayControl* dc) {
 
 void Printer::visit(const EventControl* ec) {
   *this << Color::RED << "@" << Color::RESET;
-  if (ec->get_events()->empty()) {
+  if (ec->empty_events()) {
     *this << Color::RED << "*" << Color::RESET;
     return;
   }
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
-  ec->get_events()->accept(this, [this,&cnt]{if (cnt++) *this << Color::RED << " or " << Color::RESET;}, []{});
+  ec->accept_events(this, [this,&cnt]{if (cnt++) *this << Color::RED << " or " << Color::RESET;}, []{});
   *this << Color::RED << ")" << Color::RESET;
 }
 

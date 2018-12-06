@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NET_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_NET_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/expression.h"
@@ -48,31 +47,39 @@ class NetDeclaration : public Declaration {
     };
 
     // Constructors:
+    NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__);
     NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
-    NODE(NetDeclaration, PTR(attrs), VAL(type), MAYBE(ctrl), PTR(id), VAL(signed), MAYBE(dim))
+    NODE(NetDeclaration)
+    NetDeclaration* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(Type, type)
-    MAYBE_GET_SET(DelayControl*, ctrl)
-    VAL_GET_SET(bool, signed)
-    MAYBE_GET_SET(RangeExpression*, dim)
+    VAL_GET_SET(NetDeclaration, Type, type)
+    MAYBE_GET_SET(NetDeclaration, DelayControl, ctrl)
+    VAL_GET_SET(NetDeclaration, bool, signed)
+    MAYBE_GET_SET(NetDeclaration, RangeExpression, dim)
 
   private:
     VAL_ATTR(Type, type);
-    MAYBE_ATTR(DelayControl*, ctrl);
+    MAYBE_ATTR(DelayControl, ctrl);
     VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression*, dim);
+    MAYBE_ATTR(RangeExpression, dim);
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : Declaration() {
-  parent_ = nullptr;
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__) : Declaration() {
   PTR_SETUP(attrs);
   VAL_SETUP(type);
-  MAYBE_SETUP(ctrl);
+  MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(id);
   VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
+  parent_ = nullptr;
+}
+
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : NetDeclaration(attrs__, type__, id__, signed__) {
+  MAYBE_SETUP(ctrl);
   MAYBE_SETUP(dim);
 }
 
@@ -83,6 +90,13 @@ inline NetDeclaration::~NetDeclaration() {
   PTR_TEARDOWN(id);
   VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
+}
+
+inline NetDeclaration* NetDeclaration::clone() const {
+  auto res = new NetDeclaration(attrs_->clone(), type_, id_->clone(), signed_);
+  MAYBE_CLONE(ctrl);
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

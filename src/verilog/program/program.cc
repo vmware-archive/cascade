@@ -81,7 +81,7 @@ Program& Program::typecheck(bool tc) {
 
 bool Program::declare(ModuleDeclaration* md, Log* log, const Parser* p) {
   // Propage default annotations
-  if (md->get_attrs()->get_as()->empty() && root_decl() != decl_end()) {
+  if (md->get_attrs()->empty_as() && root_decl() != decl_end()) {
     md->replace_attrs(root_decl()->second->get_attrs()->clone());
   }
   // Elaborate
@@ -115,16 +115,13 @@ bool Program::declare_and_instantiate(ModuleDeclaration* md, Log* log, const Par
     return false;
   }
 
-  auto iid = md->get_id()->get_ids()->front()->get_readable_sid();
+  auto iid = md->get_id()->front_ids()->get_readable_sid();
   transform(iid.begin(), iid.end(), iid.begin(), [](unsigned char c){return tolower(c);});
 
   auto mi = new ModuleInstantiation(
-    new Attributes(new Many<AttrSpec>()),
+    new Attributes(),
     md->get_id()->clone(),
-    new Identifier(iid),
-    nullptr,
-    new Many<ArgAssign>(),
-    new Many<ArgAssign>()
+    new Identifier(iid)
   );
 
   return eval(mi, log, p);
@@ -209,7 +206,7 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           Navigate(mi).invalidate();
         }
 
-        if (mi->get_attrs()->get_as()->empty()) {
+        if (mi->get_attrs()->empty_as()) {
           e->get_attrs()->set_or_replace(root_inst_->get_attrs());
         } else {
           e->get_attrs()->set_or_replace(mi->get_attrs());
@@ -248,7 +245,9 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           const auto itr = lgc->get_init()->get_lhs();
           const auto r = Resolve().get_resolution(itr);
           Resolve().invalidate(r->get_parent());
-          Elaborate().elaborate(lgc)->accept(this);
+          for (auto b : Elaborate().elaborate(lgc)) {
+            b->accept(this);
+          }
           Navigate(lgc).invalidate();
         }
       }
@@ -290,7 +289,7 @@ void Program::eval_root(ModuleItem* mi, Log* log, const Parser* p) {
 
 void Program::eval_item(ModuleItem* mi, Log* log, const Parser* p) {
   auto src = root_eitr_->second;
-  src->get_items()->push_back(mi);
+  src->push_back_items(mi);
 
   elabs_.checkpoint();
   elaborate_item(mi, log, p);
@@ -305,7 +304,7 @@ void Program::eval_item(ModuleItem* mi, Log* log, const Parser* p) {
 
   if (log->error()) {
     elabs_.undo();
-    src->get_items()->purge_to(src->get_items()->size()-1);
+    src->purge_to_items(src->size_items()-1);
   } else {
     elabs_.commit();
   }
@@ -339,7 +338,6 @@ void Program::inline_all(ModuleDeclaration* md) {
     inline_all(itr->second);
   }
   Inline().inline_source(md);
-  //DebugTermPrinter(cout, true, true) << "AFTER INLINING:\n" << md << "\n";
 }
 
 void Program::outline_all(ModuleDeclaration* md) {
@@ -354,7 +352,6 @@ void Program::outline_all(ModuleDeclaration* md) {
     assert(itr != elabs_.end());
     outline_all(itr->second);
   }
-  //DebugTermPrinter(cout, true, true) << "AFTER OUTLINING:\n" << md << "\n";
 }
 
 } // namespace cascade

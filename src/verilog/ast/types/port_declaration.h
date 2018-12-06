@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_PORT_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_PORT_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/attributes.h"
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/macro.h"
@@ -53,29 +52,35 @@ class PortDeclaration : public ModuleItem {
     ~PortDeclaration() override;
 
     // Node Interface:
-    NODE(PortDeclaration, PTR(attrs), VAL(type), PTR(decl))
+    NODE(PortDeclaration)
+    inline PortDeclaration* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Attributes*, attrs)
-    VAL_GET_SET(Type, type)
-    PTR_GET_SET(Declaration*, decl)
+    PTR_GET_SET(PortDeclaration, Attributes, attrs)
+    VAL_GET_SET(PortDeclaration, Type, type)
+    PTR_GET_SET(PortDeclaration, Declaration, decl)
 
   private:
-    PTR_ATTR(Attributes*, attrs);
+    PTR_ATTR(Attributes, attrs);
     VAL_ATTR(Type, type);
-    PTR_ATTR(Declaration*, decl);
+    PTR_ATTR(Declaration, decl);
 };
 
 inline PortDeclaration::PortDeclaration(Attributes* attrs__, Type type__, Declaration* decl__) : ModuleItem() {
-  parent_ = nullptr;
   PTR_SETUP(attrs);
   VAL_SETUP(type);
   PTR_SETUP(decl);
+  parent_ = nullptr;
 }
 
 inline PortDeclaration::~PortDeclaration() {
   PTR_TEARDOWN(attrs);
   VAL_TEARDOWN(type);
   PTR_TEARDOWN(decl);
+}
+
+inline PortDeclaration* PortDeclaration::clone() const {
+  return new PortDeclaration(attrs_->clone(), type_, decl_->clone());
 }
 
 } // namespace cascade 

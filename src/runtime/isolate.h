@@ -32,9 +32,11 @@
 #define CASCADE_SRC_RUNTIME_ISOLATE_H
 
 #include <unordered_map>
+#include <vector>
 #include "src/runtime/ids.h"
 #include "src/verilog/ast/ast_fwd.h"
 #include "src/verilog/ast/visitors/builder.h"
+#include "src/verilog/program/inline.h"
 
 namespace cascade {
 
@@ -85,23 +87,65 @@ class Isolate : public Builder {
     // Returns a module declaration with a mangled id and global io ports
     ModuleDeclaration* get_shell();
     // Generates a list of declarations for local variables
-    Many<ModuleItem>* get_local_decls();
+    std::vector<ModuleItem*> get_local_decls();
     // Recursively process a list of items
-    Many<ModuleItem>* get_items(const Many<ModuleItem>* mis, bool top_level);
+    template <typename ItemsItr>
+    std::vector<ModuleItem*> get_items(ItemsItr begin, ItemsItr end, bool top_level);
 
     // Replaces an instantiation with assignments
-    void replace(Many<ModuleItem>* res, const ModuleInstantiation* mi);
+    void replace(std::vector<ModuleItem*>& res, const ModuleInstantiation* mi);
     // Flattens the elaborated branch of a case generate construct
-    void flatten(Many<ModuleItem>* res, const CaseGenerateConstruct* cgc);
+    void flatten(std::vector<ModuleItem*>& res, const CaseGenerateConstruct* cgc);
     // Flattens the elaborated branch of an if generate construct
-    void flatten(Many<ModuleItem>* res, const IfGenerateConstruct* igc);
+    void flatten(std::vector<ModuleItem*>& res, const IfGenerateConstruct* igc);
     // Flattens the elaborated branches of a loop generate construct
-    void flatten(Many<ModuleItem>* res, const LoopGenerateConstruct* lgc);
+    void flatten(std::vector<ModuleItem*>& res, const LoopGenerateConstruct* lgc);
     // Flattens a generate block
-    void flatten(Many<ModuleItem>* res, const GenerateBlock* gb);
+    void flatten(std::vector<ModuleItem*>& res, const GenerateBlock* gb);
     // Flattens a generate region
-    void flatten(Many<ModuleItem>* res, const GenerateRegion* gr);
+    void flatten(std::vector<ModuleItem*>& res, const GenerateRegion* gr);
 };
+
+template <typename ItemsItr>
+inline std::vector<ModuleItem*> Isolate::get_items(ItemsItr begin, ItemsItr end, bool top_level) {
+  std::vector<ModuleItem*> res;
+  for (auto mi = begin; mi != end; ++mi) {
+    // If this is the top level, we're one step closer to allowing initial constructs
+    if (top_level) {
+      --ignore_;
+    }
+    // Ignore Declarations. We handle them at the top level.
+    if (dynamic_cast<const Declaration*>(*mi)) {
+      continue;
+    }
+    // Flatten generate regions and generate constructs
+    else if (auto gr = dynamic_cast<const GenerateRegion*>(*mi)) {
+      flatten(res, gr);
+    } else if (auto cgc = dynamic_cast<const CaseGenerateConstruct*>(*mi)) {
+      flatten(res, cgc);
+    } else if (auto igc = dynamic_cast<const IfGenerateConstruct*>(*mi)) {
+      flatten(res, igc);
+    } else if (auto lgc = dynamic_cast<const LoopGenerateConstruct*>(*mi)) {
+      flatten(res, lgc);
+    }
+    // Either descend on instantiations or replace them with connections
+    else if (auto inst = dynamic_cast<const ModuleInstantiation*>(*mi)) {
+      if (Inline().is_inlined(inst)) {
+        flatten(res, Inline().get_source(inst));
+      } else {
+        replace(res, inst); 
+      }
+    } 
+    // Everything else goes through the normal build path. 
+    else {
+      auto temp = (*mi)->accept(this);
+      if (temp != nullptr) {
+        res.push_back(temp);
+      }
+    }
+  }
+  return res;
+}
 
 } // namespace cascade
 

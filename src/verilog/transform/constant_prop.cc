@@ -45,8 +45,8 @@ ConstantProp::ConstantProp() : Rewriter() { }
 void ConstantProp::run(ModuleDeclaration* md) {
   // Collect net assignments, we'll populate the runtime constant set lazily in
   // calls to RuntimeConstant::check().
-  for (auto mi : *md->get_items()) {
-    if (auto ca = dynamic_cast<ContinuousAssign*>(mi)) {
+  for (auto i = md->begin_items(), ie = md->end_items(); i != ie; ++i) {
+    if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       const auto lhs = ca->get_assign()->get_lhs();
       const auto r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
@@ -65,7 +65,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
 
   // Go back and delete every continuous assignment which was consumed when we
   // populated the runtime constants set.
-  for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
+  for (auto i = md->begin_items(); i != md->end_items(); ) {
     if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       const auto lhs = ca->get_assign()->get_lhs();
       const auto r = Resolve().get_resolution(lhs);
@@ -75,7 +75,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
       const auto is_array = Resolve().is_array(r);
       const auto consumed = runtime_constants_.find(r) != runtime_constants_.end();
       if (!is_slice && !is_array && consumed) {
-        i = md->get_items()->purge(i);
+        i = md->purge_items(i);
         continue;
       } 
     } 
@@ -239,12 +239,12 @@ Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
     if (Evaluate().get_value(cs->get_if()).to_bool()) {
       res = cs->accept_then(this);
       if (res == cs->get_then()) {
-        cs->set_then(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
+        cs->set_then(new SeqBlock());  
       }
     } else {
       res = cs->accept_else(this);
       if (res == cs->get_else()) {
-        cs->set_else(new SeqBlock(nullptr, new Many<Declaration>(), new Many<Statement>()));  
+        cs->set_else(new SeqBlock());
       }
     }
     return res;

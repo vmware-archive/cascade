@@ -138,7 +138,7 @@ MId CoreCompiler::to_mid(const Identifier* id) const {
 
 VId CoreCompiler::to_vid(const Identifier* id) const {
   VId res;
-  stringstream ss(id->get_ids()->front()->get_readable_sid().substr(3));
+  stringstream ss(id->front_ids()->get_readable_sid().substr(3));
   ss >> res;
   return res;
 }

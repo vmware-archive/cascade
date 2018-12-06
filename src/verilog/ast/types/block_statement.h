@@ -49,10 +49,10 @@ class BlockStatement : public Statement {
     void accept(Visitor* v) const override = 0;
 
     // Get/Set:
-    MAYBE_GET_SET(Identifier*, id)
+    MAYBE_GET_SET(BlockStatment, Identifier, id)
 
   protected:
-    MAYBE_ATTR(Identifier*, id);
+    MAYBE_ATTR(Identifier, id);
 };
 
 inline BlockStatement::BlockStatement() : Statement() { }

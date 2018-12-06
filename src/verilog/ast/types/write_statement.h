@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_WRITE_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_WRITE_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
@@ -42,25 +40,40 @@ namespace cascade {
 class WriteStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    WriteStatement(Many<Expression>* args__);
+    WriteStatement();
+    template <typename ArgsItr>
+    WriteStatement(ArgsItr args_begin__, ArgsItr args_end__);
     ~WriteStatement() override;
 
     // Node Interface:
-    NODE(WriteStatement, PTR(args))
+    NODE(WriteStatement)
+    WriteStatement* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Many<Expression>*, args)
+    MANY_GET_SET(WriteStatement, Expression, args)
 
   private:
-    PTR_ATTR(Many<Expression>*, args);
+    MANY_ATTR(Expression, args);
 };
 
-inline WriteStatement::WriteStatement(Many<Expression>* args__) : SystemTaskEnableStatement() {
+inline WriteStatement::WriteStatement() : SystemTaskEnableStatement() {
+  MANY_DEFAULT_SETUP(args);
   parent_ = nullptr;
-  PTR_SETUP(args);
+}
+
+template <typename ArgsItr>
+inline WriteStatement::WriteStatement(ArgsItr args_begin__, ArgsItr args_end__) : WriteStatement() {
+  MANY_SETUP(args);
 }
 
 inline WriteStatement::~WriteStatement() {
-  PTR_TEARDOWN(args);
+  MANY_TEARDOWN(args);
+}
+
+inline WriteStatement* WriteStatement::clone() const {
+  auto res = new WriteStatement();
+  MANY_CLONE(args);
+  return res;
 }
 
 } // namespace cascade 

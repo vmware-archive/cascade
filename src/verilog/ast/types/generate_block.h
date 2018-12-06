@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 #define CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 
-#include <cassert>
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/node.h"
 #include "src/verilog/ast/types/scope.h"
@@ -44,34 +42,51 @@ namespace cascade {
 class GenerateBlock : public Node, public Scope {
   public:
     // Constructors:
-    GenerateBlock(Identifier* id__, bool scope__, Many<ModuleItem>* items__);
+    GenerateBlock(bool scope__);
+    template <typename ItemsItr>
+    GenerateBlock(Identifier* id__, bool scope__, ItemsItr items_begin__, ItemsItr items_end__);
     ~GenerateBlock() override;
 
     // Node Interface:
-    NODE(GenerateBlock, MAYBE(id), VAL(scope), PTR(items))
+    NODE(GenerateBlock);
+    GenerateBlock* clone() const override;
+
     // Get/Set:
-    MAYBE_GET_SET(Identifier*, id)
-    VAL_GET_SET(bool, scope)
-    PTR_GET_SET(Many<ModuleItem>*, items)
+    MAYBE_GET_SET(GenerateBlock, Identifier, id)
+    VAL_GET_SET(GenerateBlock, bool, scope)
+    MANY_GET_SET(GenerateBlock, ModuleItem, items)
 
   private:
-    MAYBE_ATTR(Identifier*, id);
+    MAYBE_ATTR(Identifier, id);
     VAL_ATTR(bool, scope);
-    PTR_ATTR(Many<ModuleItem>*, items);
+    MANY_ATTR(ModuleItem, items);
 };
 
-inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
-  parent_ = nullptr;
-  MAYBE_SETUP(id);
+inline GenerateBlock::GenerateBlock(bool scope__) : Node(), Scope() {
+  MAYBE_DEFAULT_SETUP(id);
   VAL_SETUP(scope);
-  PTR_SETUP(items);
+  MANY_DEFAULT_SETUP(items);
+  parent_ = nullptr;
   next_supdate_ = 0;
+}
+
+template <typename ItemsItr>
+inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, ItemsItr items_begin__, ItemsItr items_end__) : GenerateBlock(scope__) {
+  MAYBE_SETUP(id);
+  MANY_SETUP(items);
+}
+
+inline GenerateBlock* GenerateBlock::clone() const {
+  auto res = new GenerateBlock(scope_);
+  MAYBE_CLONE(id);
+  MANY_CLONE(items);
+  return res;
 }
 
 inline GenerateBlock::~GenerateBlock() {
   MAYBE_TEARDOWN(id);
   VAL_TEARDOWN(scope);
-  PTR_TEARDOWN(items);
+  MANY_TEARDOWN(items);
 }
 
 } // namespace cascade 

@@ -88,7 +88,7 @@ inline void Monitor::edit(ContinuousAssign* ca) {
 }
 
 inline void Monitor::edit(EventControl* ec) {
-  if (ec->get_events()->empty()) {
+  if (ec->empty_events()) {
     auto tcs = dynamic_cast<TimingControlStatement*>(ec->get_parent());
     assert(tcs != nullptr);
     for (auto i : ReadSet(tcs->get_stmt())) {

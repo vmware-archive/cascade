@@ -57,7 +57,7 @@ void ReadSet::visit(const Identifier* id) {
     return;
   }
 
-  id->get_ids()->accept(this);
+  id->accept_ids(this);
   id->accept_dim(this);
 
   reads_.insert(id);

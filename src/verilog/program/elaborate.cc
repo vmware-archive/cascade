@@ -74,16 +74,16 @@ GenerateBlock* Elaborate::elaborate(CaseGenerateConstruct* cgc) {
   }
 
   const auto& c = Evaluate().get_value(cgc->get_cond());
-  for (auto ci : *cgc->get_items()) {
-    for (auto e : *ci->get_exprs()) {
-      const auto& v = Evaluate().get_value(e);
+  for (auto i = cgc->begin_items(), ie = cgc->end_items(); i != ie; ++i) { 
+    for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
+      const auto& v = Evaluate().get_value(*j);
       if (c == v) {
-        elaborate(cgc, ci->get_block());
+        elaborate(cgc, (*i)->get_block());
         return cgc->gen_;
       }
     }
-    if (ci->get_exprs()->empty()) {
-      elaborate(cgc, ci->get_block());
+    if ((*i)->empty_exprs()) {
+      elaborate(cgc, (*i)->get_block());
       return cgc->gen_;
     }
   }
@@ -97,9 +97,9 @@ GenerateBlock* Elaborate::elaborate(IfGenerateConstruct* igc) {
   if (igc->gen_ != nullptr) {
     return igc->gen_;
   }
-  for (auto c : *igc->get_clauses()) {
-    if (Evaluate().get_value(c->get_if()).to_bool()) {
-      elaborate(igc, c->get_then());
+  for (auto i = igc->begin_clauses(), ie = igc->end_clauses(); i != ie; ++i) {
+    if (Evaluate().get_value((*i)->get_if()).to_bool()) {
+      elaborate(igc, (*i)->get_then());
       return igc->gen_;
     }
   } 
@@ -107,46 +107,40 @@ GenerateBlock* Elaborate::elaborate(IfGenerateConstruct* igc) {
   return igc->gen_;
 }
 
-Many<GenerateBlock>* Elaborate::elaborate(LoopGenerateConstruct* lgc) {
-  if (lgc->gen_ != nullptr) {
+Vector<GenerateBlock*>& Elaborate::elaborate(LoopGenerateConstruct* lgc) {
+  if (!lgc->gen_.empty()) {
     return lgc->gen_;
   }
 
   auto id = lgc->get_block()->is_null_id() ? get_name(lgc) : lgc->get_block()->get_id()->clone();
-  auto blocks = new Many<GenerateBlock>();
-
   const auto itr = lgc->get_init()->get_lhs();
   for (
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_init()->get_rhs()));
     Evaluate().get_value(lgc->get_cond()).to_bool();
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_update()->get_rhs()))
   ) {
-    const auto lpd = new LocalparamDeclaration(
-      new Attributes(new Many<AttrSpec>()),
+    const auto block = new GenerateBlock(true);
+    block->replace_id(new Identifier(new Id(
+      id->front_ids()->get_sid(), 
+      new Number(Evaluate().get_value(itr))
+    )));
+    block->push_back_items(new LocalparamDeclaration(
+      new Attributes(),
       false,
       new RangeExpression(32, 0),
       itr->clone(), 
       new Number(Evaluate().get_value(itr))
-    );
-    const auto block = new GenerateBlock(
-      new Identifier(
-        new Many<Id>(new Id(
-          id->get_ids()->front()->get_sid(), 
-          new Number(Evaluate().get_value(itr))
-        )),
-        new Many<Expression>()
-      ),
-      true,
-      new Many<ModuleItem>(lpd)
-    );
-    block->get_items()->concat(lgc->get_block()->get_items()->clone());
-    blocks->push_back(block);
+    ));
+    for (auto i = lgc->get_block()->begin_items(), ie = lgc->get_block()->end_items(); i != ie; ++i) {
+      block->push_back_items((*i)->clone());
+    }
+    lgc->gen_.push_back(block);
   }  
   delete id;
 
-  lgc->gen_ = blocks;
-  blocks->parent_ = lgc;
-
+  for (auto b : lgc->gen_) {
+    b->parent_ = lgc;
+  }
   return lgc->gen_;
 }
 
@@ -163,7 +157,7 @@ bool Elaborate::is_elaborated(const IfGenerateConstruct* igc) {
 }
 
 bool Elaborate::is_elaborated(const LoopGenerateConstruct* lgc) {
-  return lgc->gen_ != nullptr;
+  return !lgc->gen_.empty();
 }
 
 ModuleDeclaration* Elaborate::get_elaboration(ModuleInstantiation* mi) {
@@ -181,8 +175,8 @@ GenerateBlock* Elaborate::get_elaboration(IfGenerateConstruct* igc) {
   return igc->gen_;
 }
 
-Many<GenerateBlock>* Elaborate::get_elaboration(LoopGenerateConstruct* lgc) {
-  assert(lgc->gen_ != nullptr);
+Vector<GenerateBlock*>& Elaborate::get_elaboration(LoopGenerateConstruct* lgc) {
+  assert(!lgc->gen_.empty());
   return lgc->gen_;
 }
 
@@ -201,21 +195,21 @@ const GenerateBlock* Elaborate::get_elaboration(const IfGenerateConstruct* igc) 
   return igc->gen_;
 }
 
-const Many<GenerateBlock>* Elaborate::get_elaboration(const LoopGenerateConstruct* lgc) {
-  assert(lgc->gen_ != nullptr);
+const Vector<GenerateBlock*>& Elaborate::get_elaboration(const LoopGenerateConstruct* lgc) {
+  assert(!lgc->gen_.empty());
   return lgc->gen_;
 }
 
 void Elaborate::named_params(ModuleInstantiation* mi) {
   unordered_map<const Identifier*, const Expression*, HashId, EqId> params;
-  for (auto p : *mi->get_params()) {
-    assert(p->is_non_null_exp());
-    assert(p->is_non_null_imp());
-    params[p->get_exp()] = p->get_imp();
+  for (auto i = mi->begin_params(), ie = mi->end_params(); i != ie; ++i) {
+    assert((*i)->is_non_null_exp());
+    assert((*i)->is_non_null_imp());
+    params[(*i)->get_exp()] = (*i)->get_imp();
   }
 
-  for (auto inst : *mi->inst_->get_items()) {
-    if (auto pd = dynamic_cast<ParameterDeclaration*>(inst)) {
+  for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
+    if (auto pd = dynamic_cast<ParameterDeclaration*>(*i)) {
       const auto itr = params.find(pd->get_id());
       if (itr != params.end()) {
         const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(itr->second)));
@@ -226,9 +220,9 @@ void Elaborate::named_params(ModuleInstantiation* mi) {
 
 void Elaborate::ordered_params(ModuleInstantiation* mi) {
   size_t idx = 0;
-  for (auto item : *mi->inst_->get_items()) {
-    if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
-      const auto p = mi->get_params()->get(idx++);
+  for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
+    if (auto pd = dynamic_cast<ParameterDeclaration*>(*i)) {
+      const auto p = mi->get_params(idx++);
       const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(p->get_imp())));
     }
   }
@@ -245,8 +239,8 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b) {
     return;
   }
   // Also nothing to do if this is a directly nested block without begin/ends
-  if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent()->get_parent())) {
-    const auto only_item = block->get_items()->size() == 1;
+  if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent())) {
+    const auto only_item = block->size_items() == 1;
     const auto p = block->get_parent();
     const auto nested_if = dynamic_cast<IfGenerateClause*>(p);
     const auto nested_else = dynamic_cast<IfGenerateConstruct*>(p);

@@ -35,7 +35,6 @@
 #include <vector>
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
@@ -81,7 +80,7 @@ std::string ModuleBoxer::box(MId id, const ModuleDeclaration* md, const De10Logi
 Attributes* ModuleBoxer::build(const Attributes* as) {
   // Quartus doesn't have full support for annotations. At this point, we can just delete them.
   (void) as;
-  return new Attributes(new Many<AttrSpec>());
+  return new Attributes();
 }
 
 ModuleItem* ModuleBoxer::build(const InitialConstruct* ic) {
@@ -112,44 +111,39 @@ ModuleItem* ModuleBoxer::build(const PortDeclaration* pd) {
 Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   // Create empty blocks for true and false branches (we'll never populate the
   // false branch)
-  const auto t = new SeqBlock(
-    nullptr,
-    new Many<Declaration>(),
-    new Many<Statement>()
-  );
-  const auto f = t->clone();
+  const auto t = new SeqBlock();
+  const auto f = new SeqBlock();
 
   // Look up the target of this assignment and the indices it spans in the
   // variable table
   const auto lhs = na->get_assign()->get_lhs();
   const auto r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
-  auto idx = new Many<Expression>(get_table_range(r, lhs));
-
+  
   // Replace the original assignment with an assignment to a temporary variable
-  t->get_stmts()->push_back(new NonblockingAssign(
+  auto next = lhs->clone();
+  next->purge_ids();
+  next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
+  t->push_back_stmts(new NonblockingAssign(
     na->get_ctrl()->clone(),
     new VariableAssign(
-      new Identifier(
-        new Many<Id>(new Id(lhs->get_ids()->front()->get_readable_sid() + "_next", nullptr)),
-        lhs->get_dim()->clone()
-      ),
+      next,
       na->get_assign()->get_rhs()->clone()
     )
   ));
+
   // Insert a new assignment to the next mask
-  t->get_stmts()->push_back(new NonblockingAssign(
-    nullptr,
+  t->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
-        new Many<Id>(new Id("__next_update_mask", nullptr)),
-        idx
+        new Id("__next_update_mask"),
+        get_table_range(r, lhs)
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
-          new Many<Id>(new Id("__next_update_mask", nullptr)),
-          idx->clone()
+          new Id("__next_update_mask"),
+          get_table_range(r, lhs)
         )
       )
     )
@@ -160,7 +154,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
 }
 
 Statement* ModuleBoxer::build(const DisplayStatement* ds) {
-  return Mangler(de_).mangle(task_id_++, ds->get_args());
+  return Mangler(de_).mangle(task_id_++, ds->begin_args(), ds->end_args());
 }
 
 Statement* ModuleBoxer::build(const FinishStatement* fs) {
@@ -168,7 +162,7 @@ Statement* ModuleBoxer::build(const FinishStatement* fs) {
 }
 
 Statement* ModuleBoxer::build(const WriteStatement* ws) {
-  return Mangler(de_).mangle(task_id_++, ws->get_args());
+  return Mangler(de_).mangle(task_id_++, ws->begin_args(), ws->end_args());
 }
 
 Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *i) {
@@ -182,7 +176,7 @@ Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *
 
   // Now iterate over the arity of r and compute a symbolic expression 
   auto mul = titr->second.elements();
-  auto iitr = i->get_dim()->begin();
+  auto iitr = i->begin_dim();
   for (auto a : titr->second.arity()) {
     mul /= a;
     idx = new BinaryExpression(
@@ -203,35 +197,31 @@ ModuleBoxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
   t_ = nullptr;
 }
 
-Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* args) {
-  // Create blocks for true and false (we won't populate the false branch)
-  t_ = new SeqBlock(
-    nullptr,
-    new Many<Declaration>(),
-    new Many<Statement>()
-  );
-  const auto f = t_->clone();
+Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* arg) {
+  init(id);
+  arg->accept(this);
+  return new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+}
+
+void ModuleBoxer::Mangler::init(size_t id) {
+  // Initialize the sequential block which we'll populate during recursive descent
+  t_ = new SeqBlock();
   // Insert an assignment to the task mask for this task id
-  t_->get_stmts()->push_back(new NonblockingAssign(
-    nullptr,
+  t_->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
-        new Many<Id>(new Id("__next_task_mask", nullptr)),
-        new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
+        new Id("__next_task_mask"),
+        new Number(Bits(32, (uint32_t)id))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
-          new Many<Id>(new Id("__next_task_mask", nullptr)),
-          new Many<Expression>(new Number(Bits(32, (uint32_t)id)))
+          new Id("__next_task_mask"),
+          new Number(Bits(32, (uint32_t)id))
         )
       )
     )    
   ));
-  // Descend on args and latch the values of any identifiers in this list
-  args->accept(this);
-  // Return a conditional statement in place of the original assignment
-  return new ConditionalStatement(new Identifier("__live"), t_, f);
 }
 
 void ModuleBoxer::Mangler::visit(const Identifier* id) {
@@ -259,38 +249,31 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
     if (Evaluate().get_signed(id)) {
       sext = new MultipleConcatenation(
         new Number("32"),
-        new Concatenation(new Many<Expression>(
-          new Identifier(
-            new Many<Id>(id->get_ids()->front()->clone()),
-            w == 1 ?
-              new Many<Expression>() :
-              new Many<Expression>(new Number(Bits(32, w-1)))
-          )
-        ))
+        new Concatenation(w == 1 ?
+          new Identifier(id->front_ids()->clone()) :
+          new Identifier(id->front_ids()->clone(), new Number(Bits(32, w-1)))
+        )
       );
     } else {
       sext = new Number(Bits(32, 0), Number::HEX);
     }
 
     // Concatenate the rhs with the sign extension bits
-    auto dim = id->get_dim()->clone();
-    if (dim->size() > r->get_dim()->size()) {
-      dim->purge_to(r->get_dim()->size());
+    auto lsbs = new Identifier(id->front_ids()->clone());
+    id->clone_dim(lsbs->back_inserter_dim());
+    if (lsbs->size_dim() > r->size_dim()) {
+      lsbs->purge_to_dim(r->size_dim());
     }
     if (upper == lower) {
-      dim->push_back(new Number(Bits(32, upper)));
+      lsbs->push_back_dim(new Number(Bits(32, upper)));
     } else if (upper > lower) {
-      dim->push_back(new RangeExpression(upper+1, lower));
+      lsbs->push_back_dim(new RangeExpression(upper+1, lower));
     } 
-    auto rhs = new Concatenation(new Many<Expression>(sext));
-    rhs->get_exprs()->push_back(new Identifier(
-      new Many<Id>(id->get_ids()->front()->clone()), 
-      dim
-    ));
+    auto rhs = new Concatenation(sext);
+    rhs->push_back_exprs(lsbs);
 
     // Attach the concatenation to an assignment, we'll always have enough bits now
-    t_->get_stmts()->push_back(new NonblockingAssign(
-      nullptr,
+    t_->push_back_stmts(new NonblockingAssign(
       new VariableAssign(
         new Identifier(ss.str()),
         rhs
@@ -323,8 +306,8 @@ void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
   os << "// Update State" << endl;
   for (auto s : info.stateful()) {
     auto rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
-    auto ids = new Many<Id>(new Id(s->get_ids()->front()->get_readable_sid() + "_next", nullptr));
-    rd->get_id()->replace_ids(ids);
+    rd->get_id()->purge_ids();
+    rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
     rd->replace_val(nullptr);
     TextPrinter(os) << rd << "\n";
     delete rd;
@@ -375,7 +358,7 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
 }
 
 void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo) {
-  RangeExpression* re = nullptr;
+  const RangeExpression* re = nullptr;
   auto is_signed = false;
   if (auto nd = dynamic_cast<const NetDeclaration*>(vinfo.id()->get_parent())) {
     re = nd->get_dim();
@@ -399,7 +382,7 @@ void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo)
 void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo) {
   const auto arity = vinfo.arity();
   for (size_t i = 0, ie = vinfo.elements(); i < ie; ++i) {
-    os << "assign " << vinfo.id()->get_ids()->front()->get_readable_sid();
+    os << "assign " << vinfo.id()->front_ids()->get_readable_sid();
     emit_subscript(os, i, ie, arity);
     os << " = {";
     for (size_t j = 0, je = vinfo.element_size(); j < je; ++j) {
@@ -431,8 +414,8 @@ void ModuleBoxer::emit_program_logic(indstream& os) {
 
   os << "// Original Program Logic:" << endl;
   task_id_ = 0;
-  for (auto mi : *md_->get_items()) {
-    auto temp = mi->accept(this);
+  for (auto i = md_->begin_items(), ie = md_->end_items(); i != ie; ++i) {
+    auto temp = (*i)->accept(this);
     if (temp != nullptr) {
       TextPrinter(os) << temp << "\n";
       delete temp;
@@ -523,12 +506,12 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
         os << "(__read && (__vid == " << idx << ")) ? __in : ";
         if (info.is_stateful(t->first)) {
           TextPrinter(os) << "(__apply_updates && __update_queue[" << idx << "]) ? ";
-          TextPrinter(os) << t->first->get_ids()->front()->get_readable_sid() << "_next";
+          TextPrinter(os) << t->first->front_ids()->get_readable_sid() << "_next";
           emit_subscript(os, i, ie, arity);
           emit_slice(os, w, j);
           os << " : ";
         }
-        TextPrinter(os) << t->first->get_ids()->front();
+        TextPrinter(os) << t->first->front_ids();
         emit_subscript(os, i, ie, arity);
         emit_slice(os, w, j);
         os  << ";";

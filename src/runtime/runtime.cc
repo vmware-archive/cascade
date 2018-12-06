@@ -35,7 +35,6 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include "src/base/log/log.h"
 #include "src/base/stream/incstream.h"
 #include "src/base/stream/indstream.h"
 #include "src/runtime/data_plane.h"
@@ -117,13 +116,6 @@ Runtime& Runtime::disable_inlining(bool di) {
 Runtime& Runtime::disable_warnings(bool dw) {
   disable_warnings_ = dw;
   return *this;
-}
-
-void Runtime::eval(Node* n) {
-  schedule_interrupt(Interrupt([this, n]{
-    log_->clear();
-    eval_node(n);
-  }));
 }
 
 void Runtime::eval(const string& s) {
@@ -238,7 +230,7 @@ void Runtime::run_logic() {
 bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
-    const auto pres = parser_->parse(is, log_); 
+    parser_->parse(is, log_); 
     view_->parse(logical_time_, parser_->get_text());
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
@@ -251,14 +243,14 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     } 
     // An eof marks end of stream, return the last result, and trigger finish
     // if the eof appeared on the term
-    if (pres.second) {
+    if (parser_->eof()) {
       if (is_term) {
         log_ctrl_d();
       }
       return res;
     }
     // Eval the code we just parsed; if this is the term, don't loop
-    res = eval_node(pres.first);
+    res = eval_nodes(parser_->begin(), parser_->end());
     if (is_term) {
       return res;
     }
@@ -271,17 +263,12 @@ bool Runtime::eval_node(Node* n) {
     return eval_include(s);
   } else if (auto md = dynamic_cast<ModuleDeclaration*>(n)) {
     return eval_decl(md);
-  } else if (auto mis = dynamic_cast<Many<ModuleItem>*>(n)) {
-    auto res = true;
-    while (res && !mis->empty()) {
-      res = eval_item(mis->remove_front());
-    }
-    delete mis;
-    return res;
-  } 
-
-  assert(false);
-  return false;
+  } else if (auto mi = dynamic_cast<ModuleItem*>(n)) {
+    return eval_item(mi);
+  } else {
+    assert(false);
+    return false;
+  }
 }
 
 bool Runtime::eval_include(String* s) {
@@ -328,7 +315,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
   const auto src = program_->root_elab()->second;
-  if (src->get_items()->empty()) {
+  if (src->empty_items()) {
     root_ = new Module(src, this, dp_, isolate_, compiler_);
   } else {
     ++item_evals_;

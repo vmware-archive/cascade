@@ -119,8 +119,8 @@ void Module::synchronize(size_t n) {
   source_out_of_date_ = true;
   // 2. Examine new code and instantiate new modules below the root 
   Instantiator inst(this);
-  const auto idx = psrc_->get_items()->size() - n;
-  for (auto i = psrc_->get_items()->begin()+idx, ie = psrc_->get_items()->end(); i != ie; ++i) {
+  const auto idx = psrc_->size_items() - n;
+  for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
     (*i)->accept(&inst);
   }
   // 3. Record new gloabl ids and the modules that they reference.
@@ -198,7 +198,7 @@ Module::iterator Module::end() {
 }
 
 ModuleDeclaration* Module::regenerate_ir_source() {
-  const auto size = psrc_->get_items()->size();
+  const auto size = psrc_->size_items();
   const auto ignore = parent_ == nullptr ? size - newest_evals_ : 0;
   auto md = isolate_->isolate(psrc_, ignore);
 
@@ -209,6 +209,7 @@ ModuleDeclaration* Module::regenerate_ir_source() {
     DeAlias().run(md);
     ConstantProp().run(md);
     DeadCodeEliminate().run(md);
+    //TermPrinter(cout) << md << "\n";
   }
   return md;
 }
@@ -236,7 +237,9 @@ void Module::Instantiator::visit(const IfGenerateConstruct* igc) {
 
 void Module::Instantiator::visit(const LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 

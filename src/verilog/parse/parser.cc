@@ -62,26 +62,40 @@ void Parser::pop() {
   stack_.pop();
 }
 
-pair<Node*, bool> Parser::parse(istream& is, Log* log) {
+void Parser::parse(istream& is, Log* log) {
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
 
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
-  res_ = nullptr;
+  log_ = log;
   eof_ = false;
+  res_.clear();
   last_parse_ = "";
   locs_.clear();
-  log_ = log;
 
   get_loc().step();
   parser.parse();
-  if (res_ != nullptr) {
-    res_->accept(this);
+  for (auto n : res_) {
+    n->accept(this);
   }
+}
 
-  return make_pair(res_, eof_);
+bool Parser::eof() const {
+  return eof_;
+}
+
+bool Parser::success() const {
+  return !res_.empty();
+}
+
+Parser::const_iterator Parser::begin() const {
+  return res_.begin();
+}
+
+Parser::const_iterator Parser::end() const {
+  return res_.end();
 }
 
 const std::string& Parser::get_text() const {
@@ -99,20 +113,20 @@ pair<string, size_t> Parser::get_loc(const Node* n) const {
 
 void Parser::edit(ModuleDeclaration* md) {
   // PARSER ARTIFACT: Fix empty port list
-  if (md->get_ports()->size() == 1 && md->get_ports()->front()->is_null_imp()) {
-    md->get_ports()->purge_to(0);
+  if (md->size_ports() == 1 && md->front_ports()->is_null_imp()) {
+    md->purge_to_ports(0);
   }
-  md->get_items()->accept(this);
+  md->accept_items(this);
 }
 
 void Parser::edit(ModuleInstantiation* mi) {
   // PARSER ARTIFACT: Fix empty param list
-  if (mi->get_params()->size() == 1 && mi->get_params()->front()->is_null_imp()) {
-    mi->get_params()->purge_to(0);
+  if (mi->size_params() == 1 && mi->front_params()->is_null_imp()) {
+    mi->purge_to_params(0);
   }
   // PARSER ARTIFICAT: Fix empty port list
-  if (mi->get_ports()->size() == 1 && mi->get_ports()->front()->is_null_imp()) {
-    mi->get_ports()->purge_to(0);
+  if (mi->size_ports() == 1 && mi->front_ports()->is_null_imp()) {
+    mi->purge_to_ports(0);
   } 
 }
 

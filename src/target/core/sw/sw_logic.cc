@@ -51,8 +51,8 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   // Record pointer to source code
   src_ = md;
   // Initialize monitors
-  for (auto mi : *src_->get_items()) {
-    Monitor().init(mi);
+  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
+    Monitor().init(*i);
   }
   // Initial provision for update_pool_:
   update_pool_.resize(1);
@@ -124,10 +124,10 @@ void SwLogic::set_input(const Input* i) {
 
 void SwLogic::resync() {
   // Schedule always constructs and continuous assigns.
-  for (auto mi : *src_->get_items()) {
-    if (dynamic_cast<const AlwaysConstruct*>(mi)) {
-      schedule_now(mi);
-    } else if (auto ca = dynamic_cast<const ContinuousAssign*>(mi)) {
+  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
+    if (dynamic_cast<const AlwaysConstruct*>(*i)) {
+      schedule_now(*i);
+    } else if (auto ca = dynamic_cast<const ContinuousAssign*>(*i)) {
       schedule_now(ca);
     }
   }
@@ -146,8 +146,8 @@ void SwLogic::resync() {
   silent_ = false;
 
   // Now that signals have been propagated, schedule initial constructs
-  for (auto mi : *src_->get_items()) {
-    if (auto ic = dynamic_cast<const InitialConstruct*>(mi)) {
+  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
+    if (auto ic = dynamic_cast<const InitialConstruct*>(*i)) {
       schedule_now(ic);
     }
   }
@@ -222,12 +222,9 @@ void SwLogic::notify(const Node* n) {
     }
     return;
   } 
-
   const auto p = n->get_parent();
-  if (dynamic_cast<const Combinator*>(p)) {
+  if (dynamic_cast<const CaseItem*>(p)) {
     schedule_active(p->get_parent());
-  } else if (dynamic_cast<const CaseItem*>(p)) {
-    schedule_active(p->get_parent()->get_parent());
   } else if (dynamic_cast<const InitialConstruct*>(p) == nullptr) {
     schedule_active(p); 
   }
@@ -301,9 +298,9 @@ void SwLogic::visit(const ParBlock* pb) {
   assert(state < 255);
   switch (state) {
     case 0:
-      state = pb->get_stmts()->size();
-      for (auto s : *pb->get_stmts()) {
-        schedule_now(s);
+      state = pb->size_stmts();
+      for (auto i = pb->begin_stmts(), ie = pb->end_stmts(); i != ie; ++i) {
+        schedule_now(*i);
       }
       break;
     default:
@@ -317,8 +314,8 @@ void SwLogic::visit(const ParBlock* pb) {
 void SwLogic::visit(const SeqBlock* sb) { 
   auto& state = get_state(sb);
   assert(state < 255);
-  if (state < sb->get_stmts()->size()) {
-    auto item = sb->get_stmts()->get(state++);
+  if (state < sb->size_stmts()) {
+    auto item = sb->get_stmts(state++);
     schedule_now(item);
   } else {
     state = 0;
@@ -331,16 +328,16 @@ void SwLogic::visit(const CaseStatement* cs) {
   if (state == 0) {
     state = 1;
     const auto s = Evaluate().get_value(cs->get_cond()).to_int();
-    for (auto ci : *cs->get_items()) {
-      for (auto e : *ci->get_exprs()) {
-        const auto c = Evaluate().get_value(e).to_int();
+    for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) { 
+      for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
+        const auto c = Evaluate().get_value(*j).to_int();
         if (s == c) {
-          schedule_now(ci->get_stmt());
+          schedule_now((*i)->get_stmt());
           return;
         }
       } 
-      if (ci->get_exprs()->empty()) {
-        schedule_now(ci->get_stmt());
+      if ((*i)->empty_exprs()) {
+        schedule_now((*i)->get_stmt());
         return;
       }
     }
@@ -436,7 +433,7 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
 
 void SwLogic::visit(const DisplayStatement* ds) {
   if (!silent_) {
-    interface()->display(Printf().format(ds->get_args()));
+    interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
     there_were_tasks_ = true;
   }
   notify(ds);
@@ -452,7 +449,7 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const WriteStatement* ws) {
   if (!silent_) {
-    interface()->write(Printf().format(ws->get_args()));
+    interface()->write(Printf().format(ws->begin_args(), ws->end_args()));
     there_were_tasks_ = true;
   }
   notify(ws);

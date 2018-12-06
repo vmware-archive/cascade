@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/range_expression.h"
@@ -41,29 +40,36 @@ namespace cascade {
 class ParameterDeclaration : public Declaration {
   public:
     // Constructors:
+    ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
     ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
     ~ParameterDeclaration() override;
 
     // Node Interface:
-    NODE(ParameterDeclaration, PTR(attrs), VAL(signed), MAYBE(dim), PTR(id), PTR(val))
+    NODE(ParameterDeclaration)
+    ParameterDeclaration* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(bool, signed)
-    MAYBE_GET_SET(RangeExpression*, dim)
-    PTR_GET_SET(Expression*, val)
+    VAL_GET_SET(ParameterDeclaration, bool, signed)
+    MAYBE_GET_SET(ParameterDeclaration, RangeExpression, dim)
+    PTR_GET_SET(ParameterDeclaration, Expression, val)
 
   private:
     VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression*, dim);
-    PTR_ATTR(Expression*, val);
+    MAYBE_ATTR(RangeExpression, dim);
+    PTR_ATTR(Expression, val);
 };
 
-inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : Declaration() {
-  parent_ = nullptr;
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration() {
   PTR_SETUP(attrs);
   VAL_SETUP(signed);
-  MAYBE_SETUP(dim);
+  MAYBE_DEFAULT_SETUP(dim);
   PTR_SETUP(id);
   PTR_SETUP(val);
+  parent_ = nullptr;
+}
+
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : ParameterDeclaration(attrs__, signed__, id__, val__) {
+  MAYBE_SETUP(dim);
 }
 
 inline ParameterDeclaration::~ParameterDeclaration() {
@@ -72,6 +78,12 @@ inline ParameterDeclaration::~ParameterDeclaration() {
   MAYBE_TEARDOWN(dim);
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(val);
+}
+
+inline ParameterDeclaration* ParameterDeclaration::clone() const {
+  auto res = new ParameterDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

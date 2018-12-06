@@ -39,6 +39,7 @@
 #include <vector>
 #include "src/base/bits/bits.h"
 #include "src/base/thread/asynchronous.h"
+#include "src/base/log/log.h"
 #include "src/runtime/ids.h"
 #include "src/verilog/ast/ast_fwd.h"
 
@@ -77,11 +78,6 @@ class Runtime : public Asynchronous {
 
     // Controller Interface:
     // 
-    // Invokes eval_node() in the gap between this and the next timestep.
-    // Returns immediately and deletes n when finished. Code which is
-    // successfully eval'ed will begin execution at the beginning of the
-    // following timestep. 
-    void eval(Node* n);
     // Invokes eval_stream() on this string in the gap between this and the
     // next timestep.  Returns immediately. Code which is successfully eval'ed
     // will begin execution at the beginning of the following timestep.
@@ -90,6 +86,12 @@ class Runtime : public Asynchronous {
     // Returns immediately. Code which is successfully eval'ed will begin
     // execution at the beginning of the following timestep.
     void eval(std::istream& is, bool is_term);
+    // Invokes eval_node() in the gap between this and the next timestep on
+    // each of the nodes in an iterator range. Code which is successfully
+    // eval'ed will begin execution at the beginning of the following timestep.
+    // Nodes which follow a failed eval are deleted.
+    template <typename InputItr>
+    void eval(InputItr begin, InputItr end);
 
     // Display System Task Interface:
     //
@@ -199,11 +201,14 @@ class Runtime : public Asynchronous {
 
     // REPL Helpers:
     //
-    // Repeatedly parses and then invokes eval_node() on the contents of an
+    // Repeatedly parses and then invokes eval_nodes() on the contents of an
     // istream until either an error occurs or end of file is encountered.
     bool eval_stream(std::istream& is, bool is_term);
-    // Main eval handler. Expects either a module declaration, many module
-    // items, or an include statement. 
+    // Invokes eval_node() on each of the elements in an iterator range.
+    // Deletes elements in the range which follow a failed eval.
+    template <typename InputItr>
+    bool eval_nodes(InputItr begin, InputItr end);
+    // Evals a module declaration, a module item, or an include statement. 
     bool eval_node(Node* n);
     // Invokes eval_stream() on the file pointed to by an include statement.
     bool eval_include(String* s);
@@ -255,6 +260,26 @@ class Runtime : public Asynchronous {
     // Prints a frequency in either MHz, KHz, or Hz. No GHz. We wish.
     std::string format_freq(uint64_t f) const;
 };
+
+template <typename InputItr>
+inline void Runtime::eval(InputItr begin, InputItr end) {
+  schedule_interrupt(Interrupt([this, begin, end]{
+    log_->clear();
+    eval_nodes(begin, end);
+  }));
+}
+
+template <typename InputItr>
+inline bool Runtime::eval_nodes(InputItr begin, InputItr end) {
+  auto res = true;
+  for (; res && (begin != end); ++begin) {
+    res = eval_node(*begin);
+  }
+  for (; begin != end; ++begin) {
+    delete *begin;
+  }
+  return res;
+}
 
 } // namespace cascade
 

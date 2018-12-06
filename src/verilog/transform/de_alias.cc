@@ -48,10 +48,10 @@ void DeAlias::run(ModuleDeclaration* md) {
   table_ = new AliasTable(md);
   // Replace aliases and delete zero-time self-assignments 
   md->accept(this);
-  for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
+  for (auto i = md->begin_items(); i != md->end_items(); ) {
     if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       if (is_self_assign(ca)) {
-        i = md->get_items()->purge(i);
+        i = md->purge_items(i);
         continue;
       } 
     } 
@@ -98,8 +98,8 @@ Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
   // attached to it.
   auto res = itr->second.target_->clone();
   if (Resolve().is_slice(itr->second.target_)) {
-    assert(!res->get_dim()->empty());
-    delete res->get_dim()->remove_back();
+    assert(!res->empty_dim());
+    delete res->remove_back_dim();
   }
 
   // If either this id or the target is a slice, we'll need one last merge.
@@ -108,11 +108,11 @@ Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
   const auto st = !itr->second.slices_.empty();
   const auto si = Resolve().is_slice(id);
   if (st && si) {
-    res->get_dim()->push_back(merge(itr->second.slices_.back(), id->get_dim()->back()));
+    res->push_back_dim(merge(itr->second.slices_.back(), id->back_dim()));
   } else if (st) {
-    res->get_dim()->push_back(itr->second.slices_.back()->clone());
+    res->push_back_dim(itr->second.slices_.back()->clone());
   } else if (si) {
-    res->get_dim()->push_back(id->get_dim()->back()->clone());
+    res->push_back_dim(id->back_dim()->clone());
   }
   return res;
 }
@@ -147,8 +147,8 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
     return;
   }
   // Ignore non-const assignments
-  for (auto d : *rhs->get_dim()) {
-    if (!Constant().is_static_constant(d)) {
+  for (auto i = rhs->begin_dim(), ie = rhs->end_dim(); i != ie; ++i) {
+    if (!Constant().is_static_constant(*i)) {
       return;
     }
   }
@@ -156,7 +156,7 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   // If the right-hand-side is a slice, record its bounds
   vector<const Expression*> slices;
   if (Resolve().is_slice(rhs)) {
-    slices.push_back(rhs->get_dim()->back());
+    slices.push_back(rhs->back_dim());
   }
   // Multiple assigns to the same variable are undefined. Keep the most recent.
   aliases_[r] = {rhs, slices, false};
@@ -269,11 +269,11 @@ bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
     return false;
   }
   // Identifiers with different dimension arities can't be self assignments
-  if (lhs->get_dim()->size() != rhs->get_dim()->size()) {
+  if (lhs->size_dim() != rhs->size_dim()) {
     return false;
   }
   // If the identifiers have subscripts which disagree, this isn't a self assignment
-  for (auto i = lhs->get_dim()->begin(), j = rhs->get_dim()->begin(), ie = lhs->get_dim()->end(); i != ie; ++i, ++j) {
+  for (auto i = lhs->begin_dim(), j = rhs->begin_dim(), ie = lhs->end_dim(); i != ie; ++i, ++j) {
     if (!Constant().is_static_constant(*i) || !Constant().is_static_constant(*j)) {
       return false;
     }
@@ -320,7 +320,7 @@ Expression* DeAlias::rewrite(Identifier* id) {
 
 ModuleDeclaration* DeAlias::rewrite(ModuleDeclaration* md) {
   // Only mess with module items. 
-  md->get_items()->accept(this);
+  md->accept_items(this);
   return md;
 }
 

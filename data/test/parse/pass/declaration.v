@@ -8,5 +8,4 @@ module foo();
 
   integer i1;
   integer i2, i3 = 15;
-
 endmodule

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_INTEGER_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_INTEGER_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -41,22 +40,29 @@ namespace cascade {
 class IntegerDeclaration : public Declaration {
   public:
     // Constructors:
+    IntegerDeclaration(Attributes* attrs__, Identifier* id__);
     IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__);
     ~IntegerDeclaration() override;
 
     // Node Interface:
-    NODE(IntegerDeclaration, PTR(attrs), PTR(id), MAYBE(val))
+    NODE(IntegerDeclaration)
+    IntegerDeclaration* clone() const override;
+
     // Get/Set:
-    MAYBE_GET_SET(Expression*, val)
+    MAYBE_GET_SET(IntegerDeclaration, Expression, val)
 
   private:
-    MAYBE_ATTR(Expression*, val);
+    MAYBE_ATTR(Expression, val);
 };
 
-inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__) : Declaration() {
-  parent_ = nullptr;
+inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__) : Declaration() {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
+  MAYBE_DEFAULT_SETUP(val);
+  parent_ = nullptr;
+}
+
+inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__, Expression* val__) : IntegerDeclaration(attrs__, id__) {
   MAYBE_SETUP(val);
 }
 
@@ -64,6 +70,12 @@ inline IntegerDeclaration::~IntegerDeclaration() {
   PTR_TEARDOWN(attrs);
   PTR_TEARDOWN(id);
   MAYBE_TEARDOWN(val);
+}
+
+inline IntegerDeclaration* IntegerDeclaration::clone() const {
+  auto res = new IntegerDeclaration(attrs_->clone(), id_->clone());
+  MAYBE_CLONE(val);
+  return res;
 }
 
 } // namespace cascade 

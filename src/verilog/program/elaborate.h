@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_ELABORATE_H
 
 #include <stddef.h>
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -48,7 +49,7 @@ class Elaborate : public Visitor {
     ModuleDeclaration* elaborate(ModuleInstantiation* mi);
     GenerateBlock* elaborate(CaseGenerateConstruct* cgc);
     GenerateBlock* elaborate(IfGenerateConstruct* igc);
-    Many<GenerateBlock>* elaborate(LoopGenerateConstruct* lgc);
+    Vector<GenerateBlock*>& elaborate(LoopGenerateConstruct* lgc);
 
     // Query Interface:
     bool is_elaborated(const ModuleInstantiation* mi);
@@ -59,12 +60,12 @@ class Elaborate : public Visitor {
     ModuleDeclaration* get_elaboration(ModuleInstantiation* mi);
     GenerateBlock* get_elaboration(CaseGenerateConstruct* cgc);
     GenerateBlock* get_elaboration(IfGenerateConstruct* igc);
-    Many<GenerateBlock>* get_elaboration(LoopGenerateConstruct* lgc);
+    Vector<GenerateBlock*>& get_elaboration(LoopGenerateConstruct* lgc);
 
     const ModuleDeclaration* get_elaboration(const ModuleInstantiation* mi);
     const GenerateBlock* get_elaboration(const CaseGenerateConstruct* cgc);
     const GenerateBlock* get_elaboration(const IfGenerateConstruct* igc);
-    const Many<GenerateBlock>* get_elaboration(const LoopGenerateConstruct* lgc);
+    const Vector<GenerateBlock*>& get_elaboration(const LoopGenerateConstruct* lgc);
 
   private:
     // Program Access:

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DELAY_CONTROL_H
 #define CASCADE_SRC_VERILOG_AST_DELAY_CONTROL_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/timing_control.h"
@@ -45,21 +44,27 @@ class DelayControl : public TimingControl {
     ~DelayControl() override;
 
     // Node Interface:
-    NODE(DelayControl, PTR(delay))
+    NODE(DelayControl)
+    DelayControl* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Expression*, delay)
+    PTR_GET_SET(DelayControl, Expression, delay)
 
   private:
-    PTR_ATTR(Expression*, delay);
+    PTR_ATTR(Expression, delay);
 };
 
 inline DelayControl::DelayControl(Expression* delay__) : TimingControl() {
-  parent_ = nullptr;
   PTR_SETUP(delay);
+  parent_ = nullptr;
 }
 
 inline DelayControl::~DelayControl() {
   PTR_TEARDOWN(delay);
+}
+
+inline DelayControl* DelayControl::clone() const {
+  return new DelayControl(delay_->clone());
 }
 
 } // namespace cascade 

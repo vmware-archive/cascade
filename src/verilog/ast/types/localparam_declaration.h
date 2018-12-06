@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_LOCALPARAM_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_LOCALPARAM_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -42,29 +41,36 @@ namespace cascade {
 class LocalparamDeclaration : public Declaration {
   public:
     // Constructors:
+    LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
     LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
     ~LocalparamDeclaration() override;
 
     // Node Interface:
-    NODE(LocalparamDeclaration, PTR(attrs), VAL(signed), MAYBE(dim), PTR(id), PTR(val))
+    NODE(LocalparamDeclaration)
+    LocalparamDeclaration* clone() const override;
+
     // Get/Set:
-    VAL_GET_SET(bool, signed)
-    MAYBE_GET_SET(RangeExpression*, dim)
-    PTR_GET_SET(Expression*, val)
+    VAL_GET_SET(LocalparamDeclaration, bool, signed)
+    MAYBE_GET_SET(LocalparamDeclaration, RangeExpression, dim)
+    PTR_GET_SET(LocalparamDeclaration, Expression, val)
 
   private:
-    MAYBE_ATTR(RangeExpression*, dim);
+    MAYBE_ATTR(RangeExpression, dim);
     VAL_ATTR(bool, signed);
-    PTR_ATTR(Expression*, val);
+    PTR_ATTR(Expression, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : Declaration() {
-  parent_ = nullptr;
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration() {
   PTR_SETUP(attrs);
   VAL_SETUP(signed);
-  MAYBE_SETUP(dim);
+  MAYBE_DEFAULT_SETUP(dim);
   PTR_SETUP(id);
   PTR_SETUP(val);
+  parent_ = nullptr;
+}
+
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : LocalparamDeclaration(attrs__, signed__, id__, val__) {
+  MAYBE_SETUP(dim);
 }
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
@@ -73,6 +79,12 @@ inline LocalparamDeclaration::~LocalparamDeclaration() {
   MAYBE_TEARDOWN(dim);
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(val);
+}
+
+inline LocalparamDeclaration* LocalparamDeclaration::clone() const {
+  auto res = new LocalparamDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

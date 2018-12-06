@@ -36,6 +36,7 @@
 #include "src/runtime/ids.h"
 #include "src/target/core/de10/de10_logic.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
@@ -72,8 +73,12 @@ class ModuleBoxer : public Builder {
       public:
         Mangler(const De10Logic* de);
         ~Mangler() override = default;
-        Statement* mangle(size_t id, const Node* args);
+
+        template<typename InputItr>
+        Statement* mangle(size_t id, InputItr begin, InputItr end);
+        Statement* mangle(size_t id, const Node* arg);
       private:
+        void init(size_t id);
         void visit(const Identifier* id) override;
         const De10Logic* de_;
         SeqBlock* t_;
@@ -96,6 +101,15 @@ class ModuleBoxer : public Builder {
     void emit_slice(indstream& os, size_t w, size_t i);
     void emit_output_logic(indstream& os);
 };
+
+template <typename InputItr>
+inline Statement* ModuleBoxer::Mangler::mangle(size_t id, InputItr begin, InputItr end) {
+  init(id);
+  for (; begin != end; ++begin) {
+    (*begin)->accept(this);
+  }
+  return new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+}
 
 } // namespace cascade
 

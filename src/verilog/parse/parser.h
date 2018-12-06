@@ -35,6 +35,7 @@
 #include <stack>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "src/verilog/ast/ast_fwd.h"
 #include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/parse/lexer.h"
@@ -46,6 +47,9 @@ class Log;
 
 class Parser : public Editor {
   public:
+    // Iterators
+    typedef std::vector<Node*>::const_iterator const_iterator;
+
     // Constructors:
     Parser();
     ~Parser() override = default;
@@ -68,10 +72,15 @@ class Parser : public Editor {
 
     // Parser Interface:
     //
-    // Parses the next element from an istream. Returns the node (or nullptr
-    // if the parse was unsuccessful) and a flag indicating whether the parse
-    // ended in an end-of-file. Writes errors or warnings to log.
-    std::pair<Node*, bool> parse(std::istream& is, Log* log);
+    // Parses the next element from an istream.  Writes errors/warnings to log.
+    void parse(std::istream& is, Log* log);
+    // Returns true if the last parse ended in an end-of-file
+    bool eof() const;
+    // Returns true if the last parse was successful
+    bool success() const;
+    // Returns iterators over the results of the previous parse
+    const_iterator begin() const;
+    const_iterator end() const;
     // Returns the last string which was parsed.
     const std::string& get_text() const;
     // Returns the file and line number for a node from the last parse.
@@ -90,7 +99,7 @@ class Parser : public Editor {
     std::stack<std::pair<std::string, location>> stack_;
 
     // State returned by the previous parse:
-    Node* res_;
+    std::vector<Node*> res_;
     bool eof_;
     std::string last_parse_;
     std::unordered_map<const Node*, std::pair<std::string, size_t>> locs_;

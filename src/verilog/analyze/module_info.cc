@@ -196,16 +196,16 @@ const unordered_map<const Identifier*, unordered_map<const Identifier*, const Ex
 }
 
 void ModuleInfo::named_parent_conn(const ModuleInstantiation* mi, const PortDeclaration* pd) {
-  for (auto p : *mi->get_ports()) {
+  for (auto i = mi->begin_ports(), ie = mi->end_ports(); i != ie; ++i) {
     // This is a named connection, so explicit port should never be null.
     // Typechecking should enforce this.
-    assert(p->is_non_null_exp());
+    assert((*i)->is_non_null_exp());
     // Nothing to do for an empty named connection
-    if (p->is_null_imp()) {
+    if ((*i)->is_null_imp()) {
       continue;
     }
     // Nothing to do if this isn't the right port
-    const auto r = Resolve().get_resolution(p->get_exp()); 
+    const auto r = Resolve().get_resolution((*i)->get_exp()); 
     if (r != pd->get_decl()->get_id()) {
       continue;
     }
@@ -228,10 +228,10 @@ void ModuleInfo::named_parent_conn(const ModuleInstantiation* mi, const PortDecl
 
 void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDeclaration* pd, size_t idx) {
   // Do nothing if this port doesn't appear in mi's port list
-  if (idx >= mi->get_ports()->size()) {
+  if (idx >= mi->size_ports()) {
     return;
   }
-  auto p = mi->get_ports()->get(idx);
+  auto p = mi->get_ports(idx);
 
   // This is an ordered connection, so explicit port should always be null.
   // Typechecking should enforce this.
@@ -259,20 +259,20 @@ void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDe
 
 void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
   unordered_map<const Identifier*, const Expression*> conn;
-  for (auto p : *mi->get_ports()) {
+  for (auto i = mi->begin_ports(), ie = mi->end_ports(); i != ie; ++i) {
     // This is a named connection, so explicit port should never be null.
     // Typechecking should enforce this.
-    assert(p->is_non_null_exp());
+    assert((*i)->is_non_null_exp());
     // Nothing to do for an empty named connection
-    if (p->is_null_imp()) {
+    if ((*i)->is_null_imp()) {
       continue;
     }
 
     // Grab the declaration that this explicit port corresponds to
-    const auto r = Resolve().get_resolution(p->get_exp()); 
+    const auto r = Resolve().get_resolution((*i)->get_exp()); 
     assert(r != nullptr);
     // Connect the variable tot he expression in this module
-    conn.insert(make_pair(r, p->get_imp()));
+    conn.insert(make_pair(r, (*i)->get_imp()));
 
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
@@ -298,11 +298,11 @@ void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
 void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
   unordered_map<const Identifier*, const Expression*> conn;
 
-  auto itr = Elaborate().get_elaboration(mi)->get_items()->begin();
-  auto itre = Elaborate().get_elaboration(mi)->get_items()->end();
+  auto itr = Elaborate().get_elaboration(mi)->begin_items();
+  auto itre = Elaborate().get_elaboration(mi)->end_items();
 
-  for (size_t i = 0, ie = mi->get_ports()->size(); i < ie; ++i) {
-    const auto p = mi->get_ports()->get(i);
+  for (size_t i = 0, ie = mi->size_ports(); i < ie; ++i) {
+    const auto p = mi->get_ports(i);
     // This is an ordered connection, so explicit port should always be null.
     // Typechecking should enforce this.
     assert(p->is_null_exp());
@@ -427,8 +427,8 @@ void ModuleInfo::visit(const CaseGenerateConstruct* cgc) {
 }
 
 void ModuleInfo::visit(const IfGenerateConstruct* igc) {
-  for (auto c : *igc->get_clauses()) {
-    c->accept_if(this);
+  for (auto i = igc->begin_clauses(), ie = igc->end_clauses(); i != ie; ++i) {
+    (*i)->accept_if(this);
   }
   if (Elaborate().is_elaborated(igc)) {
     Elaborate().get_elaboration(igc)->accept(this);
@@ -440,7 +440,9 @@ void ModuleInfo::visit(const LoopGenerateConstruct* lgc) {
   lgc->accept_cond(this);
   lgc->accept_update(this);
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 
@@ -484,11 +486,11 @@ void ModuleInfo::visit(const ModuleInstantiation* mi) {
   }
 
   // Descend on implicit ports. These are syntactically part of this module.
-  for (auto p : *mi->get_params()) {
-    p->accept_imp(this);
+  for (auto i = mi->begin_params(), ie = mi->end_params(); i != ie; ++i) {
+    (*i)->accept_imp(this);
   }
-  for (auto p : *mi->get_ports()) {
-    p->accept_imp(this);
+  for (auto i = mi->begin_ports(), ie = mi->end_ports(); i != ie; ++i) {
+    (*i)->accept_imp(this);
   }
 
   // Nothing else to do if this module wasn't instantiated.
@@ -563,8 +565,8 @@ void ModuleInfo::visit(const VariableAssign* va) {
 }
 
 void ModuleInfo::refresh() {
-  for (auto e = md_->get_items()->size(); md_->next_update_ < e; ++md_->next_update_) {
-    md_->get_items()->get(md_->next_update_)->accept(this);
+  for (auto e = md_->size_items(); md_->next_update_ < e; ++md_->next_update_) {
+    md_->get_items(md_->next_update_)->accept(this);
   }
 }
 

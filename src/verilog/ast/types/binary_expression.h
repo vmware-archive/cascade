@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_BINARY_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_BINARY_EXPRESSION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -72,29 +71,35 @@ class BinaryExpression : public Expression {
     ~BinaryExpression() override;
 
     // Node Interface:
-    NODE(BinaryExpression, PTR(lhs), VAL(op), PTR(rhs))
+    NODE(BinaryExpression)
+    BinaryExpression* clone() const override;
+
     // Get/Set
-    PTR_GET_SET(Expression*, lhs)
-    VAL_GET_SET(Op, op)
-    PTR_GET_SET(Expression*, rhs)
+    PTR_GET_SET(BinaryExpression, Expression, lhs)
+    VAL_GET_SET(BinaryExpression, Op, op)
+    PTR_GET_SET(BinaryExpression, Expression, rhs)
 
   private:
-    PTR_ATTR(Expression*, lhs);
+    PTR_ATTR(Expression, lhs);
     VAL_ATTR(Op, op);
-    PTR_ATTR(Expression*, rhs);
+    PTR_ATTR(Expression, rhs);
 };
 
 inline BinaryExpression::BinaryExpression(Expression* lhs__, Op op__, Expression* rhs__) : Expression() {
-  parent_ = nullptr;
   PTR_SETUP(lhs);
   VAL_SETUP(op);
   PTR_SETUP(rhs);
+  parent_ = nullptr;
 }
 
 inline BinaryExpression::~BinaryExpression() {
   PTR_TEARDOWN(lhs);
   VAL_TEARDOWN(op);
   PTR_TEARDOWN(rhs);
+}
+
+inline BinaryExpression* BinaryExpression::clone() const {
+  return new BinaryExpression(lhs_->clone(), op_, rhs_->clone());
 }
 
 } // namespace cascade 

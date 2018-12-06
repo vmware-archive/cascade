@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/module_item.h"
@@ -42,29 +41,42 @@ namespace cascade {
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
+    ContinuousAssign(VariableAssign* assign__);
     ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__);
     ~ContinuousAssign() override;
 
     // Node Interface:
-    NODE(ContinuousAssign, MAYBE(ctrl), PTR(assign))
+    NODE(ContinuousAssign)
+    ContinuousAssign* clone() const override;
+
     // Get/Set:
-    MAYBE_GET_SET(DelayControl*, ctrl)
-    PTR_GET_SET(VariableAssign*, assign)
+    MAYBE_GET_SET(ContinuousAssign, DelayControl, ctrl)
+    PTR_GET_SET(ContinuousAssign, VariableAssign, assign)
 
   private:
-    MAYBE_ATTR(DelayControl*, ctrl);
-    PTR_ATTR(VariableAssign*, assign);
+    MAYBE_ATTR(DelayControl, ctrl);
+    PTR_ATTR(VariableAssign, assign);
 };
 
-inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ModuleItem() {
-  parent_ = nullptr;
-  MAYBE_SETUP(ctrl);
+inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem() {
+  MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(assign);
+  parent_ = nullptr;
+}
+
+inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ContinuousAssign(assign__) {
+  MAYBE_SETUP(ctrl);
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
   MAYBE_TEARDOWN(ctrl);
   PTR_TEARDOWN(assign);
+}
+
+inline ContinuousAssign* ContinuousAssign::clone() const {
+  auto res = new ContinuousAssign(assign_->clone());
+  MAYBE_CLONE(ctrl);
+  return res;
 }
 
 } // namespace cascade 

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ARG_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_ARG_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
@@ -42,22 +41,30 @@ namespace cascade {
 class ArgAssign : public Node {
   public:
     // Constructors:
+    ArgAssign();
     ArgAssign(Identifier* exp__, Expression* imp__);
     ~ArgAssign() override;
 
     // Node Interface:
-    NODE(ArgAssign, MAYBE(exp), MAYBE(imp))
+    NODE(ArgAssign)
+    ArgAssign* clone() const override;
+
     // Get/Set
-    MAYBE_GET_SET(Identifier*, exp)
-    MAYBE_GET_SET(Expression*, imp)
+    MAYBE_GET_SET(ArgAssign, Identifier, exp)
+    MAYBE_GET_SET(ArgAssign, Expression, imp)
 
   private:
-    MAYBE_ATTR(Identifier*, exp);
-    MAYBE_ATTR(Expression*, imp);
+    MAYBE_ATTR(Identifier, exp);
+    MAYBE_ATTR(Expression, imp);
 };
 
-inline ArgAssign::ArgAssign(Identifier* exp__, Expression* imp__) : Node() { 
+inline ArgAssign::ArgAssign() : Node() { 
+  MAYBE_DEFAULT_SETUP(exp);
+  MAYBE_DEFAULT_SETUP(imp);
   parent_ = nullptr;
+}
+
+inline ArgAssign::ArgAssign(Identifier* exp__, Expression* imp__) : ArgAssign() { 
   MAYBE_SETUP(exp);
   MAYBE_SETUP(imp);
 }
@@ -65,6 +72,13 @@ inline ArgAssign::ArgAssign(Identifier* exp__, Expression* imp__) : Node() {
 inline ArgAssign::~ArgAssign() {
   MAYBE_TEARDOWN(exp);
   MAYBE_TEARDOWN(imp);
+}
+
+inline ArgAssign* ArgAssign::clone() const {
+  auto res = new ArgAssign();
+  MAYBE_CLONE(exp);
+  MAYBE_CLONE(imp);
+  return res;
 }
 
 } // namespace cascade

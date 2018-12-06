@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_MODULE_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_MODULE_DECLARATION_H
 
-#include <cassert>
 #include <unordered_map>
 #include <unordered_set>
 #include "src/base/container/vector.h"
@@ -40,7 +39,6 @@
 #include "src/verilog/ast/types/attributes.h"
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/node.h"
 #include "src/verilog/ast/types/scope.h"
@@ -50,22 +48,26 @@ namespace cascade {
 class ModuleDeclaration : public Node, public Scope {
   public:
     // Constructors:
-    ModuleDeclaration(Attributes* attrs__, Identifier* id__, Many<ArgAssign>* ports__, Many<ModuleItem>* items__);
+    ModuleDeclaration(Attributes* attrs__, Identifier* id__);
+    template <typename PortsItr, typename ItemsItr>
+    ModuleDeclaration(Attributes* attrs__, Identifier* id__, PortsItr ports_begin__, PortsItr ports_end__, ItemsItr items_begin__, ItemsItr items_end__);
     ~ModuleDeclaration() override;
 
     // Node Interface:
-    NODE(ModuleDeclaration, PTR(attrs), PTR(id), PTR(ports), PTR(items))
+    NODE(ModuleDeclaration)
+    ModuleDeclaration* clone() const override;
+
     // Get/Set:
-    PTR_GET_SET(Attributes*, attrs)
-    PTR_GET_SET(Identifier*, id)
-    PTR_GET_SET(Many<ArgAssign>*, ports)
-    PTR_GET_SET(Many<ModuleItem>*, items)
+    PTR_GET_SET(ModuleDeclaration, Attributes, attrs)
+    PTR_GET_SET(ModuleDeclaration, Identifier, id)
+    MANY_GET_SET(ModuleDeclaration, ArgAssign, ports)
+    MANY_GET_SET(ModuleDeclaration, ModuleItem, items)
 
   private:
-    PTR_ATTR(Attributes*, attrs);
-    PTR_ATTR(Identifier*, id);
-    PTR_ATTR(Many<ArgAssign>*, ports);
-    PTR_ATTR(Many<ModuleItem>*, items);
+    PTR_ATTR(Attributes, attrs);
+    PTR_ATTR(Identifier, id);
+    MANY_ATTR(ArgAssign, ports);
+    MANY_ATTR(ModuleItem, items);
 
     friend class ModuleInfo;
     DECORATION(size_t, next_update);
@@ -88,21 +90,34 @@ class ModuleDeclaration : public Node, public Scope {
     DECORATION(ChildMap, children);
 };
 
-inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__, Many<ArgAssign>* ports__, Many<ModuleItem>* items__) : Node() {
-  parent_ = nullptr;
+inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__) : Node(), Scope() {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
-  PTR_SETUP(ports);
-  PTR_SETUP(items);
+  MANY_DEFAULT_SETUP(ports);
+  MANY_DEFAULT_SETUP(items);
+  parent_ = nullptr;
   next_update_ = 0;
   next_supdate_ = 0;
+}
+
+template <typename PortsItr, typename ItemsItr>
+inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__, PortsItr ports_begin__, PortsItr ports_end__, ItemsItr items_begin__, ItemsItr items_end__) : ModuleDeclaration(attrs__, id__) {
+  MANY_SETUP(ports);
+  MANY_SETUP(items);
 }
 
 inline ModuleDeclaration::~ModuleDeclaration() {
   PTR_TEARDOWN(attrs);
   PTR_TEARDOWN(id);
-  PTR_TEARDOWN(ports);
-  PTR_TEARDOWN(items);
+  MANY_TEARDOWN(ports);
+  MANY_TEARDOWN(items);
+}
+
+inline ModuleDeclaration* ModuleDeclaration::clone() const {
+  auto res = new ModuleDeclaration(attrs_->clone(), id_->clone());
+  MANY_CLONE(ports);
+  MANY_CLONE(items);
+  return res;
 }
 
 } // namespace cascade 

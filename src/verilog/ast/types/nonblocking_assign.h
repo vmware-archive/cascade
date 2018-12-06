@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NONBLOCKING_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_NONBLOCKING_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/assign_statement.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/timing_control.h"
@@ -42,29 +41,42 @@ namespace cascade {
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
+    NonblockingAssign(VariableAssign* assign__);
     NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~NonblockingAssign() override;
 
     // Node Interface:
-    NODE(NonblockingAssign, MAYBE(ctrl), PTR(assign))
+    NODE(NonblockingAssign)
+    NonblockingAssign* clone() const override;
+
     // Get/Set:
-    MAYBE_GET_SET(TimingControl*, ctrl)
-    PTR_GET_SET(VariableAssign*, assign)
+    MAYBE_GET_SET(NonblockingAssign, TimingControl, ctrl)
+    PTR_GET_SET(NonblockingAssign, VariableAssign, assign)
 
   private:
-    MAYBE_ATTR(TimingControl*, ctrl);
-    PTR_ATTR(VariableAssign*, assign);
+    MAYBE_ATTR(TimingControl, ctrl);
+    PTR_ATTR(VariableAssign, assign);
 };
 
-inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : AssignStatement() {
-  parent_ = nullptr;
-  MAYBE_SETUP(ctrl);
+inline NonblockingAssign::NonblockingAssign(VariableAssign* assign__) : AssignStatement() {
+  MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(assign); 
+  parent_ = nullptr;
+}
+
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : NonblockingAssign(assign__) {
+  MAYBE_SETUP(ctrl);
 }
 
 inline NonblockingAssign::~NonblockingAssign() {
   MAYBE_TEARDOWN(ctrl);
   PTR_TEARDOWN(assign);
+}
+
+inline NonblockingAssign* NonblockingAssign::clone() const {
+  auto res = new NonblockingAssign(assign_->clone());
+  MAYBE_CLONE(ctrl);
+  return res;
 }
 
 } // namespace cascade 

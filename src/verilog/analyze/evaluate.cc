@@ -30,8 +30,6 @@
 
 #include "src/verilog/analyze/evaluate.h"
 
-#include <iostream>
-
 using namespace std;
 
 namespace cascade {
@@ -46,8 +44,8 @@ vector<size_t> Evaluate::get_arity(const Identifier* id) {
   }
   // Otherwise, iterate over the declaration to determine arity
   vector<size_t> res;
-  for (auto d : *r->get_dim()) {
-    const auto rng = get_range(d);
+  for (auto i = r->begin_dim(), ie = r->end_dim(); i != ie; ++i) {
+    const auto rng = get_range(*i);
     res.push_back(rng.first - rng.second + 1);
   }
   return res;
@@ -141,28 +139,28 @@ void Evaluate::assign_array_value(const Identifier* id, const vector<Bits>& val)
 
 tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifier* i) {
   // Nothing to do if this is a scalar variable
-  if (r->get_dim()->empty()) {
-    const auto rng = i->get_dim()->empty() ? 
+  if (r->empty_dim()) {
+    const auto rng = i->empty_dim() ? 
       make_pair<size_t, size_t>(-1,-1) : 
-      get_range(i->get_dim()->front());
+      get_range(i->front_dim());
     return make_tuple(0, rng.first, rng.second);
   }
 
   // Otherwise, i had better have at most one more dimension than r
-  assert(i->get_dim()->size() - r->get_dim()->size() <= 1);
+  assert(i->size_dim() - r->size_dim() <= 1);
 
   // Iterators
-  auto iitr = i->get_dim()->begin();
-  auto ritr = r->get_dim()->begin();
+  auto iitr = i->begin_dim();
+  auto ritr = r->begin_dim();
   // The index we're looking for
   size_t idx = 0;
   // Multiplier for multi-dimensional arrays
   size_t mul = r->bit_val_.size();
 
   // Walk along subscripts 
-  for (auto re = r->get_dim()->end(); ritr != re; ++iitr, ++ritr) {
-    assert(dynamic_cast<RangeExpression*>(*ritr) != nullptr);
-    assert(dynamic_cast<RangeExpression*>(*iitr) == nullptr);
+  for (auto re = r->end_dim(); ritr != re; ++iitr, ++ritr) {
+    assert(dynamic_cast<const RangeExpression*>(*ritr) != nullptr);
+    assert(dynamic_cast<const RangeExpression*>(*iitr) == nullptr);
 
     const auto rval = get_range(*ritr);
     const auto ival = get_value(*iitr).to_int();
@@ -171,7 +169,7 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
     idx += mul * ival;
   }
   // Out of bounds accesses are undefined, so we'll map them to a safe value
-  const auto rng = iitr == i->get_dim()->end() ?
+  const auto rng = iitr == i->end_dim() ?
     make_pair<size_t, size_t>(-1,-1) : 
     get_range(*iitr);
   return make_tuple(idx >= r->bit_val_.size() ? 0 : idx, rng.first, rng.second);
@@ -290,10 +288,10 @@ void Evaluate::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::edit(Concatenation* c) {
-  auto i = c->get_exprs()->begin();
+  auto i = c->begin_exprs();
   c->bit_val_[0].assign(get_value(*i++));
-  for (auto ie = c->get_exprs()->end(); i != ie; ++i) {
-    c->bit_val_[0].concat( get_value(*i));
+  for (auto ie = c->end_exprs(); i != ie; ++i) {
+    c->bit_val_[0].concat(get_value(*i));
   }
 }
 
@@ -384,7 +382,7 @@ const Node* Evaluate::get_root(const Expression* e) const {
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
     // Subscripts inside of identifiers 
-    if (dynamic_cast<const Many<Expression>*>(root->get_parent()) && dynamic_cast<const Identifier*>(root->get_parent()->get_parent())) {
+    if (dynamic_cast<const Expression*>(root) && dynamic_cast<const Identifier*>(root->get_parent())) {
       return root;
     }
     // Ranges inside of declarations 
@@ -575,8 +573,8 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
   Editor::edit(c);
 
   size_t w = 0;
-  for (auto e : *c->get_exprs()) {
-    w += e->bit_val_[0].size();
+  for (auto i = c->begin_exprs(), ie = c->end_exprs(); i != ie; ++i) {
+    w += (*i)->bit_val_[0].size();
   }
   c->bit_val_.emplace_back(Bits(w, 0));
   c->bit_val_[0].set_signed(false);
@@ -589,10 +587,10 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
 
   size_t w = 0;
   bool s = false;
-  if (id->get_dim()->size() == r->get_dim()->size()) {
+  if (id->size_dim() == r->size_dim()) {
     w = Evaluate().get_width(r);
     s = Evaluate().get_signed(r);
-  } else if (auto re = dynamic_cast<RangeExpression*>(id->get_dim()->back())) {
+  } else if (auto re = dynamic_cast<RangeExpression*>(id->back_dim())) {
     const auto lower = Evaluate().get_value(re->get_lower()).to_int();
     if (re->get_type() == RangeExpression::CONSTANT) {
       const auto upper = Evaluate().get_value(re->get_upper()).to_int();
@@ -678,8 +676,8 @@ void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
 
   // Calculate arity
   size_t arity = 1;
-  for (auto dim : *id->get_id()->get_dim()) {
-    const auto rng = Evaluate().get_range(dim);
+  for (auto i = id->get_id()->begin_dim(), ie = id->get_id()->end_dim(); i != ie; ++i) {
+    const auto rng = Evaluate().get_range(*i);
     arity *= (rng.first-rng.second+1);
   }
   // Allocate bits: Integers must be a minimum of 32 bits and are always signed
@@ -718,8 +716,8 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
 
   // Calculate arity
   size_t arity = 1;
-  for (auto dim : *nd->get_id()->get_dim()) {
-    const auto rng = Evaluate().get_range(dim);
+  for (auto i = nd->get_id()->begin_dim(), ie = nd->get_id()->end_dim(); i != ie; ++i) {
+    const auto rng = Evaluate().get_range(*i);
     arity *= (rng.first-rng.second+1);
   }
   // Calculate width
@@ -764,8 +762,8 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
 
   // Calculate arity
   size_t arity = 1;
-  for (auto dim : *rd->get_id()->get_dim()) {
-    const auto rng = Evaluate().get_range(dim);
+  for (auto i = rd->get_id()->begin_dim(), ie = rd->get_id()->end_dim(); i != ie; ++i) {
+    const auto rng = Evaluate().get_range(*i);
     arity *= (rng.first-rng.second+1);
   }
   // Calculate width
