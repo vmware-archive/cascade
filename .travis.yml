@@ -6,6 +6,21 @@ matrix:
   include:
   - os: linux
     dist: xenial
+    compiler: gcc
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - ccache
+        - cmake
+        - flex
+        - bison
+        - libncurses-dev
+        - g++-8
+  - os: linux
+    dist: xenial
+    compiler: clang
     addons:
       apt:
         sources:
@@ -17,7 +32,6 @@ matrix:
         - flex
         - bison
         - libncurses-dev
-        - g++-8
         - clang-7
   - os: linux
     dist: xenial
@@ -53,9 +67,6 @@ matrix:
     - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
     - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
-compiler:
-- gcc
-- clang
 install:
 - "[ $COVERAGE = 1 ] && export CFLAGS=-coverage $CFLAGS && export CXXFLAGS=-coverage $CXXFLAGS
   && export LDFLAGS=-coverage $LDFLAGS || true"
