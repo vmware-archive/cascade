@@ -52,7 +52,7 @@ matrix:
       sonarcloud:
         organization: cascade
     before_install:
-      - "pip install scan-build"
+      - "pip install --user scan-build"
     env:
     - COVERAGE="1"
   - os: osx
