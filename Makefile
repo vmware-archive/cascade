@@ -1,14 +1,12 @@
 ### Target Attributes
 UNAME=$(shell uname)
 
-### Constants: g++
-CC=ccache gcc
-CXX=ccache g++ --std=c++14
+### Flags
 CC_OPT=\
 	-Werror -Wextra -Wall -Wfatal-errors -pedantic\
  	-Wno-deprecated-register
 CXX_OPT=\
-	-Werror -Wextra -Wall -Wfatal-errors -pedantic\
+	--std=c++14 -Werror -Wextra -Wall -Wfatal-errors -pedantic\
  	-Wno-overloaded-virtual -Wno-deprecated-register
 PERF=\
 	-march=native -fno-exceptions -fno-stack-protector \
@@ -133,25 +131,25 @@ submodule:
 	git submodule init
 	git submodule update
 bin/%: tools/%.cc ${FLEX_SRC} ${OBJ}
-	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
 ${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC}
 	cd src/verilog/parse && flex verilog.ll	
 ${BISON_SRC}: src/verilog/parse/verilog.yy
 	cd src/verilog/parse && bison -d -v verilog.yy
 %.o: %.c ${FLEX_SRC} ${BISON_SRC}
-	${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+	ccache ${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 %.o: %.cc ${FLEX_SRC} ${BISON_SRC} 
-	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 ${GTEST_LIB}: submodule
 	mkdir -p ${GTEST_BUILD_DIR}
 	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
 ${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
-	${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c
-	${CC} ${CFLAGS} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
+	ccache ${CC} ${CFLAGS} ${CC_OPT} ${PERF} -Wno-sign-compare -Wno-unused-parameter -Wno-format -Wno-format-pedantic ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/lex.yy.o: src/verilog/parse/lex.yy.cc 
-	${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG -Wno-sign-compare ${GTEST_INC} ${INC} -c $< -o $@
 src/verilog/parse/verilog.tab.o: src/verilog/parse/verilog.tab.cc
-	${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG  ${GTEST_INC} ${INC} -c $< -o $@
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} -march=native -fno-stack-protector -O3 -DNDEBUG  ${GTEST_INC} ${INC} -c $< -o $@
