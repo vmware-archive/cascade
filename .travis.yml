@@ -6,34 +6,48 @@ matrix:
   include:
   - os: linux
     dist: xenial
+    compiler: gcc
     addons:
       apt:
         sources:
         - ubuntu-toolchain-r-test
-        - llvm-toolchain-precise-3.8
         packages:
         - ccache
         - cmake
         - flex
         - bison
         - libncurses-dev
-        - g++-6
-        - clang-3.8
+        - g++-8
+  - os: linux
+    dist: xenial
+    compiler: clang
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-xenial-7
+        packages:
+        - ccache
+        - cmake
+        - flex
+        - bison
+        - libncurses-dev
+        - clang-7
   - os: linux
     dist: xenial
     addons:
       apt:
         sources:
         - ubuntu-toolchain-r-test
-        - llvm-toolchain-precise-3.8
+        - llvm-toolchain-xenial-7
         packages:
         - ccache
         - cmake
         - flex
         - bison
         - libncurses-dev
-        - g++-6
-        - clang-3.8
+        - g++-8
+        - clang-7
         - lcov
     env:
     - COVERAGE="1"
@@ -53,12 +67,7 @@ matrix:
     - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
     - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
-compiler:
-- gcc
-- clang
 install:
-- "[ $CXX = g++ ] && export CXX=g++-6 || true"
-- "[ $CXX = clang++ ] && export CXX=clang++-3.8 || true"
 - "[ $COVERAGE = 1 ] && export CFLAGS=-coverage $CFLAGS && export CXXFLAGS=-coverage $CXXFLAGS
   && export LDFLAGS=-coverage $LDFLAGS || true"
 script:
