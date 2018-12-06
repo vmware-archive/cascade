@@ -71,8 +71,8 @@ install:
 - "[ $COVERAGE = 1 ] && export CFLAGS=-coverage $CFLAGS && export CXXFLAGS=-coverage $CXXFLAGS
   && export LDFLAGS=-coverage $LDFLAGS || true"
 script:
-- "[ $COVERAGE = 1 ] build-wrapper-linux-x86-64 --out-dir bw-output make || make"
-- "[ $COVERAGE = 1 ] make test && gcov . || make test"
+- "[ $COVERAGE = 1 ] && build-wrapper-linux-x86-64 --out-dir bw-output make || make"
+- "[ $COVERAGE = 1 ] && make test && gcov . || make test"
 after_success:
 - "[ $COVERAGE = 1 ] && bash <(curl -s https://codecov.io/bash) && sonar-scanner \
   -Dsonar.projectKey=cascade \
