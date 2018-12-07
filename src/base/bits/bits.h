@@ -1290,7 +1290,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
   // we want the top bits of the top-most word to be filled with ones.
   // This is only used in the case where hob is set and the top word is not
   // completely full.
-  T upper_most_word = ((-1 << idx) | val_.back());
+  const auto upper_most_word = ((T(-1) << idx) | val_.back());
 
   // Work our way up until top goes out of range
   size_t w = 0;
@@ -1298,7 +1298,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
     if (bamt == 0) {
       res.val_[w] = val_[t];
     } else {
-      T upper_most = (t == val_.size() - 1) ? upper_most_word : val_[t];
+      const auto upper_most = (t == val_.size() - 1) ? upper_most_word : val_[t];
       res.val_[w] = (val_[t-1] >> bamt) | ((upper_most & mask) << mamt);
     }
   }
