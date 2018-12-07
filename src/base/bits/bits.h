@@ -1286,6 +1286,11 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
   // Create a mask for extracting the lowest bamt bits from top
   const auto mamt = bits_per_word() - bamt;
   const auto mask = (T(1) << bamt) - 1;
+  // val_ is an array of unsigned values. If we are working with signed values,
+  // we want the top bits of the top-most word to be filled with ones.
+  // This is only used in the case where hob is set and the top word is not
+  // completely full.
+  const auto upper_most_word = ((T(-1) << idx) | val_.back());
 
   // Work our way up until top goes out of range
   size_t w = 0;
@@ -1293,12 +1298,13 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
     if (bamt == 0) {
       res.val_[w] = val_[t];
     } else {
-      res.val_[w] = (val_[t-1] >> bamt) | ((val_[t] & mask) << mamt);
+      const auto upper_most = (t == val_.size() - 1) ? upper_most_word : val_[t];
+      res.val_[w] = (val_[t-1] >> bamt) | ((upper_most & mask) << mamt);
     }
   }
   // There's one more block to build where top is implicitly zero
   if (hob) {
-    res.val_[w++] = (bamt == 0) ? T(-1) : ((val_.back() >> bamt) | (mask << mamt));
+    res.val_[w++] = (bamt == 0) ? T(-1) : ((upper_most_word >> bamt) | (mask << mamt));
   } else {
     res.val_[w++] = (bamt == 0) ? T(0) : (val_.back() >> bamt);
   }
