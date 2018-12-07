@@ -279,3 +279,9 @@ TEST(simple, sign_2) {
 //TEST(simple, while_1) {
 //  run_code("minimal","data/test/simple/while_1.v", "333");
 //}
+TEST(simple, issue_41a) {
+    run_code("minimal","data/test/simple/issue_41a.v", "-1");
+}
+TEST(simple, issue_41b) {
+    run_code("minimal","data/test/simple/issue_41b.v", "-4");
+}
