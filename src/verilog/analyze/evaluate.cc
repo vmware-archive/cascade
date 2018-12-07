@@ -586,11 +586,17 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
       break;
     case BinaryExpression::GGT:
     case BinaryExpression::LLT:
+      w = be->get_lhs()->bit_val_[0].size();
+      s = be->get_lhs()->bit_val_[0].is_signed();
+      break;
     case BinaryExpression::TTIMES:
+      w = be->get_lhs()->bit_val_[0].size();
+      s = false;
+      break;
     case BinaryExpression::GGGT:
     case BinaryExpression::LLLT:
       w = be->get_lhs()->bit_val_[0].size();
-      s = false;
+      s = be->get_lhs()->bit_val_[0].is_signed();
       break;
     default:
       assert(false);
