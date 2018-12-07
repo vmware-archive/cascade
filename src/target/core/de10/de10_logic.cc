@@ -386,7 +386,7 @@ void De10Logic::write_scalar(const VarInfo& vi, const Bits& b) {
   }
 }
 
-void De10Logic::write_array(const VarInfo& vi, const vector<Bits>& bs) {
+void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
   // Move bits to fpga one word at a time, skipping the local storage.
   // If an when we need a value we'll read it out of the fpga first.
   auto idx = vi.index();

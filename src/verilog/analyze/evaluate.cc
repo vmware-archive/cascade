@@ -70,7 +70,7 @@ const Bits& Evaluate::get_value(const Expression* e) {
   return e->bit_val_[0];
 }
 
-const vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
+const Vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
   init(const_cast<Identifier*>(i));
   if (i->get_flag<0>()) {
     const_cast<Identifier*>(i)->accept(this);
@@ -122,7 +122,7 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   }
 }
 
-void Evaluate::assign_array_value(const Identifier* id, const vector<Bits>& val) {
+void Evaluate::assign_array_value(const Identifier* id, const Vector<Bits>& val) {
   // Find the variable that we're referring to. 
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);
@@ -560,7 +560,7 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
     default:
       assert(false);
   }
-  be->bit_val_.emplace_back(Bits(w, 0));
+  be->bit_val_.push_back(Bits(w, 0));
   be->bit_val_[0].set_signed(s);
 }
 
@@ -571,7 +571,7 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   // been able to find anything to this point in the spec.
   bool s = ce->get_lhs()->bit_val_[0].is_signed() && ce->get_rhs()->bit_val_[0].is_signed();
   size_t w = max(ce->get_lhs()->bit_val_[0].size(), ce->get_rhs()->bit_val_[0].size());
-  ce->bit_val_.emplace_back(Bits(w, 0));
+  ce->bit_val_.push_back(Bits(w, 0));
   ce->bit_val_[0].set_signed(s);
 }
 
@@ -582,7 +582,7 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
   for (auto i = c->begin_exprs(), ie = c->end_exprs(); i != ie; ++i) {
     w += (*i)->bit_val_[0].size();
   }
-  c->bit_val_.emplace_back(Bits(w, 0));
+  c->bit_val_.push_back(Bits(w, 0));
   c->bit_val_[0].set_signed(false);
 }
 
@@ -609,7 +609,7 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
     w = 1;
     s = false;
   }
-  id->bit_val_.emplace_back(Bits(w, 0));
+  id->bit_val_.push_back(Bits(w, 0));
   id->bit_val_[0].set_signed(s);
 }
 
@@ -618,7 +618,7 @@ void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
   mc->accept_concat(this);
 
   size_t w = Evaluate().get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
-  mc->bit_val_.emplace_back(Bits(w, 0));
+  mc->bit_val_.push_back(Bits(w, 0));
   mc->bit_val_[0].set_signed(false);
 }
 
@@ -662,7 +662,7 @@ void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
     default:
      assert(false); 
   }
-  ue->bit_val_.emplace_back(Bits(w, 0));
+  ue->bit_val_.push_back(Bits(w, 0));
   ue->bit_val_[0].set_signed(s);
 }
 
@@ -672,7 +672,7 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
   // Genvars are materialized as localparams and follow the same rules.  For
   // lack of information in this declaration though, we have to assume 32 bit
   // unsigned. 
-  gd->get_id()->bit_val_.emplace_back(Bits(32, 0));
+  gd->get_id()->bit_val_.push_back(Bits(32, 0));
   gd->get_id()->bit_val_[0].set_signed(false);
 }
 
@@ -703,7 +703,7 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   ld->accept_val(this);
 
   // Start out with a basic allocation of bits
-  ld->get_id()->bit_val_.emplace_back(Bits(false));
+  ld->get_id()->bit_val_.push_back(Bits(false));
   // Parameter declaration may override size and sign
   ld->get_id()->bit_val_[0].set_signed(ld->get_signed());
   if (ld->is_non_null_dim()) {
@@ -749,7 +749,7 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   pd->accept_val(this);
 
   // Start out with a basic allocation of bits
-  pd->get_id()->bit_val_.emplace_back(Bits(false));
+  pd->get_id()->bit_val_.push_back(Bits(false));
   // Parameter declaration may override size and sign
   pd->get_id()->bit_val_[0].set_signed(pd->get_signed());
   if (pd->is_non_null_dim()) {

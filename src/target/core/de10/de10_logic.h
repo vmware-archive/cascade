@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
+#include "src/base/container/vector.h"
 #include "src/target/core.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
@@ -150,7 +151,7 @@ class De10Logic : public Logic, public Visitor {
     void read_scalar(const VarInfo& vi);
     void read_array(const VarInfo& vi);
     void write_scalar(const VarInfo& vi, const Bits& b);
-    void write_array(const VarInfo& vi, const std::vector<Bits>& bs);
+    void write_array(const VarInfo& vi, const Vector<Bits>& bs);
     
     // Evaluate / Update Helpers:
     void handle_outputs();

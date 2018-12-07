@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 
-#include <vector>
 #include "src/base/bits/bits.h"
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
 
@@ -52,7 +52,7 @@ class Expression : public Node {
 
   protected:
     friend class Evaluate;
-    DECORATION(std::vector<Bits>, bit_val);
+    DECORATION(Vector<Bits>, bit_val);
 };
 
 } // namespace cascade 

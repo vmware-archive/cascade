@@ -36,6 +36,7 @@
 #include <utility>
 #include <vector>
 #include "src/base/bits/bits.h"
+#include "src/base/container/vector.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/editor.h"
@@ -78,7 +79,7 @@ class Evaluate : public Editor {
     const Bits& get_value(const Expression* e);
     // Returns the array value of an identifier. Invoking this method on an identifier
     // which evaluates to a scalar returns a single element array.
-    const std::vector<Bits>& get_array_value(const Identifier* i);
+    const Vector<Bits>& get_array_value(const Identifier* i);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
@@ -89,7 +90,7 @@ class Evaluate : public Editor {
     // High-level interface: Resolves id and sets the value of its target to
     // val. Invoking this method on an unresolvable id or one which refers to
     // an array subscript is undefined.
-    void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
+    void assign_array_value(const Identifier* id, const Vector<Bits>& val);
 
     // Low-level interface: Returns an index into r's underlying array, as well
     // as bit range, based on the expressions in i's dimensions. This method is
