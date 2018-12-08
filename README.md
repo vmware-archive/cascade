@@ -387,9 +387,6 @@ FAQ
 #### Flex fails during build with an error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
 This has to do with the version of flex that you're using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
 
-#### Bison fails during build with an error related to ```too many arguments provided to function-like macro``` on OSX.
-(See issue #33) This has to do with the version of bison that you're using. This behavior has so far been observed with bison 3.2.x. Versions 3.0.4 or 3.1 both appear to work.
-
 #### How do I ssh into the DE10's ARM core using a USB cable?
 (Coming soon.)
 
