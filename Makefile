@@ -91,6 +91,7 @@ OBJ=\
 ### Header files
 HDR=\
 	src/base/bits/bits.h\
+	src/base/container/vector.h\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
 	src/base/socket/socket.h\
@@ -183,7 +184,6 @@ HDR=\
 	src/verilog/ast/types/case_generate_item.h\
 	src/verilog/ast/types/case_item.h\
 	src/verilog/ast/types/case_statement.h\
-	src/verilog/ast/types/combinator.h\
 	src/verilog/ast/types/concatenation.h\
 	src/verilog/ast/types/conditional_expression.h\
 	src/verilog/ast/types/conditional_generate_construct.h\
@@ -214,13 +214,10 @@ HDR=\
 	src/verilog/ast/types/loop_generate_construct.h\
 	src/verilog/ast/types/loop_statement.h\
 	src/verilog/ast/types/macro.h\
-	src/verilog/ast/types/many.h\
-	src/verilog/ast/types/maybe.h\
 	src/verilog/ast/types/module_declaration.h\
 	src/verilog/ast/types/module_instantiation.h\
 	src/verilog/ast/types/module_item.h\
 	src/verilog/ast/types/multiple_concatenation.h\
-	src/verilog/ast/types/nested_expression.h\
 	src/verilog/ast/types/net_declaration.h\
 	src/verilog/ast/types/node.h\
 	src/verilog/ast/types/nonblocking_assign.h\
@@ -266,6 +263,7 @@ HDR=\
 	src/verilog/program/type_check.h\
 	\
 	src/verilog/transform/constant_prop.h\
+	src/verilog/transform/dead_code_eliminate.h\
 	src/verilog/transform/de_alias.h
 
 ### Test binaries
