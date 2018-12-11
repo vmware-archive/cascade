@@ -1,6 +1,6 @@
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog from VMware Research")
 ---
-[![Build Status](https://img.shields.io/travis/com/vmware/cascade.svg?branch=master&style=flat-square)](https://travis-ci.com/vmware/cascade)
+[![Build Status](https://img.shields.io/travis/com/vmware/cascade/master.svg?style=flat-square)](https://travis-ci.com/vmware/cascade)
 [![Coverage Status](https://img.shields.io/codecov/c/github/vmware/cascade.svg?style=flat-square)](https://codecov.io/gh/vmware/cascade)
 
 FPGAs can exceed the performance of general-purpose CPUs by several orders of magnitude and offer dramatically lower cost and time to market than ASICs. While the benefits are substantial, programming an FPGA can be an extremely slow process. Trivial programs can take several minutes to compile using a traditional compiler, and complex designs can take hours or longer. 
