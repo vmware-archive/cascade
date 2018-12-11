@@ -97,7 +97,6 @@ TEST_OBJ=\
 	test/bitcoin.o\
 	test/mips.o\
 	test/regex.o\
-	test/remote.o\
 	test/jit.o
 
 ### Tool binaries
