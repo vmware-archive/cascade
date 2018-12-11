@@ -274,6 +274,7 @@ TEST_OBJ=\
 	test/parse.o\
 	test/type_check.o\
 	test/simple.o\
+	test/array.o\
 	test/bitcoin.o\
 	test/mips.o\
 	test/regex.o\

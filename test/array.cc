@@ -28,40 +28,29 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_FINISH_STATEMENT_H
-#define CASCADE_SRC_VERILOG_AST_FINISH_STATEMENT_H
+#include "gtest/gtest.h"
+#include "test/harness.h"
 
-#include <cassert>
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/system_task_enable_statement.h"
+using namespace cascade;
+using namespace std;
 
-namespace cascade {
+namespace {
 
-class FinishStatement : public SystemTaskEnableStatement {
-  public:
-    // Constructors:
-    FinishStatement(Expression* arg__);
-    ~FinishStatement() override;
-
-    // Node Interface:
-    NODE(FinishStatement, TREE(arg))
-    // Get/Set:
-    TREE_GET_SET(arg)
-
-  private:
-    TREE_ATTR(Expression*, arg);
-};
-
-inline FinishStatement::FinishStatement(Expression* arg__) : SystemTaskEnableStatement() {
-  parent_ = nullptr;
-  TREE_SETUP(arg);
+void run_array(const string& march, const string& path, const string& expected) {
+  run_code(march, path, expected);
 }
 
-inline FinishStatement::~FinishStatement() {
-  TREE_TEARDOWN(arg);
+} // namespace
+
+TEST(array, run_2) {
+  run_array("minimal", "data/test/array/run_2.v", "257\n");
 }
-
-} // namespace cascade 
-
-#endif
+TEST(array, run_3) {
+  run_array("minimal", "data/test/array/run_3.v", "4097\n");
+}
+TEST(array, run_4) {
+  run_array("minimal", "data/test/array/run_4.v", "65537\n");
+}
+TEST(array, run_5) {
+  run_array("minimal", "data/test/array/run_5.v", "1048577\n");
+}
