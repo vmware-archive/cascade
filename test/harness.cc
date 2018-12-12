@@ -136,6 +136,10 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(ss.str(), expected);
 }
 
+void run_array(const string& march, const string& path, const string& expected) {
+  run_code(march, path, expected);
+}
+
 void run_bitcoin(const string& march, const string& path, const string& expected) {
   run_code(march, path, expected);
 }

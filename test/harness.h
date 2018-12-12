@@ -68,6 +68,7 @@ void run_typecheck(const std::string& march, const std::string& path, bool expec
 void run_code(const std::string& march, const std::string& path, const std::string& expected);
 
 // Benchmark harnesses:
+void run_array(const std::string& march, const std::string& path, const std::string& expected);
 void run_bitcoin(const std::string& march, const std::string& path, const std::string& expected);
 void run_mips(const std::string& march, const std::string& path, const std::string& expected);
 void run_regex(const std::string& march, const std::string& regex, const std::string& input, const std::string& expected);

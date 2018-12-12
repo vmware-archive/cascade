@@ -1,5 +1,5 @@
-include data/test/bitcoin/sha-256-functions.v;
-include data/test/bitcoin/sha256_transform.v;
+include data/benchmark/bitcoin/sha-256-functions.v;
+include data/benchmark/bitcoin/sha256_transform.v;
 
 // NOTE: LOOP must be between 1 and 32 (and a power of 2!)
 // NOTE: This module only sets tx_hash when feedback = 0

@@ -1,4 +1,4 @@
-include data/test/bitcoin/sha-256-functions.v;
+include data/benchmark/bitcoin/sha-256-functions.v;
 
 localparam ins = {
   {32'h 76543210},

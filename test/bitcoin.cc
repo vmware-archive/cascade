@@ -68,5 +68,5 @@ TEST(bitcoin, bitcoin_8) {
   );
 }
 TEST(bitcoin, bitcoin_9) {
-  run_bitcoin("minimal","data/test/bitcoin/bitcoin_9.v", "f 93");
+  run_bitcoin("minimal","data/test/bitcoin/run_4.v", "f 93\n");
 }

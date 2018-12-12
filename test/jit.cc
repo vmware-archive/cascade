@@ -42,8 +42,11 @@ TEST(jit, pipeline_1) {
 TEST(jit, pipeline_2) {
   run_code("minimal_jit", "data/test/simple/pipeline_2.v", "0123456789");
 }
+TEST(jit, array) {
+  run_array("minimal_jit", "data/test/array/run_5.v", "1048577\n");
+}
 TEST(jit, bitcoin) {
-  run_bitcoin("minimal_jit", "data/test/bitcoin/bitcoin_9.v", "f 93");
+  run_bitcoin("minimal_jit", "data/test/bitcoin/run_4.v", "f 93\n");
 }
 TEST(jit, bubble) {
   run_mips("minimal_jit", "data/test/mips32/src/bubble.s", "1");

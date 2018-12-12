@@ -32,15 +32,6 @@
 #include "test/harness.h"
 
 using namespace cascade;
-using namespace std;
-
-namespace {
-
-void run_array(const string& march, const string& path, const string& expected) {
-  run_code(march, path, expected);
-}
-
-} // namespace
 
 TEST(array, run_2) {
   run_array("minimal", "data/test/array/run_2.v", "257\n");
