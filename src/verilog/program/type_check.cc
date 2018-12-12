@@ -36,6 +36,7 @@
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/navigate.h"
+#include "src/verilog/analyze/read_set.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
@@ -460,6 +461,20 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
   if ((r != nullptr) && (dynamic_cast<const NetDeclaration*>(r->get_parent()) == nullptr)) {
     error("Continuous assignments are only permitted for variables with type wire", ca);
   }
+
+  // CHECK: Recursive assignment
+  // Iterate over identifiers in the RHS
+  ReadSet rs(ca->get_assign()->get_rhs());
+  for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
+    // Resolve the identifier
+    const auto* r = Resolve().get_resolution(*i);
+    assert(r != nullptr);
+
+    // If it resolves to the left-hand side, this is a recursive definition
+    if (r == ca->get_assign()->get_lhs()) {
+      error("Cannot assign a wire to itself", ca);
+    }
+  }
 }
 
 void TypeCheck::visit(const GenvarDeclaration* gd) {
@@ -508,6 +523,20 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   if (!Constant().is_constant(ld->get_val())) {
     error("Localparam initialization requires constant value", ld);
   }
+
+  // CHECK: Recursive definition
+  // Iterate over identifiers in the RHS
+  ReadSet rs(ld->get_val());
+  for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
+    // Resolve the identifier
+    const auto* r = Resolve().get_resolution(*i);
+    assert(r != nullptr);
+
+    // If it resolves to the left-hand side, this is a recursive definition
+    if (r == ld->get_id()) {
+      error("Cannot define a localparam to be equal to itself", ld);
+    }
+  }
 }
 
 void TypeCheck::visit(const NetDeclaration* nd) {
@@ -543,6 +572,20 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   // CHECK: Parameter initialized to constant value
   if (!Constant().is_constant(pd->get_val())) {
     error("Parameter initialization requires constant value", pd);
+  }
+
+  // CHECK: Recursive definition
+  // Iterate over identifiers in the RHS
+  ReadSet rs(pd->get_val());
+  for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
+    // Resolve the identifier
+    const auto* r = Resolve().get_resolution(*i);
+    assert(r != nullptr);
+
+    // If it resolves to the left-hand side, this is a recursive definition
+    if (r == pd->get_id()) {
+      error("Cannot define a parameter to be equal to itself", pd);
+    }
   }
 }
 
