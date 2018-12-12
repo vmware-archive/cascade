@@ -145,7 +145,7 @@ void run_bitcoin(const string& march, const string& path, const string& expected
 }
 
 void run_mips(const string& march, const string& path, const string& expected) {
-  System().execute("data/test/mips32/asm/asm " + path + " > data/test/mips32/sc/imem.mem");
+  System().execute("data/test/regression/mips32/asm/asm " + path + " > data/test/regression/mips32/sc/imem.mem");
 
   stringstream ss;
   PView view(ss);
@@ -158,7 +158,7 @@ void run_mips(const string& march, const string& path, const string& expected) {
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
     c->set_local_compiler(lc);
-  runtime.set_include_dirs("data/test/mips32/sc/");
+  runtime.set_include_dirs("data/test/regression/mips32/sc/");
   runtime.set_compiler(c);
   runtime.run();
 
@@ -166,7 +166,7 @@ void run_mips(const string& march, const string& path, const string& expected) {
   ASSERT_TRUE(mf.is_open());
   StreamController(&runtime, mf).run_to_completion();
 
-  ifstream ifs("data/test/mips32/sc/cpu.v");
+  ifstream ifs("data/test/regression/mips32/sc/cpu.v");
   ASSERT_TRUE(ifs.is_open());
   StreamController(&runtime, ifs).run_to_completion();
 
@@ -175,8 +175,8 @@ void run_mips(const string& march, const string& path, const string& expected) {
 }
 
 void run_regex(const string& march, const string& regex, const string& input, const string& expected) {
-  System().execute("echo \"" + regex + "\" | data/test/regex/codegen/codegen > data/test/regex/codegen/regex.v");
-  System().execute("cat " + input + " | data/test/regex/data/encode > data/test/regex/data/fifo.data");
+  System().execute("echo \"" + regex + "\" | data/test/regression/regex/codegen/codegen > data/test/regression/regex/codegen/regex.v");
+  System().execute("cat " + input + " | data/test/regression/regex/data/encode > data/test/regression/regex/data/fifo.data");
 
   stringstream ss;
   PView view(ss);
@@ -196,7 +196,7 @@ void run_regex(const string& march, const string& regex, const string& input, co
   ASSERT_TRUE(mf.is_open());
   StreamController(&runtime, mf).run_to_completion();
 
-  ifstream ifs("data/test/regex/codegen/regex.v");
+  ifstream ifs("data/test/regression/regex/codegen/regex.v");
   ASSERT_TRUE(ifs.is_open());
   StreamController(&runtime, ifs).run_to_completion();
 

@@ -271,14 +271,14 @@ HDR=\
 ### Test binaries
 TEST_OBJ=\
 	test/harness.o\
-	test/parse.o\
-	test/type_check.o\
-	test/simple.o\
-	test/array.o\
-	test/bitcoin.o\
-	test/mips.o\
-	test/regex.o\
-	test/jit.o
+	test/regression/parse.o\
+	test/regression/type_check.o\
+	test/regression/simple.o\
+	test/regression/array.o\
+	test/regression/bitcoin.o\
+	test/regression/mips.o\
+	test/regression/regex.o\
+	test/regression/jit.o
 
 ### Tool binaries
 BIN=\
@@ -290,16 +290,16 @@ BIN=\
 ### Top-level commands
 all: ${BIN}
 test: ${GTEST_TARGET}
-	${MAKE} -C data/test/mips32/asm
-	${MAKE} -C data/test/regex/codegen
-	${MAKE} -C data/test/regex/data
+	${MAKE} -C data/test/regression/mips32/asm
+	${MAKE} -C data/test/regression/regex/codegen
+	${MAKE} -C data/test/regression/regex/data
 	${GTEST_TARGET}
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
-	${MAKE} -C data/test/mips32/asm clean
-	${MAKE} -C data/test/regex/codegen clean
-	${MAKE} -C data/test/regex/data clean
-	${RM} -rf data/test/mips32/sc/*.mem
+	${MAKE} -C data/test/regression/mips32/asm clean
+	${MAKE} -C data/test/regression/regex/codegen clean
+	${MAKE} -C data/test/regression/regex/data clean
+	${RM} -rf data/test/regression/mips32/sc/*.mem
 	${RM} -rf ${GTEST_BUILD_DIR} ${GTEST_TARGET} ${TEST_OBJ} 
 	${RM} -rf ${FLEX_SRC} src/verilog/parse/*.hh src/verilog/parse/*.tab.* src/verilog/parse/*.output
 	${RM} -rf ${OBJ} 
