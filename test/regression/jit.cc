@@ -43,14 +43,14 @@ TEST(jit, pipeline_2) {
   run_code("minimal_jit", "data/test/regression/simple/pipeline_2.v", "0123456789");
 }
 TEST(jit, array) {
-  run_array("minimal_jit", "data/test/regression/array/run_5.v", "1048577\n");
+  run_code("minimal_jit", "data/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(jit, bitcoin) {
-  run_bitcoin("minimal_jit", "data/test/regression/bitcoin/run_4.v", "f 93\n");
+  run_code("minimal_jit", "data/test/benchmark/bitcoin/run_4.v", "f 93\n");
 }
-TEST(jit, bubble) {
+TEST(jit, mips32) {
   run_mips("minimal_jit", "data/test/regression/mips32/src/bubble.s", "1");
 }
 TEST(jit, regex) {
-  run_regex("minimal_jit", "(Achilles)|(THE END)", "data/test/regression/regex/data/iliad.txt", "424");
+  run_code("minimal_jit", "data/test/benchmark/regex/run_disjunct_1.v", "424");
 }

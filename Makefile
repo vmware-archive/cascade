@@ -299,21 +299,15 @@ BIN=\
 all: ${BIN}
 test: ${TEST_TARGET}
 	${MAKE} -C data/test/regression/mips32/asm
-	${MAKE} -C data/test/regression/regex/codegen
-	${MAKE} -C data/test/regression/regex/data
 	${TEST_TARGET}
 benchmark: ${BMARK_TARGET}
 	${MAKE} -C data/test/regression/mips32/asm
-	${MAKE} -C data/test/regression/regex/codegen
-	${MAKE} -C data/test/regression/regex/data
 	${BMARK_TARGET}
 benchmark_de10: ${BMARK_TARGET}
 	${BMARK_TARGET} --march de10_jit
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
 	${MAKE} -C data/test/regression/mips32/asm clean
-	${MAKE} -C data/test/regression/regex/codegen clean
-	${MAKE} -C data/test/regression/regex/data clean
 	${RM} -rf data/test/regression/mips32/sc/*.mem
 	${RM} -rf ${GTEST_BUILD_DIR} ${TEST_TARGET} ${BMARK_TARGET} ${TEST_OBJ} 
 	${RM} -rf ${FLEX_SRC} src/verilog/parse/*.hh src/verilog/parse/*.tab.* src/verilog/parse/*.output

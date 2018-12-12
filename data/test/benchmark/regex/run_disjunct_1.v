@@ -3,7 +3,7 @@ wire empty;
 reg[31:0] count = 0;
 reg done = 0;
 
-(*__target="sw",__file="data/test/benchmark/regex/fifo.data", __count=16*)
+(*__target="sw",__file="data/test/benchmark/regex/iliad.hex",__count=1*)
 Fifo#(1,8) fifo(
   .clock(clock.val),
   .rreq(!empty),
@@ -34,10 +34,10 @@ always @(posedge clock.val) begin
       state <= 1;
     32'd1: case(char) 
       8'h41: begin
-        state <= 2;
+        state <= 5;
       end
       8'h54: begin
-        state <= 3;
+        state <= 7;
       end
       default: begin
         i <= ie + 1;
@@ -45,8 +45,8 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd2: case(char) 
-      8'h63: begin
-        state <= 10;
+      8'h45: begin
+        state <= 8;
       end
       default: begin
         i <= ie + 1;
@@ -54,7 +54,7 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd3: case(char) 
-      8'h48: begin
+      8'h45: begin
         state <= 4;
       end
       default: begin
@@ -63,8 +63,8 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd4: case(char) 
-      8'h45: begin
-        state <= 5;
+      8'h20: begin
+        state <= 2;
       end
       default: begin
         i <= ie + 1;
@@ -72,8 +72,8 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd5: case(char) 
-      8'h20: begin
-        state <= 6;
+      8'h63: begin
+        state <= 11;
       end
       default: begin
         i <= ie + 1;
@@ -81,8 +81,8 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd6: case(char) 
-      8'h45: begin
-        state <= 7;
+      8'h6c: begin
+        state <= 14;
       end
       default: begin
         i <= ie + 1;
@@ -90,8 +90,8 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd7: case(char) 
-      8'h4e: begin
-        state <= 8;
+      8'h48: begin
+        state <= 3;
       end
       default: begin
         i <= ie + 1;
@@ -99,6 +99,15 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd8: case(char) 
+      8'h4e: begin
+        state <= 9;
+      end
+      default: begin
+        i <= ie + 1;
+        state <= 1;
+      end
+    endcase
+    32'd9: case(char) 
       8'h44: begin
         //$display("Match %d:%d", i, ie);
         i <= ie + 1;
@@ -110,23 +119,14 @@ always @(posedge clock.val) begin
         state <= 1;
       end
     endcase
-    32'd9: case(char) 
-      default: begin
-        i <= ie + 1;
-        state <= 1;
-      end
-    endcase
     32'd10: case(char) 
-      8'h68: begin
-        state <= 11;
-      end
       default: begin
         i <= ie + 1;
         state <= 1;
       end
     endcase
     32'd11: case(char) 
-      8'h69: begin
+      8'h68: begin
         state <= 12;
       end
       default: begin
@@ -135,7 +135,7 @@ always @(posedge clock.val) begin
       end
     endcase
     32'd12: case(char) 
-      8'h6c: begin
+      8'h69: begin
         state <= 13;
       end
       default: begin
@@ -145,7 +145,7 @@ always @(posedge clock.val) begin
     endcase
     32'd13: case(char) 
       8'h6c: begin
-        state <= 14;
+        state <= 6;
       end
       default: begin
         i <= ie + 1;

@@ -33,9 +33,9 @@
 
 using namespace cascade;
 
-TEST(regex, simple_1) {
-  run_regex("minimal", "Achilles", "data/test/regression/regex/data/iliad.txt", "423");
+TEST(regex, run_word_1) {
+  run_code("minimal", "data/test/benchmark/regex/word.v", "423");
 }
-TEST(regex, disjunct_1) {
-  run_regex("minimal", "(Achilles)|(THE END)", "data/test/regression/regex/data/iliad.txt", "424");
+TEST(regex, run_disjunct_1) {
+  run_code("minimal", "data/test/benchmark/regex/run_disjunct_1.v", "424");
 }

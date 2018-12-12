@@ -47,8 +47,11 @@ int main(int argc, char** argv) {
 }
 
 TEST(benchmark, array) {
-  run_array(march.value(), "data/test/benchmark/array/run_5.v", "1048577\n");
+  run_code(march.value(), "data/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(benchmark, bitcoin) {
-  run_bitcoin(march.value(), "data/test/benchmark/bitcoin/run_12.v", "1314 1398\n");
+  run_code(march.value(), "data/test/benchmark/bitcoin/run_12.v", "1314 1398\n");
+}
+TEST(benchmark, regex) {
+  run_code(march.value(), "data/test/benchmark/regex/run_disjunct_16.v", "6784");
 }

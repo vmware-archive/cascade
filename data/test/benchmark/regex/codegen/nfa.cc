@@ -151,7 +151,7 @@ void Nfa::to_verilog(ostream& os) const {
   os << "reg[31:0] count = 0;" << endl;
   os << "reg done = 0;" << endl;
   os << endl;
-  os << "(*__target=\"sw\",__file=\"data/test/regression/regex/data/fifo.data\"*)" << endl;
+  os << "(*__target=\"sw\",__file=\"data/test/benchmark/regex/iliad.hex\"*)" << endl;
   os << "Fifo#(1,8) fifo(" << endl;
   os << "  .clock(clock.val)," << endl;
   os << "  .rreq(!empty)," << endl;
