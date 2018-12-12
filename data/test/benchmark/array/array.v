@@ -1,7 +1,7 @@
 module Array();
 
   parameter W = 2;
-  parameter FINISH = 1;
+  parameter FINISH = 0;
 
   localparam N = (1 << W) - 1;
   localparam K = 3*W;
