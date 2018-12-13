@@ -278,9 +278,9 @@
   class iterator_##t { \
     public: \
       typedef typename Vector<T*>::difference_type difference_type; \
-      typedef T* const value_type; \
+      typedef T* value_type; \
       typedef T* const* pointer_type; \
-      typedef T* const reference; \
+      typedef T* reference; \
       typedef std::forward_iterator_tag iterator_category; \
       explicit iterator_##t(typename Vector<T*>::iterator itr) : itr_(itr) { } \
       reference operator*() { return *itr_; } \
@@ -297,9 +297,9 @@
   class const_iterator_##t { \
     public: \
       typedef typename Vector<T*>::difference_type difference_type; \
-      typedef const T* const value_type; \
+      typedef const T* value_type; \
       typedef const T* const* pointer_type; \
-      typedef const T* const reference; \
+      typedef const T* reference; \
       typedef std::forward_iterator_tag iterator_category; \
       explicit const_iterator_##t(typename Vector<T*>::const_iterator itr) : itr_(itr) { } \
       reference operator*() { return *itr_; } \
