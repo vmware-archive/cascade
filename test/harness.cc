@@ -1,4 +1,4 @@
-// Copyright 2017-2018 VMware, Inc.
+// Copyright 2017-2019 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // The BSD-2 license (the License) set forth below applies to all parts of the
@@ -137,12 +137,8 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(ss.str(), expected);
 }
 
-void run_bitcoin(const string& march, const string& path, const string& expected) {
-  run_code(march, path, expected);
-}
-
 void run_mips(const string& march, const string& path, const string& expected) {
-  System().execute("data/test/mips32/asm/asm " + path + " > data/test/mips32/sc/imem.mem");
+  System().execute("data/test/regression/mips32/asm/asm " + path + " > data/test/regression/mips32/sc/imem.mem");
 
   stringstream ss;
   PView view(ss);
@@ -155,7 +151,7 @@ void run_mips(const string& march, const string& path, const string& expected) {
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
     c->set_local_compiler(lc);
-  runtime.set_include_dirs("data/test/mips32/sc/");
+  runtime.set_include_dirs("data/test/regression/mips32/sc/");
   runtime.set_compiler(c);
   runtime.run();
 
@@ -163,37 +159,7 @@ void run_mips(const string& march, const string& path, const string& expected) {
   ASSERT_TRUE(mf.is_open());
   StreamController(&runtime, mf).run_to_completion();
 
-  ifstream ifs("data/test/mips32/sc/cpu.v");
-  ASSERT_TRUE(ifs.is_open());
-  StreamController(&runtime, ifs).run_to_completion();
-
-  runtime.wait_for_stop();
-  EXPECT_EQ(ss.str(), expected);
-}
-
-void run_regex(const string& march, const string& regex, const string& input, const string& expected) {
-  System().execute("echo \"" + regex + "\" | data/test/regex/codegen/codegen > data/test/regex/codegen/regex.v");
-  System().execute("cat " + input + " | data/test/regex/data/encode > data/test/regex/data/fifo.data");
-
-  stringstream ss;
-  PView view(ss);
-  Runtime runtime(&view);
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-  auto lc = new LocalCompiler();
-    lc->set_runtime(&runtime);
-  auto c = new Compiler();
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-    c->set_local_compiler(lc);
-  runtime.set_compiler(c);
-  runtime.run();
-
-  ifstream mf("data/march/" + march + ".v");
-  ASSERT_TRUE(mf.is_open());
-  StreamController(&runtime, mf).run_to_completion();
-
-  ifstream ifs("data/test/regex/codegen/regex.v");
+  ifstream ifs("data/test/regression/mips32/sc/cpu.v");
   ASSERT_TRUE(ifs.is_open());
   StreamController(&runtime, ifs).run_to_completion();
 

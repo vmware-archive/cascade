@@ -21,7 +21,10 @@ GTEST_INC_DIR=${GTEST_ROOT_DIR}/include
 GTEST_MAIN=${GTEST_BUILD_DIR}/libgtest_main.a
 GTEST_INC=-I${GTEST_INC_DIR}
 GTEST_LIB=${GTEST_BUILD_DIR}/libgtest.a
-GTEST_TARGET=bin/gtest
+
+### Test targets
+TEST_TARGET=bin/regression
+BMARK_TARGET=bin/benchmark
 
 ### Constants: auto-generated files
 FLEX_SRC=src/verilog/parse/lex.yy.cc
@@ -269,13 +272,20 @@ HDR=\
 ### Test binaries
 TEST_OBJ=\
 	test/harness.o\
-	test/parse.o\
-	test/type_check.o\
-	test/simple.o\
-	test/bitcoin.o\
-	test/mips.o\
-	test/regex.o\
-	test/jit.o
+	test/regression/parse.o\
+	test/regression/type_check.o\
+	test/regression/simple.o\
+	test/regression/array.o\
+	test/regression/bitcoin.o\
+	test/regression/mips32.o\
+	test/regression/regex.o\
+	test/regression/nw.o\
+	test/regression/jit.o
+
+### Benchmark binaries
+BMARK_OBJ=\
+	test/harness.o\
+	test/benchmark/benchmark.o
 
 ### Tool binaries
 BIN=\
@@ -286,18 +296,15 @@ BIN=\
 
 ### Top-level commands
 all: ${BIN}
-test: ${GTEST_TARGET}
-	${MAKE} -C data/test/mips32/asm
-	${MAKE} -C data/test/regex/codegen
-	${MAKE} -C data/test/regex/data
-	${GTEST_TARGET}
+test: ${TEST_TARGET}
+	${TEST_TARGET}
+benchmark: ${BMARK_TARGET}
+	${BMARK_TARGET}
+benchmark_de10: ${BMARK_TARGET}
+	${BMARK_TARGET} --march de10_jit
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
-	${MAKE} -C data/test/mips32/asm clean
-	${MAKE} -C data/test/regex/codegen clean
-	${MAKE} -C data/test/regex/data clean
-	${RM} -rf data/test/mips32/sc/*.mem
-	${RM} -rf ${GTEST_BUILD_DIR} ${GTEST_TARGET} ${TEST_OBJ} 
+	${RM} -rf ${GTEST_BUILD_DIR} ${TEST_TARGET} ${BMARK_TARGET} ${TEST_OBJ} 
 	${RM} -rf ${FLEX_SRC} src/verilog/parse/*.hh src/verilog/parse/*.tab.* src/verilog/parse/*.output
 	${RM} -rf ${OBJ} 
 	${RM} -rf ${BIN}
@@ -320,8 +327,10 @@ ${BISON_SRC}: src/verilog/parse/verilog.yy ${HDR}
 ${GTEST_LIB}: submodule
 	mkdir -p ${GTEST_BUILD_DIR}
 	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
-${GTEST_TARGET}: ${FLEX_SRC} ${OBJ} ${HDR} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
+${TEST_TARGET}: ${FLEX_SRC} ${OBJ} ${HDR} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
 	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${TEST_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
+${BMARK_TARGET}: ${FLEX_SRC} ${OBJ} ${HDR} ${BMARK_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
+	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} -o $@ ${BMARK_OBJ} ${OBJ} ${GTEST_LIB} ${GTEST_MAIN} ${LIB} 
 
 ### Misc rules for targets that we don't control the source for
 ext/mongoose/mongoose.o: ext/mongoose/mongoose.c

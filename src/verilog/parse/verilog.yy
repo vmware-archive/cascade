@@ -1360,7 +1360,7 @@ system_task_enable
   | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(); }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3.begin(), $3.end()); }
   | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); }
-  | SYS_FINISH OPAREN number CPAREN SCOLON { $$ = new FinishStatement($3); }
+  | SYS_FINISH OPAREN expression CPAREN SCOLON { $$ = new FinishStatement($3); }
   | SYS_WRITE SCOLON { $$ = new WriteStatement(); }
   | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(); }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3.begin(), $3.end()); }

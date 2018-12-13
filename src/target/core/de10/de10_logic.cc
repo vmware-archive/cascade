@@ -1,4 +1,4 @@
-// Copyright 2017-2018 VMware, Inc.
+// Copyright 2017-2019 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // The BSD-2 license (the License) set forth below applies to all parts of the
@@ -424,7 +424,7 @@ void De10Logic::handle_tasks() {
       ds->accept_args(&sync);
       interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
     } else if (const auto fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
-      interface()->finish(fs->get_arg()->get_val().to_int());
+      interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
     } else if (const auto ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
       Sync sync(this);
       ws->accept_args(&sync);

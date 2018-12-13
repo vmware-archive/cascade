@@ -1,4 +1,4 @@
-// Copyright 2017-2018 VMware, Inc.
+// Copyright 2017-2019 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // The BSD-2 license (the License) set forth below applies to all parts of the
@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_AST_FINISH_STATEMENT_H
 
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/number.h"
+#include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
@@ -40,7 +40,7 @@ namespace cascade {
 class FinishStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    FinishStatement(Number* arg__);
+    FinishStatement(Expression* arg__);
     ~FinishStatement() override;
 
     // Node Interface:
@@ -48,13 +48,13 @@ class FinishStatement : public SystemTaskEnableStatement {
     FinishStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FinishStatement, Number, arg)
+    PTR_GET_SET(FinishStatement, Expression, arg)
 
   private:
-    PTR_ATTR(Number, arg);
+    PTR_ATTR(Expression, arg);
 };
 
-inline FinishStatement::FinishStatement(Number* arg__) : SystemTaskEnableStatement() {
+inline FinishStatement::FinishStatement(Expression* arg__) : SystemTaskEnableStatement() {
   PTR_SETUP(arg);
   parent_ = nullptr;
 }

@@ -17,7 +17,7 @@ do
       do
         if [[ $file != $IGN* ]]
         then
-          echo "// Copyright 2017-2018 VMware, Inc." >> TEMP
+          echo "// Copyright 2017-2019 VMware, Inc." >> TEMP
           echo "// SPDX-License-Identifier: BSD-2-Clause" >> TEMP
           echo "//" >> TEMP
           echo "// The BSD-2 license (the "License") set forth below applies to all parts of the" >> TEMP
