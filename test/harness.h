@@ -1,4 +1,4 @@
-// Copyright 2017-2018 VMware, Inc.
+// Copyright 2017-2019 VMware, Inc.
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // The BSD-2 license (the License) set forth below applies to all parts of the
@@ -68,9 +68,7 @@ void run_typecheck(const std::string& march, const std::string& path, bool expec
 void run_code(const std::string& march, const std::string& path, const std::string& expected);
 
 // Benchmark harnesses:
-void run_bitcoin(const std::string& march, const std::string& path, const std::string& expected);
 void run_mips(const std::string& march, const std::string& path, const std::string& expected);
-void run_regex(const std::string& march, const std::string& regex, const std::string& input, const std::string& expected);
 
 } // namespace cascade
 
