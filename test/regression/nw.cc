@@ -28,36 +28,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <string>
-#include "ext/cl/include/cl.h"
 #include "gtest/gtest.h"
 #include "test/harness.h"
 
 using namespace cascade;
-using namespace cl;
-using namespace std;
 
-auto& march = StrArg<string>::create("--march")
-  .initial("minimal");
-
-int main(int argc, char** argv) {
-  Simple::read(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+TEST(nw, run_2) {
+  run_code("minimal", "data/test/benchmark/nw/run_2.v", "-720");
 }
-
-TEST(benchmark, array) {
-  run_code(march.value(), "data/test/benchmark/array/run_5.v", "1048577\n");
-}
-TEST(benchmark, bitcoin) {
-  run_code(march.value(), "data/test/benchmark/bitcoin/run_12.v", "1314 1398\n");
-}
-TEST(benchmark, mips32) {
-  run_code(march.value(), "data/test/benchmark/mips32/run_bubble_512.v", "1");
-}
-TEST(benchmark, nw) {
-  run_code(march.value(), "data/test/benchmark/nw/run_8.v", "-1437");
-}
-TEST(benchmark, regex) {
-  run_code(march.value(), "data/test/benchmark/regex/run_disjunct_16.v", "6784");
+TEST(nw, run_4) {
+  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1125");
 }

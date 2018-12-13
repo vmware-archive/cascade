@@ -281,6 +281,7 @@ TEST_OBJ=\
 	test/regression/bitcoin.o\
 	test/regression/mips32.o\
 	test/regression/regex.o\
+	test/regression/nw.o\
 	test/regression/jit.o
 
 ### Benchmark binaries
