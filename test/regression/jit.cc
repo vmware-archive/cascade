@@ -49,7 +49,7 @@ TEST(jit, bitcoin) {
   run_code("minimal_jit", "data/test/benchmark/bitcoin/run_4.v", "f 93\n");
 }
 TEST(jit, mips32) {
-  run_mips("minimal_jit", "data/test/regression/mips32/src/bubble.s", "1");
+  run_code("minimal_jit", "data/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(jit, regex) {
   run_code("minimal_jit", "data/test/benchmark/regex/run_disjunct_1.v", "424");

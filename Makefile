@@ -279,7 +279,7 @@ TEST_OBJ=\
 	test/regression/simple.o\
 	test/regression/array.o\
 	test/regression/bitcoin.o\
-	test/regression/mips.o\
+	test/regression/mips32.o\
 	test/regression/regex.o\
 	test/regression/jit.o
 
@@ -298,17 +298,13 @@ BIN=\
 ### Top-level commands
 all: ${BIN}
 test: ${TEST_TARGET}
-	${MAKE} -C data/test/regression/mips32/asm
 	${TEST_TARGET}
 benchmark: ${BMARK_TARGET}
-	${MAKE} -C data/test/regression/mips32/asm
 	${BMARK_TARGET}
 benchmark_de10: ${BMARK_TARGET}
 	${BMARK_TARGET} --march de10_jit
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
-	${MAKE} -C data/test/regression/mips32/asm clean
-	${RM} -rf data/test/regression/mips32/sc/*.mem
 	${RM} -rf ${GTEST_BUILD_DIR} ${TEST_TARGET} ${BMARK_TARGET} ${TEST_OBJ} 
 	${RM} -rf ${FLEX_SRC} src/verilog/parse/*.hh src/verilog/parse/*.tab.* src/verilog/parse/*.output
 	${RM} -rf ${OBJ} 

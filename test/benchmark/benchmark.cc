@@ -52,6 +52,9 @@ TEST(benchmark, array) {
 TEST(benchmark, bitcoin) {
   run_code(march.value(), "data/test/benchmark/bitcoin/run_12.v", "1314 1398\n");
 }
+TEST(benchmark, mips32) {
+  run_code(march.value(), "data/test/benchmark/mips32/run_bubble_512.v", "1");
+}
 TEST(benchmark, regex) {
   run_code(march.value(), "data/test/benchmark/regex/run_disjunct_16.v", "6784");
 }
