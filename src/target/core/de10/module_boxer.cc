@@ -125,7 +125,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   next->purge_ids();
   next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
   t->push_back_stmts(new NonblockingAssign(
-    na->get_ctrl()->clone(),
+    na->clone_ctrl(),
     new VariableAssign(
       next,
       na->get_assign()->get_rhs()->clone()

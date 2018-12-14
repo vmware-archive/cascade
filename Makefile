@@ -311,9 +311,6 @@ clean:
 	${RM} -rf bin/*.dSYM
 
 ### Build rules
-submodule:
-	git submodule init
-	git submodule update
 bin/%: tools/%.cc ${FLEX_SRC} ${OBJ} ${HDR}
 	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
 ${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC} ${HDR}
@@ -324,7 +321,7 @@ ${BISON_SRC}: src/verilog/parse/verilog.yy ${HDR}
 	ccache ${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 %.o: %.cc ${FLEX_SRC} ${BISON_SRC} ${HDR}
 	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
-${GTEST_LIB}: submodule
+${GTEST_LIB}: 
 	mkdir -p ${GTEST_BUILD_DIR}
 	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
 ${TEST_TARGET}: ${FLEX_SRC} ${OBJ} ${HDR} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}
