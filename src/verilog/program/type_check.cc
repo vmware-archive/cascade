@@ -458,22 +458,24 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
   ca->get_assign()->get_rhs()->accept(this);
 
   const auto* l = Resolve().get_resolution(ca->get_assign()->get_lhs());
-  if (l != nullptr) {
-    if (dynamic_cast<const NetDeclaration*>(l->get_parent()) == nullptr) {
-      error("Continuous assignments are only permitted for variables with type wire", ca);
-    }
+  if (l == nullptr) {
+    return;
+  }
 
-    // CHECK: Recursive assignment
-    // Iterate over identifiers in the RHS
-    ReadSet rs(ca->get_assign()->get_rhs());
-    for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-      // Resolve the identifier
-      const auto* r = Resolve().get_resolution(*i);
+  if (dynamic_cast<const NetDeclaration*>(l->get_parent()) == nullptr) {
+    error("Continuous assignments are only permitted for variables with type wire", ca);
+  }
 
-      // If it resolves to the left-hand side, this is a recursive definition
-      if (r != nullptr && r == l) {
-        error("Cannot assign a wire to itself", ca);
-      }
+  // CHECK: Recursive assignment
+  // Iterate over identifiers in the RHS
+  ReadSet rs(ca->get_assign()->get_rhs());
+  for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
+    // Resolve the identifier
+    const auto* r = Resolve().get_resolution(*i);
+
+    // If it resolves to the left-hand side, this is a recursive definition
+    if (r != nullptr && r == l) {
+      error("Cannot assign a wire to itself", ca);
     }
   }
 }
