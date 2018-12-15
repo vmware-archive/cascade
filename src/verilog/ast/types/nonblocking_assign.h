@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NONBLOCKING_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_NONBLOCKING_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/assign_statement.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/timing_control.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
@@ -43,29 +41,42 @@ namespace cascade {
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
-    NonblockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__);
+    NonblockingAssign(VariableAssign* assign__);
+    NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~NonblockingAssign() override;
 
     // Node Interface:
-    NODE(NonblockingAssign, TREE(ctrl), TREE(assign))
+    NODE(NonblockingAssign)
+    NonblockingAssign* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(ctrl)
-    TREE_GET_SET(assign)
+    MAYBE_GET_SET(NonblockingAssign, TimingControl, ctrl)
+    PTR_GET_SET(NonblockingAssign, VariableAssign, assign)
 
   private:
-    TREE_ATTR(Maybe<TimingControl>*, ctrl);
-    TREE_ATTR(VariableAssign*, assign);
+    MAYBE_ATTR(TimingControl, ctrl);
+    PTR_ATTR(VariableAssign, assign);
 };
 
-inline NonblockingAssign::NonblockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__) : AssignStatement() {
+inline NonblockingAssign::NonblockingAssign(VariableAssign* assign__) : AssignStatement() {
+  MAYBE_DEFAULT_SETUP(ctrl);
+  PTR_SETUP(assign); 
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
-  TREE_SETUP(assign); 
+}
+
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : NonblockingAssign(assign__) {
+  MAYBE_SETUP(ctrl);
 }
 
 inline NonblockingAssign::~NonblockingAssign() {
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(assign);
+  MAYBE_TEARDOWN(ctrl);
+  PTR_TEARDOWN(assign);
+}
+
+inline NonblockingAssign* NonblockingAssign::clone() const {
+  auto res = new NonblockingAssign(assign_->clone());
+  MAYBE_CLONE(ctrl);
+  return res;
 }
 
 } // namespace cascade 

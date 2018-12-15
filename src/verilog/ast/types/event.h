@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EVENT_H
 #define CASCADE_SRC_VERILOG_AST_EVENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
@@ -41,7 +40,7 @@ namespace cascade {
 class Event : public Node {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       EDGE = 0,
       NEGEDGE,
       POSEDGE
@@ -52,25 +51,31 @@ class Event : public Node {
     ~Event() override;
 
     // Node Interface:
-    NODE(Event, LEAF(type), TREE(expr))
+    NODE(Event)
+    Event* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(type)
-    TREE_GET_SET(expr)
+    VAL_GET_SET(Event, Type, type)
+    PTR_GET_SET(Event, Expression, expr)
 
   private:
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, expr);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression, expr);
 };
 
 inline Event::Event(Type type__, Expression* expr__) : Node() {
+  VAL_SETUP(type);
+  PTR_SETUP(expr);
   parent_ = nullptr;
-  LEAF_SETUP(type);
-  TREE_SETUP(expr);
 }
 
 inline Event::~Event() {
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(expr);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(expr);
+}
+
+inline Event* Event::clone() const {
+  return new Event(type_, expr_->clone());
 }
 
 } // namespace cascade 

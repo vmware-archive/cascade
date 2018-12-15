@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_REG_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_REG_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -43,37 +41,52 @@ namespace cascade {
 class RegDeclaration : public Declaration {
   public:
     // Constructors:
-    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__);
     ~RegDeclaration() override;
 
     // Node Interface:
-    NODE(RegDeclaration, TREE(attrs), TREE(id), LEAF(signed), TREE(dim), TREE(val))
+    NODE(RegDeclaration)
+    RegDeclaration* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
-    TREE_GET_SET(val)
+    VAL_GET_SET(RegDeclaration, bool, signed)
+    MAYBE_GET_SET(RegDeclaration, RangeExpression, dim)
+    MAYBE_GET_SET(RegDeclaration, Expression, val)
 
   private:
-    LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
-    TREE_ATTR(Maybe<Expression>*, val);
+    VAL_ATTR(bool, signed);
+    MAYBE_ATTR(RangeExpression, dim);
+    MAYBE_ATTR(Expression, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__, Maybe<Expression>* val__) : Declaration() {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration() {
+  PTR_SETUP(attrs);
+  PTR_SETUP(id);
+  VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
+  MAYBE_DEFAULT_SETUP(val);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(id);
-  LEAF_SETUP(signed);
-  TREE_SETUP(dim);
-  TREE_SETUP(val);
+}
+
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : RegDeclaration(attrs__, id__, signed__) {
+  MAYBE_SETUP(dim);
+  MAYBE_SETUP(val);
 }
 
 inline RegDeclaration::~RegDeclaration() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
-  TREE_TEARDOWN(val);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(id);
+  VAL_TEARDOWN(signed);
+  MAYBE_TEARDOWN(dim);
+  MAYBE_TEARDOWN(val);
+}
+
+inline RegDeclaration* RegDeclaration::clone() const {
+  auto res = new RegDeclaration(attrs_->clone(), id_->clone(), signed_);
+  MAYBE_CLONE(dim);
+  MAYBE_CLONE(val);
+  return res;
 }
 
 } // namespace cascade 

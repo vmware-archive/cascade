@@ -31,35 +31,48 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENERATE_REGION_H
 #define CASCADE_SRC_VERILOG_AST_GENERATE_REGION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/module_item.h"
-#include "src/verilog/ast/types/many.h"
 
 namespace cascade {
 
 class GenerateRegion : public ModuleItem {
   public:
     // Constructors:
-    GenerateRegion(Many<ModuleItem>* items__);
+    GenerateRegion();
+    template <typename ItemsItr>
+    GenerateRegion(ItemsItr items_begin__, ItemsItr items_end__);
     ~GenerateRegion() override;
 
     // Node Interface:
-    NODE(GenerateRegion, TREE(items))
+    NODE(GenerateRegion)
+    GenerateRegion* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(items)
+    MANY_GET_SET(GenerateRegion, ModuleItem, items)
 
   private:
-    TREE_ATTR(Many<ModuleItem>*, items);
+    MANY_ATTR(ModuleItem, items);
 };
 
-inline GenerateRegion::GenerateRegion(Many<ModuleItem>* items__) : ModuleItem() {
+inline GenerateRegion::GenerateRegion() : ModuleItem() {
+  MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
-  TREE_SETUP(items);
+}
+
+template <typename ItemsItr>
+inline GenerateRegion::GenerateRegion(ItemsItr items_begin__, ItemsItr items_end__) {
+  MANY_SETUP(items); 
 }
 
 inline GenerateRegion::~GenerateRegion() {
-  TREE_TEARDOWN(items);
+  MANY_TEARDOWN(items);
+}
+
+inline GenerateRegion* GenerateRegion::clone() const {
+  auto res = new GenerateRegion();
+  MANY_CLONE(items);
+  return res;
 }
 
 } // namespace cascade 

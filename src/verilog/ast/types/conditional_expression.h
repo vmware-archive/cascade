@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONDITIONAL_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_CONDITIONAL_EXPRESSION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -44,29 +43,35 @@ class ConditionalExpression : public Expression {
     ~ConditionalExpression() override;
 
     // Node Interface:
-    NODE(ConditionalExpression, TREE(cond), TREE(lhs), TREE(rhs))
+    NODE(ConditionalExpression)
+    ConditionalExpression* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(cond)
-    TREE_GET_SET(lhs)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(ConditionalExpression, Expression, cond)
+    PTR_GET_SET(ConditionalExpression, Expression, lhs)
+    PTR_GET_SET(ConditionalExpression, Expression, rhs)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Expression*, lhs);
-    TREE_ATTR(Expression*, rhs);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(Expression, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
 inline ConditionalExpression::ConditionalExpression(Expression* cond__, Expression* lhs__, Expression* rhs__) : Expression() {
+  PTR_SETUP(cond);
+  PTR_SETUP(lhs);
+  PTR_SETUP(rhs);
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(lhs);
-  TREE_SETUP(rhs);
 }
 
 inline ConditionalExpression::~ConditionalExpression() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(lhs);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
+}
+
+inline ConditionalExpression* ConditionalExpression::clone() const {
+  return new ConditionalExpression(cond_->clone(), lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade 

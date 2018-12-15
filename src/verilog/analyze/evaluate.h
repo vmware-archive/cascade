@@ -36,6 +36,7 @@
 #include <utility>
 #include <vector>
 #include "src/base/bits/bits.h"
+#include "src/base/container/vector.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/editor.h"
@@ -62,10 +63,6 @@ class Evaluate : public Editor {
   public:
     ~Evaluate() override = default;
 
-    // Returns true for scalars.
-    bool is_scalar(const Identifier* id);
-    // Returns true for arrays.
-    bool is_array(const Identifier* id);
     // Returns the arity of an expression: an empty vector for scalars, one 
     // value for the length of each dimension for arrays.
     std::vector<size_t> get_arity(const Identifier* id);
@@ -82,7 +79,7 @@ class Evaluate : public Editor {
     const Bits& get_value(const Expression* e);
     // Returns the array value of an identifier. Invoking this method on an identifier
     // which evaluates to a scalar returns a single element array.
-    const std::vector<Bits>& get_array_value(const Identifier* i);
+    const Vector<Bits>& get_array_value(const Identifier* i);
     // Returns upper and lower values for ranges, get_value() twice otherwise.
     std::pair<size_t, size_t> get_range(const Expression* e);
 
@@ -93,7 +90,7 @@ class Evaluate : public Editor {
     // High-level interface: Resolves id and sets the value of its target to
     // val. Invoking this method on an unresolvable id or one which refers to
     // an array subscript is undefined.
-    void assign_array_value(const Identifier* id, const std::vector<Bits>& val);
+    void assign_array_value(const Identifier* id, const Vector<Bits>& val);
 
     // Low-level interface: Returns an index into r's underlying array, as well
     // as bit range, based on the expressions in i's dimensions. This method is
@@ -118,7 +115,6 @@ class Evaluate : public Editor {
     // Editor Interface:
     void edit(BinaryExpression* be) override;
     void edit(ConditionalExpression* ce) override;
-    void edit(NestedExpression* ne) override;
     void edit(Concatenation* c) override;
     void edit(Identifier* id) override;
     void edit(MultipleConcatenation* mc) override;
@@ -142,27 +138,22 @@ class Evaluate : public Editor {
       ~Invalidate() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(NestedExpression* ne) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;
       void edit(Number* n) override;
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
-      void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
-      void edit(VariableAssign* va) override;
     };
     // Uses the self-determination to allocate bits, sizes, and types.
     struct SelfDetermine : public Editor {
       ~SelfDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(NestedExpression* ne) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;
@@ -182,7 +173,6 @@ class Evaluate : public Editor {
       ~ContextDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(NestedExpression* ne) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;

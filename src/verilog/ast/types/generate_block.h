@@ -31,11 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 #define CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 
-#include <cassert>
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/node.h"
 #include "src/verilog/ast/types/scope.h"
@@ -45,34 +42,51 @@ namespace cascade {
 class GenerateBlock : public Node, public Scope {
   public:
     // Constructors:
-    GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__);
+    GenerateBlock(bool scope__);
+    template <typename ItemsItr>
+    GenerateBlock(Identifier* id__, bool scope__, ItemsItr items_begin__, ItemsItr items_end__);
     ~GenerateBlock() override;
 
     // Node Interface:
-    NODE(GenerateBlock, TREE(id), LEAF(scope), TREE(items))
+    NODE(GenerateBlock);
+    GenerateBlock* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(id)
-    LEAF_GET_SET(scope)
-    TREE_GET_SET(items)
+    MAYBE_GET_SET(GenerateBlock, Identifier, id)
+    VAL_GET_SET(GenerateBlock, bool, scope)
+    MANY_GET_SET(GenerateBlock, ModuleItem, items)
 
   private:
-    TREE_ATTR(Maybe<Identifier>*, id);
-    LEAF_ATTR(bool, scope);
-    TREE_ATTR(Many<ModuleItem>*, items);
+    MAYBE_ATTR(Identifier, id);
+    VAL_ATTR(bool, scope);
+    MANY_ATTR(ModuleItem, items);
 };
 
-inline GenerateBlock::GenerateBlock(Maybe<Identifier>* id__, bool scope__, Many<ModuleItem>* items__) : Node() {
+inline GenerateBlock::GenerateBlock(bool scope__) : Node(), Scope() {
+  MAYBE_DEFAULT_SETUP(id);
+  VAL_SETUP(scope);
+  MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
-  TREE_SETUP(id);
-  LEAF_SETUP(scope);
-  TREE_SETUP(items);
   next_supdate_ = 0;
 }
 
+template <typename ItemsItr>
+inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, ItemsItr items_begin__, ItemsItr items_end__) : GenerateBlock(scope__) {
+  MAYBE_SETUP(id);
+  MANY_SETUP(items);
+}
+
+inline GenerateBlock* GenerateBlock::clone() const {
+  auto res = new GenerateBlock(scope_);
+  MAYBE_CLONE(id);
+  MANY_CLONE(items);
+  return res;
+}
+
 inline GenerateBlock::~GenerateBlock() {
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(scope);
-  TREE_TEARDOWN(items);
+  MAYBE_TEARDOWN(id);
+  VAL_TEARDOWN(scope);
+  MANY_TEARDOWN(items);
 }
 
 } // namespace cascade 

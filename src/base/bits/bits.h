@@ -40,6 +40,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include "src/base/container/vector.h"
 #include "src/base/serial/serializable.h"
 
 namespace cascade {
@@ -177,7 +178,7 @@ class BitsBase : public Serializable {
 
   private:
     // Bit-string representation
-    std::vector<T> val_;
+    Vector<T> val_;
     // Total number of bits in this string
     uint32_t size_;
     // How is this value being interpreted
@@ -347,6 +348,7 @@ inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
   if (sizeof(B) == sizeof(T)) {
     assert(n < val_.size());
     val_[n] = b;
+    return;
   }
 
   // Hard Case:

@@ -41,8 +41,6 @@
 #include "src/verilog/analyze/printf.h"
 #include "src/verilog/print/text/text_printer.h"
 
-#include "src/verilog/print/term/term_printer.h"
-
 using namespace std;
 
 // Note that this is a plus, not a logical or! We can't guarantee that addr is aligned!
@@ -329,7 +327,7 @@ void De10Logic::visit(const DisplayStatement* ds) {
   // variables in its arguments into the variable table.
   tasks_.push_back(ds);
   Inserter i(this);
-  ds->get_args()->accept(&i);
+  ds->accept_args(&i);
 }
 
 void De10Logic::visit(const FinishStatement* fs) {
@@ -343,7 +341,7 @@ void De10Logic::visit(const WriteStatement* ws) {
   // variables in its arguments into the variable table.
   tasks_.push_back(ws);
   Inserter i(this);
-  ws->get_args()->accept(&i);
+  ws->accept_args(&i);
 }
 
 void De10Logic::insert(const Identifier* id, bool materialized) {
@@ -388,7 +386,7 @@ void De10Logic::write_scalar(const VarInfo& vi, const Bits& b) {
   }
 }
 
-void De10Logic::write_array(const VarInfo& vi, const vector<Bits>& bs) {
+void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
   // Move bits to fpga one word at a time, skipping the local storage.
   // If an when we need a value we'll read it out of the fpga first.
   auto idx = vi.index();
@@ -423,14 +421,14 @@ void De10Logic::handle_tasks() {
     }
     if (const auto ds = dynamic_cast<const DisplayStatement*>(tasks_[i])) {
       Sync sync(this);
-      ds->get_args()->accept(&sync);
-      interface()->display(Printf().format(ds->get_args()));
+      ds->accept_args(&sync);
+      interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
     } else if (const auto fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
     } else if (const auto ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
       Sync sync(this);
-      ws->get_args()->accept(&sync);
-      interface()->write(Printf().format(ws->get_args()));
+      ws->accept_args(&sync);
+      interface()->write(Printf().format(ws->begin_args(), ws->end_args()));
     } else {
       assert(false);
     }

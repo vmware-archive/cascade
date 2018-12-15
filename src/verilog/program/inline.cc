@@ -31,11 +31,14 @@
 #include "src/verilog/program/inline.h"
 
 #include <cassert>
+#include <vector>
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/navigate.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/program/elaborate.h"
+
+using namespace std;
 
 namespace cascade {
 
@@ -82,25 +85,32 @@ Identifier* Inline::Qualify::qualify_id(const Identifier* id) {
 Expression* Inline::Qualify::build(const Identifier* id) {
   const auto r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  return new Identifier(
-    Resolve().get_full_id(r)->get_ids()->clone(),
-    id->get_dim()->accept(this)
-  );
+
+  auto res = Resolve().get_full_id(r);
+  res->purge_dim();
+  id->accept_dim(this, res->back_inserter_dim());
+
+  return res;
 }
 
 void Inline::edit(CaseGenerateConstruct* cgc) {
-  assert(Elaborate().is_elaborated(cgc));
-  Elaborate().elaborate(cgc)->accept(this);
+  if (Elaborate().is_elaborated(cgc)) {
+    Elaborate().get_elaboration(cgc)->accept(this);
+  }
 }
 
 void Inline::edit(IfGenerateConstruct* igc) {
-  assert(Elaborate().is_elaborated(igc));
-  Elaborate().elaborate(igc)->accept(this);
+  if (Elaborate().is_elaborated(igc)) {
+    Elaborate().get_elaboration(igc)->accept(this);
+  }
 }
 
 void Inline::edit(LoopGenerateConstruct* lgc) {
-  assert(Elaborate().is_elaborated(lgc));
-  Elaborate().elaborate(lgc)->accept(this);
+  if (Elaborate().is_elaborated(lgc)) {
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
+  }
 }
 
 void Inline::edit(ModuleInstantiation* mi) {
@@ -118,8 +128,8 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     return;
   }
   // Nothing to do for code that we don't support inlining
-  auto src = Elaborate().elaborate(mi);
-  assert(src != nullptr);
+  assert(Elaborate().is_elaborated(mi));
+  auto src = Elaborate().get_elaboration(mi);
   if (!can_inline(src)) {
     return;
   }
@@ -128,7 +138,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   // we start modifying the instantiation. Calling ModuleInfo later might
   // result in a refresh against undefined state.
   assert(info_->connections().find(mi->get_iid()) != info_->connections().end());
-  auto conns = new Many<ModuleItem>();
+  vector<ModuleItem*> conns;
   for (auto& c : info_->connections().find(mi->get_iid())->second) {
     auto lhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_id(c.first) : 
@@ -136,16 +146,13 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     auto rhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_exp(c.second) : 
       Qualify().qualify_exp(c.first);
-    conns->push_back(new ContinuousAssign(
-      new Maybe<DelayControl>(),
-      new VariableAssign(lhs, rhs)
-    ));
+    conns.push_back(new ContinuousAssign(new VariableAssign(lhs, rhs)));
   }
   // Move the contents of the instantiation into new inlined code. Downgrade
   // ports to regular declarations and parameters to localparams.
-  auto inline_src = new Many<ModuleItem>();
-  while (!src->get_items()->empty()) {
-    auto item = src->get_items()->remove_front();
+  vector<ModuleItem*> inline_src;
+  while (!src->empty_items()) {
+    auto item = src->remove_front_items();
     if (auto pd = dynamic_cast<PortDeclaration*>(item)) {
       auto d = pd->get_decl()->clone();
       switch (pd->get_type()) {
@@ -159,50 +166,52 @@ void Inline::inline_source(ModuleInstantiation* mi) {
           d->get_attrs()->set_or_replace("__inline", new String("inout"));
           break;
       }
-      d->swap_id(pd->get_decl()->get_id());
-      inline_src->push_back(d);
+      d->swap_id(pd->get_decl());
+      swap(d->uses_, pd->get_decl()->uses_);
+      inline_src.push_back(d);
       delete pd;
     } else if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
       auto ld = new LocalparamDeclaration(
-        new Attributes(new Many<AttrSpec>()),
+        new Attributes(),
         pd->get_signed(),
-        pd->get_dim()->clone(),
+        pd->clone_dim(),
         pd->get_id()->clone(),
         pd->get_val()->clone()
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
-      ld->swap_id(pd->get_id());
-      inline_src->push_back(ld);
+      ld->swap_id(pd);
+      swap(ld->uses_, pd->uses_);
+      inline_src.push_back(ld);
       delete pd;
     } else {
-      inline_src->push_back(item);
+      inline_src.push_back(item);
     }
   }
   // Record the number of items in the new source
-  auto attrs = new Attributes(new Many<AttrSpec>());
-  attrs->get_as()->push_back(new AttrSpec(
+  auto attrs = new Attributes(new AttrSpec(
     new Identifier("__inline"),
-    new Maybe<Expression>(new Number(Bits(32, (uint32_t)inline_src->size())))
+    new Number(Bits(32, inline_src.size()))
   ));
   // Finally, append the connections to the new source
-  inline_src->concat(conns);
+  inline_src.insert(inline_src.end(), conns.begin(), conns.end());
 
   // Update inline decorations
   auto igc = new IfGenerateConstruct(
     attrs,
     new IfGenerateClause(
       new Number(Bits(true)),
-      new Maybe<GenerateBlock>(new GenerateBlock(
-        new Maybe<Identifier>(mi->get_iid()->clone()),
+      new GenerateBlock(
+        mi->get_iid()->clone(),
         true,
-        inline_src
-      ))
+        inline_src.begin(),
+        inline_src.end()
+      )
     ),
-    new Maybe<GenerateBlock>()
+    nullptr
   );
   mi->inline_ = igc;
   igc->parent_ = mi;
-  mi->inline_->gen_ = mi->inline_->get_clauses()->front()->get_then();
+  mi->inline_->gen_ = mi->inline_->front_clauses()->get_then();
 
   // This module is now in an inconsistent state. Invalidate its module info
   // and invalidate the scope that contains the newly inlined code.
@@ -211,6 +220,9 @@ void Inline::inline_source(ModuleInstantiation* mi) {
 }
 
 void Inline::outline_source(ModuleInstantiation* mi) {
+  // TODO: This method hasn't been called for some time. it's almost certainly
+  // suffering from bit-rot.
+
   // Nothing to do for code which has already been outlined
   if (!is_inlined(mi)) {
     return;
@@ -224,18 +236,18 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   // parameter delcarations, and delete the connections.
   const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
-    auto item = mi->inline_->get_clauses()->front()->get_then()->get()->get_items()->remove_front();
+    auto item = mi->inline_->front_clauses()->get_then()->remove_front_items();
     if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto pd = new ParameterDeclaration(
-          new Attributes(new Many<AttrSpec>()),
+          new Attributes(),
           ld->get_signed(),
-          ld->get_dim()->clone(),
+          ld->clone_dim(),
           ld->get_id()->clone(),
           ld->get_val()->clone()
         );
-        pd->swap_id(ld->get_id());
-        src->get_items()->push_back(pd);
+        pd->swap_id(ld);
+        src->push_back_items(pd);
         delete ld;
         continue;
       } 
@@ -243,25 +255,19 @@ void Inline::outline_source(ModuleInstantiation* mi) {
       auto annot = d->get_attrs()->get<String>("__inline");
       if (annot != nullptr && !annot->eq("parameter")) {
         auto pd = new PortDeclaration(
-          new Attributes(new Many<AttrSpec>()),
+          new Attributes(),
           annot->eq("input") ? PortDeclaration::INPUT : annot->eq("output") ? PortDeclaration::OUTPUT : PortDeclaration::INOUT,
           d->clone()
         );
-        pd->get_decl()->replace_attrs(new Attributes(new Many<AttrSpec>()));
-        pd->get_decl()->swap_id(d->get_id());
-        src->get_items()->push_back(pd);
+        pd->get_decl()->replace_attrs(new Attributes());
+        pd->get_decl()->swap_id(d);
+        src->push_back_items(pd);
         delete d;
         continue;
       }
     } 
-    src->get_items()->push_back(item);
+    src->push_back_items(item);
   }
-  // Release any references to the remainder of the code. These are the assign
-  // statements that we introduced in place of the instantiation. 
-  for (auto i : *mi->inline_->get_clauses()->front()->get_then()->get()->get_items()) {
-    Resolve().invalidate(i);
-  }
-
   // Remove what's left of the inlined code and revert decorations
   delete mi->inline_;
   mi->inline_ = nullptr;

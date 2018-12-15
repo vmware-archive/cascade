@@ -28,28 +28,46 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_TYPES_COMBINATOR_H
-#define CASCADE_SRC_VERILOG_AST_TYPES_COMBINATOR_H
+#ifndef CASCADE_SRC_VERILOG_TRANSFORM_DEAD_CODE_ELIMINATE_H
+#define CASCADE_SRC_VERILOG_TRANSFORM_DEAD_CODE_ELIMINATE_H
 
-#include "src/verilog/ast/types/node.h"
+#include <unordered_set>
+#include "src/verilog/ast/visitors/editor.h"
+#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
-class Combinator : public Node {
+class DeadCodeEliminate : public Editor {
   public:
-    // Constructors:
-    Combinator();
-    ~Combinator() override = default;
+    DeadCodeEliminate();
+    ~DeadCodeEliminate() override = default;
 
-    // Node Interface:
-    Combinator* clone() const override = 0;
-    Combinator* accept(Builder* b) const override = 0;
-    void accept(Editor* e) override = 0;
-    void accept(Visitor* v) const override = 0;
+    void run(ModuleDeclaration* md);
+
+  private:
+    struct Index : public Visitor {
+      Index(DeadCodeEliminate* dce);
+      ~Index() override = default;
+
+      void visit(const Attributes* a) override;
+      void visit(const Identifier* i) override;
+      void visit(const IntegerDeclaration* id) override;
+      void visit(const LocalparamDeclaration* ld) override;
+      void visit(const NetDeclaration* nd) override;
+      void visit(const ParameterDeclaration* pd) override;
+      void visit(const RegDeclaration* rd) override;
+
+      DeadCodeEliminate* dce_;
+    };
+
+    void edit(ModuleDeclaration* md) override;
+    void edit(ParBlock* pb) override;
+    void edit(SeqBlock* sb) override;
+
+    std::unordered_set<const Identifier*> use_;
 };
 
-inline Combinator::Combinator() : Node() { }
-
-} // namespace cascade 
+} // namespace cascade
 
 #endif
+

@@ -36,14 +36,14 @@ namespace cascade {
 
 Constant::Constant() : Visitor() { }
 
-bool Constant::is_constant(const Expression* e) {
+bool Constant::is_static_constant(const Expression* e) {
   res_ = true;
   genvar_ok_ = false;
   e->accept(this);
   return res_;
 }
 
-bool Constant::is_constant_genvar(const Expression* e) {
+bool Constant::is_genvar_constant(const Expression* e) {
   res_ = true;
   genvar_ok_ = true;
   e->accept(this);
@@ -59,10 +59,13 @@ void Constant::visit(const Identifier* i) {
     return;
   } 
 
-  const auto is_genvar = dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr;
   const auto is_param = dynamic_cast<const ParameterDeclaration*>(r->get_parent()) != nullptr;
   const auto is_localparam = dynamic_cast<const LocalparamDeclaration*>(r->get_parent()) != nullptr;
-  if (is_param || is_localparam || (is_genvar && genvar_ok_)) { 
+  if (is_param || is_localparam) {
+    return;
+  }
+  const auto is_genvar = dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr;
+  if (is_genvar && genvar_ok_) { 
     return;
   }
 

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_UNARY_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_UNARY_EXPRESSION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -40,7 +39,7 @@ namespace cascade {
 class UnaryExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Op {
+    enum Op : uint8_t {
       PLUS = 0,
       MINUS,
       BANG,
@@ -58,25 +57,31 @@ class UnaryExpression : public Expression {
     ~UnaryExpression() override;
 
     // Node Interface:
-    NODE(UnaryExpression, LEAF(op), TREE(lhs))
+    NODE(UnaryExpression)
+    UnaryExpression* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(op)
-    TREE_GET_SET(lhs)
+    VAL_GET_SET(UnaryExpression, Op, op)
+    PTR_GET_SET(UnaryExpression, Expression, lhs)
 
   private:
-    LEAF_ATTR(Op, op);
-    TREE_ATTR(Expression*, lhs);
+    VAL_ATTR(Op, op);
+    PTR_ATTR(Expression, lhs);
 };
 
 inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression() {
   parent_ = nullptr;
-  LEAF_SETUP(op);
-  TREE_SETUP(lhs);
+  VAL_SETUP(op);
+  PTR_SETUP(lhs);
 }
 
 inline UnaryExpression::~UnaryExpression() {
-  LEAF_TEARDOWN(op);
-  TREE_TEARDOWN(lhs);
+  VAL_TEARDOWN(op);
+  PTR_TEARDOWN(lhs);
+}
+
+inline UnaryExpression* UnaryExpression::clone() const {
+  return new UnaryExpression(op_, lhs_->clone());
 }
 
 } // namespace cascade 

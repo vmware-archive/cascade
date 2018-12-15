@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -42,37 +40,50 @@ namespace cascade {
 class ParameterDeclaration : public Declaration {
   public:
     // Constructors:
-    ParameterDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__);
+    ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
+    ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
     ~ParameterDeclaration() override;
 
     // Node Interface:
-    NODE(ParameterDeclaration, TREE(attrs), LEAF(signed), TREE(dim), TREE(id), TREE(val))
+    NODE(ParameterDeclaration)
+    ParameterDeclaration* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
-    TREE_GET_SET(val)
+    VAL_GET_SET(ParameterDeclaration, bool, signed)
+    MAYBE_GET_SET(ParameterDeclaration, RangeExpression, dim)
+    PTR_GET_SET(ParameterDeclaration, Expression, val)
 
   private:
-    LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
-    TREE_ATTR(Expression*, val);
+    VAL_ATTR(bool, signed);
+    MAYBE_ATTR(RangeExpression, dim);
+    PTR_ATTR(Expression, val);
 };
 
-inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__) : Declaration() {
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration() {
+  PTR_SETUP(attrs);
+  VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
+  PTR_SETUP(id);
+  PTR_SETUP(val);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(signed);
-  TREE_SETUP(dim);
-  TREE_SETUP(id);
-  TREE_SETUP(val);
+}
+
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : ParameterDeclaration(attrs__, signed__, id__, val__) {
+  MAYBE_SETUP(dim);
 }
 
 inline ParameterDeclaration::~ParameterDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
-  TREE_TEARDOWN(id);
-  TREE_TEARDOWN(val);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(signed);
+  MAYBE_TEARDOWN(dim);
+  PTR_TEARDOWN(id);
+  PTR_TEARDOWN(val);
+}
+
+inline ParameterDeclaration* ParameterDeclaration::clone() const {
+  auto res = new ParameterDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

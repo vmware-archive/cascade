@@ -31,14 +31,11 @@
 #ifndef CASCADE_SRC_VERILOG_AST_MODULE_INSTANTIATION_H
 #define CASCADE_SRC_VERILOG_AST_MODULE_INSTANTIATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/arg_assign.h"
 #include "src/verilog/ast/types/attributes.h"
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/if_generate_construct.h"
 #include "src/verilog/ast/types/instantiation.h"
-#include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/module_declaration.h"
 #include "src/verilog/ast/types/range_expression.h"
@@ -48,18 +45,22 @@ namespace cascade {
 class ModuleInstantiation : public Instantiation {
   public:
     // Constructors:
-    ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, Maybe<RangeExpression>* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__);
+    ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__);
+    template <typename ParamsItr, typename PortsItr>
+    ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, RangeExpression* range__, ParamsItr params_begin__, ParamsItr params_end__, PortsItr ports_begin__, PortsItr ports_end__);
     ~ModuleInstantiation() override;
 
     // Node Interface:
-    NODE(ModuleInstantiation, TREE(attrs), TREE(mid), TREE(iid), TREE(range), TREE(params), TREE(ports))
+    NODE(ModuleInstantiation)
+    inline ModuleInstantiation* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(mid)
-    TREE_GET_SET(iid)
-    TREE_GET_SET(range)
-    TREE_GET_SET(params)
-    TREE_GET_SET(ports)
+    PTR_GET_SET(ModuleInstantiation, Attributes, attrs)
+    PTR_GET_SET(ModuleInstantiation, Identifier, mid)
+    PTR_GET_SET(ModuleInstantiation, Identifier, iid)
+    MAYBE_GET_SET(ModuleInstantiation, RangeExpression, range)
+    MANY_GET_SET(ModuleInstantiation, ArgAssign, params)
+    MANY_GET_SET(ModuleInstantiation, ArgAssign, ports)
 
     // Convention Interface:
     bool uses_named_params() const;
@@ -68,12 +69,12 @@ class ModuleInstantiation : public Instantiation {
     bool uses_ordered_ports() const;
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Identifier*, mid);
-    TREE_ATTR(Identifier*, iid);
-    TREE_ATTR(Maybe<RangeExpression>*, range);
-    TREE_ATTR(Many<ArgAssign>*, params);
-    TREE_ATTR(Many<ArgAssign>*, ports);
+    PTR_ATTR(Attributes, attrs);
+    PTR_ATTR(Identifier, mid);
+    PTR_ATTR(Identifier, iid);
+    MAYBE_ATTR(RangeExpression, range);
+    MANY_ATTR(ArgAssign, params);
+    MANY_ATTR(ArgAssign, ports);
 
     friend class Elaborate;
     friend class Inline;
@@ -81,25 +82,33 @@ class ModuleInstantiation : public Instantiation {
     DECORATION(IfGenerateConstruct*, inline);
 };
 
-inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, Maybe<RangeExpression>* range__, Many<ArgAssign>* params__, Many<ArgAssign>* ports__) : Instantiation() {
+inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__) : Instantiation() {
+  PTR_SETUP(attrs);
+  PTR_SETUP(mid);
+  PTR_SETUP(iid);
+  MAYBE_DEFAULT_SETUP(range);
+  MANY_DEFAULT_SETUP(params);
+  MANY_DEFAULT_SETUP(ports);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(mid);
-  TREE_SETUP(iid);
-  TREE_SETUP(range);
-  TREE_SETUP(params);
-  TREE_SETUP(ports);
   inst_ = nullptr;
   inline_ = nullptr;
 }
 
+template <typename ParamsItr, typename PortsItr>
+inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__, RangeExpression* range__, ParamsItr params_begin__, ParamsItr params_end__, PortsItr ports_begin__, PortsItr ports_end__) :
+    ModuleInstantiation(attrs__, mid__, iid__) {
+  MAYBE_SETUP(range);
+  MANY_SETUP(params);
+  MANY_SETUP(ports);
+}
+
 inline ModuleInstantiation::~ModuleInstantiation() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(mid);
-  TREE_TEARDOWN(iid);
-  TREE_TEARDOWN(range);
-  TREE_TEARDOWN(params);
-  TREE_TEARDOWN(ports);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(mid);
+  PTR_TEARDOWN(iid);
+  MAYBE_TEARDOWN(range);
+  MANY_TEARDOWN(params);
+  MANY_TEARDOWN(ports);
   if (inst_ != nullptr) {
     delete inst_;
   }
@@ -108,8 +117,16 @@ inline ModuleInstantiation::~ModuleInstantiation() {
   }
 }
 
+inline ModuleInstantiation* ModuleInstantiation::clone() const {
+  auto res = new ModuleInstantiation(attrs_->clone(), mid_->clone(), iid_->clone());
+  MAYBE_CLONE(range);
+  MANY_CLONE(params);
+  MANY_CLONE(ports);
+  return res;
+}
+
 inline bool ModuleInstantiation::uses_named_params() const {
-  return params_->empty() || !params_->front()->get_exp()->null();
+  return empty_params() || front_params()->is_non_null_exp();
 }
 
 inline bool ModuleInstantiation::uses_ordered_params() const {
@@ -117,7 +134,7 @@ inline bool ModuleInstantiation::uses_ordered_params() const {
 }
 
 inline bool ModuleInstantiation::uses_named_ports() const {
-  return ports_->empty() || !ports_->front()->get_exp()->null();  
+  return empty_ports() || front_ports()->is_non_null_exp();  
 }
 
 inline bool ModuleInstantiation::uses_ordered_ports() const {

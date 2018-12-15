@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/loop_statement.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/statement.h"
@@ -45,21 +44,27 @@ class ForeverStatement : public LoopStatement {
     ~ForeverStatement() override;
 
     // Node Interface:
-    NODE(ForeverStatement, TREE(stmt))
+    NODE(ForeverStatement)
+    ForeverStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(ForeverStatement, Statement, stmt)
 
   private:
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline ForeverStatement::ForeverStatement(Statement* stmt__) : LoopStatement() {
   parent_ = nullptr;
-  TREE_SETUP(stmt);
+  PTR_SETUP(stmt);
 }
 
 inline ForeverStatement::~ForeverStatement() {
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(stmt);
+}
+
+inline ForeverStatement* ForeverStatement::clone() const {
+  return new ForeverStatement(stmt_->clone());
 }
 
 } // namespace cascade 

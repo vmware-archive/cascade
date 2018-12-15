@@ -1,2 +1,2 @@
 include data/test/benchmark/bitcoin/bitcoin.v;
-Bitcoin#(.DIFF(20)) bitcoin();
+Bitcoin#(.UNROLL(5), .DIFF(20)) bitcoin();

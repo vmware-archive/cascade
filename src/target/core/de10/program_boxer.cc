@@ -43,7 +43,7 @@ namespace cascade {
 bool ProgramBoxer::push(MId mid, const ModuleDeclaration* md, const De10Logic* de) {
   // Count the number of lines in this module. Code size increases monotonically, which
   // means it should function sufficiently as a sequence number.
-  const auto seq = md->get_items()->size();
+  const auto seq = md->size_items();
 
   // Reject push requests for code which is older than the repository.  
   auto itr = repo_.find(mid);

@@ -31,6 +31,7 @@
 #include "src/verilog/transform/de_alias.h"
 
 #include <cassert>
+#include "src/verilog/analyze/constant.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
@@ -43,115 +44,247 @@ namespace cascade {
 DeAlias::DeAlias() : Rewriter() { }
 
 void DeAlias::run(ModuleDeclaration* md) {
-  // Build the alias table and replace variable names
+  // Build the alias table 
   table_ = new AliasTable(md);
+  // Replace aliases and delete zero-time self-assignments 
   md->accept(this);
-
-  // Now that we're done we'll have a bunch of identity assignments assign X =
-  // X, which are are zero time loops that need to be deleted. We can also
-  // delete declarations for aliases.
-  for (auto i = md->get_items()->begin(); i != md->get_items()->end(); ) {
+  for (auto i = md->begin_items(); i != md->end_items(); ) {
     if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
       if (is_self_assign(ca)) {
-        Resolve().invalidate(ca);
-        i = md->get_items()->purge(i);
+        i = md->purge_items(i);
         continue;
       } 
     } 
-    if (auto d = dynamic_cast<Declaration*>(*i)) {
-      if (table_->is_alias(d->get_id())) {
-        Resolve().invalidate(d);
-        i = md->get_items()->purge(i);
-        continue;
-      }
-    }
     ++i;
   }
-
+  // Delete the table
   delete table_;
+
+  // Invalidate cached state (we haven't added or removed any declarations so
+  // there's no need to invalidate the scope tree).
+  Resolve().invalidate(md);
+  ModuleInfo(md).invalidate();
 }
 
 DeAlias::AliasTable::AliasTable(const ModuleDeclaration* md) : Visitor() { 
   md->accept(this);
-  for (auto& a : assigns_) {
-    resolve(a.first);
+  for (auto& a : aliases_) {
+    follow(a.second);
+  }
+  for (auto& a : aliases_) {
+    collapse(a.second);
   }
 }
 
-bool DeAlias::AliasTable::is_alias(const Identifier* id) {
-  return results_.find(id) != results_.end();
+DeAlias::AliasTable::~AliasTable() {
+  for (auto& a : aliases_) {
+    assert(a.second.slices_.size() <= 1);
+    if (!a.second.slices_.empty()) {
+      delete a.second.slices_.back();
+    }
+  }
 }
 
-const Identifier* DeAlias::AliasTable::get(const Identifier* id) {
+Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
+  // Nothing to do if we can't find this identifier in the alias table
   const auto r = Resolve().get_resolution(id);
-  assert(r != nullptr);
-  
-  const auto itr = results_.find(r);
-  return itr != results_.end() ? itr->second : id;  
-}
-
-const Identifier* DeAlias::AliasTable::resolve(const Identifier* id) {
-  // First off, resolve this identifier.
-  const auto r = Resolve().get_resolution(id);
-  assert(r != nullptr);
-
-  // If we already have a result we're done.
-  auto ritr = results_.find(r);
-  if (ritr != results_.end()) {
-    return ritr->second;
-  }
-  
-  // Look up this identifier in the assignments. If there's nothing there, 
-  // just return id. We don't need to change this identifier.
-  const auto aitr = assigns_.find(r);
-  if (aitr == assigns_.end()) {
-    return id;
-  } 
-  
-  // TODO: For now let's only consider trivial scalar aliases. Give up if
-  // either identifier uses a dimension subscript
-  if (!aitr->first->get_dim()->empty() || !aitr->second->get_dim()->empty()) {
-    return id;
-  }
-  // TODO: Give up if these two variables are different widths
-  if (Evaluate().get_width(aitr->first) != Evaluate().get_width(aitr->second)) {
-    return id;
+  const auto itr = aliases_.find(r);
+  if (itr == aliases_.end()) {
+    return nullptr;
   }
 
-  // Now the recursive part. This variable is an alias for something else.  So
-  // the resolution for this variable is the same as the resolution for that
-  // variable.
-  auto res = resolve(aitr->second);
-  results_.insert(make_pair(r, res));
-  
+  // Otherwise, we're going to replace this variable with the target that's
+  // in the alias table. Careful though, it might still have its original slice
+  // attached to it.
+  auto res = itr->second.target_->clone();
+  if (Resolve().is_slice(itr->second.target_)) {
+    assert(!res->empty_dim());
+    delete res->remove_back_dim();
+  }
+
+  // If either this id or the target is a slice, we'll need one last merge.
+  // Otherwise, just append the slice that's attached to id or which appears in
+  // the alias table.
+  const auto st = !itr->second.slices_.empty();
+  const auto si = Resolve().is_slice(id);
+  if (st && si) {
+    res->push_back_dim(merge(itr->second.slices_.back(), id->back_dim()));
+  } else if (st) {
+    res->push_back_dim(itr->second.slices_.back()->clone());
+  } else if (si) {
+    res->push_back_dim(id->back_dim()->clone());
+  }
   return res;
 }
 
 void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
-  const auto lhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_lhs());
-  // TODO: For now let's only consider trivial scalar assignments. 
-  if ((lhs == nullptr) || !lhs->get_dim()->empty()) {
+  // Ignore assignments with sliced left-hand-sides
+  const auto lhs = ca->get_assign()->get_lhs();
+  if (Resolve().is_slice(lhs)) {
     return;
   }
+  // Ignore assignments with right-hand-sides which aren't identifiers
   const auto rhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_rhs());
   if (rhs == nullptr) {
     return;
   }
-  const auto rlhs = Resolve().get_resolution(lhs);
-  assert(rlhs != nullptr);
+  // Ignore assignments which don't preserve bit-width
+  if (Resolve().is_slice(rhs)) {
+    if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
+      return;
+    }
+  } else {
+    const auto r = Resolve().get_resolution(rhs);
+    assert(r != nullptr);
+    if (Evaluate().get_width(lhs) != Evaluate().get_width(r)) {
+      return;
+    }
+  }
+  // Ignore assignments with left-hand-sides that point to arrays
+  const auto r = Resolve().get_resolution(lhs);
+  assert(r != nullptr);
+  if (Resolve().is_array(r)) {
+    return;
+  }
+  // Ignore non-const assignments
+  for (auto i = rhs->begin_dim(), ie = rhs->end_dim(); i != ie; ++i) {
+    if (!Constant().is_static_constant(*i)) {
+      return;
+    }
+  }
 
-  // Note: Multiple assignments to the same variable are undefined, but
-  // allowed.  We prefer the most recent assignment.
-  assigns_[rlhs] = rhs;
+  // If the right-hand-side is a slice, record its bounds
+  vector<const Expression*> slices;
+  if (Resolve().is_slice(rhs)) {
+    slices.push_back(rhs->back_dim());
+  }
+  // Multiple assigns to the same variable are undefined. Keep the most recent.
+  aliases_[r] = {rhs, slices, false};
+}
+
+void DeAlias::AliasTable::follow(Row& row) {
+  // Base Case: This row is done, just return.
+  if (row.done_) {
+    return;
+  }
+  // Base Case: We can't follow this variable any further. Close
+  // out this row and return.
+  const auto r = Resolve().get_resolution(row.target_);
+  assert(r != nullptr);
+  const auto itr = aliases_.find(r);
+  if (itr == aliases_.end()) {
+    row.done_ = true;
+    return;
+  }
+  // Inductive Case: Close out the row that this variable points to.
+  // We inherit its information and append the slices that we had already
+  // built up.
+  follow(itr->second);
+  const auto slices_ = row.slices_;
+  row = itr->second;
+  row.slices_.insert(row.slices_.end(), slices_.begin(), slices_.end());
+}
+
+void DeAlias::AliasTable::collapse(Row& row) {
+  // Base Case: No slices; just return
+  if (row.slices_.empty()) {
+    return;
+  }
+  // Base Case: One slices; replace it with a copy and return
+  if (row.slices_.size() == 1) {
+    row.slices_[0] = row.slices_[0]->clone();
+    return;
+  }
+  // Inductive Case: Two or more slices:
+  auto res = merge(row.slices_[0], row.slices_[1]);
+  for (size_t i = 2, ie = row.slices_.size(); i < ie; ++i) {
+    auto temp = merge(res, row.slices_[i]);
+    delete res;
+    res = temp;
+  }
+  row.slices_.resize(1);
+  row.slices_[0] = res;
+}
+
+Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y) {
+  // Sanity Check: x can't be a single-bit, because if it were we wouldn't be
+  // able to slice it any further.
+  const auto xre = dynamic_cast<const RangeExpression*>(x);
+  assert(xre != nullptr);
+
+  // Compute x's least significant bit
+  Expression* lsb = nullptr;
+  if (xre->get_type() == RangeExpression::MINUS) {
+    lsb = new BinaryExpression(
+      xre->get_upper()->clone(),
+      BinaryExpression::MINUS,
+      new BinaryExpression(
+        xre->get_lower()->clone(),
+        BinaryExpression::PLUS,
+        new Number("1")
+      )
+    );
+  } else if (xre->get_type() == RangeExpression::PLUS) {
+    lsb = xre->get_upper()->clone();      
+  } else {
+    lsb = xre->get_lower()->clone();
+  }
+
+  // Easy Case: If y is a single bit, then we can just add this value to x's lsb
+  const auto yre = dynamic_cast<const RangeExpression*>(y);
+  if (yre == nullptr) {
+    return new BinaryExpression(lsb, BinaryExpression::PLUS, y->clone());
+  }
+  // Easier Case: If y is a plus or minus range, we just need to change its offset
+  else if (yre->get_type() != RangeExpression::CONSTANT) {
+    return new RangeExpression(
+      new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_upper()->clone()),
+      yre->get_type(),
+      yre->get_lower()->clone()
+    );
+  }
+  // Hard Case: If y is a constant range, we need to add lsb to both of its bounds
+  else {
+    return new RangeExpression(
+      new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_upper()->clone()),
+      RangeExpression::CONSTANT,
+      new BinaryExpression(lsb->clone(), BinaryExpression::PLUS, yre->get_lower()->clone())
+    );
+  } 
 }
 
 bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
   const auto lhs = ca->get_assign()->get_lhs();
   const auto rhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_rhs());
+  // An rhs which isn't an identifier can't be a self-assignment
   if (rhs == nullptr) {
     return false;
+  } 
+  // Identifiers which point to different variables can't be self assignments
+  if (Resolve().get_resolution(lhs) != Resolve().get_resolution(rhs)) {
+    return false;
   }
-  return Resolve().get_resolution(lhs) == Resolve().get_resolution(rhs);
+  // Identifiers which aren't both slices can't be self assignments
+  if (Resolve().is_slice(lhs) != Resolve().is_slice(rhs)) {
+    return false;
+  }
+  // Identifiers with different dimension arities can't be self assignments
+  if (lhs->size_dim() != rhs->size_dim()) {
+    return false;
+  }
+  // If the identifiers have subscripts which disagree, this isn't a self assignment
+  for (auto i = lhs->begin_dim(), j = rhs->begin_dim(), ie = lhs->end_dim(); i != ie; ++i, ++j) {
+    if (!Constant().is_static_constant(*i) || !Constant().is_static_constant(*j)) {
+      return false;
+    }
+    const auto r1 = Evaluate().get_range(*i);
+    const auto r2 = Evaluate().get_range(*j);
+    if ((r1.first != r2.first) || (r1.second != r2.second)) {
+      return false;
+    }
+  }
+  // It's a self-assignment
+  return true;
 }
 
 Attributes* DeAlias::rewrite(Attributes* as) {
@@ -160,43 +293,34 @@ Attributes* DeAlias::rewrite(Attributes* as) {
 }
 
 Expression* DeAlias::rewrite(Identifier* id) {
-  // Don't rewrite anything in a declaration!
+  // Don't rewrite anything in a declaration
   if (dynamic_cast<Declaration*>(id->get_parent())) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite things we can't resolve like scope names
-  const auto resl = Resolve().get_resolution(id);
-  if (resl == nullptr) {
+  const auto r = Resolve().get_resolution(id);
+  if (r == nullptr) {
     return Rewriter::rewrite(id);
   }
-  // And don't rewrite outputs! They might just be aliases, but we need to
-  // preserve them.
-  if (auto pd = dynamic_cast<PortDeclaration*>(resl->get_parent()->get_parent())) {
-    if (pd->get_type() != PortDeclaration::INPUT) {
-      return Rewriter::rewrite(id);
-    }
-  }
-  // Lookup the alias resolution for this variable. If we get back the same
-  // variable, there are no changes to make.
-  const auto r = table_->get(id);  
-  if (id == r) {
+  // Don't rewrite array operations
+  if (Resolve().is_array(r)) {
     return Rewriter::rewrite(id);
   }
-
-  // Otherwise, we can use this name instead. Make sure to carry over
-  // dimensions that were attached to this variable, though.
-  auto res = r->clone();
-  res->replace_dim(id->get_dim()->clone());
-
-  // Invalidate resolution information that was attached to this variable and
-  // return the replacement.
-  Resolve().invalidate(id);
-  return res;
+  // Don't rewrite references to ports. Mostly we just care about output ports.
+  // We'll never find an aliasing relationship for an input, since it would have
+  // to appear on the left-hand-side of an assignment.
+  if (dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent())) {
+    return Rewriter::rewrite(id);
+  }
+  // Don't rewrite variables we don't have a de-aliasing relationship for.
+  // Otherwise, return the replacement.
+  const auto res = table_->dealias(id);  
+  return (res == nullptr) ? Rewriter::rewrite(id) : res;
 }
 
 ModuleDeclaration* DeAlias::rewrite(ModuleDeclaration* md) {
-  // Only mess with module items. We're not going to rename anything anywhere else
-  md->get_items()->accept(this);
+  // Only mess with module items. 
+  md->accept_items(this);
   return md;
 }
 

@@ -32,52 +32,73 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_PROGRAM_H
 
 #include <vector>
-#include "src/base/log/log.h"
 #include "src/base/undo/undo_map.h"
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
 
+class Log;
+class Parser;
+
 class Program : public Editor {
   public:
     // Iterators:
-    typedef typename ManagedUndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId>::const_iterator decl_iterator;
-    typedef typename UndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId>::const_iterator elab_iterator;
+    typedef typename ManagedUndoMap<const Identifier*, false, ModuleDeclaration*, true, HashId, EqId>::const_iterator decl_iterator;
+    typedef typename ManagedUndoMap<const Identifier*, true, ModuleDeclaration*, false, HashId, EqId>::const_iterator elab_iterator;
 
     // Constructors:
+    // 
+    // Creates an empty program with no top-level module. 
     Program();
+    // Creates a program by invoking declare_and_instantiate on md. Invoking
+    // this constructor with a declaration which contains a type error is
+    // undefined.
     Program(ModuleDeclaration* md);
+    // Creates a program by declaring md and instantiating mi. Invoking this
+    // constructor with declaration or instantiation which contain a type error
+    // is undefined.
     Program(ModuleDeclaration* md, ModuleInstantiation* mi);
+    // Destructor
     ~Program();
 
     // Configuration Interface:
+    //
+    // Determines whether or not to disable typechecking
     Program& typecheck(bool tc);
 
     // Program Building Interface:
     //
     // Declares a new module. If this is the first declaration, it is assumed
     // to be the root. Thereafter, modules without annotations inherit the
-    // annotations of the root declaration.
-    void declare(ModuleDeclaration* md);
+    // annotations of the root declaration. Writes errors and warnings to log.
+    // If provided, p is assumed to have generated md, and will be used to look
+    // up location information for logging.
+    bool declare(ModuleDeclaration* md, Log* log, const Parser* p = nullptr);
     // Convenience method. Invokes() declare and then evaluates an
-    // automatically generated instantiation of this module.
-    void declare_and_instantiate(ModuleDeclaration* md);
+    // automatically generated instantiation of this module. Writes errors and
+    // warnings to log. If provided, p is assumed to have generated md, and
+    // will be used to look up locaiton information for logging.
+    bool declare_and_instantiate(ModuleDeclaration* md, Log* log, const Parser* p = nullptr);
     // Evaluates a new module item; instantiations may in turn result in
     // further evaluations. If this is the first instantiation, it is assumed
     // to be the root. Thereafter, instantiations without annotations inherit
-    // the annotations of the root instantiation.
-    void eval(ModuleItem* mi);
+    // the annotations of the root instantiation. Writes errors and warnings to
+    // log. If provided, p is assumed to have generated md, and will be used to
+    // look up location information for logging. 
+    bool eval(ModuleItem* mi, Log* log, const Parser* p = nullptr);
 
     // Program Transformation Interface:
+    // 
+    // Inline all modules with type __std == logic
     void inline_all();
+    // Outline all modules
     void outline_all();
 
     // Top-level Source Interface:
+    // 
+    // Returns a pointer to the top-level instantiated module
     const ModuleDeclaration* src() const;
-
-    // Log Interface:
-    const Log& get_log() const;
 
     // Declaration Iterators:
     decl_iterator root_decl() const;
@@ -94,8 +115,8 @@ class Program : public Editor {
   private:
     // Source:
     ModuleInstantiation* root_inst_;
-    ManagedUndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId> decls_;
-    UndoMap<const Identifier*, ModuleDeclaration*, HashId, EqId> elabs_;
+    ManagedUndoMap<const Identifier*, false, ModuleDeclaration*, true, HashId, EqId> decls_;
+    ManagedUndoMap<const Identifier*, true, ModuleDeclaration*, false, HashId, EqId> elabs_;
 
     // Root Iterators:
     decl_iterator root_ditr_;
@@ -112,16 +133,13 @@ class Program : public Editor {
     bool expand_insts_;
     bool expand_gens_;
 
-    // Error Log:
-    Log log_;
-
     // Elaboration Helpers:
-    void elaborate(Node* n);
-    void elaborate_item(ModuleItem* mi);
+    void elaborate(Node* n, Log* log, const Parser* p);
+    void elaborate_item(ModuleItem* mi, Log* log, const Parser* p);
 
     // Eval Helpers:
-    void eval_root(ModuleItem* mi);
-    void eval_item(ModuleItem* mi);
+    void eval_root(ModuleItem* mi, Log* log, const Parser* p);
+    void eval_item(ModuleItem* mi, Log* log, const Parser* p);
 
     // Code Generation Boundaries:
     void edit(ModuleInstantiation* mi) override;

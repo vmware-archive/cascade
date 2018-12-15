@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ARG_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_ARG_ASSIGN_H
 
-#include <cassert>
-#include "src/verilog/ast/types/maybe.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
 
@@ -41,29 +41,44 @@ namespace cascade {
 class ArgAssign : public Node {
   public:
     // Constructors:
-    ArgAssign(Maybe<Identifier>* exp__, Maybe<Expression>* imp__);
+    ArgAssign();
+    ArgAssign(Identifier* exp__, Expression* imp__);
     ~ArgAssign() override;
 
     // Node Interface:
-    NODE(ArgAssign, TREE(exp), TREE(imp))
+    NODE(ArgAssign)
+    ArgAssign* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(exp)
-    TREE_GET_SET(imp)
+    MAYBE_GET_SET(ArgAssign, Identifier, exp)
+    MAYBE_GET_SET(ArgAssign, Expression, imp)
 
   private:
-    TREE_ATTR(Maybe<Identifier>*, exp);
-    TREE_ATTR(Maybe<Expression>*, imp);
+    MAYBE_ATTR(Identifier, exp);
+    MAYBE_ATTR(Expression, imp);
 };
 
-inline ArgAssign::ArgAssign(Maybe<Identifier>* exp__, Maybe<Expression>* imp__) : Node() { 
+inline ArgAssign::ArgAssign() : Node() { 
+  MAYBE_DEFAULT_SETUP(exp);
+  MAYBE_DEFAULT_SETUP(imp);
   parent_ = nullptr;
-  TREE_SETUP(exp);
-  TREE_SETUP(imp);
+}
+
+inline ArgAssign::ArgAssign(Identifier* exp__, Expression* imp__) : ArgAssign() { 
+  MAYBE_SETUP(exp);
+  MAYBE_SETUP(imp);
 }
 
 inline ArgAssign::~ArgAssign() {
-  TREE_TEARDOWN(exp);
-  TREE_TEARDOWN(imp);
+  MAYBE_TEARDOWN(exp);
+  MAYBE_TEARDOWN(imp);
+}
+
+inline ArgAssign* ArgAssign::clone() const {
+  auto res = new ArgAssign();
+  MAYBE_CLONE(exp);
+  MAYBE_CLONE(imp);
+  return res;
 }
 
 } // namespace cascade

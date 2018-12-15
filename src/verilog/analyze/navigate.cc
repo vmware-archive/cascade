@@ -88,10 +88,9 @@ Navigate::Navigate(const Node* n) : Visitor() {
   // is in explicit port and parameter assignments. These actually point DOWN
   // into the instantiation that they appear in.
   auto p = n->get_parent();
-  if (dynamic_cast<Maybe<Identifier>*>(p)) {
-    auto pp = p->get_parent();
-    if (dynamic_cast<ArgAssign*>(pp)) {
-      auto mi = dynamic_cast<ModuleInstantiation*>(pp->get_parent()->get_parent());
+  if (auto aa = dynamic_cast<const ArgAssign*>(p)) {
+    if (n == aa->get_exp()) {
+      auto mi = dynamic_cast<const ModuleInstantiation*>(aa->get_parent());
       assert(mi != nullptr);
       if (Elaborate().is_elaborated(mi)) {
         where_ = const_cast<ModuleDeclaration*>(Elaborate().get_elaboration(mi));
@@ -170,12 +169,12 @@ const Identifier* Navigate::name() const {
   assert(location_check());
 
   if (auto gb = dynamic_cast<GenerateBlock*>(where_)) {
-    assert(!gb->get_id()->null());
-    return gb->get_id()->get();
+    assert(gb->is_non_null_id());
+    return gb->get_id();
   }
   if (auto pb = dynamic_cast<ParBlock*>(where_)) {
-    assert(!pb->get_id()->null());
-    return pb->get_id()->get();
+    assert(pb->is_non_null_id());
+    return pb->get_id();
   }
   if (auto md = dynamic_cast<ModuleDeclaration*>(where_)) {
     auto p = md->get_parent();
@@ -187,12 +186,12 @@ const Identifier* Navigate::name() const {
     return mi->get_iid();
   }
   if (auto pb = dynamic_cast<ParBlock*>(where_)) {
-    assert(!pb->get_id()->null());
-    return pb->get_id()->get();
+    assert(pb->is_non_null_id());
+    return pb->get_id();
   }
   if (auto sb = dynamic_cast<SeqBlock*>(where_)) {
-    assert(!sb->get_id()->null());
-    return sb->get_id()->get();
+    assert(sb->is_non_null_id());
+    return sb->get_id();
   }
 
   assert(false);
@@ -220,7 +219,7 @@ const Identifier* Navigate::find_duplicate_name(const Id* id) {
   if (itr == s->snames_.end() || (itr->second.second == nullptr)) {
     return nullptr;
   }
-  return itr->second.first->get_ids()->back() != id ? 
+  return itr->second.first->back_ids() != id ? 
     itr->second.first :
     itr->second.second;
 }
@@ -258,11 +257,11 @@ Navigate::child_iterator Navigate::child_end() const {
 
 bool Navigate::boundary_check() const {
   if (auto gb = dynamic_cast<const GenerateBlock*>(where_)) {
-    if (!gb->get_id()->null()) {
+    if (gb->is_non_null_id()) {
       return true; 
     }
   } else if (auto bs = dynamic_cast<const BlockStatement*>(where_)) {
-    if (!bs->get_id()->null()) {
+    if (bs->is_non_null_id()) {
       return true; 
     }
   } else if (dynamic_cast<const ModuleDeclaration*>(where_)) {
@@ -282,7 +281,7 @@ void Navigate::cache_name(const Identifier* id) {
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
 
-  const auto i = id->get_ids()->front();
+  const auto i = id->front_ids();
   auto itr = s->snames_.find(i);
   if (itr == s->snames_.end()) {
     s->snames_.insert(make_pair(i, make_pair(id, nullptr)));
@@ -293,14 +292,14 @@ void Navigate::cache_name(const Identifier* id) {
 
 void Navigate::visit(const GenerateBlock* gb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == gb || gb->get_id()->null()) {
-    gb->get_items()->accept(this);        
+  if (where_ == gb || gb->is_null_id()) {
+    gb->accept_items(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(gb->get_id()->get()->get_ids()->front(), gb));
+  s->schildren_.insert(make_pair(gb->get_id()->front_ids(), gb));
 }
 
 void Navigate::visit(const CaseGenerateConstruct* cgc) {
@@ -317,7 +316,9 @@ void Navigate::visit(const IfGenerateConstruct* igc) {
 
 void Navigate::visit(const LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
-    Elaborate().get_elaboration(lgc)->accept(this);
+    for (auto b : Elaborate().get_elaboration(lgc)) {
+      b->accept(this);
+    }
   }
 }
 
@@ -356,42 +357,42 @@ void Navigate::visit(const ModuleInstantiation* mi) {
     const auto s = dynamic_cast<Scope*>(where_);
     assert(s != nullptr);
     const auto md = Elaborate().get_elaboration(mi);
-    s->schildren_.insert(make_pair(mi->get_iid()->get_ids()->front(), md));
+    s->schildren_.insert(make_pair(mi->get_iid()->front_ids(), md));
   } 
 }
 
 void Navigate::visit(const ParBlock* pb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == pb || pb->get_id()->null()) {
-    pb->get_decls()->accept(this);        
-    pb->get_stmts()->accept(this);        
+  if (where_ == pb || pb->is_null_id()) {
+    pb->accept_decls(this);        
+    pb->accept_stmts(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(pb->get_id()->get()->get_ids()->front(), pb));
+  s->schildren_.insert(make_pair(pb->get_id()->front_ids(), pb));
 }
 
 void Navigate::visit(const SeqBlock* sb) {
   // Only descend through this scope's root or unnamed blocks
-  if (where_ == sb || sb->get_id()->null()) {
-    sb->get_decls()->accept(this);        
-    sb->get_stmts()->accept(this);        
+  if (where_ == sb || sb->is_null_id()) {
+    sb->accept_decls(this);        
+    sb->accept_stmts(this);        
     return;
   } 
   // Otherwise we've hit a child
   const auto s = dynamic_cast<Scope*>(where_);
   assert(s != nullptr);
-  s->schildren_.insert(make_pair(sb->get_id()->get()->get_ids()->front(), sb));
+  s->schildren_.insert(make_pair(sb->get_id()->front_ids(), sb));
 }
 
 void Navigate::refresh() {
   assert(location_check());
   auto s = dynamic_cast<Scope*>(where_);
   if (auto md = dynamic_cast<ModuleDeclaration*>(where_)) {
-    for (auto e = md->get_items()->size(); s->next_supdate_ < e; ++s->next_supdate_) {
-      md->get_items()->get(s->next_supdate_)->accept(this);
+    for (auto e = md->size_items(); s->next_supdate_ < e; ++s->next_supdate_) {
+      md->get_items(s->next_supdate_)->accept(this);
     }
   } else if (s->next_supdate_ == 0) {
     where_->accept(this);

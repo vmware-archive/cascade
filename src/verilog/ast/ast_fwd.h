@@ -39,16 +39,10 @@ class Node;
   class AttrSpec;
   class CaseGenerateItem;
   class CaseItem;
-  class Combinator;
-    template <typename T>
-    class Many;
-    template <typename T>
-    class Maybe;
   class Event;
   class Expression;
     class BinaryExpression;
     class ConditionalExpression;
-    class NestedExpression;
     class Primary;
       class Concatenation;
       class Identifier;

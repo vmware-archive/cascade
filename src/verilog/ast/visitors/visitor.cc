@@ -35,65 +35,61 @@
 namespace cascade {
 
 void Visitor::visit(const ArgAssign* aa) {
-  aa->get_exp()->accept(this);
-  aa->get_imp()->accept(this);
+  aa->accept_exp(this);
+  aa->accept_imp(this);
 }
 
 void Visitor::visit(const Attributes* a) {
-  a->get_as()->accept(this);
+  a->accept_as(this);
 }
 
 void Visitor::visit(const AttrSpec* as) {
-  as->get_lhs()->accept(this);
-  as->get_rhs()->accept(this);
+  as->accept_lhs(this);
+  as->accept_rhs(this);
 }
 
 void Visitor::visit(const CaseGenerateItem* cgi) {
-  cgi->get_exprs()->accept(this);
-  cgi->get_block()->accept(this);
+  cgi->accept_exprs(this);
+  cgi->accept_block(this);
 }
 
 void Visitor::visit(const CaseItem* ci) {
-  ci->get_exprs()->accept(this);
-  ci->get_stmt()->accept(this);
+  ci->accept_exprs(this);
+  ci->accept_stmt(this);
 }
 
 void Visitor::visit(const Event* e) {
-  e->get_expr()->accept(this);
+  e->accept_expr(this);
 }
 
 void Visitor::visit(const BinaryExpression* be) { 
-  be->get_lhs()->accept(this);
-  be->get_rhs()->accept(this);
+  be->accept_lhs(this);
+  be->accept_rhs(this);
 }
 
 void Visitor::visit(const ConditionalExpression* ce) {
-  ce->get_cond()->accept(this);
-  ce->get_lhs()->accept(this);
-  ce->get_rhs()->accept(this);
-}
-
-void Visitor::visit(const NestedExpression* ne) {
-  ne->get_expr()->accept(this);
+  ce->accept_cond(this);
+  ce->accept_lhs(this);
+  ce->accept_rhs(this);
 }
 
 void Visitor::visit(const Concatenation* c) {
-  c->get_exprs()->accept(this);
+  c->accept_exprs(this);
 }
 
 void Visitor::visit(const Identifier* i) {
-  i->get_ids()->accept(this);
-  i->get_dim()->accept(this);
+  i->accept_ids(this);
+  i->accept_dim(this);
 }
 
 void Visitor::visit(const IfGenerateClause* igc) {
-  igc->get_if()->accept(this);
-  igc->get_then()->accept(this);
+  igc->accept_if(this);
+  igc->accept_then(this);
 }
 
 void Visitor::visit(const MultipleConcatenation* mc) {
-  mc->get_expr()->accept(this);
-  mc->get_concat()->accept(this);
+  mc->accept_expr(this);
+  mc->accept_concat(this);
 }
 
 void Visitor::visit(const Number* n) {
@@ -105,206 +101,206 @@ void Visitor::visit(const String* s) {
 }
 
 void Visitor::visit(const RangeExpression* re) {
-  re->get_upper()->accept(this);
-  re->get_lower()->accept(this);
+  re->accept_upper(this);
+  re->accept_lower(this);
 }
 
 void Visitor::visit(const UnaryExpression* ue) {
-  ue->get_lhs()->accept(this);
+  ue->accept_lhs(this);
 }
 
 void Visitor::visit(const GenerateBlock* gb) {
-  gb->get_id()->accept(this);
-  gb->get_items()->accept(this);
+  gb->accept_id(this);
+  gb->accept_items(this);
 }
 
 void Visitor::visit(const Id* i) {
-  i->get_isel()->accept(this);
+  i->accept_isel(this);
 }
 
 void Visitor::visit(const ModuleDeclaration* md) {
-  md->get_attrs()->accept(this);
-  md->get_id()->accept(this);
-  md->get_ports()->accept(this);
-  md->get_items()->accept(this);
+  md->accept_attrs(this);
+  md->accept_id(this);
+  md->accept_ports(this);
+  md->accept_items(this);
 }
 
 void Visitor::visit(const AlwaysConstruct* ac) {
-  ac->get_stmt()->accept(this);
+  ac->accept_stmt(this);
 }
 
 void Visitor::visit(const IfGenerateConstruct* igc) {
-  igc->get_attrs()->accept(this);
-  igc->get_clauses()->accept(this);
-  igc->get_else()->accept(this);
+  igc->accept_attrs(this);
+  igc->accept_clauses(this);
+  igc->accept_else(this);
 }
 
 void Visitor::visit(const CaseGenerateConstruct* cgc) {
-  cgc->get_cond()->accept(this);
-  cgc->get_items()->accept(this);
+  cgc->accept_cond(this);
+  cgc->accept_items(this);
 }
 
 void Visitor::visit(const LoopGenerateConstruct* lgc) {
-  lgc->get_init()->accept(this);
-  lgc->get_cond()->accept(this);
-  lgc->get_update()->accept(this);
-  lgc->get_block()->accept(this);
+  lgc->accept_init(this);
+  lgc->accept_cond(this);
+  lgc->accept_update(this);
+  lgc->accept_block(this);
 }
 
 void Visitor::visit(const InitialConstruct* ic) {
-  ic->get_attrs()->accept(this);
-  ic->get_stmt()->accept(this);
+  ic->accept_attrs(this);
+  ic->accept_stmt(this);
 }
 
 void Visitor::visit(const ContinuousAssign* ca) {
-  ca->get_ctrl()->accept(this);
-  ca->get_assign()->accept(this);
+  ca->accept_ctrl(this);
+  ca->accept_assign(this);
 }
 
 void Visitor::visit(const GenvarDeclaration* gd) {
-  gd->get_attrs()->accept(this);
-  gd->get_id()->accept(this);
+  gd->accept_attrs(this);
+  gd->accept_id(this);
 }
 
 void Visitor::visit(const IntegerDeclaration* id) {
-  id->get_attrs()->accept(this);
-  id->get_id()->accept(this); 
-  id->get_val()->accept(this);
+  id->accept_attrs(this);
+  id->accept_id(this); 
+  id->accept_val(this);
 }
 
 void Visitor::visit(const LocalparamDeclaration* ld) {
-  ld->get_attrs()->accept(this);
-  ld->get_dim()->accept(this);
-  ld->get_id()->accept(this);
-  ld->get_val()->accept(this);
+  ld->accept_attrs(this);
+  ld->accept_dim(this);
+  ld->accept_id(this);
+  ld->accept_val(this);
 }
 
 void Visitor::visit(const NetDeclaration* nd) {
-  nd->get_attrs()->accept(this);
-  nd->get_ctrl()->accept(this);
-  nd->get_id()->accept(this);
-  nd->get_dim()->accept(this);
+  nd->accept_attrs(this);
+  nd->accept_ctrl(this);
+  nd->accept_id(this);
+  nd->accept_dim(this);
 }
 
 void Visitor::visit(const ParameterDeclaration* pd) {
-  pd->get_attrs()->accept(this);
-  pd->get_dim()->accept(this);
-  pd->get_id()->accept(this);
-  pd->get_val()->accept(this);
+  pd->accept_attrs(this);
+  pd->accept_dim(this);
+  pd->accept_id(this);
+  pd->accept_val(this);
 }
 
 void Visitor::visit(const RegDeclaration* rd) {
-  rd->get_attrs()->accept(this);
-  rd->get_id()->accept(this);
-  rd->get_dim()->accept(this);
-  rd->get_val()->accept(this);
+  rd->accept_attrs(this);
+  rd->accept_id(this);
+  rd->accept_dim(this);
+  rd->accept_val(this);
 }
 
 void Visitor::visit(const GenerateRegion* gr) {
-  gr->get_items()->accept(this);
+  gr->accept_items(this);
 }
 
 void Visitor::visit(const ModuleInstantiation* mi) {
-  mi->get_attrs()->accept(this);
-  mi->get_mid()->accept(this);
-  mi->get_iid()->accept(this);
-  mi->get_range()->accept(this);
-  mi->get_params()->accept(this);
-  mi->get_ports()->accept(this);
+  mi->accept_attrs(this);
+  mi->accept_mid(this);
+  mi->accept_iid(this);
+  mi->accept_range(this);
+  mi->accept_params(this);
+  mi->accept_ports(this);
 }
 
 void Visitor::visit(const PortDeclaration* pd) {
-  pd->get_attrs()->accept(this); 
-  pd->get_decl()->accept(this); 
+  pd->accept_attrs(this); 
+  pd->accept_decl(this); 
 }
 
 void Visitor::visit(const BlockingAssign* ba) {
-  ba->get_ctrl()->accept(this);
-  ba->get_assign()->accept(this);
+  ba->accept_ctrl(this);
+  ba->accept_assign(this);
 }
 
 void Visitor::visit(const NonblockingAssign* na) {
-  na->get_ctrl()->accept(this);
-  na->get_assign()->accept(this);
+  na->accept_ctrl(this);
+  na->accept_assign(this);
 }
 
 void Visitor::visit(const CaseStatement* cs) {
-  cs->get_cond()->accept(this);
-  cs->get_items()->accept(this);
+  cs->accept_cond(this);
+  cs->accept_items(this);
 }
 
 void Visitor::visit(const ConditionalStatement* cs) {
-  cs->get_if()->accept(this);
-  cs->get_then()->accept(this);
-  cs->get_else()->accept(this);
+  cs->accept_if(this);
+  cs->accept_then(this);
+  cs->accept_else(this);
 }
 
 void Visitor::visit(const ForStatement* fs) {
-  fs->get_init()->accept(this);
-  fs->get_cond()->accept(this);
-  fs->get_update()->accept(this);
-  fs->get_stmt()->accept(this);
+  fs->accept_init(this);
+  fs->accept_cond(this);
+  fs->accept_update(this);
+  fs->accept_stmt(this);
 }
 
 void Visitor::visit(const ForeverStatement* fs) {
-  fs->get_stmt()->accept(this);
+  fs->accept_stmt(this);
 }
 
 void Visitor::visit(const RepeatStatement* rs) {
-  rs->get_cond()->accept(this);
-  rs->get_stmt()->accept(this);
+  rs->accept_cond(this);
+  rs->accept_stmt(this);
 }
 
 void Visitor::visit(const ParBlock* pb) {
-  pb->get_id()->accept(this);
-  pb->get_decls()->accept(this);
-  pb->get_stmts()->accept(this);
+  pb->accept_id(this);
+  pb->accept_decls(this);
+  pb->accept_stmts(this);
 }
 
 void Visitor::visit(const SeqBlock* sb) {
-  sb->get_id()->accept(this);
-  sb->get_decls()->accept(this);
-  sb->get_stmts()->accept(this);
+  sb->accept_id(this);
+  sb->accept_decls(this);
+  sb->accept_stmts(this);
 }
 
 void Visitor::visit(const TimingControlStatement* tcs) {
-  tcs->get_ctrl()->accept(this);
-  tcs->get_stmt()->accept(this);
+  tcs->accept_ctrl(this);
+  tcs->accept_stmt(this);
 }
 
 void Visitor::visit(const DisplayStatement* ds) {
-  ds->get_args()->accept(this);
+  ds->accept_args(this);
 }
 
 void Visitor::visit(const FinishStatement* fs) {
-  fs->get_arg()->accept(this);
+  fs->accept_arg(this);
 }
 
 void Visitor::visit(const WriteStatement* ws) {
-  ws->get_args()->accept(this);
+  ws->accept_args(this);
 }
 
 void Visitor::visit(const WaitStatement* ws) {
-  ws->get_cond()->accept(this);
-  ws->get_stmt()->accept(this);
+  ws->accept_cond(this);
+  ws->accept_stmt(this);
 }
 
 void Visitor::visit(const WhileStatement* ws) {
-  ws->get_cond()->accept(this);
-  ws->get_stmt()->accept(this); 
+  ws->accept_cond(this);
+  ws->accept_stmt(this); 
 }
 
 void Visitor::visit(const DelayControl* dc) {
-  dc->get_delay()->accept(this); 
+  dc->accept_delay(this); 
 }
 
 void Visitor::visit(const EventControl* ec) {
-  ec->get_events()->accept(this);
+  ec->accept_events(this);
 }
 
 void Visitor::visit(const VariableAssign* va) {
-  va->get_lhs()->accept(this);
-  va->get_rhs()->accept(this);
+  va->accept_lhs(this);
+  va->accept_rhs(this);
 }
 
 } // namespace cascade

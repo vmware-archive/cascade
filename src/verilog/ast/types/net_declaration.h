@@ -31,12 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NET_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_NET_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -44,46 +42,61 @@ namespace cascade {
 class NetDeclaration : public Declaration {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       WIRE = 0
     };
 
     // Constructors:
-    NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__);
+    NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__);
+    NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
-    NODE(NetDeclaration, TREE(attrs), LEAF(type), TREE(ctrl), TREE(id), LEAF(signed), TREE(dim))
+    NODE(NetDeclaration)
+    NetDeclaration* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(type)
-    TREE_GET_SET(ctrl)
-    LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
+    VAL_GET_SET(NetDeclaration, Type, type)
+    MAYBE_GET_SET(NetDeclaration, DelayControl, ctrl)
+    VAL_GET_SET(NetDeclaration, bool, signed)
+    MAYBE_GET_SET(NetDeclaration, RangeExpression, dim)
 
   private:
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Maybe<DelayControl>*, ctrl);
-    LEAF_ATTR(bool, signed);
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
+    VAL_ATTR(Type, type);
+    MAYBE_ATTR(DelayControl, ctrl);
+    VAL_ATTR(bool, signed);
+    MAYBE_ATTR(RangeExpression, dim);
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Maybe<DelayControl>* ctrl__, Identifier* id__, bool signed__, Maybe<RangeExpression>* dim__) : Declaration() {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__) : Declaration() {
+  PTR_SETUP(attrs);
+  VAL_SETUP(type);
+  MAYBE_DEFAULT_SETUP(ctrl);
+  PTR_SETUP(id);
+  VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(type);
-  TREE_SETUP(ctrl);
-  TREE_SETUP(id);
-  LEAF_SETUP(signed);
-  TREE_SETUP(dim);
+}
+
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : NetDeclaration(attrs__, type__, id__, signed__) {
+  MAYBE_SETUP(ctrl);
+  MAYBE_SETUP(dim);
 }
 
 inline NetDeclaration::~NetDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(id);
-  LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(type);
+  MAYBE_TEARDOWN(ctrl);
+  PTR_TEARDOWN(id);
+  VAL_TEARDOWN(signed);
+  MAYBE_TEARDOWN(dim);
+}
+
+inline NetDeclaration* NetDeclaration::clone() const {
+  auto res = new NetDeclaration(attrs_->clone(), type_, id_->clone(), signed_);
+  MAYBE_CLONE(ctrl);
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

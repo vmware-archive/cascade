@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ATTR_SPEC_H
 #define CASCADE_SRC_VERILOG_AST_ATTR_SPEC_H
 
-#include <cassert>
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/node.h"
 
 namespace cascade {
@@ -43,29 +41,35 @@ namespace cascade {
 class AttrSpec : public Node {
   public:
     // Constructors:
-    AttrSpec(Identifier* lhs__, Maybe<Expression>* rhs__);
+    AttrSpec(Identifier* lhs__, Expression* rhs__);
     ~AttrSpec() override;
 
     // Node Interface:
-    NODE(AttrSpec, TREE(lhs), TREE(rhs))
+    NODE(AttrSpec)
+    AttrSpec* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(lhs)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(AttrSpec, Identifier, lhs)
+    MAYBE_GET_SET(AttrSpec, Expression, rhs)
 
   private:
-    TREE_ATTR(Identifier*, lhs);
-    TREE_ATTR(Maybe<Expression>*, rhs);
+    PTR_ATTR(Identifier, lhs);
+    MAYBE_ATTR(Expression, rhs);
 };
 
-inline AttrSpec::AttrSpec(Identifier* lhs__, Maybe<Expression>* rhs__) : Node() { 
+inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node() { 
+  PTR_SETUP(lhs);
+  MAYBE_SETUP(rhs);
   parent_ = nullptr;
-  TREE_SETUP(lhs);
-  TREE_SETUP(rhs);
 }
 
 inline AttrSpec::~AttrSpec() {
-  TREE_TEARDOWN(lhs);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(lhs);
+  MAYBE_TEARDOWN(rhs);
+}
+
+inline AttrSpec* AttrSpec::clone() const {
+  return new AttrSpec(lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade

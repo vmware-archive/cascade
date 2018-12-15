@@ -53,7 +53,6 @@ class Printer : public Visitor {
     void visit(const Event* e) override;
     void visit(const BinaryExpression* be) override;
     void visit(const ConditionalExpression* ce) override;
-    void visit(const NestedExpression* ne) override;
     void visit(const Concatenation* c) override;
     void visit(const Identifier* i) override;
     void visit(const MultipleConcatenation* mc) override;

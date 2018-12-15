@@ -31,53 +31,70 @@
 #ifndef CASCADE_SRC_VERILOG_AST_IF_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_IF_GENERATE_CONSTRUCT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/attributes.h"
 #include "src/verilog/ast/types/conditional_generate_construct.h"
 #include "src/verilog/ast/types/if_generate_clause.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
 class IfGenerateConstruct : public ConditionalGenerateConstruct {
   public:
     // Constructors:
-    IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, Maybe<GenerateBlock>* else__);
-    IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, Maybe<GenerateBlock>* else__);
+    IfGenerateConstruct(Attributes* attrs__);
+    IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, GenerateBlock* else__);
+    template <typename ClausesItr>
+    IfGenerateConstruct(Attributes* attrs__, ClausesItr clauses_begin__, ClausesItr clauses_end__, GenerateBlock* else__);
     ~IfGenerateConstruct() override;
 
     // Node Interface:
-    NODE(IfGenerateConstruct, TREE(attrs), TREE(clauses), TREE(else))
+    NODE(IfGenerateConstruct)
+    IfGenerateConstruct* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(clauses)
-    TREE_GET_SET(else)
+    PTR_GET_SET(IfGenerateConstruct, Attributes, attrs)
+    MANY_GET_SET(IfGenerateConstruct, IfGenerateClause, clauses)
+    MAYBE_GET_SET(IfGenerateConstruct, GenerateBlock, else)
 
   private:
     friend class Inline;
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Many<IfGenerateClause>*, clauses);
-    TREE_ATTR(Maybe<GenerateBlock>*, else);
+    PTR_ATTR(Attributes, attrs);
+    MANY_ATTR(IfGenerateClause, clauses);
+    MAYBE_ATTR(GenerateBlock, else);
 };
 
-inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, Maybe<GenerateBlock>* else__) : IfGenerateConstruct(attrs__, new Many<IfGenerateClause>(clause__), else__) { }
-
-inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, Many<IfGenerateClause>* clauses__, Maybe<GenerateBlock>* else__) : ConditionalGenerateConstruct() {
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__) : ConditionalGenerateConstruct() {
+  PTR_SETUP(attrs);
+  MANY_DEFAULT_SETUP(clauses);
+  MAYBE_DEFAULT_SETUP(else);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(clauses);
-  TREE_SETUP(else);
   gen_ = nullptr;
 }
 
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, GenerateBlock* else__) : IfGenerateConstruct(attrs__) { 
+  push_back_clauses(clause__);
+  MAYBE_SETUP(else);
+}
+
+template <typename ClausesItr>
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__, ClausesItr clauses_begin__, ClausesItr clauses_end__, GenerateBlock* else__) : IfGenerateConstruct(attrs__) {
+  MANY_SETUP(clauses);
+  MAYBE_SETUP(else);
+}
+
 inline IfGenerateConstruct::~IfGenerateConstruct() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(clauses);
-  TREE_TEARDOWN(else);
+  PTR_TEARDOWN(attrs);
+  MANY_TEARDOWN(clauses);
+  MAYBE_TEARDOWN(else);
   // Don't delete gen_; it points to then_ or else_
+}
+
+inline IfGenerateConstruct* IfGenerateConstruct::clone() const {
+  auto res = new IfGenerateConstruct(attrs_->clone());
+  MANY_CLONE(clauses);
+  MAYBE_CLONE(else);
+  return res;
 }
 
 } // namespace cascade 

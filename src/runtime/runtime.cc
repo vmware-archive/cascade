@@ -55,6 +55,7 @@ namespace cascade {
 Runtime::Runtime(View* view) : Asynchronous() {
   view_ = view;
 
+  log_ = new Log();
   parser_ = new Parser();
   dp_ = new DataPlane();
   isolate_ = new Isolate(dp_);
@@ -79,15 +80,12 @@ Runtime::Runtime(View* view) : Asynchronous() {
 }
 
 Runtime::~Runtime() {
-  if (!disable_inlining_) {
-    program_->outline_all();
-  }
-
   delete program_;
   if (root_ != nullptr) {
     delete root_;
   }
 
+  delete log_;
   delete parser_;
   delete dp_;
   delete isolate_;
@@ -120,15 +118,10 @@ Runtime& Runtime::disable_warnings(bool dw) {
   return *this;
 }
 
-void Runtime::eval(Node* n) {
-  schedule_interrupt(Interrupt([this, n]{
-    eval_node(n);
-  }));
-}
-
 void Runtime::eval(const string& s) {
   auto ss = new stringstream(s);
   schedule_interrupt(Interrupt([this, ss]{
+    log_->clear();
     eval_stream(*ss, false);
     delete ss;
   }));
@@ -136,6 +129,7 @@ void Runtime::eval(const string& s) {
 
 void Runtime::eval(istream& is, bool is_term) {
   schedule_interrupt(Interrupt([this, &is, is_term]{
+    log_->clear();
     eval_stream(is, is_term);
   }));
 }
@@ -236,11 +230,11 @@ void Runtime::run_logic() {
 bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
-    const auto pres = parser_->parse(is); 
-    view_->parse(logical_time_, parser_->last_parse());
+    parser_->parse(is, log_); 
+    view_->parse(logical_time_, parser_->get_text());
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
-    if (parser_->get_log().error()) {
+    if (log_->error()) {
       if (is_term) {
         is.ignore(numeric_limits<streamsize>::max(), '\n');
       }
@@ -249,14 +243,14 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     } 
     // An eof marks end of stream, return the last result, and trigger finish
     // if the eof appeared on the term
-    if (pres.second) {
+    if (parser_->eof()) {
       if (is_term) {
         log_ctrl_d();
       }
       return res;
     }
     // Eval the code we just parsed; if this is the term, don't loop
-    res = eval_node(pres.first);
+    res = eval_nodes(parser_->begin(), parser_->end());
     if (is_term) {
       return res;
     }
@@ -269,17 +263,12 @@ bool Runtime::eval_node(Node* n) {
     return eval_include(s);
   } else if (auto md = dynamic_cast<ModuleDeclaration*>(n)) {
     return eval_decl(md);
-  } else if (auto mis = dynamic_cast<Many<ModuleItem>*>(n)) {
-    auto res = true;
-    while (res && !mis->empty()) {
-      res = eval_item(mis->remove_front());
-    }
-    delete mis;
-    return res;
-  } 
-
-  assert(false);
-  return false;
+  } else if (auto mi = dynamic_cast<ModuleItem*>(n)) {
+    return eval_item(mi);
+  } else {
+    assert(false);
+    return false;
+  }
 }
 
 bool Runtime::eval_include(String* s) {
@@ -304,9 +293,9 @@ bool Runtime::eval_include(String* s) {
 }
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {
-  program_->declare(md);
+  program_->declare(md, log_, parser_);
   log_checker_warns();
-  if (program_->get_log().error()) {
+  if (log_->error()) {
     log_checker_errors();
     return false;
   }
@@ -315,9 +304,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
 }
 
 bool Runtime::eval_item(ModuleItem* mi) {
-  program_->eval(mi); 
+  program_->eval(mi, log_, parser_); 
   log_checker_warns();
-  if (program_->get_log().error()) {
+  if (log_->error()) {
     log_checker_errors();
     return false;
   }
@@ -326,7 +315,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
   const auto src = program_->root_elab()->second;
-  if (src->get_items()->empty()) {
+  if (src->empty_items()) {
     root_ = new Module(src, this, dp_, isolate_, compiler_);
   } else {
     ++item_evals_;
@@ -500,7 +489,7 @@ void Runtime::log_parse_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = parser_->get_log().error_begin(), ee = parser_->get_log().error_end(); e != ee; ++e) {
+  for (auto e = log_->error_begin(), ee = log_->error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;
@@ -514,7 +503,7 @@ void Runtime::log_checker_warns() {
   if (disable_warnings_) {
     return;
   }
-  if (program_->get_log().warn_begin() == program_->get_log().warn_end()) {
+  if (log_->warn_begin() == log_->warn_end()) {
     return;
   }
 
@@ -523,7 +512,7 @@ void Runtime::log_checker_warns() {
 
   indstream is(ss);
   is.tab();
-  for (auto w = program_->get_log().warn_begin(), we = program_->get_log().warn_end(); w != we; ++w) {
+  for (auto w = log_->warn_begin(), we = log_->warn_end(); w != we; ++w) {
     is << "\n> ";
     is.tab();
     is << *w;
@@ -539,7 +528,7 @@ void Runtime::log_checker_errors() {
 
   indstream is(ss);
   is.tab();
-  for (auto e = program_->get_log().error_begin(), ee = program_->get_log().error_end(); e != ee; ++e) {
+  for (auto e = log_->error_begin(), ee = log_->error_end(); e != ee; ++e) {
     is << "\n> ";
     is.tab();
     is << *e;

@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/delay_control.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/module_item.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
@@ -43,29 +41,42 @@ namespace cascade {
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    ContinuousAssign(Maybe<DelayControl>* ctrl__, VariableAssign* assign__);
+    ContinuousAssign(VariableAssign* assign__);
+    ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__);
     ~ContinuousAssign() override;
 
     // Node Interface:
-    NODE(ContinuousAssign, TREE(ctrl), TREE(assign))
+    NODE(ContinuousAssign)
+    ContinuousAssign* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(ctrl)
-    TREE_GET_SET(assign)
+    MAYBE_GET_SET(ContinuousAssign, DelayControl, ctrl)
+    PTR_GET_SET(ContinuousAssign, VariableAssign, assign)
 
   private:
-    TREE_ATTR(Maybe<DelayControl>*, ctrl);
-    TREE_ATTR(VariableAssign*, assign);
+    MAYBE_ATTR(DelayControl, ctrl);
+    PTR_ATTR(VariableAssign, assign);
 };
 
-inline ContinuousAssign::ContinuousAssign(Maybe<DelayControl>* ctrl__, VariableAssign* assign__) : ModuleItem() {
+inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem() {
+  MAYBE_DEFAULT_SETUP(ctrl);
+  PTR_SETUP(assign);
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
-  TREE_SETUP(assign);
+}
+
+inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ContinuousAssign(assign__) {
+  MAYBE_SETUP(ctrl);
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(assign);
+  MAYBE_TEARDOWN(ctrl);
+  PTR_TEARDOWN(assign);
+}
+
+inline ContinuousAssign* ContinuousAssign::clone() const {
+  auto res = new ContinuousAssign(assign_->clone());
+  MAYBE_CLONE(ctrl);
+  return res;
 }
 
 } // namespace cascade 

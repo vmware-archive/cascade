@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_MULTIPLE_CONCATENATION_H
 #define CASCADE_SRC_VERILOG_AST_MULTIPLE_CONCATENATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/concatenation.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class MultipleConcatenation : public Primary {
     ~MultipleConcatenation() override;
 
     // Node Interface:
-    NODE(MultipleConcatenation, TREE(expr), TREE(concat))
+    NODE(MultipleConcatenation)
+    MultipleConcatenation* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(expr)
-    TREE_GET_SET(concat)
+    PTR_GET_SET(MultipleConcatenation, Expression, expr)
+    PTR_GET_SET(MultipleConcatenation, Concatenation, concat)
 
   private:
-    TREE_ATTR(Expression*, expr);
-    TREE_ATTR(Concatenation*, concat);
+    PTR_ATTR(Expression, expr);
+    PTR_ATTR(Concatenation, concat);
 };
 
 inline MultipleConcatenation::MultipleConcatenation(Expression* expr__, Concatenation* concat__) : Primary() {
+  PTR_SETUP(expr);
+  PTR_SETUP(concat);
   parent_ = nullptr;
-  TREE_SETUP(expr);
-  TREE_SETUP(concat);
 }
 
 inline MultipleConcatenation::~MultipleConcatenation() {
-  TREE_TEARDOWN(expr);
-  TREE_TEARDOWN(concat);
+  PTR_TEARDOWN(expr);
+  PTR_TEARDOWN(concat);
+}
+
+inline MultipleConcatenation* MultipleConcatenation::clone() const {
+  return new MultipleConcatenation(expr_->clone(), concat_->clone());
 }
 
 } // namespace cascade 

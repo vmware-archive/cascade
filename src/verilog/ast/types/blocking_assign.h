@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_BLOCKING_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_BLOCKING_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/assign_statement.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/timing_control.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
@@ -43,29 +41,42 @@ namespace cascade {
 class BlockingAssign : public AssignStatement {
   public:
     // Constructors:
-    BlockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__);
+    BlockingAssign(VariableAssign* assign__);
+    BlockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~BlockingAssign() override;
 
     // Node Interface:
-    NODE(BlockingAssign, TREE(ctrl), TREE(assign))
+    NODE(BlockingAssign)
+    BlockingAssign* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(ctrl)
-    TREE_GET_SET(assign)
+    MAYBE_GET_SET(BlockingAssign, TimingControl, ctrl)
+    PTR_GET_SET(BlockingAssign, VariableAssign, assign)
 
   private:
-    TREE_ATTR(Maybe<TimingControl>*, ctrl);
-    TREE_ATTR(VariableAssign*, assign);
+    MAYBE_ATTR(TimingControl, ctrl);
+    PTR_ATTR(VariableAssign, assign);
 };
 
-inline BlockingAssign::BlockingAssign(Maybe<TimingControl>* ctrl__, VariableAssign* assign__) : AssignStatement() {
+inline BlockingAssign::BlockingAssign(VariableAssign* assign__) : AssignStatement() {
+  MAYBE_DEFAULT_SETUP(ctrl);
+  PTR_SETUP(assign); 
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
-  TREE_SETUP(assign); 
+}
+
+inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : BlockingAssign(assign__) {
+  MAYBE_SETUP(ctrl);
 }
 
 inline BlockingAssign::~BlockingAssign() {
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(assign);
+  MAYBE_TEARDOWN(ctrl);
+  PTR_TEARDOWN(assign);
+}
+
+inline BlockingAssign* BlockingAssign::clone() const {
+  auto res = new BlockingAssign(assign_->clone());
+  MAYBE_CLONE(ctrl);
+  return res;
 }
 
 } // namespace cascade 

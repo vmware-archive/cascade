@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONCATENATION_H
 #define CASCADE_SRC_VERILOG_AST_CONCATENATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/primary.h"
 
 namespace cascade {
@@ -42,25 +40,45 @@ namespace cascade {
 class Concatenation : public Primary {
   public:
     // Constructors:
-    Concatenation(Many<Expression>* exprs__);
+    Concatenation();
+    Concatenation(Expression* expr);
+    template <typename ExprsItr>
+    Concatenation(ExprsItr exprs_begin__, ExprsItr exprs_end__);
     ~Concatenation() override;
 
     // Node Interface:
-    NODE(Concatenation, TREE(exprs))
+    NODE(Concatenation)
+    Concatenation* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(exprs)
+    MANY_GET_SET(Concatenation, Expression, exprs)
 
   private:
-    TREE_ATTR(Many<Expression>*, exprs);
+    MANY_ATTR(Expression, exprs);
 };
 
-inline Concatenation::Concatenation(Many<Expression>* exprs__) : Primary() {
+inline Concatenation::Concatenation() : Primary() {
+  MANY_DEFAULT_SETUP(exprs);
   parent_ = nullptr;
-  TREE_SETUP(exprs);
+}
+
+inline Concatenation::Concatenation(Expression* expr) : Concatenation() {
+  push_back_exprs(expr);
+}
+
+template <typename ExprsItr>
+inline Concatenation::Concatenation(ExprsItr exprs_begin__, ExprsItr exprs_end__) : Concatenation() {
+  MANY_SETUP(exprs);
 }
 
 inline Concatenation::~Concatenation() {
-  TREE_TEARDOWN(exprs);
+  MANY_TEARDOWN(exprs);
+}
+
+inline Concatenation* Concatenation::clone() const {
+  auto res = new Concatenation();
+  MANY_CLONE(exprs);
+  return res;
 }
 
 } // namespace cascade 

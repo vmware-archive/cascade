@@ -31,7 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_TRANSFORM_CONSTANT_PROP_H
 #define CASCADE_SRC_VERILOG_TRANSFORM_CONSTANT_PROP_H
 
+#include <unordered_map>
+#include <unordered_set>
 #include "src/verilog/ast/visitors/rewriter.h"
+#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
@@ -43,9 +46,32 @@ class ConstantProp : public Rewriter {
     void run(ModuleDeclaration* md);
 
   private:
+    // Wires which have been assigned to static constants
+    std::unordered_set<const Identifier*> runtime_constants_;
+    std::unordered_map<const Identifier*, const ContinuousAssign*> net_assigns_;
+
+    // Returns true if this identifier is the target of an assign statement
+    bool is_assign_target(const Identifier* i) const;
+
+    // Helper Class: Returns true if this expression is a runtime constant.
+    class RuntimeConstant : Visitor {
+      public:
+        RuntimeConstant(ConstantProp* cp);
+        ~RuntimeConstant() override = default;
+
+        bool check(const Expression* e);
+
+      private:
+        ConstantProp* cp_;
+        bool res_;
+
+        void visit(const Attributes* as) override;
+        void visit(const Identifier* i) override;
+    };
+
+    // Rewriter Interface
     Expression* rewrite(BinaryExpression* be) override;
     Expression* rewrite(ConditionalExpression* ce) override;
-    Expression* rewrite(NestedExpression* ne) override;
     Expression* rewrite(Concatenation* c) override;
     Expression* rewrite(Identifier* i) override;
     Expression* rewrite(MultipleConcatenation* mc) override;

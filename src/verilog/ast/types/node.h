@@ -31,8 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NODE_H
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
-#include <string>
-#include <vector>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/editor.h"
@@ -55,31 +53,74 @@ class Node {
     virtual Node* accept(Rewriter* r) = 0;
 
     // Get/Set:
-    GET(parent);
-    LEAF_GET_SET(source)
-    LEAF_GET_SET(line)
+    Node* get_parent();
+    const Node* get_parent() const;
 
   private:
-    friend class Monitor;
-    DECORATION(std::vector<const Node*>, monitor);
-    friend class SwLogic;
-    DECORATION(size_t, ctrl);
-    DECORATION(bool, active);
-
     friend class Elaborate;
     friend class Inline;
     HIERARCHY_VISIBILITY;
     DECORATION(Node*, parent);
 
-    DECORATION(std::string, source);
-    DECORATION(size_t, line);
+    friend class Evaluate;
+    friend class SwLogic;
+    DECORATION(uint32_t, common);
+    // common_[0]    Evaluate: needs_update_
+    // common_[1]    SwLogic:  active_
+    // common_[2-4]  Number:   format_
+    // common_[5]    Number:   signed_
+    // common_[6-31] Number:   size_
+
+    template <size_t idx>
+    void set_flag(bool b);
+    template <size_t idx>
+    bool get_flag() const;
+
+    template <size_t idx, size_t w>
+    void set_val(uint32_t val);
+    template <size_t idx, size_t w>
+    uint32_t get_val() const;
 };
 
 inline Node::Node() {
-  ctrl_ = 0;
-  active_ = false;
-  source_ = "<unknown location --- please submit bug report>";
-  line_ = 0;
+  set_flag<0>(true);
+  set_flag<1>(false);
+}
+
+inline Node* Node::get_parent() {
+  return parent_;
+}
+
+inline const Node* Node::get_parent() const {
+  return parent_;
+}
+
+template <size_t idx>
+inline void Node::set_flag(bool b) {
+  if (b) {
+    common_ |= (uint32_t(1) << idx);
+  } else {
+    common_ &= ~(uint32_t(1) << idx);
+  }
+}
+
+template <size_t idx>
+inline bool Node::get_flag() const {
+  return common_ & (uint32_t(1) << idx);
+}
+
+template <size_t idx, size_t w>
+inline void Node::set_val(uint32_t val) {
+  const auto mask = (uint32_t(1) << w) - 1;
+  val &= mask;
+  common_ &= ~(mask << idx);
+  common_ |= (val << idx);
+}
+
+template <size_t idx, size_t w>
+inline uint32_t Node::get_val() const {
+  const auto mask = (uint32_t(1) << w) - 1;
+  return uint32_t((common_ >> idx) & mask);
 }
 
 } // namespace cascade

@@ -31,43 +31,56 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_CASE_GENERATE_CONSTRUCT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/case_generate_item.h"
 #include "src/verilog/ast/types/conditional_generate_construct.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 
 namespace cascade {
 
 class CaseGenerateConstruct : public ConditionalGenerateConstruct {
   public:
     // Constructors:
-    CaseGenerateConstruct(Expression* cond__, Many<CaseGenerateItem>* items__);
+    CaseGenerateConstruct(Expression* cond__);
+    template <typename ItemsItr>
+    CaseGenerateConstruct(Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__);
     ~CaseGenerateConstruct() override;
 
     // Node Interface:
-    NODE(CaseGenerateConstruct, TREE(cond), TREE(items))
+    NODE(CaseGenerateConstruct)
+    CaseGenerateConstruct* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(cond)
-    TREE_GET_SET(items)
+    PTR_GET_SET(CaseGenerateConstruct, Expression, cond)
+    MANY_GET_SET(CaseGenerateConstruct, CaseGenerateItem, items)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Many<CaseGenerateItem>*, items);
+    PTR_ATTR(Expression, cond);
+    MANY_ATTR(CaseGenerateItem, items);
 };
 
-inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__, Many<CaseGenerateItem>* items__) : ConditionalGenerateConstruct() {
+inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__) : ConditionalGenerateConstruct() {
+  PTR_SETUP(cond);
+  MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(items);
   gen_ = nullptr;
 }
 
+template <typename ItemsItr>
+inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__) : CaseGenerateConstruct(cond__) {
+  MANY_SETUP(items);
+}
+
 inline CaseGenerateConstruct::~CaseGenerateConstruct() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(items);
+  PTR_TEARDOWN(cond);
+  MANY_TEARDOWN(items);
   // Don't delete gen_; it points to one of items_
+}
+
+inline CaseGenerateConstruct* CaseGenerateConstruct::clone() const {
+  auto res = new CaseGenerateConstruct(cond_->clone());
+  MANY_CLONE(items);
+  return res;
 }
 
 } // namespace cascade 

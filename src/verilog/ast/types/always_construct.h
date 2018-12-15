@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ALWAYS_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_ALWAYS_CONSTRUCT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/construct.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/statement.h"
@@ -45,21 +44,27 @@ class AlwaysConstruct : public Construct {
     ~AlwaysConstruct() override;
 
     // Node Interface:
-    NODE(AlwaysConstruct, TREE(stmt))
+    NODE(AlwaysConstruct)
+    AlwaysConstruct* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(AlwaysConstruct, Statement, stmt)
 
   private:
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline AlwaysConstruct::AlwaysConstruct(Statement* stmt__) : Construct() {
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(stmt);
 }
 
 inline AlwaysConstruct::~AlwaysConstruct() {
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(stmt);
+}
+
+inline AlwaysConstruct* AlwaysConstruct::clone() const {
+  return new AlwaysConstruct(stmt_->clone());
 }
 
 } // namespace cascade 

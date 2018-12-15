@@ -31,13 +31,12 @@
 #ifndef CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 
-#include <cassert>
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/generate_construct.h"
 #include "src/verilog/ast/types/loop_statement.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/variable_assign.h"
 
 namespace cascade {
@@ -49,40 +48,45 @@ class LoopGenerateConstruct : public GenerateConstruct {
     ~LoopGenerateConstruct() override;
 
     // Node Interface:
-    NODE(LoopGenerateConstruct, TREE(init), TREE(cond), TREE(update), TREE(block))
+    NODE(LoopGenerateConstruct)
+    LoopGenerateConstruct* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(init)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(update)
-    TREE_GET_SET(block)
+    PTR_GET_SET(LoopGenerateConstruct, VariableAssign, init)
+    PTR_GET_SET(LoopGenerateConstruct, Expression, cond)
+    PTR_GET_SET(LoopGenerateConstruct, VariableAssign, update)
+    PTR_GET_SET(LoopGenerateConstruct, GenerateBlock, block)
 
   private:
-    TREE_ATTR(VariableAssign*, init);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(VariableAssign*, update);
-    TREE_ATTR(GenerateBlock*, block);
+    PTR_ATTR(VariableAssign, init);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(VariableAssign, update);
+    PTR_ATTR(GenerateBlock, block);
 
     friend class Elaborate;
-    DECORATION(Many<GenerateBlock>*, gen);
+    DECORATION(Vector<GenerateBlock*>, gen);
 };
 
 inline LoopGenerateConstruct::LoopGenerateConstruct(VariableAssign* init__, Expression* cond__, VariableAssign* update__, GenerateBlock* block__) : GenerateConstruct() {
+  PTR_SETUP(init);
+  PTR_SETUP(cond);
+  PTR_SETUP(update);
+  PTR_SETUP(block);
   parent_ = nullptr;
-  TREE_SETUP(init);
-  TREE_SETUP(cond);
-  TREE_SETUP(update);
-  TREE_SETUP(block);
-  gen_ = nullptr;
 }
 
 inline LoopGenerateConstruct::~LoopGenerateConstruct() {
-  TREE_TEARDOWN(init);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(update);
-  TREE_TEARDOWN(block);
-  if (gen_ != nullptr) {
-    delete gen_;
+  PTR_TEARDOWN(init);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(update);
+  PTR_TEARDOWN(block);
+  for (auto g : gen_) {
+    delete g;
   }
+}
+
+inline LoopGenerateConstruct* LoopGenerateConstruct::clone() const {
+  return new LoopGenerateConstruct(init_->clone(), cond_->clone(), update_->clone(), block_->clone());
 }
 
 } // namespace cascade 

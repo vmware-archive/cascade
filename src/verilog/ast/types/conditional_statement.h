@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONDITIONAL_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_CONDITIONAL_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/statement.h"
@@ -45,29 +44,35 @@ class ConditionalStatement : public Statement {
     ~ConditionalStatement() override;
 
     // Node Interface:
-    NODE(ConditionalStatement, TREE(if), TREE(then), TREE(else))
+    NODE(ConditionalStatement)
+    ConditionalStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(if)
-    TREE_GET_SET(then)
-    TREE_GET_SET(else)
+    PTR_GET_SET(ConditionalStatement, Expression, if)
+    PTR_GET_SET(ConditionalStatement, Statement, then)
+    PTR_GET_SET(ConditionalStatement, Statement, else)
 
   private:
-    TREE_ATTR(Expression*, if);
-    TREE_ATTR(Statement*, then);
-    TREE_ATTR(Statement*, else);
+    PTR_ATTR(Expression, if);
+    PTR_ATTR(Statement, then);
+    PTR_ATTR(Statement, else);
 };
 
 inline ConditionalStatement::ConditionalStatement(Expression* if__, Statement* then__, Statement* else__) : Statement() {
+  PTR_SETUP(if);
+  PTR_SETUP(then);
+  PTR_SETUP(else);
   parent_ = nullptr;
-  TREE_SETUP(if);
-  TREE_SETUP(then);
-  TREE_SETUP(else);
 }
 
 inline ConditionalStatement::~ConditionalStatement() {
-  TREE_TEARDOWN(if);
-  TREE_TEARDOWN(then);
-  TREE_TEARDOWN(else);
+  PTR_TEARDOWN(if);
+  PTR_TEARDOWN(then);
+  PTR_TEARDOWN(else);
+}
+
+inline ConditionalStatement* ConditionalStatement::clone() const {
+  return new ConditionalStatement(if_->clone(), then_->clone(), else_->clone());
 }
 
 } // namespace cascade 

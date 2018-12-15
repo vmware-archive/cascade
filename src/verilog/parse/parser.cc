@@ -30,7 +30,7 @@
 
 #include "src/verilog/parse/parser.h"
 
-#include <sstream>
+#include "src/base/log/log.h"
 
 using namespace std;
 
@@ -54,72 +54,107 @@ Parser& Parser::debug_parser(bool debug) {
 }
 
 void Parser::push(const string& path) {
-  loc_.push(make_pair(path, location()));
-  loc_.top().second.initialize();
+  stack_.push(make_pair(path, location()));
+  stack_.top().second.initialize();
 }
 
 void Parser::pop() {
-  loc_.pop();
+  stack_.pop();
 }
 
-const string& Parser::source() const {
-  return loc_.top().first;
-}
-
-size_t Parser::line() const {
-  return loc_.top().second.begin.line;
-}
-
-const std::string& Parser::last_parse() const {
-  return last_parse_;
-}
-
-pair<Node*, bool> Parser::parse(istream& is) {
+void Parser::parse(istream& is, Log* log) {
   lexer_.switch_streams(&is);
   lexer_.set_debug(debug_lexer_);
 
   yyParser parser(this);
   parser.set_debug_level(debug_parser_);
 
-  log_.clear();
-  res_ = nullptr;
+  log_ = log;
   eof_ = false;
+  res_.clear();
   last_parse_ = "";
+  locs_.clear();
 
-  loc().step();
+  get_loc().step();
   parser.parse();
-  if (res_ != nullptr) {
-    res_->accept(this);
+  for (auto n : res_) {
+    n->accept(this);
   }
-
-  return make_pair(res_, eof_);
 }
 
-const Log& Parser::get_log() const {
-  return log_;
+bool Parser::eof() const {
+  return eof_;
 }
 
-location& Parser::loc() {
-  return loc_.top().second;
+bool Parser::success() const {
+  return !res_.empty();
+}
+
+Parser::const_iterator Parser::begin() const {
+  return res_.begin();
+}
+
+Parser::const_iterator Parser::end() const {
+  return res_.end();
+}
+
+const std::string& Parser::get_text() const {
+  return last_parse_;
+}
+
+pair<string, size_t> Parser::get_loc(const Node* n) const {
+  const auto itr = locs_.find(n);
+  if (itr == locs_.end()) {
+    return make_pair("<unknown location --- please contact developers>", 0);
+  } else {
+    return itr->second;
+  }
 }
 
 void Parser::edit(ModuleDeclaration* md) {
   // PARSER ARTIFACT: Fix empty port list
-  if (md->get_ports()->size() == 1 && md->get_ports()->front()->get_imp()->null()) {
-    md->get_ports()->purge_to(0);
+  if (md->size_ports() == 1 && md->front_ports()->is_null_imp()) {
+    md->purge_to_ports(0);
   }
-  md->get_items()->accept(this);
+  md->accept_items(this);
 }
 
 void Parser::edit(ModuleInstantiation* mi) {
   // PARSER ARTIFACT: Fix empty param list
-  if (mi->get_params()->size() == 1 && mi->get_params()->front()->get_imp()->null()) {
-    mi->get_params()->purge_to(0);
+  if (mi->size_params() == 1 && mi->front_params()->is_null_imp()) {
+    mi->purge_to_params(0);
   }
   // PARSER ARTIFICAT: Fix empty port list
-  if (mi->get_ports()->size() == 1 && mi->get_ports()->front()->get_imp()->null()) {
-    mi->get_ports()->purge_to(0);
+  if (mi->size_ports() == 1 && mi->front_ports()->is_null_imp()) {
+    mi->purge_to_ports(0);
   } 
+}
+
+string& Parser::get_path() {
+  assert(!stack_.empty());
+  return stack_.top().first;
+}
+
+location& Parser::get_loc() {
+  assert(!stack_.empty());
+  return stack_.top().second;
+}
+
+void Parser::set_loc(const Node* n1, const Node* n2) {
+  const auto itr = locs_.find(n2);
+  if (itr != locs_.end()) {
+    locs_.insert(make_pair(n1, itr->second));
+  } else {
+    locs_.insert(make_pair(n1, make_pair("<missing location --- please contact developers>", 0)));
+  }
+}
+
+void Parser::set_loc(const Node* n, size_t line) {
+  locs_.insert(make_pair(n, make_pair(get_path(), line))); 
+}
+
+void Parser::set_loc(const Node* n) {
+  locs_.insert(make_pair(n, make_pair(get_path(), get_loc().begin.line))); 
 }
 
 } // namespace cascade

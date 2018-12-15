@@ -65,7 +65,6 @@ OBJ=\
 	src/verilog/analyze/indices.o\
 	src/verilog/analyze/module_info.o\
 	src/verilog/analyze/navigate.o\
-	src/verilog/analyze/printf.o\
 	src/verilog/analyze/read_set.o\
 	src/verilog/analyze/resolve.o\
 	\
@@ -89,11 +88,13 @@ OBJ=\
 	src/verilog/program/type_check.o\
 	\
 	src/verilog/transform/constant_prop.o\
-	src/verilog/transform/de_alias.o
+	src/verilog/transform/de_alias.o\
+	src/verilog/transform/dead_code_eliminate.o
 
 ### Header files
 HDR=\
 	src/base/bits/bits.h\
+	src/base/container/vector.h\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
 	src/base/socket/socket.h\
@@ -186,7 +187,6 @@ HDR=\
 	src/verilog/ast/types/case_generate_item.h\
 	src/verilog/ast/types/case_item.h\
 	src/verilog/ast/types/case_statement.h\
-	src/verilog/ast/types/combinator.h\
 	src/verilog/ast/types/concatenation.h\
 	src/verilog/ast/types/conditional_expression.h\
 	src/verilog/ast/types/conditional_generate_construct.h\
@@ -217,13 +217,10 @@ HDR=\
 	src/verilog/ast/types/loop_generate_construct.h\
 	src/verilog/ast/types/loop_statement.h\
 	src/verilog/ast/types/macro.h\
-	src/verilog/ast/types/many.h\
-	src/verilog/ast/types/maybe.h\
 	src/verilog/ast/types/module_declaration.h\
 	src/verilog/ast/types/module_instantiation.h\
 	src/verilog/ast/types/module_item.h\
 	src/verilog/ast/types/multiple_concatenation.h\
-	src/verilog/ast/types/nested_expression.h\
 	src/verilog/ast/types/net_declaration.h\
 	src/verilog/ast/types/node.h\
 	src/verilog/ast/types/nonblocking_assign.h\
@@ -269,6 +266,7 @@ HDR=\
 	src/verilog/program/type_check.h\
 	\
 	src/verilog/transform/constant_prop.h\
+	src/verilog/transform/dead_code_eliminate.h\
 	src/verilog/transform/de_alias.h
 
 ### Test binaries
@@ -313,9 +311,6 @@ clean:
 	${RM} -rf bin/*.dSYM
 
 ### Build rules
-submodule:
-	git submodule init
-	git submodule update
 bin/%: tools/%.cc ${FLEX_SRC} ${OBJ} ${HDR}
 	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${INC} $< -o $@ ${OBJ} ${LIB}
 ${FLEX_SRC}: src/verilog/parse/verilog.ll ${BISON_SRC} ${HDR}
@@ -326,7 +321,7 @@ ${BISON_SRC}: src/verilog/parse/verilog.yy ${HDR}
 	ccache ${CC} ${CFLAGS} ${CC_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
 %.o: %.cc ${FLEX_SRC} ${BISON_SRC} ${HDR}
 	ccache ${CXX} ${CXXFLAGS} ${CXX_OPT} ${PERF} ${GTEST_INC} ${INC} -c $< -o $@
-${GTEST_LIB}: submodule
+${GTEST_LIB}: 
 	mkdir -p ${GTEST_BUILD_DIR}
 	cd ${GTEST_BUILD_DIR} && CFLAGS=${CFLAGS} CXXFLAGS=${CXXFLAGS} cmake .. && make
 ${TEST_TARGET}: ${FLEX_SRC} ${OBJ} ${HDR} ${TEST_OBJ} ${GTEST_LIB} ${GTEST_MAIN}

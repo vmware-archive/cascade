@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_LOCALPARAM_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_LOCALPARAM_DECLARATION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/declaration.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/range_expression.h"
 
 namespace cascade {
@@ -43,37 +41,50 @@ namespace cascade {
 class LocalparamDeclaration : public Declaration {
   public:
     // Constructors:
-    LocalparamDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
     ~LocalparamDeclaration() override;
 
     // Node Interface:
-    NODE(LocalparamDeclaration, TREE(attrs), LEAF(signed), TREE(dim), TREE(id), TREE(val))
+    NODE(LocalparamDeclaration)
+    LocalparamDeclaration* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(signed)
-    TREE_GET_SET(dim)
-    TREE_GET_SET(val)
+    VAL_GET_SET(LocalparamDeclaration, bool, signed)
+    MAYBE_GET_SET(LocalparamDeclaration, RangeExpression, dim)
+    PTR_GET_SET(LocalparamDeclaration, Expression, val)
 
   private:
-    TREE_ATTR(Maybe<RangeExpression>*, dim);
-    LEAF_ATTR(bool, signed);
-    TREE_ATTR(Expression*, val);
+    MAYBE_ATTR(RangeExpression, dim);
+    VAL_ATTR(bool, signed);
+    PTR_ATTR(Expression, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Maybe<RangeExpression>* dim__, Identifier* id__, Expression* val__) : Declaration() {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration() {
+  PTR_SETUP(attrs);
+  VAL_SETUP(signed);
+  MAYBE_DEFAULT_SETUP(dim);
+  PTR_SETUP(id);
+  PTR_SETUP(val);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  LEAF_SETUP(signed);
-  TREE_SETUP(dim);
-  TREE_SETUP(id);
-  TREE_SETUP(val);
+}
+
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : LocalparamDeclaration(attrs__, signed__, id__, val__) {
+  MAYBE_SETUP(dim);
 }
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
-  TREE_TEARDOWN(attrs);
-  LEAF_TEARDOWN(signed);
-  TREE_TEARDOWN(dim);
-  TREE_TEARDOWN(id);
-  TREE_TEARDOWN(val);
+  PTR_TEARDOWN(attrs);
+  VAL_TEARDOWN(signed);
+  MAYBE_TEARDOWN(dim);
+  PTR_TEARDOWN(id);
+  PTR_TEARDOWN(val);
+}
+
+inline LocalparamDeclaration* LocalparamDeclaration::clone() const {
+  auto res = new LocalparamDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  MAYBE_CLONE(dim);
+  return res;
 }
 
 } // namespace cascade 

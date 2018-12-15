@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_TIMING_CONTROL_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_TIMING_CONTROL_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/timing_control.h"
 #include "src/verilog/ast/types/statement.h"
@@ -45,25 +44,31 @@ class TimingControlStatement : public Statement {
     ~TimingControlStatement() override;
 
     // Node Interface:
-    NODE(TimingControlStatement, TREE(ctrl), TREE(stmt))
+    NODE(TimingControlStatement)
+    TimingControlStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(ctrl)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(TimingControlStatement, TimingControl, ctrl)
+    PTR_GET_SET(TimingControlStatement, Statement, stmt)
 
   private:
-    TREE_ATTR(TimingControl*, ctrl);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(TimingControl, ctrl);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline TimingControlStatement::TimingControlStatement(TimingControl* ctrl__, Statement* stmt__) : Statement() {
+  PTR_SETUP(ctrl);
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(ctrl);
-  TREE_SETUP(stmt);
 }
 
 inline TimingControlStatement::~TimingControlStatement() {
-  TREE_TEARDOWN(ctrl);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(ctrl);
+  PTR_TEARDOWN(stmt);
+}
+
+inline TimingControlStatement* TimingControlStatement::clone() const {
+  return new TimingControlStatement(ctrl_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 

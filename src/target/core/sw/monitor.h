@@ -47,21 +47,11 @@ class Monitor : public Editor {
     void init(ModuleItem* mi);
 
   private:
-    void wait_on_node(Node* n, Node* m);
+    void wait_on_node(Node* n, Identifier* m);
     void wait_on_reads(Node* n, Expression* e);
 
     void edit(Event* e) override;
-    void edit(AlwaysConstruct* ac) override;
     void edit(ContinuousAssign* ca) override;
-    void edit(ParBlock* pb) override;
-    void edit(SeqBlock* sb) override;
-    void edit(CaseStatement* cs) override;
-    void edit(ConditionalStatement* cs) override;
-    void edit(ForStatement* fs) override;
-    void edit(RepeatStatement* rs) override;
-    void edit(WhileStatement* ws) override;
-    void edit(TimingControlStatement* tcs) override;
-    void edit(WaitStatement* ws) override;
     void edit(EventControl* ec) override;
 };
 
@@ -71,7 +61,7 @@ inline void Monitor::init(ModuleItem* mi) {
   mi->accept(this);
 }
 
-inline void Monitor::wait_on_node(Node* n, Node* m) {
+inline void Monitor::wait_on_node(Node* n, Identifier* m) {
   m->monitor_.push_back(n);
 }
 
@@ -92,71 +82,13 @@ inline void Monitor::edit(Event* e) {
   wait_on_node(e, const_cast<Identifier*>(r));
 }
 
-inline void Monitor::edit(AlwaysConstruct* ac) {
-  Editor::edit(ac);
-  wait_on_node(ac, ac->get_stmt());
-}
-
 inline void Monitor::edit(ContinuousAssign* ca) {
   Editor::edit(ca);
   wait_on_reads(ca, ca->get_assign()->get_rhs());
 }
 
-inline void Monitor::edit(ParBlock* pb) {
-  Editor::edit(pb);
-  for (auto s : *pb->get_stmts()) {
-    wait_on_node(pb, s);
-  } 
-}
-
-inline void Monitor::edit(SeqBlock* sb) {
-  Editor::edit(sb);
-  for (auto s : *sb->get_stmts()) {
-    wait_on_node(sb, s);
-  } 
-}
-
-inline void Monitor::edit(CaseStatement* cs) {
-  Editor::edit(cs);
-  for (auto ci : *cs->get_items()) {
-    wait_on_node(cs, ci->get_stmt());
-  }
-}
-
-inline void Monitor::edit(ConditionalStatement* cs) {
-  Editor::edit(cs);
-  wait_on_node(cs, cs->get_then());
-  wait_on_node(cs, cs->get_else());
-}
-
-inline void Monitor::edit(ForStatement* fs) {
-  Editor::edit(fs);
-  wait_on_node(fs, fs->get_stmt());
-}
-
-inline void Monitor::edit(RepeatStatement* rs) {
-  Editor::edit(rs);
-  wait_on_node(rs, rs->get_stmt());
-}
-
-inline void Monitor::edit(WhileStatement* ws) {
-  Editor::edit(ws);
-  wait_on_node(ws, ws->get_stmt());
-}
-
-inline void Monitor::edit(TimingControlStatement* tcs) {
-  Editor::edit(tcs);
-  wait_on_node(tcs, tcs->get_ctrl());
-  wait_on_node(tcs, tcs->get_stmt());
-}
-
-inline void Monitor::edit(WaitStatement* ws) {
-  Editor::edit(ws);
-  wait_on_node(ws, ws->get_stmt());
-}
-
 inline void Monitor::edit(EventControl* ec) {
-  if (ec->get_events()->empty()) {
+  if (ec->empty_events()) {
     auto tcs = dynamic_cast<TimingControlStatement*>(ec->get_parent());
     assert(tcs != nullptr);
     for (auto i : ReadSet(tcs->get_stmt())) {
@@ -164,12 +96,8 @@ inline void Monitor::edit(EventControl* ec) {
       assert(r != nullptr);
       wait_on_node(ec, const_cast<Identifier*>(r));
     }
-    return;
-  }
-
-  Editor::edit(ec);
-  for (auto e : *ec->get_events()) {
-    wait_on_node(ec, e);
+  } else {
+    Editor::edit(ec);
   }
 }
 

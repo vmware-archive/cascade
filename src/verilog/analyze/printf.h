@@ -31,14 +31,66 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_PRINTF_H
 #define CASCADE_SRC_VERILOG_ANALYZE_PRINTF_H
 
+#include <sstream>
 #include <string>
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
 
 namespace cascade {
 
 struct Printf {
-  std::string format(const Many<Expression>* args);
+  template <typename InputItr>
+  std::string format(InputItr begin, InputItr end);
 };
+
+template <typename InputItr>
+inline std::string Printf::format(InputItr begin, InputItr end) {
+  if (begin == end) {
+    return "";
+  }
+
+  std::stringstream ss;
+  auto a = begin;
+
+  auto s = dynamic_cast<const String*>(*a);
+  if (s == nullptr) {
+    Evaluate().get_value(*a).write(ss, 10);
+    return ss.str();
+  } 
+
+  for (size_t i = 0, j = 0; ; i = j+2) {
+    j = s->get_readable_val().find_first_of('%', i);
+    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
+    if (j == std::string::npos) {
+      break;
+    }
+    if (++a == end) {
+      continue;
+    }
+    switch (s->get_readable_val()[j+1]) {
+      case 'b':
+      case 'B': 
+        Evaluate().get_value(*a).write(ss, 2);
+        break;
+      case 'd':
+      case 'D':
+        Evaluate().get_value(*a).write(ss, 10);
+        break;
+      case 'h':
+      case 'H': 
+        Evaluate().get_value(*a).write(ss, 16);
+        break;
+      case 'o':
+      case 'O': 
+        Evaluate().get_value(*a).write(ss, 8);
+        break;
+      default: 
+        assert(false);
+    }
+  }
+  return ss.str();
+}
 
 } // namespace cascade
 

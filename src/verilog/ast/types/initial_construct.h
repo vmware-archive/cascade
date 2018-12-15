@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_INITIAL_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_INITIAL_CONSTRUCT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/attributes.h"
 #include "src/verilog/ast/types/construct.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class InitialConstruct : public Construct {
     ~InitialConstruct() override;
 
     // Node Interface:
-    NODE(InitialConstruct, TREE(attrs), TREE(stmt))
+    NODE(InitialConstruct)
+    InitialConstruct* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(attrs)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(InitialConstruct, Attributes, attrs)
+    PTR_GET_SET(InitialConstruct, Statement, stmt)
 
   private:
-    TREE_ATTR(Attributes*, attrs);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Attributes, attrs);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline InitialConstruct::InitialConstruct(Attributes* attrs__, Statement* stmt__) : Construct() {
+  PTR_SETUP(attrs);
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(attrs);
-  TREE_SETUP(stmt);
 }
 
 inline InitialConstruct::~InitialConstruct() {
-  TREE_TEARDOWN(attrs);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(attrs);
+  PTR_TEARDOWN(stmt);
+}
+
+inline InitialConstruct* InitialConstruct::clone() const {
+  return new InitialConstruct(attrs_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 

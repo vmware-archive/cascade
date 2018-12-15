@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EVENT_CONTROL_H
 #define CASCADE_SRC_VERILOG_AST_EVENT_CONTROL_H
 
-#include <cassert>
 #include "src/verilog/ast/types/event.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/timing_control.h"
 
 namespace cascade {
@@ -42,25 +40,40 @@ namespace cascade {
 class EventControl : public TimingControl {
   public:
     // Constructors:
-    EventControl(Many<Event>* events__);
+    EventControl();
+    template <typename EventsItr>
+    EventControl(EventsItr events_begin__, EventsItr events_end__);
     ~EventControl() override;
 
     // Node Interface:
-    NODE(EventControl, TREE(events))
+    NODE(EventControl)
+    EventControl* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(events)
+    MANY_GET_SET(EventControl, Event, events)
 
   private:
-    TREE_ATTR(Many<Event>*, events);
+    MANY_ATTR(Event, events);
 };
 
-inline EventControl::EventControl(Many<Event>* events__) : TimingControl() {
+inline EventControl::EventControl() : TimingControl() {
+  MANY_DEFAULT_SETUP(events);
   parent_ = nullptr;
-  TREE_SETUP(events);
+}
+
+template <typename EventsItr>
+inline EventControl::EventControl(EventsItr events_begin__, EventsItr events_end__) : EventControl() {
+  MANY_SETUP(events);
 }
 
 inline EventControl::~EventControl() {
-  TREE_TEARDOWN(events);
+  MANY_TEARDOWN(events);
+}
+
+inline EventControl* EventControl::clone() const {
+  auto res = new EventControl();
+  MANY_CLONE(events);
+  return res;
 }
 
 } // namespace cascade 

@@ -31,41 +31,52 @@
 #ifndef CASCADE_SRC_VERILOG_AST_IF_GENERATE_CLAUSE_H
 #define CASCADE_SRC_VERILOG_AST_IF_GENERATE_CLAUSE_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/maybe.h"
 
 namespace cascade {
 
 class IfGenerateClause : public Node {
   public:
     // Constructors:
-    IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__);
+    IfGenerateClause(Expression* if__);
+    IfGenerateClause(Expression* if__, GenerateBlock* then__);
     ~IfGenerateClause() override;
 
     // Node Interface:
-    NODE(IfGenerateClause, TREE(if), TREE(then))
+    NODE(IfGenerateClause)
+    IfGenerateClause* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(if)
-    TREE_GET_SET(then)
+    PTR_GET_SET(IfGenerateClause, Expression, if)
+    MAYBE_GET_SET(IfGenerateClause, GenerateBlock, then)
 
   private:
-    TREE_ATTR(Expression*, if);
-    TREE_ATTR(Maybe<GenerateBlock>*, then);
+    PTR_ATTR(Expression, if);
+    MAYBE_ATTR(GenerateBlock, then);
 };
 
-inline IfGenerateClause::IfGenerateClause(Expression* if__, Maybe<GenerateBlock>* then__) : Node() {
+inline IfGenerateClause::IfGenerateClause(Expression* if__) : Node() {
+  PTR_SETUP(if);
+  MAYBE_DEFAULT_SETUP(then);
   parent_ = nullptr;
-  TREE_SETUP(if);
-  TREE_SETUP(then);
+}
+
+inline IfGenerateClause::IfGenerateClause(Expression* if__, GenerateBlock* then__) : IfGenerateClause(if__) {
+  MAYBE_SETUP(then);
 }
 
 inline IfGenerateClause::~IfGenerateClause() {
-  TREE_TEARDOWN(if);
-  TREE_TEARDOWN(then);
+  PTR_TEARDOWN(if);
+  MAYBE_TEARDOWN(then);
+}
+
+inline IfGenerateClause* IfGenerateClause::clone() const {
+  auto res = new IfGenerateClause(if_->clone());
+  MAYBE_CLONE(then);
+  return res;
 }
 
 } // namespace cascade 

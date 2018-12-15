@@ -36,117 +36,79 @@ namespace cascade {
 
 ArgAssign* Builder::build(const ArgAssign* aa) {
   return new ArgAssign(
-    aa->get_exp()->accept(this),
-    aa->get_imp()->accept(this)
+    aa->accept_exp(this),
+    aa->accept_imp(this)
   );
 }
 
 Attributes* Builder::build(const Attributes* a) {
-  auto specs = new Many<AttrSpec>();
-  for (auto s : *a->get_as()) {
-    if (auto ss = s->accept(this)) {
-      specs->push_back(ss);
-    }
-  }
-  return new Attributes(
-    specs
-  );
+  auto res = new Attributes();
+  a->accept_as(this, res->back_inserter_as());
+  return res;
 }
 
 AttrSpec* Builder::build(const AttrSpec* as) {
   return new AttrSpec(
-    as->get_lhs()->accept(this),
-    as->get_rhs()->accept(this)
+    as->accept_lhs(this),
+    as->accept_rhs(this)
   );
 }
 
 CaseGenerateItem* Builder::build(const CaseGenerateItem* cgi) {
-  auto exprs = new Many<Expression>();
-  for (auto e : *cgi->get_exprs()) {
-    if (auto ee = e->accept(this)) {
-      exprs->push_back(ee);
-    }
-  }
-  return new CaseGenerateItem(
-    exprs,
-    cgi->get_block()->accept(this)
-  );
+  auto res = new CaseGenerateItem();
+  res->replace_block(cgi->accept_block(this));
+  cgi->accept_exprs(this, res->back_inserter_exprs());
+  return res;
 }
 
 CaseItem* Builder::build(const CaseItem* ci) {
-  auto exprs = new Many<Expression>();
-  for (auto e : *ci->get_exprs()) {
-    if (auto ee = e->accept(this)) {
-      exprs->push_back(ee);
-    }
-  }
-  return new CaseItem(
-    exprs,
-    ci->get_stmt()->accept(this)
+  auto res = new CaseItem(
+    ci->accept_stmt(this)
   );
+  ci->accept_exprs(this, res->back_inserter_exprs());
+  return res;
 }
 
 Event* Builder::build(const Event* e) {
   return new Event(
     e->get_type(),
-    e->get_expr()->accept(this)
+    e->accept_expr(this)
   );
 }
 
 Expression* Builder::build(const BinaryExpression* be) {
   return new BinaryExpression(
-    be->get_lhs()->accept(this),
+    be->accept_lhs(this),
     be->get_op(),
-    be->get_rhs()->accept(this)
+    be->accept_rhs(this)
   );
 }
 
 Expression* Builder::build(const ConditionalExpression* ce) {
   return new ConditionalExpression(
-    ce->get_cond()->accept(this),
-    ce->get_lhs()->accept(this),
-    ce->get_rhs()->accept(this)
-  );
-}
-
-Expression* Builder::build(const NestedExpression* ne) {
-  return new NestedExpression(
-    ne->get_expr()->accept(this)
+    ce->accept_cond(this),
+    ce->accept_lhs(this),
+    ce->accept_rhs(this)
   );
 }
 
 Expression* Builder::build(const Concatenation* c) {
-  auto exprs = new Many<Expression>();
-  for (auto e : *c->get_exprs()) {
-    if (auto ee = e->accept(this)) {
-      exprs->push_back(ee);
-    }
-  }
-  return new Concatenation(
-    exprs
-  );
+  auto res = new Concatenation();
+  c->accept_exprs(this, res->back_inserter_exprs());
+  return res;
 }
 
 Expression* Builder::build(const Identifier* id) {
-  auto ids = new Many<Id>();
-  for (auto i : *id->get_ids()) {
-    if (auto ii = i->accept(this)) {
-      ids->push_back(ii);
-    }
-  }
-  auto ds = new Many<Expression>();
-  for (auto d : *id->get_dim()) {
-    if (auto dd = d->accept(this)) {
-      ds->push_back(dd);
-    }
-  }
-  return new Identifier(ids, ds);
+  auto res = new Identifier();
+  id->accept_ids(this, res->back_inserter_ids());
+  id->accept_dim(this, res->back_inserter_dim());
+  return res;
 }
 
 Expression* Builder::build(const MultipleConcatenation* mc) {
   return new MultipleConcatenation(
-    mc->get_expr()->accept(this),
-    mc->get_concat()->accept(this)
+    mc->accept_expr(this),
+    mc->accept_concat(this)
   );
 }
 
@@ -160,388 +122,304 @@ Expression* Builder::build(const String* s) {
 
 Expression* Builder::build(const RangeExpression* re) {
   return new RangeExpression(
-    re->get_upper()->accept(this),
+    re->accept_upper(this),
     re->get_type(),
-    re->get_lower()->accept(this)
+    re->accept_lower(this)
   );
 }
 
 Expression* Builder::build(const UnaryExpression* ue) {
   return new UnaryExpression(
     ue->get_op(),
-    ue->get_lhs()->accept(this)
+    ue->accept_lhs(this)
   );
 }
 
 GenerateBlock* Builder::build(const GenerateBlock* gb) {
-  auto items = new Many<ModuleItem>();
-  for (auto i : *gb->get_items()) {
-    if (auto ii = i->accept(this)) {
-      items->push_back(ii);
-    }
-  }
-  return new GenerateBlock(
-    gb->get_id()->accept(this),
-    gb->get_scope(),
-    items
+  auto res = new GenerateBlock(
+    gb->get_scope()
   );
+  res->replace_id(gb->accept_id(this));
+  gb->accept_items(this, res->back_inserter_items());
+  return res;
 }
 
 Id* Builder::build(const Id* i) {
   return new Id(
     i->get_sid(),
-    i->get_isel()->accept(this)
+    i->accept_isel(this)
   );
 }
 
 IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
   return new IfGenerateClause(
-    igc->get_if()->accept(this),
-    igc->get_then()->accept(this)
+    igc->accept_if(this),
+    igc->accept_then(this)
   );
 }
 
 ModuleDeclaration* Builder::build(const ModuleDeclaration* md) {
-  auto ports = new Many<ArgAssign>();
-  for (auto p : *md->get_ports()) {
-    if (auto pp = p->accept(this)) {
-      ports->push_back(pp);
-    }
-  }
-  auto items = new Many<ModuleItem>();
-  for (auto i : *md->get_items()) {
-    if (auto ii = i->accept(this)) {
-      items->push_back(ii);
-    }
-  }
-  return new ModuleDeclaration(
-    md->get_attrs()->accept(this),
-    md->get_id()->accept(this),
-    ports,
-    items
+  auto res = new ModuleDeclaration(
+    md->accept_attrs(this),
+    md->accept_id(this)
   );
+  md->accept_ports(this, res->back_inserter_ports());
+  md->accept_items(this, res->back_inserter_items());
+  return res;
 }
 
 ModuleItem* Builder::build(const AlwaysConstruct* ac) {
   return new AlwaysConstruct(
-    ac->get_stmt()->accept(this)
+    ac->accept_stmt(this)
   );
 }
 
 ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
-  return new IfGenerateConstruct(
-    igc->get_attrs()->accept(this),
-    igc->get_clauses()->accept(this),
-    igc->get_else()->accept(this)
+  auto res = new IfGenerateConstruct(
+    igc->accept_attrs(this)
   );
+  igc->accept_clauses(this, res->back_inserter_clauses());
+  res->replace_else(igc->accept_else(this));
+  return res;
 }
 
 ModuleItem* Builder::build(const CaseGenerateConstruct* cgc) {
-  auto items = new Many<CaseGenerateItem>();
-  for (auto i : *cgc->get_items()) {
-    if (auto ii = i->accept(this)) {
-      items->push_back(ii);
-    }
-  }
-  return new CaseGenerateConstruct(
-    cgc->get_cond()->accept(this),
-    items
+  auto res = new CaseGenerateConstruct(
+    cgc->accept_cond(this)
   );
+  cgc->accept_items(this, res->back_inserter_items());
+  return res;
 }
 
 ModuleItem* Builder::build(const LoopGenerateConstruct* lgc) {
   return new LoopGenerateConstruct(
-    lgc->get_init()->accept(this),
-    lgc->get_cond()->accept(this),
-    lgc->get_update()->accept(this),
-    lgc->get_block()->accept(this)
+    lgc->accept_init(this),
+    lgc->accept_cond(this),
+    lgc->accept_update(this),
+    lgc->accept_block(this)
   );
 }
 
 ModuleItem* Builder::build(const InitialConstruct* ic) {
   return new InitialConstruct(
-    ic->get_attrs()->accept(this),
-    ic->get_stmt()->accept(this)
+    ic->accept_attrs(this),
+    ic->accept_stmt(this)
   );
 }
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->get_ctrl()->accept(this),
-    ca->get_assign()->accept(this)
+    ca->accept_ctrl(this),
+    ca->accept_assign(this)
   );
 }
 
 ModuleItem* Builder::build(const GenvarDeclaration* gd) {
   return new GenvarDeclaration(
-    gd->get_attrs()->accept(this),
-    gd->get_id()->accept(this)
+    gd->accept_attrs(this),
+    gd->accept_id(this)
   );
 }
 
 ModuleItem* Builder::build(const IntegerDeclaration* id) {
   return new IntegerDeclaration(
-    id->get_attrs()->accept(this),
-    id->get_id()->accept(this),
-    id->get_val()->accept(this)
+    id->accept_attrs(this),
+    id->accept_id(this),
+    id->accept_val(this)
   );
 }
 
 ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
-    ld->get_attrs()->accept(this),
+    ld->accept_attrs(this),
     ld->get_signed(),
-    ld->get_dim()->accept(this),
-    ld->get_id()->accept(this),
-    ld->get_val()->accept(this)
+    ld->accept_dim(this),
+    ld->accept_id(this),
+    ld->accept_val(this)
   );
 }
 
 ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
-    nd->get_attrs()->accept(this),
+    nd->accept_attrs(this),
     nd->get_type(),
-    nd->get_ctrl()->accept(this),
-    nd->get_id()->accept(this),
+    nd->accept_ctrl(this),
+    nd->accept_id(this),
     nd->get_signed(),
-    nd->get_dim()->accept(this)
+    nd->accept_dim(this)
   );
 }
 
 ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
-    pd->get_attrs()->accept(this),
+    pd->accept_attrs(this),
     pd->get_signed(),
-    pd->get_dim()->accept(this),
-    pd->get_id()->accept(this),
-    pd->get_val()->accept(this)
+    pd->accept_dim(this),
+    pd->accept_id(this),
+    pd->accept_val(this)
   );
 }
 
 ModuleItem* Builder::build(const RegDeclaration* rd) {
   return new RegDeclaration(
-    rd->get_attrs()->accept(this),
-    rd->get_id()->accept(this),
+    rd->accept_attrs(this),
+    rd->accept_id(this),
     rd->get_signed(),
-    rd->get_dim()->accept(this),
-    rd->get_val()->accept(this)
+    rd->accept_dim(this),
+    rd->accept_val(this)
   );
 }
 
 ModuleItem* Builder::build(const GenerateRegion* gr) {
-  auto items = new Many<ModuleItem>();
-  for (auto i : *gr->get_items()) {
-    if (auto ii = i->accept(this)) {
-      items->push_back(ii);
-    }
-  }
-  return new GenerateRegion(
-    items
-  );
+  auto res = new GenerateRegion();
+  gr->accept_items(this, res->back_inserter_items());
+  return res;
 }
 
 ModuleItem* Builder::build(const ModuleInstantiation* mi) {
-  auto params = new Many<ArgAssign>();
-  for (auto p : *mi->get_params()) {
-    if (auto pp = p->accept(this)) {
-      params->push_back(pp);
-    }
-  }
-  auto ports = new Many<ArgAssign>();
-  for (auto p : *mi->get_ports()) {
-    if (auto pp = p->accept(this)) {
-      ports->push_back(pp);
-    }
-  }
-  return new ModuleInstantiation(
-    mi->get_attrs()->accept(this),
-    mi->get_mid()->accept(this),
-    mi->get_iid()->accept(this),
-    mi->get_range()->accept(this),
-    params,
-    ports
+  auto res = new ModuleInstantiation(
+    mi->accept_attrs(this),
+    mi->accept_mid(this),
+    mi->accept_iid(this)
   );
+  res->replace_range(mi->accept_range(this));
+  mi->accept_params(this, res->back_inserter_params());
+  mi->accept_ports(this, res->back_inserter_ports());
+  return res;
 }
 
 ModuleItem* Builder::build(const PortDeclaration* pd) {
   return new PortDeclaration(
-    pd->get_attrs(),
+    pd->accept_attrs(this),
     pd->get_type(),
-    pd->get_decl()->accept(this)
+    pd->accept_decl(this)
   ); 
 }
 
 Statement* Builder::build(const BlockingAssign* ba) {
   return new BlockingAssign(
-    ba->get_ctrl()->accept(this),
-    ba->get_assign()->accept(this)
+    ba->accept_ctrl(this),
+    ba->accept_assign(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
   return new NonblockingAssign(
-    na->get_ctrl()->accept(this),
-    na->get_assign()->accept(this)
+    na->accept_ctrl(this),
+    na->accept_assign(this)
   );
 }
 
 Statement* Builder::build(const CaseStatement* cs) {
-  auto items = new Many<CaseItem>();
-  for (auto i : *cs->get_items()) {
-    if (auto ii = i->accept(this)) {
-      items->push_back(ii);
-    }
-  }
-  return new CaseStatement(
+  auto res = new CaseStatement(
     cs->get_type(),
-    cs->get_cond()->accept(this),
-    items
+    cs->accept_cond(this)
   );
+  cs->accept_items(this, res->back_inserter_items());
+  return res;
 }
 
 Statement* Builder::build(const ConditionalStatement* cs) {
   return new ConditionalStatement(
-    cs->get_if()->accept(this),
-    cs->get_then()->accept(this),
-    cs->get_else()->accept(this)
+    cs->accept_if(this),
+    cs->accept_then(this),
+    cs->accept_else(this)
   );
 }
 
 Statement* Builder::build(const ForStatement* fs) {
   return new ForStatement(
-    fs->get_init()->accept(this),
-    fs->get_cond()->accept(this),
-    fs->get_update()->accept(this),
-    fs->get_stmt()->accept(this)
+    fs->accept_init(this),
+    fs->accept_cond(this),
+    fs->accept_update(this),
+    fs->accept_stmt(this)
   );
 }
 
 Statement* Builder::build(const ForeverStatement* fs) {
   return new ForeverStatement(
-    fs->get_stmt()->accept(this)
+    fs->accept_stmt(this)
   );
 }
 
 Statement* Builder::build(const RepeatStatement* rs) {
   return new RepeatStatement(
-    rs->get_cond()->accept(this),
-    rs->get_stmt()->accept(this)
+    rs->accept_cond(this),
+    rs->accept_stmt(this)
   );
 }
 
 Statement* Builder::build(const ParBlock* pb) {
-  auto decls = new Many<Declaration>();
-  for (auto d : *pb->get_decls()) {
-    if (auto dd = d->accept(this)) {
-      decls->push_back(dd);
-    }
-  }
-  auto stmts = new Many<Statement>();
-  for (auto s : *pb->get_stmts()) {
-    if (auto ss = s->accept(this)) {
-      stmts->push_back(ss);
-    }
-  }
-  return new ParBlock(
-    pb->get_id()->accept(this),
-    decls,
-    stmts
-  );
+  auto res = new ParBlock();
+  res->replace_id(pb->accept_id(this));
+  pb->accept_decls(this, res->back_inserter_decls());
+  pb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
 }
 
 Statement* Builder::build(const SeqBlock* sb) {
-  auto decls = new Many<Declaration>();
-  for (auto d : *sb->get_decls()) {
-    if (auto dd = d->accept(this)) {
-      decls->push_back(dd);
-    }
-  }
-  auto stmts = new Many<Statement>();
-  for (auto s : *sb->get_stmts()) {
-    if (auto ss = s->accept(this)) {
-      stmts->push_back(ss);
-    }
-  }
-  return new SeqBlock(
-    sb->get_id()->accept(this),
-    decls,
-    stmts
-  );
+  auto res = new SeqBlock();
+  res->replace_id(sb->accept_id(this));
+  sb->accept_decls(this, res->back_inserter_decls());
+  sb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
 }
 
 Statement* Builder::build(const TimingControlStatement* tcs) {
   return new TimingControlStatement(
-    tcs->get_ctrl()->accept(this),
-    tcs->get_stmt()->accept(this)
+    tcs->accept_ctrl(this),
+    tcs->accept_stmt(this)
   );
 }
 
 Statement* Builder::build(const DisplayStatement* ds) {
-  auto args = new Many<Expression>();
-  for (auto a : *ds->get_args()) {
-    if (auto aa = a->accept(this)) {
-      args->push_back(aa);
-    }
-  }
-  return new DisplayStatement(
-    args
-  );
+  auto res = new DisplayStatement();
+  ds->accept_args(this, res->back_inserter_args());
+  return res;
 }
 
 Statement* Builder::build(const FinishStatement* fs) {
   return new FinishStatement(
-    fs->get_arg()->accept(this)
+    fs->accept_arg(this)
   );
 }
 
 Statement* Builder::build(const WriteStatement* ws) {
-  auto args = new Many<Expression>();
-  for (auto a : *ws->get_args()) {
-    if (auto aa = a->accept(this)) {
-      args->push_back(aa);
-    }
-  }
-  return new WriteStatement(
-    args
-  );
+  auto res = new WriteStatement();
+  ws->accept_args(this, res->back_inserter_args());
+  return res;
 }
 
 Statement* Builder::build(const WaitStatement* ws) {
   return new WaitStatement(
-    ws->get_cond()->accept(this),
-    ws->get_stmt()->accept(this)
+    ws->accept_cond(this),
+    ws->accept_stmt(this)
   );
 }
 
 Statement* Builder::build(const WhileStatement* ws) {
   return new WhileStatement(
-    ws->get_cond()->accept(this),
-    ws->get_stmt()->accept(this)
+    ws->accept_cond(this),
+    ws->accept_stmt(this)
   ); 
 }
 
 TimingControl* Builder::build(const DelayControl* dc) {
   return new DelayControl(
-    dc->get_delay()->accept(this)
+    dc->accept_delay(this)
   ); 
 }
 
 TimingControl* Builder::build(const EventControl* ec) {
-  auto events = new Many<Event>();
-  for (auto e : *ec->get_events()) {
-    if (auto ee = e->accept(this)) {
-      events->push_back(ee);
-    }
-  }
-  return new EventControl(
-    events
-  );
+  auto res = new EventControl();
+  ec->accept_events(this, res->back_inserter_events());
+  return res;
 }
 
 VariableAssign* Builder::build(const VariableAssign* va) {
   return new VariableAssign(
-    va->get_lhs()->accept(this),
-    va->get_rhs()->accept(this)
+    va->accept_lhs(this),
+    va->accept_rhs(this)
   );
 }
 

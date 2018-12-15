@@ -39,7 +39,6 @@
 #include "src/verilog/ast/types/event.h"
 #include "src/verilog/ast/types/binary_expression.h"
 #include "src/verilog/ast/types/conditional_expression.h"
-#include "src/verilog/ast/types/nested_expression.h"
 #include "src/verilog/ast/types/concatenation.h"
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/multiple_concatenation.h"

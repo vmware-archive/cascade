@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_TRANSFORM_DE_ALIAS_H
 
 #include <unordered_map>
+#include <vector>
 #include "src/verilog/ast/visitors/rewriter.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
@@ -48,23 +49,47 @@ class DeAlias : public Rewriter {
     class AliasTable : public Visitor {
       public:
         AliasTable(const ModuleDeclaration* md);
-        ~AliasTable() override = default;
+        ~AliasTable();
 
-        bool is_alias(const Identifier* id);
-        const Identifier* get(const Identifier* id);
+        // Dealiases a variable or returns nullptr on failure. It is the
+        // responsibility of the caller to deallocate any resulting memory.
+        Identifier* dealias(const Identifier* id);
 
       private:
-        const Identifier* resolve(const Identifier* id);
+        struct Row {
+          const Identifier* target_;
+          std::vector<const Expression*> slices_;
+          bool done_;
+        };
+
+        // Base case for populating the alias table. Record assignments of the
+        // form x = y, x = y[i], or x = y[i:j], where both sides of the
+        // assignment have identical bit-width. 
         void visit(const ContinuousAssign* ca) override;
-        std::unordered_map<const Identifier*, const Identifier*> assigns_;
-        std::unordered_map<const Identifier*, const Identifier*> results_;
+        // Inductive case for populating the alias table. Follow identifiers
+        // accumulate the slices that accumulate along the way.
+        void follow(Row& row);
+        // Final step for populating the alias table. Replaces slice chains
+        // with a single freshly constructed expression.
+        void collapse(Row& row);
+        // Returns the slice which is obtained by applying y after x.  So
+        // merge([16:7], [6:4]) = x[7+6:7+4]. It is the responsibility of
+        // the caller to deallocate this memory.
+        Expression* merge(const Expression* x, const Expression* y);
+
+        // Alias Table:
+        std::unordered_map<const Identifier*, Row> aliases_;
     };
     AliasTable* table_;
 
+    // Returns true if this is now an assignment of the form x = x.
     bool is_self_assign(const ContinuousAssign* ca);
 
+    // Ignores attributes.
     Attributes* rewrite(Attributes* as) override;
+    // Replaces an identifier with a de-aliased value.
     Expression* rewrite(Identifier* id) override;
+    // Updates module items, ignores ports
     ModuleDeclaration* rewrite(ModuleDeclaration* md) override;
 };
 

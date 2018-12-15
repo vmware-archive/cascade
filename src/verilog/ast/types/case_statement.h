@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_CASE_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/case_item.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/statement.h"
 
 namespace cascade {
@@ -43,40 +41,54 @@ namespace cascade {
 class CaseStatement : public Statement {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       CASE = 0,
       CASEX,
       CASEZ 
     };
 
     // Constructors:
-    CaseStatement(Type type__, Expression* cond__, Many<CaseItem>* items__);
+    CaseStatement(Type type__, Expression* cond__);
+    template <typename ItemsItr>
+    CaseStatement(Type type__, Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__);
     ~CaseStatement() override;
 
     // Node Interface:
-    NODE(CaseStatement, LEAF(type), TREE(cond), TREE(items))
+    NODE(CaseStatement)
+    CaseStatement* clone() const override;
+
     // Get/Set:
-    LEAF_GET_SET(type)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(items)
+    VAL_GET_SET(CaseStatement, Type, type)
+    PTR_GET_SET(CaseStatement, Expression, cond)
+    MANY_GET_SET(CaseStatement, CaseItem, items)
 
   private:
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Many<CaseItem>*, items);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression, cond);
+    MANY_ATTR(CaseItem, items);
 };
 
-inline CaseStatement::CaseStatement(Type type__, Expression* cond__, Many<CaseItem>* items__) : Statement() {
+inline CaseStatement::CaseStatement(Type type__, Expression* cond__) : Statement() {
+  VAL_SETUP(type);
+  PTR_SETUP(cond);
   parent_ = nullptr;
-  LEAF_SETUP(type);
-  TREE_SETUP(cond);
-  TREE_SETUP(items);
+}
+
+template <typename ItemsItr>
+inline CaseStatement::CaseStatement(Type type__, Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__) : CaseStatement(type__, cond__) {
+  MANY_SETUP(items);
 }
 
 inline CaseStatement::~CaseStatement() {
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(items);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(cond);
+  MANY_TEARDOWN(items);
+}
+
+inline CaseStatement* CaseStatement::clone() const {
+  auto res = new CaseStatement(type_, cond_->clone());
+  MANY_CLONE(items);
+  return res;
 }
 
 } // namespace cascade 

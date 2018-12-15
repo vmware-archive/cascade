@@ -147,7 +147,9 @@ void WebUi::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
   for (auto i = p->elab_begin(), ie = p->elab_end(); i != ie; ++i) {
     stringstream ss;
     ss << "{\"text\":\"[elab] ";
-    TextPrinter(ss) << Resolve().get_full_id(ModuleInfo(i->second).id());
+    const auto fid = Resolve().get_full_id(ModuleInfo(i->second).id());
+    TextPrinter(ss) << fid;
+    delete fid;
     ss << "\",\"value\":\"";
     if (debug_) {
       DebugHtmlPrinter(ss, true) << i->second;

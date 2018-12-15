@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_FINISH_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_FINISH_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/system_task_enable_statement.h"
@@ -45,21 +44,27 @@ class FinishStatement : public SystemTaskEnableStatement {
     ~FinishStatement() override;
 
     // Node Interface:
-    NODE(FinishStatement, TREE(arg))
+    NODE(FinishStatement)
+    FinishStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(arg)
+    PTR_GET_SET(FinishStatement, Expression, arg)
 
   private:
-    TREE_ATTR(Expression*, arg);
+    PTR_ATTR(Expression, arg);
 };
 
 inline FinishStatement::FinishStatement(Expression* arg__) : SystemTaskEnableStatement() {
+  PTR_SETUP(arg);
   parent_ = nullptr;
-  TREE_SETUP(arg);
 }
 
 inline FinishStatement::~FinishStatement() {
-  TREE_TEARDOWN(arg);
+  PTR_TEARDOWN(arg);
+}
+
+inline FinishStatement* FinishStatement::clone() const {
+  return new FinishStatement(arg_->clone());
 }
 
 } // namespace cascade 

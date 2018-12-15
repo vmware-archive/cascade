@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_WAIT_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_WAIT_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/statement.h"
@@ -45,25 +44,31 @@ class WaitStatement : public Statement {
     ~WaitStatement() override;
 
     // Node Interface:
-    NODE(WaitStatement, TREE(cond), TREE(stmt))
+    NODE(WaitStatement)
+    WaitStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(cond)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(WaitStatement, Expression, cond)
+    PTR_GET_SET(WaitStatement, Statement, stmt)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline WaitStatement::WaitStatement(Expression* cond__, Statement* stmt__) : Statement() {
+  PTR_SETUP(cond);
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(stmt);
 }
 
 inline WaitStatement::~WaitStatement() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(stmt);
+}
+
+inline WaitStatement* WaitStatement::clone() const {
+  return new WaitStatement(cond_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 

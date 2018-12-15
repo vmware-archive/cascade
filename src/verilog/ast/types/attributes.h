@@ -31,11 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_ATTRIBUTES_H
 #define CASCADE_SRC_VERILOG_AST_ATTRIBUTES_H
 
-#include <cassert>
 #include <string>
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/ast/types/attr_spec.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
 #include "src/verilog/ast/types/string.h"
@@ -45,13 +43,18 @@ namespace cascade {
 class Attributes : public Node {
   public:
     // Constructors:
-    Attributes(Many<AttrSpec>* as__);
+    Attributes();
+    Attributes(AttrSpec* as);
+    template <typename AttrItr>
+    Attributes(AttrItr as_begin__, AttrItr as_end__);
     ~Attributes() override;
 
     // Node Interface:
-    NODE(Attributes, TREE(as))
+    NODE(Attributes)
+    Attributes* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(as)
+    MANY_GET_SET(Attributes, AttrSpec, as)
 
     // Lookup Interface:
     void erase(const std::string& s);
@@ -61,64 +64,79 @@ class Attributes : public Node {
     void set_or_replace(const std::string& s, Expression* e);
 
   private:
-    TREE_ATTR(Many<AttrSpec>*, as);
+    MANY_ATTR(AttrSpec, as);
 };
 
-inline Attributes::Attributes(Many<AttrSpec>* as__) : Node() { 
+inline Attributes::Attributes() : Node() {
+  MANY_DEFAULT_SETUP(as);
   parent_ = nullptr;
-  TREE_SETUP(as);
+}
+
+inline Attributes::Attributes(AttrSpec* as) : Attributes() {
+  push_back_as(as);
+}
+
+template <typename AttrItr>
+inline Attributes::Attributes(AttrItr as_begin__, AttrItr as_end__) : Attributes() { 
+  MANY_SETUP(as);
 }
 
 inline Attributes::~Attributes() {
-  TREE_TEARDOWN(as);
+  MANY_TEARDOWN(as);
+}
+
+inline Attributes* Attributes::clone() const {
+  auto res = new Attributes();
+  MANY_CLONE(as);
+  return res;
 }
 
 inline void Attributes::erase(const std::string& s) {
-  auto i = as_->begin();
-  for (auto ie = as_->end(); i != ie; ++i) {
+  auto i = begin_as();
+  for (auto ie = end_as(); i != ie; ++i) {
     if ((*i)->get_lhs()->eq(s)) {
       break;
     }
   }
-  if (i != as_->end()) {
-    as_->purge(i);
+  if (i != end_as()) {
+    purge_as(i);
   }
 }
 
 template <typename T>
 inline const T* Attributes::get(const std::string& s) const {
-  for (auto va : *as_) {
-    if (va->get_lhs()->eq(s) && !va->get_rhs()->null()) {
-      return dynamic_cast<const T*>(va->get_rhs()->get());
+  for (auto i = begin_as(), ie = end_as(); i != ie; ++i) {
+    if ((*i)->get_lhs()->eq(s) && (*i)->is_non_null_rhs()) {
+      return dynamic_cast<const T*>((*i)->get_rhs());
     }
   }
   return nullptr;
 }
 
 inline void Attributes::set_or_replace(const Attributes* rhs) {
-  for (auto rva : *rhs->as_) {
-    for (auto va : *as_) {
-      if (EqId()(va->get_lhs(), rva->get_lhs())) {
-        va->replace_rhs(rva->get_rhs()->clone());
+  for (auto i = rhs->begin_as(), ie = rhs->end_as(); i != ie; ++i) {
+    for (auto j = begin_as(), je = end_as(); j != je; ++j) {
+      if (EqId()((*j)->get_lhs(), (*i)->get_lhs())) {
+        (*j)->replace_rhs((*i)->clone_rhs());
         break;
       }
     }
-    as_->push_back(rva->clone());
+    push_back_as((*i)->clone());
   }
 }
 
 inline void Attributes::set_or_replace(const std::string& s, Expression* e) {
   AttrSpec* as = nullptr;
-  for (auto va : *as_) {
-    if (va->get_lhs()->eq(s)) {
-      as = va;
+  for (auto i = begin_as(), ie = end_as(); i != ie; ++i) {
+    if ((*i)->get_lhs()->eq(s)) {
+      as = *i;
       break;
     }
   }
   if (as == nullptr) {
-    get_as()->push_back(new AttrSpec(new Identifier(s), new Maybe<Expression>(e)));
+    push_back_as(new AttrSpec(new Identifier(s), e));
   } else {
-    as->replace_rhs(new Maybe<Expression>(e));
+    as->replace_rhs(e);
   }
 }
 

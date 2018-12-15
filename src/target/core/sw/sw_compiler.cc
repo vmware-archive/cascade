@@ -95,13 +95,13 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   size_t depth = 0;
   size_t byte_size = 0;
   for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<LocalparamDeclaration*>(l->get_parent())) {
+    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
       const auto id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
-      } else if (id->get_ids()->back()->eq("DEPTH")) {
+      } else if (id->back_ids()->eq("DEPTH")) {
         depth = Evaluate().get_value(ld->get_val()).to_int();
-      } else if (id->get_ids()->back()->eq("BYTE_SIZE")) {
+      } else if (id->back_ids()->eq("BYTE_SIZE")) {
         byte_size = Evaluate().get_value(ld->get_val()).to_int();
       }
     }
@@ -129,22 +129,22 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
 
   // Set up input output connections
   for (auto l : info.locals()) {
-    auto d = dynamic_cast<Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<PortDeclaration*>(d->get_parent())) {
+    auto d = dynamic_cast<const Declaration*>(l->get_parent());
+    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
       const auto id = pd->get_attrs()->get<Identifier>("__id");
-      if (id->get_ids()->back()->eq("clock")) {
+      if (id->back_ids()->eq("clock")) {
         fifo->set_clock(to_vid(l));
-      } else if (id->get_ids()->back()->eq("rreq")) {
+      } else if (id->back_ids()->eq("rreq")) {
         fifo->set_rreq(to_vid(l));
-      } else if (id->get_ids()->back()->eq("rdata")) {
+      } else if (id->back_ids()->eq("rdata")) {
         fifo->set_rdata(to_vid(l));
-      } else if (id->get_ids()->back()->eq("wreq")) {
+      } else if (id->back_ids()->eq("wreq")) {
         fifo->set_wreq(to_vid(l));
-      } else if (id->get_ids()->back()->eq("wdata")) {
+      } else if (id->back_ids()->eq("wdata")) {
         fifo->set_wdata(to_vid(l));
-      } else if (id->get_ids()->back()->eq("empty")) {
+      } else if (id->back_ids()->eq("empty")) {
         fifo->set_empty(to_vid(l));
-      } else if (id->get_ids()->back()->eq("full")) {
+      } else if (id->back_ids()->eq("full")) {
         fifo->set_full(to_vid(l));
       }
     }
@@ -200,13 +200,13 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
   size_t addr_size = 0;
   size_t byte_size = 0;
   for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<LocalparamDeclaration*>(l->get_parent())) {
+    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
       const auto id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
-      } else if (id->get_ids()->back()->eq("ADDR_SIZE")) {
+      } else if (id->back_ids()->eq("ADDR_SIZE")) {
         addr_size = Evaluate().get_value(ld->get_val()).to_int();
-      } else if (id->get_ids()->back()->eq("BYTE_SIZE")) {
+      } else if (id->back_ids()->eq("BYTE_SIZE")) {
         byte_size = Evaluate().get_value(ld->get_val()).to_int();
       }
     }
@@ -227,24 +227,24 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
 
   // Set up input output connections
   for (auto l : info.locals()) {
-    auto d = dynamic_cast<Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<PortDeclaration*>(d->get_parent())) {
+    auto d = dynamic_cast<const Declaration*>(l->get_parent());
+    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
       const auto id = pd->get_attrs()->get<Identifier>("__id");
-      if (id->get_ids()->back()->eq("clock")) {
+      if (id->back_ids()->eq("clock")) {
         mem->set_clock(to_vid(l));
-      } else if (id->get_ids()->back()->eq("wen")) {
+      } else if (id->back_ids()->eq("wen")) {
         mem->set_wen(to_vid(l));
-      } else if (id->get_ids()->back()->eq("raddr1")) {
+      } else if (id->back_ids()->eq("raddr1")) {
         mem->set_raddr1(to_vid(l));
-      } else if (id->get_ids()->back()->eq("rdata1")) {
+      } else if (id->back_ids()->eq("rdata1")) {
         mem->set_rdata1(to_vid(l));
-      } else if (id->get_ids()->back()->eq("raddr2")) {
+      } else if (id->back_ids()->eq("raddr2")) {
         mem->set_raddr2(to_vid(l));
-      } else if (id->get_ids()->back()->eq("rdata2")) {
+      } else if (id->back_ids()->eq("rdata2")) {
         mem->set_rdata2(to_vid(l));
-      } else if (id->get_ids()->back()->eq("waddr")) {
+      } else if (id->back_ids()->eq("waddr")) {
         mem->set_waddr(to_vid(l));
-      } else if (id->get_ids()->back()->eq("wdata")) {
+      } else if (id->back_ids()->eq("wdata")) {
         mem->set_wdata(to_vid(l));
       }
     }

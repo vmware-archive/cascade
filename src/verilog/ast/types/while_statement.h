@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_WHILE_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_WHILE_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/loop_statement.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class WhileStatement : public LoopStatement {
     ~WhileStatement() override;
 
     // Node Interface:
-    NODE(WhileStatement, TREE(cond), TREE(stmt))
+    NODE(WhileStatement)
+    WhileStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(cond)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(WhileStatement, Expression, cond)
+    PTR_GET_SET(WhileStatement, Statement, stmt)
 
   private:
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline WhileStatement::WhileStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
+  PTR_SETUP(cond);
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(cond);
-  TREE_SETUP(stmt);
 }
 
 inline WhileStatement::~WhileStatement() {
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(stmt);
+}
+
+inline WhileStatement* WhileStatement::clone() const {
+  return new WhileStatement(cond_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 

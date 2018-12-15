@@ -31,10 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DISPLAY_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_DISPLAY_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
 #include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
@@ -42,25 +40,40 @@ namespace cascade {
 class DisplayStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    DisplayStatement(Many<Expression>* args__);
+    DisplayStatement();
+    template <typename ArgsItr>
+    DisplayStatement(ArgsItr args_begin__, ArgsItr args_end__);
     ~DisplayStatement() override;
 
     // Node Interface:
-    NODE(DisplayStatement, TREE(args))
+    NODE(DisplayStatement)
+    DisplayStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(args)
+    MANY_GET_SET(DisplayStatement, Expression, args)
 
   private:
-    TREE_ATTR(Many<Expression>*, args);
+    MANY_ATTR(Expression, args);
 };
 
-inline DisplayStatement::DisplayStatement(Many<Expression>* args__) : SystemTaskEnableStatement() {
+inline DisplayStatement::DisplayStatement() : SystemTaskEnableStatement() {
+  MANY_DEFAULT_SETUP(args);
   parent_ = nullptr;
-  TREE_SETUP(args);
+}
+
+template <typename ArgsItr>
+inline DisplayStatement::DisplayStatement(ArgsItr args_begin__, ArgsItr args_end__) : DisplayStatement() {
+  MANY_SETUP(args);
 }
 
 inline DisplayStatement::~DisplayStatement() {
-  TREE_TEARDOWN(args);
+  MANY_TEARDOWN(args);
+}
+
+inline DisplayStatement* DisplayStatement::clone() const {
+  auto res = new DisplayStatement();
+  MANY_CLONE(args);
+  return res;
 }
 
 } // namespace cascade 

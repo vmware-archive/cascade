@@ -1,5 +1,5 @@
 reg pad = 0;
-wire led = 0;
+wire led;
 
 module foo(x,y);
   input wire x;

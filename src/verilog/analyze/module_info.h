@@ -33,7 +33,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
+#include "src/base/container/vector.h"
 #include "src/verilog/analyze/indices.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
@@ -124,7 +124,7 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*, HashId, EqId>& named_params();
     // Returns the set of local variables in this module that were declared as
     // parameters in the order of their declaration.
-    const std::vector<const Identifier*>& ordered_params();
+    const Vector<const Identifier*>& ordered_params();
 
     // Port Indices:
     //
@@ -134,7 +134,7 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*, HashId, EqId>& named_ports();
     // Returns the set of local variables in this module that were declared as
     // ports in the order of their declaration.
-    const std::vector<const Identifier*>& ordered_ports();
+    const Vector<const Identifier*>& ordered_ports();
 
     // Connection Indices:
     //

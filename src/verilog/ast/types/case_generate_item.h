@@ -31,12 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_GENERATE_ITEM_H
 #define CASCADE_SRC_VERILOG_AST_CASE_GENERATE_ITEM_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/generate_block.h"
 #include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/many.h"
-#include "src/verilog/ast/types/maybe.h"
 #include "src/verilog/ast/types/node.h"
 
 namespace cascade {
@@ -44,29 +41,46 @@ namespace cascade {
 class CaseGenerateItem : public Node {
   public:
     // Constructors:
-    CaseGenerateItem(Many<Expression>* exprs__, Maybe<GenerateBlock>* block__);
+    CaseGenerateItem();
+    template <typename ExprsItr>
+    CaseGenerateItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, GenerateBlock* block__);
     ~CaseGenerateItem() override;
 
     // Node Interface:
-    NODE(CaseGenerateItem, TREE(exprs), TREE(block))
+    NODE(CaseGenerateItem)
+    CaseGenerateItem* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(exprs)
-    TREE_GET_SET(block)
+    MANY_GET_SET(CaseGenerateItem, Expression, exprs)
+    MAYBE_GET_SET(CaseGenerateItem, GenerateBlock, block)
 
   private:
-    TREE_ATTR(Many<Expression>*, exprs);
-    TREE_ATTR(Maybe<GenerateBlock>*, block);
+    MANY_ATTR(Expression, exprs);
+    MAYBE_ATTR(GenerateBlock, block);
 };
 
-inline CaseGenerateItem::CaseGenerateItem(Many<Expression>* exprs__, Maybe<GenerateBlock>* block__) : Node() {
+inline CaseGenerateItem::CaseGenerateItem() : Node() {
+  MANY_DEFAULT_SETUP(exprs);
+  MAYBE_DEFAULT_SETUP(block);
   parent_ = nullptr;
-  TREE_SETUP(exprs);
-  TREE_SETUP(block);
+}
+
+template <typename ExprsItr>
+inline CaseGenerateItem::CaseGenerateItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, GenerateBlock* block__) : CaseGenerateItem() {
+  MANY_SETUP(exprs);
+  MAYBE_SETUP(block);
 }
 
 inline CaseGenerateItem::~CaseGenerateItem() {
-  TREE_TEARDOWN(exprs);
-  TREE_TEARDOWN(block);
+  MANY_TEARDOWN(exprs);
+  MAYBE_TEARDOWN(block);
+}
+
+inline CaseGenerateItem* CaseGenerateItem::clone() const {
+  auto res = new CaseGenerateItem();
+  MANY_CLONE(exprs);
+  MAYBE_CLONE(block);
+  return res;
 }
 
 } // namespace cascade 

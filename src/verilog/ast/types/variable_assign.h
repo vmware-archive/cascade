@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_VARIABLE_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_VARIABLE_ASSIGN_H
 
-#include <cassert>
 #include "src/verilog/ast/types/identifier.h"
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -46,25 +45,31 @@ class VariableAssign : public Node {
     ~VariableAssign() override;
 
     // Node Interface:
-    NODE(VariableAssign, TREE(lhs), TREE(rhs))
+    NODE(VariableAssign)
+    VariableAssign* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(lhs)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(VariableAssign, Identifier, lhs)
+    PTR_GET_SET(VariableAssign, Expression, rhs)
 
   private:
-    TREE_ATTR(Identifier*, lhs);
-    TREE_ATTR(Expression*, rhs);
+    PTR_ATTR(Identifier, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
 inline VariableAssign::VariableAssign(Identifier* lhs__, Expression* rhs__) : Node() { 
+  PTR_SETUP(lhs);
+  PTR_SETUP(rhs);
   parent_ = nullptr;
-  TREE_SETUP(lhs);
-  TREE_SETUP(rhs);
 }
 
 inline VariableAssign::~VariableAssign() {
-  TREE_TEARDOWN(lhs);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
+}
+
+inline VariableAssign* VariableAssign::clone() const {
+  return new VariableAssign(lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade

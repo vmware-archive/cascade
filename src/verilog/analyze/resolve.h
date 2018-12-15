@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 #define CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 
-#include <vector>
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
@@ -44,20 +44,16 @@ namespace cascade {
 // invalidate the resolution decorations for any variables that refer to that
 // scope before it will work correctly.
 
-class Resolve : public Editor {
+class Resolve {
   public:
     // Typedefs:
-    typedef typename std::vector<Expression*>::const_iterator dep_iterator;
-
-    // Constructors:
-    Resolve();
-    ~Resolve() override = default;
+    typedef typename Vector<const Expression*>::const_iterator use_iterator;
 
     // Cache Maintenance:
     //
-    // Invalidates the state of any resolution decorations contained in the AST
-    // below this node.
-    void invalidate(Node* n);
+    // Removes dependency references for this node and all of the nodes below
+    // it in the AST. 
+    void invalidate(const Node* n);
 
     // Resolution:
     //
@@ -65,8 +61,9 @@ class Resolve : public Editor {
     // on failure.
     const Identifier* get_resolution(const Identifier* id);
     // Returns the fully-qualified name of this variable. For example, eg
-    // get_full_id(x) might return root.f[0].x.
-    const Identifier* get_full_id(const Identifier* id);
+    // get_full_id(x) might return root.f[0].x. The caller of this method
+    // takes responsibility for the resulting memory.
+    Identifier* get_full_id(const Identifier* id);
     // Returns a pointer to the ModuleDeclaration that this identifier appears
     // in. Returns nullptr on failure. For example, for variables that are not
     // part of the AST.
@@ -75,36 +72,78 @@ class Resolve : public Editor {
     // declared in. Equivalent to calling get_origin(get_resolution(id)).
     const ModuleDeclaration* get_origin(const Identifier* id);
 
+    // Variable Properties: 
+    //
+    // Returns true if this variable contains a slicing subscript. This method
+    // is undefined for identifiers which cannot be resolved.
+    bool is_slice(const Identifier* id);
+    // Returns true for any variable which does not resolve to itself (ie a
+    // reference) or a variable which is part of a scalar declaration.
+    bool is_scalar(const Identifier* id);
+    // Returns false for any variable which does not resolve to itself (ie a
+    // reference) or true for a variable which is part of an array
+    // declaration.
+    bool is_array(const Identifier* id);
+
     // Iterators Interface:
     //
-    // Iterators over the set of expressions that depend on the value of this
-    // variable. For example, the expression i+1 depends on the value of i.
-    dep_iterator dep_begin(const Identifier* id);
-    dep_iterator dep_end(const Identifier* id);
+    // Iterators over the set of expressions that refer to this variable.  For
+    // example, the expression i+1 uses the value of i. Invoking this method on
+    // a variable which cannot be resolved is undefined.
+    use_iterator use_begin(const Identifier* id);
+    use_iterator use_end(const Identifier* id);
 
   private:
-    // Resolution Helpers:
-    const Identifier* resolution_impl(const Identifier* id);
-    const Identifier* full_id_impl(const Identifier* id);
+    // Cached accessor helpers:
+    const Identifier* cache_resolution(const Identifier* id);
+    void cache_uses(const Declaration* d);
 
-    // Editor Interface:
-    void edit(BinaryExpression* be) override;
-    void edit(ConditionalExpression* ce) override;
-    void edit(NestedExpression* ne) override;
-    void edit(Concatenation* c) override;
-    void edit(Identifier* id) override;
-    void edit(MultipleConcatenation* mc) override;
-    void edit(Number* n) override;
-    void edit(String* s) override;
-    void edit(RangeExpression* re) override;
-    void edit(UnaryExpression* ue) override;
-    void edit(CaseGenerateConstruct* cgc) override;
-    void edit(IfGenerateConstruct* igc) override;
-    void edit(LoopGenerateConstruct* lgc) override;
-    void edit(ModuleInstantiation* mi) override;
-
-    // Cache Maintenance Helpers:
-    void release(Expression* e);
+    // Examines every declaration below this node and inserts an empty use set
+    struct InitCacheUses : public Editor {
+      ~InitCacheUses() override = default;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
+    // Populates use sets
+    struct CacheUses : public Editor {
+      ~CacheUses() override = default;
+      void edit(Attributes* as) override;
+      void edit(Identifier* i) override;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
+    // Invalidation cache information:
+    struct Invalidate : public Editor {
+      ~Invalidate() override = default;
+      void edit(Attributes* as) override;
+      void edit(Identifier* id) override;
+      void edit(CaseGenerateConstruct* cgc) override;
+      void edit(IfGenerateConstruct* igc) override;
+      void edit(LoopGenerateConstruct* lgc) override;
+      void edit(GenvarDeclaration* gd) override;
+      void edit(IntegerDeclaration* id) override;
+      void edit(LocalparamDeclaration* ld) override;
+      void edit(NetDeclaration* nd) override;
+      void edit(ParameterDeclaration* pd) override;
+      void edit(RegDeclaration* rd) override;
+      void edit(ModuleInstantiation* mi) override;
+    };
 };
 
 } // namespace cascade

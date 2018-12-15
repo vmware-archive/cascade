@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_BINARY_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_BINARY_EXPRESSION_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
 
@@ -40,7 +39,7 @@ namespace cascade {
 class BinaryExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Op {
+    enum Op : uint8_t {
       PLUS = 0,
       MINUS,
       TIMES,
@@ -72,29 +71,35 @@ class BinaryExpression : public Expression {
     ~BinaryExpression() override;
 
     // Node Interface:
-    NODE(BinaryExpression, TREE(lhs), LEAF(op), TREE(rhs))
+    NODE(BinaryExpression)
+    BinaryExpression* clone() const override;
+
     // Get/Set
-    TREE_GET_SET(lhs)
-    LEAF_GET_SET(op)
-    TREE_GET_SET(rhs)
+    PTR_GET_SET(BinaryExpression, Expression, lhs)
+    VAL_GET_SET(BinaryExpression, Op, op)
+    PTR_GET_SET(BinaryExpression, Expression, rhs)
 
   private:
-    TREE_ATTR(Expression*, lhs);
-    LEAF_ATTR(Op, op);
-    TREE_ATTR(Expression*, rhs);
+    PTR_ATTR(Expression, lhs);
+    VAL_ATTR(Op, op);
+    PTR_ATTR(Expression, rhs);
 };
 
 inline BinaryExpression::BinaryExpression(Expression* lhs__, Op op__, Expression* rhs__) : Expression() {
+  PTR_SETUP(lhs);
+  VAL_SETUP(op);
+  PTR_SETUP(rhs);
   parent_ = nullptr;
-  TREE_SETUP(lhs);
-  LEAF_SETUP(op);
-  TREE_SETUP(rhs);
 }
 
 inline BinaryExpression::~BinaryExpression() {
-  TREE_TEARDOWN(lhs);
-  LEAF_TEARDOWN(op);
-  TREE_TEARDOWN(rhs);
+  PTR_TEARDOWN(lhs);
+  VAL_TEARDOWN(op);
+  PTR_TEARDOWN(rhs);
+}
+
+inline BinaryExpression* BinaryExpression::clone() const {
+  return new BinaryExpression(lhs_->clone(), op_, rhs_->clone());
 }
 
 } // namespace cascade 

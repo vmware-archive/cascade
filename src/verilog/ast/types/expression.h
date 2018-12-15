@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 
-#include <vector>
 #include "src/base/bits/bits.h"
+#include "src/base/container/vector.h"
 #include "src/verilog/ast/types/macro.h"
 #include "src/verilog/ast/types/node.h"
 
@@ -41,7 +41,6 @@ namespace cascade {
 class Expression : public Node {
   public:
     // Constructors:
-    Expression();
     ~Expression() override = default;
 
     // Node Interface:
@@ -52,22 +51,9 @@ class Expression : public Node {
     Expression* accept(Rewriter* r) override = 0;
 
   protected:
-    // Decorations used by Evaluate
     friend class Evaluate;
-    // A vector of bitstring values, a variable array being the most general
-    // instance of an expression
-    DECORATION(std::vector<Bits>, bit_val);
-    // Does this expression need to be recomputed (generally because the value
-    // of one of its subexpressions has changed)?
-    DECORATION(bool, needs_update);
-
-    friend class Resolve;
-    DECORATION(std::vector<Identifier*>, dependencies);
+    DECORATION(Vector<Bits>, bit_val);
 };
-
-inline Expression::Expression() : Node() {
-  needs_update_ = true;
-}
 
 } // namespace cascade 
 

@@ -32,6 +32,7 @@
 #define CASCADE_SRC_BASE_TOKEN_TOKENIZE_H
 
 #include <cassert>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,7 +46,7 @@ namespace cascade {
 class Tokenize {
   public:
     // Typedefs:
-    typedef size_t Token;
+    typedef uint32_t Token;
 
     // Map/Unmap:
     Token map(const std::string& s);
@@ -59,6 +60,7 @@ class Tokenize {
 inline Tokenize::Token Tokenize::map(const std::string& s) {
   const auto res = s2t().insert(make_pair(s, t2s().size()));
   if (res.second) {
+    assert(t2s().size() < std::numeric_limits<Token>::max());
     t2s().push_back(s);
   }
   return res.first->second;

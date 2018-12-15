@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
-#include <cassert>
 #include <sstream>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/macro.h"
@@ -41,7 +40,7 @@ namespace cascade {
 class RangeExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Type {
+    enum Type : uint8_t {
       CONSTANT = 0,
       PLUS,
       MINUS
@@ -53,16 +52,18 @@ class RangeExpression : public Expression {
     ~RangeExpression() override;
 
     // Node Interface:
-    NODE(RangeExpression, TREE(upper), LEAF(type), TREE(lower))
+    NODE(RangeExpression)
+    RangeExpression* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(upper)
-    LEAF_GET_SET(type)
-    TREE_GET_SET(lower)
+    PTR_GET_SET(RangeExpression, Expression, upper)
+    VAL_GET_SET(RangeExpression, Type, type)
+    PTR_GET_SET(RangeExpression, Expression, lower)
 
   private:
-    TREE_ATTR(Expression*, upper);
-    LEAF_ATTR(Type, type);
-    TREE_ATTR(Expression*, lower);
+    PTR_ATTR(Expression, upper);
+    VAL_ATTR(Type, type);
+    PTR_ATTR(Expression, lower);
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
@@ -78,15 +79,19 @@ inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression() {
   parent_ = nullptr;
-  TREE_SETUP(upper);
-  LEAF_SETUP(type);
-  TREE_SETUP(lower);
+  PTR_SETUP(upper);
+  VAL_SETUP(type);
+  PTR_SETUP(lower);
 }
 
 inline RangeExpression::~RangeExpression() {
-  TREE_TEARDOWN(upper);
-  LEAF_TEARDOWN(type);
-  TREE_TEARDOWN(lower);
+  PTR_TEARDOWN(upper);
+  VAL_TEARDOWN(type);
+  PTR_TEARDOWN(lower);
+}
+
+inline RangeExpression* RangeExpression::clone() const {
+  return new RangeExpression(upper_->clone(), type_, lower_->clone());
 }
 
 } // namespace cascade 

@@ -31,7 +31,6 @@
 #ifndef CASCADE_SRC_VERILOG_AST_FOR_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_FOR_STATEMENT_H
 
-#include <cassert>
 #include "src/verilog/ast/types/expression.h"
 #include "src/verilog/ast/types/loop_statement.h"
 #include "src/verilog/ast/types/macro.h"
@@ -47,33 +46,39 @@ class ForStatement : public LoopStatement {
     ~ForStatement() override;
 
     // Node Interface:
-    NODE(ForStatement, TREE(init), TREE(cond), TREE(update), TREE(stmt))
+    NODE(ForStatement)
+    ForStatement* clone() const override;
+
     // Get/Set:
-    TREE_GET_SET(init)
-    TREE_GET_SET(cond)
-    TREE_GET_SET(update)
-    TREE_GET_SET(stmt)
+    PTR_GET_SET(ForStatement, VariableAssign, init)
+    PTR_GET_SET(ForStatement, Expression, cond)
+    PTR_GET_SET(ForStatement, VariableAssign, update)
+    PTR_GET_SET(ForStatement, Statement, stmt)
 
   private:
-    TREE_ATTR(VariableAssign*, init);
-    TREE_ATTR(Expression*, cond);
-    TREE_ATTR(VariableAssign*, update);
-    TREE_ATTR(Statement*, stmt);
+    PTR_ATTR(VariableAssign, init);
+    PTR_ATTR(Expression, cond);
+    PTR_ATTR(VariableAssign, update);
+    PTR_ATTR(Statement, stmt);
 };
 
 inline ForStatement::ForStatement(VariableAssign* init__, Expression* cond__, VariableAssign* update__, Statement* stmt__) : LoopStatement() {
+  PTR_SETUP(init);
+  PTR_SETUP(cond);
+  PTR_SETUP(update);
+  PTR_SETUP(stmt);
   parent_ = nullptr;
-  TREE_SETUP(init);
-  TREE_SETUP(cond);
-  TREE_SETUP(update);
-  TREE_SETUP(stmt);
 }
 
 inline ForStatement::~ForStatement() {
-  TREE_TEARDOWN(init);
-  TREE_TEARDOWN(cond);
-  TREE_TEARDOWN(update);
-  TREE_TEARDOWN(stmt);
+  PTR_TEARDOWN(init);
+  PTR_TEARDOWN(cond);
+  PTR_TEARDOWN(update);
+  PTR_TEARDOWN(stmt);
+}
+
+inline ForStatement* ForStatement::clone() const {
+  return new ForStatement(init_->clone(), cond_->clone(), update_->clone(), stmt_->clone());
 }
 
 } // namespace cascade 
