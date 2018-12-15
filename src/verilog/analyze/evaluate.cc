@@ -430,10 +430,10 @@ void Evaluate::init(Expression* e) {
 }
 
 void Evaluate::flag_changed(const Identifier* id) {
-  const_cast<Identifier*>(id)->set_flag<0>(false);
   for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
     const_cast<Expression*>(*i)->set_flag<0>(true);
   }
+  const_cast<Identifier*>(id)->set_flag<0>(false);
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {

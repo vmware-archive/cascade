@@ -4,10 +4,11 @@ include data/test/benchmark/bitcoin/fpgaminer_top.v;
 
 module Bitcoin();
 
+  parameter UNROLL = 0;
   parameter DIFF = 2;
   parameter FINISH = 0;
 
-  fpgaminer_top#(.LOOP_LOG2(0),.DIFFICULTY(DIFF)) miner(clock.val);
+  fpgaminer_top#(.LOOP_LOG2(UNROLL),.DIFFICULTY(DIFF)) miner(clock.val);
 
   always @(posedge clock.val) begin
     if (miner.golden_nonce) begin

@@ -348,6 +348,7 @@ inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
   if (sizeof(B) == sizeof(T)) {
     assert(n < val_.size());
     val_[n] = b;
+    return;
   }
 
   // Hard Case:

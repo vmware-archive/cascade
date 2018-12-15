@@ -47,16 +47,16 @@ int main(int argc, char** argv) {
 }
 
 TEST(benchmark, array) {
-  run_code(march.value(), "data/test/benchmark/array/run_5.v", "1048577\n");
+  run_code(march.value(), "data/test/benchmark/array/run_7.v", "268435457\n");
 }
 TEST(benchmark, bitcoin) {
-  run_code(march.value(), "data/test/benchmark/bitcoin/run_12.v", "1314 1398\n");
+  run_code(march.value(), "data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
 }
 TEST(benchmark, mips32) {
-  run_code(march.value(), "data/test/benchmark/mips32/run_bubble_512.v", "1");
+  run_code(march.value(), "data/test/benchmark/mips32/run_bubble_2048.v", "1");
 }
 TEST(benchmark, nw) {
-  run_code(march.value(), "data/test/benchmark/nw/run_8.v", "-1437");
+  run_code(march.value(), "data/test/benchmark/nw/run_16.v", "TODO...");
 }
 TEST(benchmark, regex) {
   run_code(march.value(), "data/test/benchmark/regex/run_disjunct_16.v", "6784");

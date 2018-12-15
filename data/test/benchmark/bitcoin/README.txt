@@ -24,4 +24,7 @@ DIFF : EXPECTED OUTPUT
   17 :
   18 : 62e7 62ec
   19 :
-  20 : 1ce5c0 1ce5c5
+  
+  NOTE: For benchmarks above this length, we switch to unroll 5 so as not to exhaust space on target device
+
+  20 : 1ce5c0 1ce5c5 
