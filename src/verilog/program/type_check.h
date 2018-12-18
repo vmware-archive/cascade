@@ -115,6 +115,8 @@ class TypeCheck : public Visitor {
     void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
     void visit(const WhileStatement* ws) override;
+    void visit(const DisplayStatement* ds) override;
+    void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;
     void visit(const DelayControl* dc) override;
 
@@ -128,7 +130,28 @@ class TypeCheck : public Visitor {
     Identifier::const_iterator_dim check_deref(const Identifier* r, const Identifier* i);
     // Instantiation Array Checking Helpers:
     void check_arity(const ModuleInstantiation* mi, const Identifier* port, const Expression* arg);
+    // Checks well-formedness of printf-style args
+    template <typename ArgsItr>
+    void check_printf(size_t n, ArgsItr begin, ArgsItr end);
 };
+
+template <typename ArgsItr>
+void TypeCheck::check_printf(size_t n, ArgsItr begin, ArgsItr end) {
+  // Nothing to do if no args were provided
+  if (begin == end) {
+    return;
+  }
+  // If first arg is a string, number of %'s must be one less than number of args
+  if (const auto* str = dynamic_cast<const String*>(*begin)) {
+    if ((size_t)std::count(str->get_readable_val().begin(), str->get_readable_val().end(), '%') != (n-1)) {
+      error("Incorrect number of printf-style arguments provided", (*begin)->get_parent());
+    }
+  }
+  // If first arg is not a string, it must be the only arg
+  else if (n != 1) {
+    error("printf-style argument formatting requires a string", (*begin)->get_parent());
+  }
+}
 
 } // namespace cascade
 

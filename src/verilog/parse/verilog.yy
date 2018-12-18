@@ -1356,14 +1356,38 @@ loop_statement
 
 /* A.6.9 Task Enable Statements */
 system_task_enable
-  : SYS_DISPLAY SCOLON { $$ = new DisplayStatement(); }
-  | SYS_DISPLAY OPAREN CPAREN SCOLON { $$ = new DisplayStatement(); }
-  | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { $$ = new DisplayStatement($3.begin(), $3.end()); }
-  | SYS_FINISH SCOLON { $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); }
-  | SYS_FINISH OPAREN expression CPAREN SCOLON { $$ = new FinishStatement($3); }
-  | SYS_WRITE SCOLON { $$ = new WriteStatement(); }
-  | SYS_WRITE OPAREN CPAREN SCOLON { $$ = new WriteStatement(); }
-  | SYS_WRITE OPAREN expression_P CPAREN SCOLON { $$ = new WriteStatement($3.begin(), $3.end()); }
+  : SYS_DISPLAY SCOLON { 
+    $$ = new DisplayStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_DISPLAY OPAREN CPAREN SCOLON { 
+    $$ = new DisplayStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { 
+    $$ = new DisplayStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
+  | SYS_FINISH SCOLON { 
+    $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); 
+    parser->set_loc($$);
+  }
+  | SYS_FINISH OPAREN expression CPAREN SCOLON { 
+    $$ = new FinishStatement($3); 
+    parser->set_loc($$);
+  }
+  | SYS_WRITE SCOLON { 
+    $$ = new WriteStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_WRITE OPAREN CPAREN SCOLON { 
+    $$ = new WriteStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_WRITE OPAREN expression_P CPAREN SCOLON { 
+    $$ = new WriteStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
   ;
 
 /* A.8.1 Concatenations */

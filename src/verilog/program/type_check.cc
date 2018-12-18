@@ -711,6 +711,16 @@ void TypeCheck::visit(const WhileStatement* ws) {
   error("Cascade does not currently support the use of while statements", ws);
 }
 
+void TypeCheck::visit(const DisplayStatement* ds) {
+  ds->accept_args(this);
+  check_printf(ds->size_args(), ds->begin_args(), ds->end_args());
+}
+
+void TypeCheck::visit(const WriteStatement* ws) {
+  ws->accept_args(this);
+  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
+}
+
 void TypeCheck::visit(const WaitStatement* ws) {
   error("Cascade does not currently support the use of wait statements", ws);
 }
