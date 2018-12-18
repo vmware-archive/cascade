@@ -263,6 +263,30 @@ TEST(type_check, fail_issue_239c) {
 TEST(type_check, fail_issue_239d) {
   run_typecheck("minimal", "data/test/regression/type_check/fail/issue_239d.v", true);
 }
+TEST(type_check, fail_issue_60a) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60a.v", true);
+}
+TEST(type_check, fail_issue_60b) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60b.v", true);
+}
+TEST(type_check, fail_issue_60c) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60c.v", true);
+}
+TEST(type_check, fail_issue_60d) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60d.v", true);
+}
+TEST(type_check, fail_issue_60e) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60e.v", true);
+}
+TEST(type_check, fail_issue_60f) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60f.v", true);
+}
+TEST(type_check, fail_issue_60g) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60g.v", true);
+}
+TEST(type_check, fail_issue_60h) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/issue_60h.v", true);
+}
 TEST(type_check, fail_parameter_1) {
   run_typecheck("minimal", "data/test/regression/type_check/fail/parameter_1.v", true);
 }

@@ -279,12 +279,12 @@
     public: \
       typedef typename Vector<T*>::difference_type difference_type; \
       typedef T* value_type; \
-      typedef T* const* pointer_type; \
+      typedef T* const* pointer; \
       typedef T* reference; \
       typedef std::forward_iterator_tag iterator_category; \
       explicit iterator_##t(typename Vector<T*>::iterator itr) : itr_(itr) { } \
       reference operator*() { return *itr_; } \
-      pointer_type operator->() { return itr_; } \
+      pointer operator->() { return itr_; } \
       bool operator==(const iterator_##t& rhs) const { return itr_ == rhs.itr_; } \
       bool operator!=(const iterator_##t& rhs) const { return itr_ != rhs.itr_; } \
       iterator_##t& operator++() { ++itr_; return *this; } \
@@ -298,12 +298,12 @@
     public: \
       typedef typename Vector<T*>::difference_type difference_type; \
       typedef const T* value_type; \
-      typedef const T* const* pointer_type; \
+      typedef const T* const* pointer; \
       typedef const T* reference; \
       typedef std::forward_iterator_tag iterator_category; \
       explicit const_iterator_##t(typename Vector<T*>::const_iterator itr) : itr_(itr) { } \
       reference operator*() { return *itr_; } \
-      pointer_type operator->() { return itr_; } \
+      pointer operator->() { return itr_; } \
       bool operator==(const const_iterator_##t& rhs) const { return itr_ == rhs.itr_; } \
       bool operator!=(const const_iterator_##t& rhs) const { return itr_ != rhs.itr_; } \
       const_iterator_##t& operator++() { ++itr_; return *this; } \
@@ -317,7 +317,7 @@
     public: \
       typedef void difference_type; \
       typedef void value_type; \
-      typedef void pointer_type; \
+      typedef void pointer; \
       typedef void reference; \
       typedef std::output_iterator_tag iterator_category; \
       explicit back_insert_iterator_##t(C* c) : c_(c) { } \
