@@ -226,9 +226,20 @@ const Identifier* Navigate::find_duplicate_name(const Id* id) {
 
 const Node* Navigate::find_child(const Id* id) {
   assert(location_check());
-  const auto s = dynamic_cast<Scope*>(where_);
+  const auto* s = dynamic_cast<Scope*>(where_);
   const auto itr = s->schildren_.find(id);
   return itr != s->schildren_.end() ? itr->second : nullptr;
+}
+
+const Node* Navigate::find_child_ignore_subscripts(const Id* id) {
+  assert(location_check());
+  const auto* s = dynamic_cast<Scope*>(where_);
+  for (auto i = s->schildren_.begin(), ie = s->schildren_.end(); i != ie; ++i) {
+    if (i->first->get_sid() == id->get_sid()) {
+      return i->second;
+    }
+  }
+  return nullptr;
 }
 
 Navigate::name_iterator Navigate::name_begin() const {
