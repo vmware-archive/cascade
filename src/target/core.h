@@ -221,9 +221,9 @@ inline size_t Core::open_loop(VId clk, bool val, size_t itr) {
     // Drain evaluations and updates for this core.
     for (auto done = false; !done; ) {
       evaluate();
-      tasks |= there_were_tasks();
+      tasks = tasks || there_were_tasks();
       done = !conditional_update();
-      tasks |= there_were_tasks();
+      tasks = tasks || there_were_tasks();
     }
     done_step();
   }

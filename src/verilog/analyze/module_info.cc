@@ -384,7 +384,7 @@ void ModuleInfo::record_external_use(const Identifier* id) {
         continue;
       }
       // Do nothing If this is a named variable connection
-      if (eid->get_parent() != nullptr && dynamic_cast<const ArgAssign*>(eid->get_parent())) {
+      if ((eid->get_parent() != nullptr) && (dynamic_cast<const ArgAssign*>(eid->get_parent()) != nullptr)) {
         continue;
       }
       // If it's on the lhs of an expression, it's a write, otherwise it's a read

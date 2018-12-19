@@ -241,7 +241,7 @@ ModuleDeclaration* Isolate::get_shell() {
     auto pd = new PortDeclaration(
       new Attributes(), 
       r && w ? PortDeclaration::INOUT : r ? PortDeclaration::INPUT : PortDeclaration::OUTPUT,
-      (info.is_local(p) && dynamic_cast<const RegDeclaration*>(p->get_parent())) ? 
+      (info.is_local(p) && (dynamic_cast<const RegDeclaration*>(p->get_parent()) != nullptr)) ? 
         (Declaration*) new RegDeclaration(
           new Attributes(),
           to_global_id(p),

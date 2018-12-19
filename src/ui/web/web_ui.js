@@ -30,8 +30,8 @@ window.onload = function() {
     }
   };
 
-  var eval = document.getElementById('eval');
-  eval.onclick = function() {
+  var ev = document.getElementById('eval');
+  ev.onclick = function() {
     ws.send('eval:' + document.getElementById('edit').value);
   }
 
