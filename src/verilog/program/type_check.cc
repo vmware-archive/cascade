@@ -103,7 +103,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     if (Navigate(mi).find_duplicate_name(mi->get_iid()->back_ids())) {
       multiple_def(mi->get_iid());
     }
-    if (Navigate(mi).find_child(mi->get_iid()->back_ids())) {
+    if (Navigate(mi).find_child_ignore_subscripts(mi->get_iid()->back_ids())) {
       error("A nested scope with this name already exists in this scope", mi);
     }
   }
@@ -224,6 +224,19 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
     lgc->accept_init(this);
     lgc->accept_cond(this);
     lgc->accept_update(this);
+
+    // CHECK: Duplicate name
+    if (lgc->get_block()->is_non_null_id()) {
+      const auto* id = lgc->get_block()->get_id();
+      Navigate nav(id);
+      nav.up();
+      if (nav.find_name(id->back_ids())) {
+        multiple_def(id);
+      }
+      if (nav.find_child_ignore_subscripts(id->back_ids())) {
+        error("A nested scope with this name already exists in this scope", id);
+      }
+    }
 
     // CHECK: Const loop guard
     if (!Constant().is_genvar_constant(lgc->get_cond())) {
@@ -423,7 +436,6 @@ void TypeCheck::visit(const String* s) {
 }
 
 void TypeCheck::visit(const GenerateBlock* gb) {
-  // TODO CHECK: Duplicate definition
   // RECURSE: items
   gb->accept_items(this);
 }
@@ -519,8 +531,8 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
   if (Navigate(gd).find_duplicate_name(gd->get_id()->back_ids())) {
     multiple_def(gd->get_id());
   }
-  if (Navigate(gd).find_child(gd->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", gd);
+  if (Navigate(gd).find_child_ignore_subscripts(gd->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", gd);
   }
 }
 
@@ -532,8 +544,8 @@ void TypeCheck::visit(const IntegerDeclaration* id) {
   if (Navigate(id).find_duplicate_name(id->get_id()->back_ids())) {
     multiple_def(id->get_id());
   }
-  if (Navigate(id).find_child(id->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", id);
+  if (Navigate(id).find_child_ignore_subscripts(id->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", id);
   }
   // CHECK: Integer initialized to constant value
   if (id->is_non_null_val() && !Constant().is_static_constant(id->get_val())) {
@@ -551,8 +563,8 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   if (Navigate(ld).find_duplicate_name(ld->get_id()->back_ids())) {
     multiple_def(ld->get_id());
   }
-  if (Navigate(ld).find_child(ld->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", ld);
+  if (Navigate(ld).find_child_ignore_subscripts(ld->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", ld);
   }
   // CHECK: Width properties
   check_width(ld->get_dim());
@@ -581,8 +593,8 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   if (Navigate(nd).find_duplicate_name(nd->get_id()->back_ids())) {
     multiple_def(nd->get_id());
   }
-  if (Navigate(nd).find_child(nd->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", nd);
+  if (Navigate(nd).find_child_ignore_subscripts(nd->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", nd);
   }
   // CHECK: Width and array properties
   check_width(nd->get_dim());
@@ -601,8 +613,8 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   if (Navigate(pd).find_duplicate_name(pd->get_id()->back_ids())) {
     multiple_def(pd->get_id());
   }
-  if (Navigate(pd).find_child(pd->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", pd);
+  if (Navigate(pd).find_child_ignore_subscripts(pd->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", pd);
   }
   // CHECK: Width properties
   check_width(pd->get_dim());
@@ -634,8 +646,8 @@ void TypeCheck::visit(const RegDeclaration* rd) {
   if (Navigate(rd).find_duplicate_name(rd->get_id()->back_ids())) {
     multiple_def(rd->get_id());
   }
-  if (Navigate(rd).find_child(rd->get_id()->back_ids())) {
-    error("A nested scope scope with this name already exists in this scope", rd);
+  if (Navigate(rd).find_child_ignore_subscripts(rd->get_id()->back_ids())) {
+    error("A nested scope with this name already exists in this scope", rd);
   }
   // CHECK: Width and array properties
   check_width(rd->get_dim());

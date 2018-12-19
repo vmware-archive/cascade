@@ -120,6 +120,10 @@ class Navigate : public Visitor {
     // Returns a pointer to a nested scope with the same name as this id, or 
     // nullptr on failure.
     const Node* find_child(const Id* id);
+    // Identical to find_child(), but ignores subscripts. If the argument to
+    // this function matches one or more subscripted scopes, it returns an
+    // arbitrary scope.
+    const Node* find_child_ignore_subscripts(const Id* id);
 
     // Iterators:
     // 
