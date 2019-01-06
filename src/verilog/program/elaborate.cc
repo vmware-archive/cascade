@@ -242,9 +242,9 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b) {
   if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent())) {
     const auto only_item = block->size_items() == 1;
     const auto p = block->get_parent();
-    const auto nested_if = dynamic_cast<IfGenerateClause*>(p);
-    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(p);
-    const auto nested_case = dynamic_cast<CaseGenerateItem*>(p);
+    const auto nested_if = dynamic_cast<IfGenerateClause*>(p) != nullptr;
+    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(p) != nullptr;
+    const auto nested_case = dynamic_cast<CaseGenerateItem*>(p) != nullptr;
     if (!block->get_scope() && only_item && (nested_if || nested_else || nested_case)) {
       return;
     }
