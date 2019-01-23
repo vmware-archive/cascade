@@ -79,7 +79,7 @@ script:
 after_success:
 - "[ $COVERAGE = 1 ] && bash <(curl -s https://codecov.io/bash) && sonar-scanner -Dsonar.projectKey=cascade
   -Dsonar.organization=cascade -Dsonar.sources=. -Dsonar.cfamily.build-wrapper-output=bw-output
-  -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=ext/**,*.yy.cc || true"
+  -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=ext/**,*.yy.cc,*.tab.hh,*.tab.cc,src/verilog/parse/location.hh,src/verilog/parse/position.hh,,src/verilog/parse/stack.hh || true"
 env:
   global:
   - secure: HCmvfaRvj3TmSB+KJA3zbIaLEBXKpv3ED4vnayNg93FTBaLtLw0W8XXk8Sa7pOU+u00rE+2tkC52nKdMikscJlcYZm3KBR2Zqh4Br/hnMVIeXCFs9LTrA6UZDBVs1AeXYYV1KwetcG03o5YZDYNvS8tRZs8Fwl7pZzlfms8wdFyqnG59MNY0znG6RC18eO/dFCu78f4urjYW9UrmEQzU5YyGFYhHH9SylXV5o8cL1+XHoIUlqhyYswZ/PgdBQTUGLvts5IeV+gsO1GD9ibxO5iAlJ4M9OpnFuAxWojKqNcA+GxoC3XH+6Uga09UV/5qXn6gkEnKtMJMoGTI8sWkYlJ8yp5XJqCJOCIfQ11yagp2e9pYogxLNfiC7OZ63q3CHnwNU3PRSJemhX9HwBvp2ZFa1NkQTmwk5tdLYCel0d8uGNqJgyNp7JpLMxA1Fo3yuvVDoRjB2RgT8SSH2CbSmMhsbqdaDtuOsW6JcV/GxnvqCj8KRM2HJNIkCZMY1lX8E0z/QnWcCWt3gKCQ6FzSsjUWZIXsvSPcgbUm7NMY6UXbPY4IkOQZ5+0cCM21s5NAozk8ln86pdjxRwlrpxjAn50jGgy29ZSxxaGvXKtdJ6NrUkZgtNC5AtVQE/NItEwF5KKvm9vqG9ug4IOldSjXEHExH8Z28hU1KhEV2K+JAjE0=
