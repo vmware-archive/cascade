@@ -50,7 +50,7 @@ class indbuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
 
     // Constructors:
-    indbuf(std::streambuf* buf);
+    explicit indbuf(std::streambuf* buf);
     ~indbuf() override = default;
 
     void tab();
@@ -71,7 +71,7 @@ class indbuf : public std::streambuf {
 
 class indstream : public std::ostream {
   public:
-    indstream(std::ostream& os);
+    explicit indstream(std::ostream& os);
     ~indstream() override = default;
 
     void tab();

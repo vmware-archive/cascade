@@ -43,9 +43,9 @@ namespace cascade {
 
 class incstream : public std::ifstream {
   public:
-    incstream();
+    explicit incstream();
     incstream(const std::string& dirs);
-    virtual ~incstream() = default;
+    ~incstream() override = default;
 
     std::string find(const std::string& path) const;
     bool open(const std::string& path);
@@ -89,7 +89,7 @@ inline bool incstream::open(const std::string& path) {
 
 inline void incstream::read_dirs(const std::string& dirs) {
   const auto dd = dirs + ":";
-  for (size_t i = 0, j = 0; j != dd.length()-1; i = j+1) {
+  for (size_t i = 0, j = 0; j != (dd.length()-1); i = j+1) {
     j = dd.find_first_of(':', i);
     const auto dir = dd.substr(i, j-i);
     if (dir.length() > 0) {

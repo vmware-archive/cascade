@@ -99,7 +99,7 @@ inline void ThreadPool::run_logic() {
   for (size_t i = 0; i < num_threads_; ++i) {
     threads_.push_back(std::thread([this]{
       while (true) {
-        if (auto job = get()) {
+        if (auto* job = get()) {
           (*job)();
           delete job;
           continue;
@@ -125,7 +125,7 @@ inline ThreadPool::Job* ThreadPool::get() {
     cv_.wait(ul);
   }
   if (!jobs_.empty()) {
-    auto res = jobs_.top();
+    auto* res = jobs_.top();
     jobs_.pop();
     return res;
   }

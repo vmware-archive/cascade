@@ -50,9 +50,6 @@ class DataPlane {
     typedef std::vector<Engine*>::const_iterator reader_iterator;
     typedef std::vector<Engine*>::const_iterator writer_iterator;
 
-    // Constructors
-    DataPlane();
-
     // Id Interface:
     void register_id(VId id);
 

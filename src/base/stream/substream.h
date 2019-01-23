@@ -51,7 +51,7 @@ class subbuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
 
     // Constructors:
-    subbuf(std::streambuf* buf);
+    explicit subbuf(std::streambuf* buf);
     ~subbuf() override = default;
 
     void recurse(bool r = true);
@@ -71,7 +71,7 @@ class subbuf : public std::streambuf {
 
 class substream : public std::ostream {
   public:
-    substream(std::ostream& os);
+    explicit substream(std::ostream& os);
     ~substream() override = default;
 
     void recurse(bool r = true); 

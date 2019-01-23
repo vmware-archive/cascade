@@ -39,8 +39,6 @@ using namespace std;
 
 namespace cascade {
 
-DataPlane::DataPlane() { }
-
 void DataPlane::register_id(const VId id) {
   if (id >= readers_.size()) {
     readers_.resize(id+1);
@@ -124,7 +122,7 @@ void DataPlane::write(VId id, const Bits* bits) {
     return;
   } 
   write_buf_[id] = *bits;
-  for (auto e : readers_[id]) {
+  for (auto* e : readers_[id]) {
     e->read(id, &write_buf_[id]);
   } 
 }
@@ -137,7 +135,7 @@ void DataPlane::write(VId id, bool b) {
     return;
   } 
   write_buf_[id].flip(0);
-  for (auto e : readers_[id]) {
+  for (auto* e : readers_[id]) {
     e->read(id, &write_buf_[id]);
   } 
 }

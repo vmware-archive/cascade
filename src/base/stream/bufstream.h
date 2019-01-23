@@ -51,7 +51,7 @@ class bufbuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
 
     // Constructors:
-    bufbuf(size_t c);
+    explicit bufbuf(size_t c);
     ~bufbuf() override;
 
     // Data Inspection:
@@ -83,7 +83,7 @@ class bufbuf : public std::streambuf {
 class bufstream : public std::iostream {
   public:
     // Constructors:
-    bufstream(size_t c = 1);
+    explicit bufstream(size_t c = 1);
     ~bufstream() override = default;
 
     // Data Inspection:
@@ -101,7 +101,7 @@ class bufstream : public std::iostream {
 };
 
 inline bufbuf::bufbuf(size_t c) {
-  auto ptr_ = new char[c];
+  auto* ptr_ = new char[c];
   setp(ptr_, ptr_+c);
   setg(ptr_, ptr_, ptr_);
 }
@@ -131,7 +131,7 @@ inline void bufbuf::reserve(size_t n) {
     return;
   }
 
-  auto nptr = new char[n];
+  auto* nptr = new char[n];
   std::copy(pbase(), pptr(), nptr);
   delete[] pbase();
 
@@ -153,36 +153,36 @@ inline size_t bufbuf::capacity() const {
 
 inline std::streambuf::pos_type bufbuf::seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which) {
   if (which == std::ios_base::out) {
-    pbump(pbase() + pos - pptr());
+    pbump((pbase() + pos) - pptr());
     return pptr()-pbase();
   } 
   if (which == std::ios_base::in) {
-    gbump(eback() + pos - gptr());
+    gbump((eback() + pos) - gptr());
     return gptr()-eback();
   } 
-  return std::streambuf::pos_type(std::streambuf::off_type(-1));
+  return static_cast<std::streambuf::pos_type>(std::streambuf::off_type(-1));
 }
 
 inline std::streampos bufbuf::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) {
   if (which == std::ios_base::out) {
-    const auto target = off + (
-      way == std::ios_base::beg ? pbase() : 
-      way == std::ios_base::cur ? pptr() : 
+    const auto* target = off + (
+      (way == std::ios_base::beg) ? pbase() : 
+      (way == std::ios_base::cur) ? pptr() : 
       epptr()
     );
     pbump(target - pptr());
     return pptr()-pbase();
   } 
   if (which == std::ios_base::in) {
-    const auto target = off + (
-      way == std::ios_base::beg ? eback() : 
-      way == std::ios_base::cur ? gptr() : 
+    const auto* target = off + (
+      (way == std::ios_base::beg) ? eback() : 
+      (way == std::ios_base::cur) ? gptr() : 
       egptr()
     );
     gbump(target - gptr());
     return gptr()-eback();
   } 
-  return std::streambuf::pos_type(std::streambuf::off_type(-1));
+  return static_cast<std::streambuf::pos_type>(std::streambuf::off_type(-1));
 }
 
 inline std::streamsize bufbuf::showmanyc() {
@@ -206,7 +206,7 @@ inline std::streamsize bufbuf::xsgetn(char_type* s, std::streamsize count) {
 
 inline std::streamsize bufbuf::xsputn(const char_type* s, std::streamsize count) {
   if ((pptr()+count) >= epptr()) {
-    reserve(2*(pptr()+count-pbase()));
+    reserve(2*((pptr()+count)-pbase()));
   }
   std::copy(s, s+count, pptr());
   setg(eback(), gptr(), egptr()+count);
