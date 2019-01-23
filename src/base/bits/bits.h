@@ -702,7 +702,7 @@ inline void BitsBase<T, BT, ST>::reduce_or(BitsBase& res) const {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_nor(BitsBase& res) const {
   reduce_or(res);
-  res.val_[0] = res.val_[0] ? static_cast<T>(0) : static_cast<T>(1);
+  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
@@ -942,7 +942,7 @@ inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::flip(size_t idx) {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-  const bool b = (val_[widx] >> bidx) & T(1);
+  const bool b = (val_[widx] >> bidx) & static_cast<T>(1);
 
   if (!b) {
     val_[widx] |= (static_cast<T>(1) << bidx);
@@ -1256,7 +1256,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sll_const(size_t samt, BitsBase& res) c
   res.val_[w--] = (bamt == 0) ? static_cast<T>(0) : (val_[0] << bamt);
   // Everything else is zero
   for (; w >= 0; --w) {
-    res.val_[w] = T(0);
+    res.val_[w] = static_cast<T>(0);
   }
   // Trim the top and we're done
   res.trim();
@@ -1300,7 +1300,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
     if (bamt == 0) {
       res.val_[w] = val_[t];
     } else {
-      const auto upper_most = (t == val_.size() - 1) ? upper_most_word : val_[t];
+      const auto upper_most = (t == (val_.size() - 1)) ? upper_most_word : val_[t];
       res.val_[w] = (val_[t-1] >> bamt) | ((upper_most & mask) << mamt);
     }
   }

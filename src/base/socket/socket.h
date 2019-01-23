@@ -53,7 +53,7 @@ class Socket {
     // Creates a socket in an unconnected state
     Socket();
     // Creates a socket from an already open file descriptor
-    Socket(int fd);
+    explicit Socket(int fd);
     // Generic Teardown
     ~Socket();
 
@@ -108,7 +108,7 @@ inline void Socket::connect(const std::string& path) {
   strncpy(dest.sun_path, path.c_str(), sizeof(dest.sun_path)-1);
 
   fd_ = socket(AF_UNIX, SOCK_STREAM, 0);
-  error_ = (fd_ == -1) || (::connect(fd_, (struct sockaddr*)&dest, sizeof(dest)) != 0);
+  error_ = (fd_ == -1) || (::connect(fd_, reinterpret_cast<struct sockaddr*>(&dest), sizeof(dest)) != 0);
 }
 
 inline void Socket::connect(const std::string& host, uint32_t port) {
@@ -116,10 +116,10 @@ inline void Socket::connect(const std::string& host, uint32_t port) {
   bzero(&dest, sizeof(dest));
   dest.sin_family = AF_INET;
   dest.sin_port = htons(port);
-  inet_aton(host.c_str(), (in_addr*) &dest.sin_addr.s_addr);
+  inet_aton(host.c_str(), reinterpret_cast<in_addr*>(&dest.sin_addr.s_addr));
 
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
-  error_ = (fd_ == -1) || (::connect(fd_, (struct sockaddr*)&dest, sizeof(dest)) != 0);
+  error_ = (fd_ == -1) || (::connect(fd_, reinterpret_cast<struct sockaddr*>(&dest), sizeof(dest)) != 0);
 }
 
 inline void Socket::listen(uint32_t port, size_t backlog) {
@@ -130,7 +130,7 @@ inline void Socket::listen(uint32_t port, size_t backlog) {
   addr.sin_addr.s_addr = INADDR_ANY;
 
   fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-  error_ = (fd_ == -1) || (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) || (::listen(fd_, backlog) != 0);
+  error_ = (fd_ == -1) || (::bind(fd_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) || (::listen(fd_, backlog) != 0);
 }
 
 inline void Socket::listen(const std::string& path, size_t backlog) {
@@ -141,7 +141,7 @@ inline void Socket::listen(const std::string& path, size_t backlog) {
   unlink(path.c_str());
 
   fd_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
-  error_ = (fd_ == -1) || (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) || (::listen(fd_, backlog) != 0);
+  error_ = (fd_ == -1) || (::bind(fd_, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) || (::listen(fd_, backlog) != 0);
 }
 
 inline bool Socket::error() const {
@@ -154,7 +154,7 @@ inline int Socket::descriptor() const {
 
 inline void Socket::send(const char* c, size_t len) {
   int total = 0;
-  while (total < (int)len) {
+  while (total < static_cast<int>(len)) {
     const auto res = ::send(fd_, c+total, len-total, 0);
     if (res == -1) {
       return;
@@ -165,7 +165,7 @@ inline void Socket::send(const char* c, size_t len) {
 
 inline void Socket::recv(char* c, size_t len) {
   int total = 0;
-  while (total < (int)len) {
+  while (total < static_cast<int>(len)) {
     const auto res = ::recv(fd_, c+total, len-total, 0);
     if (res == -1) {
       return;
@@ -176,12 +176,12 @@ inline void Socket::recv(char* c, size_t len) {
 
 template <typename T>
 inline void Socket::send(T t) {
-  send((char*)&t, sizeof(t));
+  send(reinterpret_cast<char*>(&t), sizeof(t));
 }
 
 template <typename T>
 inline void Socket::recv(T& t) {
-  recv((char*)&t, sizeof(t));
+  recv(reinterpret_cast<char*>(&t), sizeof(t));
 }
 
 } // namespace cascade
