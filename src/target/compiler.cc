@@ -145,8 +145,8 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     return new Engine();
   }
 
-  const auto loc = md->get_attrs()->get<String>("__loc");
-  const auto target = md->get_attrs()->get<String>("__target");
+  const auto* loc = md->get_attrs()->get<String>("__loc");
+  const auto* target = md->get_attrs()->get<String>("__target");
 
   InterfaceCompiler* ic = nullptr;
   if (loc != nullptr && loc->eq("remote")) {
@@ -173,7 +173,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto i = ic->compile(md);
+  auto* i = ic->compile(md);
   if (i == nullptr) {
     // No need to attach an error message here, ic will already have done so if necessary.
     delete md;
@@ -185,7 +185,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto c = cc->compile(i, md);
+  auto* c = cc->compile(i, md);
   if (c == nullptr) {
     // No need to attach an error message here, cc will already have done so if necessary.
     delete i;
@@ -197,9 +197,9 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
   // Lookup annotations 
-  const auto std = md->get_attrs()->get<String>("__std");
-  const auto t2 = md->get_attrs()->get<String>("__target2");
-  const auto l2 = md->get_attrs()->get<String>("__loc2");
+  const auto* std = md->get_attrs()->get<String>("__std");
+  const auto* t2 = md->get_attrs()->get<String>("__target2");
+  const auto* l2 = md->get_attrs()->get<String>("__loc2");
 
   // Check: Is this a stub, an std module, was jit compilation requested?  
   const auto jit = std->eq("logic") && !StubCheck().check(md) && (t2 != nullptr || l2 != nullptr);
@@ -220,7 +220,7 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // Fast Path. Compile and replace the original engine.  If an error occurred,
   // then simply preserve the original message. If compilation was aborted
   // without explanation, that's an error that requires explanation.
-  auto e_fast = compile(md);
+  auto* e_fast = compile(md);
   if (error()) {
     return;
   } else if (e_fast == nullptr) {
@@ -235,7 +235,7 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   if (jit) {
     pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
       Masker().mask(md2);
-      auto e_slow = compile(md2);
+      auto* e_slow = compile(md2);
       rt->schedule_interrupt([this, e, e_slow]{
         // Nothing to do if compilation failed or was aborted
         if (error() || (e_slow == nullptr)) {

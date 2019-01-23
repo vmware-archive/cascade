@@ -82,7 +82,7 @@ size_t De10Logic::VarInfo::bit_size() const {
   // Most of the time we'll be applying this function to variable declarations.
   // But sometimes we'll want to apply it to task arguments, which may have 
   // a different context-determined width
-  const auto r = Resolve().get_resolution(id_);
+  const auto* r = Resolve().get_resolution(id_);
   assert(r != nullptr);
   return max(Evaluate().get_width(r), Evaluate().get_width(id_));
 }
@@ -148,10 +148,10 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
 }
 
 State* De10Logic::get_state() {
-  auto s = new State();
+  auto* s = new State();
 
   ModuleInfo info(src_);
-  for (auto v : info.stateful()) {
+  for (auto* v : info.stateful()) {
     const auto vid = var_map_.find(v);
     assert(vid != var_map_.end());
     const auto vinfo = var_table_.find(v);
@@ -166,7 +166,7 @@ State* De10Logic::get_state() {
 
 void De10Logic::set_state(const State* s) {
   ModuleInfo info(src_);
-  for (auto v : info.stateful()) {
+  for (auto* v : info.stateful()) {
     const auto vid = var_map_.find(v);
     assert(vid != var_map_.end());
     const auto vinfo = var_table_.find(v);
@@ -180,10 +180,10 @@ void De10Logic::set_state(const State* s) {
 }
 
 Input* De10Logic::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
 
   ModuleInfo info(src_);
-  for (auto in : info.inputs()) {
+  for (auto* in : info.inputs()) {
     const auto vid = var_map_.find(in);
     assert(vid != var_map_.end());
     const auto vinfo = var_table_.find(in);
@@ -198,7 +198,7 @@ Input* De10Logic::get_input() {
 
 void De10Logic::set_input(const Input* i) {
   ModuleInfo info(src_);
-  for (auto in : info.inputs()) {
+  for (auto* in : info.inputs()) {
     const auto vid = var_map_.find(in);
     assert(vid != var_map_.end());
     const auto vinfo = var_table_.find(in);
@@ -419,13 +419,13 @@ void De10Logic::handle_tasks() {
     if ((task_queue & 0x1) == 0) {
       continue;
     }
-    if (const auto ds = dynamic_cast<const DisplayStatement*>(tasks_[i])) {
+    if (const auto* ds = dynamic_cast<const DisplayStatement*>(tasks_[i])) {
       Sync sync(this);
       ds->accept_args(&sync);
       interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
-    } else if (const auto fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
+    } else if (const auto* fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
-    } else if (const auto ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
+    } else if (const auto* ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
       Sync sync(this);
       ws->accept_args(&sync);
       interface()->write(Printf().format(ws->begin_args(), ws->end_args()));

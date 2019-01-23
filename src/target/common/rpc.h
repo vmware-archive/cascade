@@ -36,8 +36,8 @@
 
 namespace cascade {
 
-struct Rpc : public Serializable {
-  enum Type : uint8_t {
+struct Rpc : Serializable {
+  enum class Type : uint8_t {
     // Generic Return Codes:
     OKAY = 0,
     ERROR,
@@ -87,14 +87,14 @@ inline Rpc::Rpc(Type type, Id id) : Serializable() {
 }
 
 inline size_t Rpc::deserialize(std::istream& is) {
-  is.read((char*)&type_, sizeof(type_));
-  is.read((char*)&id_, sizeof(id_));
+  is.read(reinterpret_cast<char*>(&type_), sizeof(type_));
+  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
   return sizeof(type_) + sizeof(id_);
 }
 
 inline size_t Rpc::serialize(std::ostream& os) const {
-  os.write((char*)&type_, sizeof(type_));
-  os.write((char*)&id_, sizeof(id_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&type_)), sizeof(type_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&id_)), sizeof(id_));
   return sizeof(type_) + sizeof(id_);
 }
 

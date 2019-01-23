@@ -44,7 +44,7 @@ class State;
 
 class Core {
   public:
-    Core(Interface* interface);
+    explicit Core(Interface* interface);
     virtual ~Core() = default;
 
     // This method must return the values of all stateful elements contained in

@@ -158,15 +158,15 @@ class De10Logic : public Logic, public Visitor {
     void handle_tasks();
 
     // Inserts the identifiers in an AST subtree into the variable table.
-    struct Inserter : public Visitor {
-      Inserter(De10Logic* de);
+    struct Inserter : Visitor {
+      explicit Inserter(De10Logic* de);
       ~Inserter() override = default;
       void visit(const Identifier* id) override;
       De10Logic* de_;
     };
     // Synchronizes the values for the identifiers in an AST subtree.
-    struct Sync : public Visitor {
-      Sync(De10Logic* de);
+    struct Sync : Visitor {
+      explicit Sync(De10Logic* de);
       ~Sync() override = default;
       void visit(const Identifier* id) override;
       De10Logic* de_;

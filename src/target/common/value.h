@@ -37,7 +37,7 @@
 
 namespace cascade {
 
-struct Value : public Serializable {
+struct Value : Serializable {
   Value(VId id, Bits* val);
   ~Value() override = default;
 
@@ -54,13 +54,13 @@ inline Value::Value(VId id, Bits* val) : Serializable() {
 } 
 
 inline size_t Value::deserialize(std::istream& is) {
-  is.read((char*)&id_, sizeof(id_));
+  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
   const auto len = val_->deserialize(is);
   return sizeof(id_) + len;
 }
 
 inline size_t Value::serialize(std::ostream& os) const {
-  os.write((char*)&id_, sizeof(id_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&id_)), sizeof(id_));
   const auto len = val_->serialize(os);
   return sizeof(id_) + len;
 }

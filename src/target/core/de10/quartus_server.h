@@ -53,8 +53,8 @@ class QuartusServer : public Asynchronous {
   private:
     class Worker : public Asynchronous {
       public:
-        Worker(QuartusServer* qs);
-        ~Worker() = default;
+        explicit Worker(QuartusServer* qs);
+        ~Worker() override = default;
         void run_logic() override;
       private:
         QuartusServer* qs_;

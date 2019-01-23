@@ -42,21 +42,21 @@ using namespace std;
 
 namespace cascade {
 
-constexpr auto HW_REGS_BASE = 0xfc000000;
-constexpr auto HW_REGS_SPAN = 0x04000000;
+constexpr auto HW_REGS_BASE = 0xfc000000u;
+constexpr auto HW_REGS_SPAN = 0x04000000u;
 constexpr auto HW_REGS_MASK = HW_REGS_SPAN - 1;
-constexpr auto ALT_LWFPGALVS_OFST = 0xff200000;
-constexpr auto LED_PIO_BASE = 0x00003000;
-constexpr auto PAD_PIO_BASE = 0x00004000;
-constexpr auto GPIO_PIO_BASE = 0x00005000;
-constexpr auto LOG_PIO_BASE = 0x00040000;
+constexpr auto ALT_LWFPGALVS_OFST = 0xff200000u;
+constexpr auto LED_PIO_BASE = 0x00003000u;
+constexpr auto PAD_PIO_BASE = 0x00004000u;
+constexpr auto GPIO_PIO_BASE = 0x00005000u;
+constexpr auto LOG_PIO_BASE = 0x00040000u;
 
 De10Compiler::De10Compiler() : CoreCompiler() { 
   fd_ = open("/dev/mem", (O_RDWR | O_SYNC));
   if (fd_ == -1) {
-    virtual_base_ = (volatile uint8_t*)MAP_FAILED;
+    virtual_base_ = reinterpret_cast<volatile uint8_t*>(MAP_FAILED);
   } else {
-    virtual_base_ = (volatile uint8_t*)mmap(NULL, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE);
+    virtual_base_ = reinterpret_cast<volatile uint8_t*>(mmap(nullptr, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE));
   }
 
   set_host("localhost"); 
@@ -72,7 +72,7 @@ De10Compiler::~De10Compiler() {
     close(fd_);
   }
   if (virtual_base_ != MAP_FAILED) {
-    munmap((void*)virtual_base_, HW_REGS_SPAN);
+    munmap(reinterpret_cast<void*>(const_cast<uint8_t*>(virtual_base_)), HW_REGS_SPAN);
   }
 }
 
@@ -115,9 +115,9 @@ De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md
     return nullptr;
   }
 
-  auto led_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + GPIO_PIO_BASE) & HW_REGS_MASK));
+  volatile uint8_t* led_addr = virtual_base_+((ALT_LWFPGALVS_OFST + GPIO_PIO_BASE) & HW_REGS_MASK);
   if (!ModuleInfo(md).inputs().empty()) {
-    const auto in = *ModuleInfo(md).inputs().begin();
+    const auto* in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
     delete md;
     return new De10Gpio(interface, id, led_addr);
@@ -139,9 +139,9 @@ De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  auto led_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LED_PIO_BASE) & HW_REGS_MASK));
+  volatile uint8_t* led_addr = virtual_base_+((ALT_LWFPGALVS_OFST + LED_PIO_BASE) & HW_REGS_MASK);
   if (!ModuleInfo(md).inputs().empty()) {
-    const auto in = *ModuleInfo(md).inputs().begin();
+    const auto* in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
     delete md;
     return new De10Led(interface, id, led_addr);
@@ -163,8 +163,8 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  auto pad_addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK));
-  const auto out = *ModuleInfo(md).outputs().begin();
+  volatile uint8_t* pad_addr = virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK);
+  const auto* out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
   const auto w = Evaluate().get_width(out);
   delete md;
@@ -183,18 +183,18 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   }
 
   // Create a new core with address identity based on module id
-  const auto addr = (volatile uint8_t*)(virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + to_mid(md->get_id()));
+  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + to_mid(md->get_id());
   const auto mid = to_mid(md->get_id());
-  auto de = new De10Logic(interface, md, addr);
+  auto* de = new De10Logic(interface, md, addr);
 
   // Register inputs, state, and outputs
-  for (auto i : info.inputs()) {
+  for (auto* i : info.inputs()) {
     de->set_input(i, to_vid(i));
   }
-  for (auto s : info.stateful()) {
+  for (auto* s : info.stateful()) {
     de->set_state(s, to_vid(s));
   }
-  for (auto o : info.outputs()) {
+  for (auto* o : info.outputs()) {
     de->set_output(o, to_vid(o));
   }
 

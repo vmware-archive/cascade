@@ -71,7 +71,7 @@ class ModuleBoxer : public Builder {
     // Sys Task Mangling Helper:
     class Mangler : public Visitor {
       public:
-        Mangler(const De10Logic* de);
+        explicit Mangler(const De10Logic* de);
         ~Mangler() override = default;
 
         template<typename InputItr>

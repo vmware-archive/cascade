@@ -65,37 +65,37 @@ inline RemoteInterface::RemoteInterface(bufstream* buf) : Interface() {
 
 inline void RemoteInterface::display(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::DISPLAY, s).serialize(*buf_);
+  SysTask(SysTask::Type::DISPLAY, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::write(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::WRITE, s).serialize(*buf_);
+  SysTask(SysTask::Type::WRITE, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::finish(int arg) {
   write_flag(false);
-  SysTask(SysTask::FINISH, "", arg).serialize(*buf_);
+  SysTask(SysTask::Type::FINISH, "", arg).serialize(*buf_);
 }
 
 inline void RemoteInterface::error(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::ERROR, s).serialize(*buf_);
+  SysTask(SysTask::Type::ERROR, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::warning(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::WARNING, s).serialize(*buf_);
+  SysTask(SysTask::Type::WARNING, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::info(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::INFO, s).serialize(*buf_);
+  SysTask(SysTask::Type::INFO, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::fatal(int arg, const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::FATAL, s, arg).serialize(*buf_);
+  SysTask(SysTask::Type::FATAL, s, arg).serialize(*buf_);
 }
 
 inline void RemoteInterface::write(VId id, const Bits* b) {

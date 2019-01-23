@@ -90,7 +90,7 @@ inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, Connection* con
 
 template <typename T>
 inline State* ProxyCore<T>::get_state() {
-  conn_->send_rpc(Rpc(Rpc::GET_STATE, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::GET_STATE, id_));
   conn_->recv_str(in_buf_);
 
   auto s = new State();
@@ -102,7 +102,7 @@ inline State* ProxyCore<T>::get_state() {
 
 template <typename T>
 inline void ProxyCore<T>::set_state(const State* s) {
-  conn_->send_rpc(Rpc(Rpc::SET_STATE, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::SET_STATE, id_));
   s->serialize(out_buf_);
   conn_->send_str(out_buf_);
   conn_->recv_ack();
@@ -111,7 +111,7 @@ inline void ProxyCore<T>::set_state(const State* s) {
 
 template <typename T>
 inline Input* ProxyCore<T>::get_input() {
-  conn_->send_rpc(Rpc(Rpc::GET_INPUT, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::GET_INPUT, id_));
   conn_->recv_str(in_buf_);
 
   auto i = new Input();
@@ -123,7 +123,7 @@ inline Input* ProxyCore<T>::get_input() {
 
 template <typename T>
 inline void ProxyCore<T>::set_input(const Input* i) {
-  conn_->send_rpc(Rpc(Rpc::SET_INPUT, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::SET_INPUT, id_));
   i->serialize(out_buf_);
   conn_->send_str(out_buf_);
   conn_->recv_ack();
@@ -132,13 +132,13 @@ inline void ProxyCore<T>::set_input(const Input* i) {
 
 template <typename T>
 inline void ProxyCore<T>::resync() {
-  conn_->send_rpc(Rpc(Rpc::RESYNC, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::RESYNC, id_));
   conn_->recv_ack();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_step() const {
-  conn_->send_rpc(Rpc(Rpc::OVERRIDES_DONE_STEP, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::OVERRIDES_DONE_STEP, id_));
   auto res = false;
   conn_->recv_bool(res);
   return res;
@@ -146,13 +146,13 @@ inline bool ProxyCore<T>::overrides_done_step() const {
 
 template <typename T>
 inline void ProxyCore<T>::done_step() {
-  conn_->send_rpc(Rpc(Rpc::DONE_STEP, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::DONE_STEP, id_));
   conn_->recv_ack();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_simulation() const {
-  conn_->send_rpc(Rpc(Rpc::OVERRIDES_DONE_SIMULATION, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::OVERRIDES_DONE_SIMULATION, id_));
   auto res = false;
   conn_->recv_bool(res);
   return res;
@@ -160,7 +160,7 @@ inline bool ProxyCore<T>::overrides_done_simulation() const {
 
 template <typename T>
 inline void ProxyCore<T>::done_simulation() {
-  conn_->send_rpc(Rpc(Rpc::DONE_SIMULATION, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::DONE_SIMULATION, id_));
   conn_->recv_ack();
 }
 
@@ -171,7 +171,7 @@ inline void ProxyCore<T>::read(VId id, const Bits* b) {
 
 template <typename T>
 inline void ProxyCore<T>::evaluate() {
-  conn_->send_rpc(Rpc(Rpc::EVALUATE, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::EVALUATE, id_));
   conn_->send_str(out_buf_);
   out_buf_.resize(0);
   recv_response();
@@ -179,7 +179,7 @@ inline void ProxyCore<T>::evaluate() {
 
 template <typename T>
 inline bool ProxyCore<T>::there_are_updates() const {
-  conn_->send_rpc(Rpc(Rpc::THERE_ARE_UPDATES, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::THERE_ARE_UPDATES, id_));
   auto res = false;
   conn_->recv_bool(res);
   return res;
@@ -187,7 +187,7 @@ inline bool ProxyCore<T>::there_are_updates() const {
 
 template <typename T>
 inline void ProxyCore<T>::update() {
-  conn_->send_rpc(Rpc(Rpc::UPDATE, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::UPDATE, id_));
   conn_->send_str(out_buf_);
   out_buf_.resize(0);
   recv_response();
@@ -195,7 +195,7 @@ inline void ProxyCore<T>::update() {
 
 template <typename T>
 inline bool ProxyCore<T>::there_were_tasks() const {
-  conn_->send_rpc(Rpc(Rpc::THERE_WERE_TASKS, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::THERE_WERE_TASKS, id_));
   auto res = false;
   conn_->recv_bool(res);
   return res;
@@ -203,7 +203,7 @@ inline bool ProxyCore<T>::there_were_tasks() const {
 
 template <typename T>
 inline bool ProxyCore<T>::conditional_update() {
-  conn_->send_rpc(Rpc(Rpc::CONDITIONAL_UPDATE, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::CONDITIONAL_UPDATE, id_));
   conn_->send_str(out_buf_);
   out_buf_.resize(0);
 
@@ -215,7 +215,7 @@ inline bool ProxyCore<T>::conditional_update() {
 
 template <typename T>
 inline size_t ProxyCore<T>::open_loop(VId clk, bool val, size_t itr) {
-  conn_->send_rpc(Rpc(Rpc::OPEN_LOOP, id_));
+  conn_->send_rpc(Rpc(Rpc::Type::OPEN_LOOP, id_));
   conn_->send_double((uint32_t)clk);
   conn_->send_bool(val);
   conn_->send_double((uint32_t)itr);
@@ -246,19 +246,19 @@ inline void ProxyCore<T>::recv_response() {
 template <typename T>
 inline void ProxyCore<T>::recv_task(const SysTask& t) {
   switch (t.type_) {
-    case SysTask::DISPLAY:
+    case SysTask::Type::DISPLAY:
       return T::interface()->display(t.text_);
-    case SysTask::WRITE:
+    case SysTask::Type::WRITE:
       return T::interface()->write(t.text_);
-    case SysTask::FINISH:
+    case SysTask::Type::FINISH:
       return T::interface()->finish(t.arg_);
-    case SysTask::ERROR:
+    case SysTask::Type::ERROR:
       return T::interface()->error(t.text_);
-    case SysTask::WARNING:
+    case SysTask::Type::WARNING:
       return T::interface()->warning(t.text_);
-    case SysTask::INFO:
+    case SysTask::Type::INFO:
       return T::interface()->info(t.text_);
-    case SysTask::FATAL:
+    case SysTask::Type::FATAL:
       return T::interface()->fatal(t.arg_, t.text_);
     default:
       return T::interface()->fatal(0, "Unrecognized sys task rpc!");

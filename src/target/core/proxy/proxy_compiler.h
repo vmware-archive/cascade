@@ -85,7 +85,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
     delete md;
     return nullptr;
   }
-  conn->send_rpc(Rpc(Rpc::COMPILE, 0));
+  conn->send_rpc(Rpc(Rpc::Type::COMPILE, 0));
 
   // Change __loc attribute to "remote"
   md->get_attrs()->set_or_replace("__loc", new String("remote"));
@@ -98,7 +98,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
   Rpc res;
   conn->recv_rpc(res);
 
-  if (res.type_ == Rpc::ERROR) {
+  if (res.type_ == Rpc::Type::ERROR) {
     // TODO: Forward error messages from remote runtime to here
     error("An unhandled error occured during compilation in the remote runtime");
     return nullptr;

@@ -78,7 +78,7 @@ inline void De10Gpio::set_state(const State* s) {
 }
 
 inline Input* De10Gpio::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
   i->insert(in_, Bits(32, DE10_READ(gpio_addr_)));
   return i;
 } 

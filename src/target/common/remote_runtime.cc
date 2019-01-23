@@ -75,7 +75,7 @@ RemoteRuntime& RemoteRuntime::set_port(uint32_t p) {
 }
 
 void RemoteRuntime::run_logic() {
-  auto rc = new RemoteCompiler();
+  auto* rc = new RemoteCompiler();
   rc->set_buffer(&out_buf_);
   compiler_->set_remote_compiler(rc);
 
@@ -122,66 +122,66 @@ void RemoteRuntime::run_logic() {
         continue;
       }
       // Client
-      auto conn = conns[i];
+      auto* conn = conns[i];
       Rpc rpc;
       conn->recv_rpc(rpc);
       switch (rpc.type_) {
-        case Rpc::COMPILE: {
-          if (auto e = compile(conn)) {
+        case Rpc::Type::COMPILE: {
+          if (auto* e = compile(conn)) {
             engines.push_back(e);
-            conn->send_rpc(Rpc(Rpc::OKAY, engines.size()-1));
+            conn->send_rpc(Rpc(Rpc::Type::OKAY, engines.size()-1));
           } else {
-            conn->send_rpc(Rpc(Rpc::ERROR, 0));
+            conn->send_rpc(Rpc(Rpc::Type::ERROR, 0));
           }
           break;
         }
-        case Rpc::GET_STATE:
+        case Rpc::Type::GET_STATE:
           get_state(conn, engines[rpc.id_]);
           break;
-        case Rpc::SET_STATE:
+        case Rpc::Type::SET_STATE:
           set_state(conn, engines[rpc.id_]);
           break;
-        case Rpc::GET_INPUT:
+        case Rpc::Type::GET_INPUT:
           get_input(conn, engines[rpc.id_]);
           break;
-        case Rpc::SET_INPUT:
+        case Rpc::Type::SET_INPUT:
           set_input(conn, engines[rpc.id_]);
           break;
-        case Rpc::RESYNC:
+        case Rpc::Type::RESYNC:
           resync(conn, engines[rpc.id_]);
           break;
-        case Rpc::OVERRIDES_DONE_STEP:
+        case Rpc::Type::OVERRIDES_DONE_STEP:
           overrides_done_step(conn, engines[rpc.id_]);
           break;
-        case Rpc::DONE_STEP:
+        case Rpc::Type::DONE_STEP:
           done_step(conn, engines[rpc.id_]);
           break;
-        case Rpc::OVERRIDES_DONE_SIMULATION:
+        case Rpc::Type::OVERRIDES_DONE_SIMULATION:
           overrides_done_simulation(conn, engines[rpc.id_]);
           break;
-        case Rpc::DONE_SIMULATION:
+        case Rpc::Type::DONE_SIMULATION:
           done_simulation(conn, engines[rpc.id_]);
           break;
-        case Rpc::EVALUATE:
+        case Rpc::Type::EVALUATE:
           evaluate(conn, engines[rpc.id_]);
           break;
-        case Rpc::THERE_ARE_UPDATES:
+        case Rpc::Type::THERE_ARE_UPDATES:
           there_are_updates(conn, engines[rpc.id_]);
           break;
-        case Rpc::UPDATE:
+        case Rpc::Type::UPDATE:
           update(conn, engines[rpc.id_]);
           break;
-        case Rpc::THERE_WERE_TASKS:
+        case Rpc::Type::THERE_WERE_TASKS:
           there_were_tasks(conn, engines[rpc.id_]);
           break;
-        case Rpc::CONDITIONAL_UPDATE:
+        case Rpc::Type::CONDITIONAL_UPDATE:
           conditional_update(conn, engines[rpc.id_]);
           break;
-        case Rpc::OPEN_LOOP:
+        case Rpc::Type::OPEN_LOOP:
           open_loop(conn, engines[rpc.id_]);
           break;
 
-        case Rpc::CONNECTION_CLOSED:
+        case Rpc::Type::CONNECTION_CLOSED:
         default:
           delete conn;
           conns[i] = nullptr;
@@ -190,12 +190,12 @@ void RemoteRuntime::run_logic() {
     }
   }
 
-  for (auto c : conns) {
+  for (auto* c : conns) {
     if (c != nullptr) {
       delete c;
     }
   }
-  for (auto e : engines) {
+  for (auto* e : engines) {
     delete e;
   }
 }
@@ -207,7 +207,7 @@ Engine* RemoteRuntime::compile(Connection* conn) {
   Log log;
   p.parse(in_buf_, &log);
   assert(p.success());
-  auto md = dynamic_cast<ModuleDeclaration*>(*p.begin());
+  auto* md = dynamic_cast<ModuleDeclaration*>(*p.begin());
   assert(md != nullptr);
 
   in_buf_.clear();
@@ -218,7 +218,7 @@ Engine* RemoteRuntime::compile(Connection* conn) {
 }
 
 void RemoteRuntime::get_state(Connection* conn, Engine* e) {
-  auto s = e->get_state();
+  auto* s = e->get_state();
   s->serialize(out_buf_);
   delete s;
 
@@ -228,7 +228,7 @@ void RemoteRuntime::get_state(Connection* conn, Engine* e) {
 
 void RemoteRuntime::set_state(Connection* conn, Engine* e) {
   conn->recv_str(in_buf_);
-  auto s = new State();
+  auto* s = new State();
   s->deserialize(in_buf_);
   e->set_state(s);
   delete s;
@@ -238,7 +238,7 @@ void RemoteRuntime::set_state(Connection* conn, Engine* e) {
 }
 
 void RemoteRuntime::get_input(Connection* conn, Engine* e) {
-  auto i = e->get_input();
+  auto* i = e->get_input();
   i->serialize(out_buf_);
   delete i;
 
@@ -248,7 +248,7 @@ void RemoteRuntime::get_input(Connection* conn, Engine* e) {
 
 void RemoteRuntime::set_input(Connection* conn, Engine* e) {
   conn->recv_str(in_buf_);
-  auto i = new Input();
+  auto* i = new Input();
   i->deserialize(in_buf_);
   e->set_input(i);
   delete i;

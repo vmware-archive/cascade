@@ -78,7 +78,7 @@ inline void De10Led::set_state(const State* s) {
 }
 
 inline Input* De10Led::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
   i->insert(in_, Bits(32, DE10_READ(led_addr_)));
   return i;
 } 

@@ -37,8 +37,8 @@
 
 namespace cascade {
 
-struct SysTask : public Serializable {
-  enum Type : uint8_t {
+struct SysTask : Serializable {
+  enum class Type : uint8_t {
     DISPLAY = 0,
     WRITE,
     FINISH,
@@ -70,21 +70,21 @@ inline SysTask::SysTask(Type type, const std::string& text, uint8_t arg) : Seria
 
 inline size_t SysTask::deserialize(std::istream& is) {
   uint16_t len = 0;
-  is.read((char*)&type_, sizeof(type_));
-  is.read((char*)&len, sizeof(len));
+  is.read(reinterpret_cast<char*>(&type_), sizeof(type_));
+  is.read(reinterpret_cast<char*>(&len), sizeof(len));
   text_.resize(len);
-  is.read((char*)text_.data(), len);
-  is.read((char*)&arg_, sizeof(arg_));
+  is.read(const_cast<char*>(reinterpret_cast<const char*>(text_.data())), len);
+  is.read(reinterpret_cast<char*>(&arg_), sizeof(arg_));
 
   return sizeof(type_) + sizeof(len) + len + sizeof(arg_);
 }
 
 inline size_t SysTask::serialize(std::ostream& os) const {
-  os.write((char*)&type_, sizeof(type_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&type_)), sizeof(type_));
   uint16_t len = text_.length();
-  os.write((char*)&len, sizeof(len));
-  os.write((char*)text_.data(), len);
-  os.write((char*)&arg_, sizeof(arg_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&len)), sizeof(len));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(text_.data())), len);
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&arg_)), sizeof(arg_));
 
   return sizeof(type_) + sizeof(len) + len + sizeof(arg_);
 }

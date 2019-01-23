@@ -86,7 +86,7 @@ Attributes* ModuleBoxer::build(const Attributes* as) {
 ModuleItem* ModuleBoxer::build(const InitialConstruct* ic) {
   // If we're seeing a non-ignored initial block here, it's a problem.  These
   // should have been handled in software.
-  const auto ign = ic->get_attrs()->get<String>("__ignore"); 
+  const auto* ign = ic->get_attrs()->get<String>("__ignore"); 
   (void) ign;
   assert(ign != nullptr);
   assert(ign->eq("true"));
@@ -105,23 +105,23 @@ ModuleItem* ModuleBoxer::build(const PortDeclaration* pd) {
   // Stateful variables and inputs have been reified to views and can be ignored.
   // Everything else is downgraded to a regular declaration.
   ModuleInfo info(md_);
-  return info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id()) ? nullptr : pd->get_decl()->clone();
+  return (info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id())) ? nullptr : pd->get_decl()->clone();
 }
 
 Statement* ModuleBoxer::build(const NonblockingAssign* na) {
   // Create empty blocks for true and false branches (we'll never populate the
   // false branch)
-  const auto t = new SeqBlock();
-  const auto f = new SeqBlock();
+  auto* t = new SeqBlock();
+  auto* f = new SeqBlock();
 
   // Look up the target of this assignment and the indices it spans in the
   // variable table
-  const auto lhs = na->get_assign()->get_lhs();
-  const auto r = Resolve().get_resolution(lhs);
+  const auto* lhs = na->get_assign()->get_lhs();
+  const auto* r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
   
   // Replace the original assignment with an assignment to a temporary variable
-  auto next = lhs->clone();
+  auto* next = lhs->clone();
   next->purge_ids();
   next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
   t->push_back_stmts(new NonblockingAssign(
@@ -211,13 +211,13 @@ void ModuleBoxer::Mangler::init(size_t id) {
     new VariableAssign(
       new Identifier(
         new Id("__next_task_mask"),
-        new Number(Bits(32, (uint32_t)id))
+        new Number(Bits(32, id))
       ),
       new UnaryExpression(
         UnaryExpression::TILDE,
         new Identifier(
           new Id("__next_task_mask"),
-          new Number(Bits(32, (uint32_t)id))
+          new Number(Bits(32, id))
         )
       )
     )    
@@ -232,7 +232,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
   // the variable table may exceed its actual bit-width. This is because the
   // width of the argument may have been implicitly extended if it's part of an
   // expression. 
-  const auto r = Resolve().get_resolution(id);
+  const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
   const auto w = Evaluate().get_width(r);
 
@@ -249,7 +249,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
     if (Evaluate().get_signed(id)) {
       sext = new MultipleConcatenation(
         new Number("32"),
-        new Concatenation(w == 1 ?
+        new Concatenation((w == 1) ?
           new Identifier(id->front_ids()->clone()) :
           new Identifier(id->front_ids()->clone(), new Number(Bits(32, w-1)))
         )
@@ -259,7 +259,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
     }
 
     // Concatenate the rhs with the sign extension bits
-    auto lsbs = new Identifier(id->front_ids()->clone());
+    auto* lsbs = new Identifier(id->front_ids()->clone());
     id->clone_dim(lsbs->back_inserter_dim());
     if (lsbs->size_dim() > r->size_dim()) {
       lsbs->purge_to_dim(r->size_dim());
@@ -269,7 +269,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
     } else if (upper > lower) {
       lsbs->push_back_dim(new RangeExpression(upper+1, lower));
     } 
-    auto rhs = new Concatenation(sext);
+    auto* rhs = new Concatenation(sext);
     rhs->push_back_exprs(lsbs);
 
     // Attach the concatenation to an assignment, we'll always have enough bits now
@@ -304,8 +304,8 @@ void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
   // store update values while we wait for the update latch to be set. 
 
   os << "// Update State" << endl;
-  for (auto s : info.stateful()) {
-    auto rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
+  for (auto* s : info.stateful()) {
+    auto* rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
     rd->get_id()->purge_ids();
     rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
     rd->replace_val(nullptr);
@@ -360,10 +360,10 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
 void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo) {
   const RangeExpression* re = nullptr;
   auto is_signed = false;
-  if (auto nd = dynamic_cast<const NetDeclaration*>(vinfo.id()->get_parent())) {
+  if (auto* nd = dynamic_cast<const NetDeclaration*>(vinfo.id()->get_parent())) {
     re = nd->get_dim();
     is_signed = nd->get_signed();
-  } else if (auto rd = dynamic_cast<const RegDeclaration*>(vinfo.id()->get_parent())) {
+  } else if (auto* rd = dynamic_cast<const RegDeclaration*>(vinfo.id()->get_parent())) {
     re = rd->get_dim();
     is_signed = rd->get_signed();
   } else {
@@ -389,7 +389,7 @@ void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo)
       if (j > 0) {
         os << ", ";
       }
-      os << "__var[" << (vinfo.index() + (i+1)*je - j - 1) << "]";
+      os << "__var[" << (vinfo.index() + ((i+1)*je-j)-1) << "]";
     }
     os << "};" << endl;
   }
@@ -415,7 +415,7 @@ void ModuleBoxer::emit_program_logic(indstream& os) {
   os << "// Original Program Logic:" << endl;
   task_id_ = 0;
   for (auto i = md_->begin_items(), ie = md_->end_items(); i != ie; ++i) {
-    auto temp = (*i)->accept(this);
+    auto* temp = (*i)->accept(this);
     if (temp != nullptr) {
       TextPrinter(os) << temp << "\n";
       delete temp;
