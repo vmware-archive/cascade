@@ -1280,7 +1280,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 
   // Is the highest order bit a 1 and do we care?
   const auto idx = (size_-1) % bits_per_word();
-  const auto hob = arith && (bool)(val_.back() & (T(1) << idx)); 
+  const auto hob = arith && ((val_.back() & (T(1) << idx)) != 0); 
   // How many words ahead is top?
   const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
   // How many bits are we taking from top and shifting bottom?

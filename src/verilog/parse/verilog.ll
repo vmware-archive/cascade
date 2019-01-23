@@ -151,7 +151,7 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n) {
 
   std::string s;
   for (; i < n; ++i) {
-    if (!isspace(c[i]) && c[i] != '_') {
+    if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
       s += c[i];
     }
   }
