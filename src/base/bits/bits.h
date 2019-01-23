@@ -242,7 +242,7 @@ inline BitsBase<T, BT, ST>::BitsBase() {
 
 template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase(bool b) {
-  val_.push_back(b ? T(1) : T(0));
+  val_.push_back(b ? static_cast<T>(1) : static_cast<T>(0));
   size_ = 1;
   signed_ = false;
 }
@@ -286,37 +286,37 @@ inline void BitsBase<T, BT, ST>::write(std::ostream& os, size_t base) const {
 template <typename T, typename BT, typename ST>
 inline size_t BitsBase<T, BT, ST>::deserialize(std::istream& is) {
   uint32_t header;
-  is.read((char*)&header, 4);
+  is.read(reinterpret_cast<char*>(&header), 4);
 
   shrink_to_bool(false);
-  resize(header & 0x7fffffff);
-  signed_ = header & 0x80000000;
+  resize(header & 0x7fffffffu);
+  signed_ = header & 0x80000000u;
 
   for (auto& v : val_) {
     for (size_t i = 0; i < bytes_per_word(); ++i) {
       uint8_t b;
-      is.read((char*)&b, 1);
-      v |= (T(b) << 8*i);
+      is.read(reinterpret_cast<char*>(&b), 1);
+      v |= (static_cast<T>(b) << (8*i));
     }
   }
 
-  return 4 + val_.size() * bytes_per_word();
+  return 4 + (val_.size() * bytes_per_word());
 }
 
 template <typename T, typename BT, typename ST>
 inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
-  const uint32_t header = size_ | (signed_ ? 0x80000000 : 0);
-  os.write((char*)&header, 4);
+  uint32_t header = size_ | (signed_ ? 0x80000000u : 0);
+  os.write(reinterpret_cast<char*>(&header), 4);
 
   for (auto v : val_) {
     for (size_t i = 0; i < bytes_per_word(); ++i) {
       uint8_t b = v & 0xff;
-      os.write((char*)&b, 1);
+      os.write(reinterpret_cast<char*>(&b), 1);
       v >>= 8;
     }
   }
 
-  return 4 + val_.size() * bytes_per_word();
+  return 4 + (val_.size() * bytes_per_word());
 }
 
 template <typename T, typename BT, typename ST>
@@ -357,10 +357,10 @@ inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
   const auto off = n % b_per_word;
 
   assert(idx < val_.size());
-  const T bmask = B(-1);
+  const T bmask = static_cast<B>(-1);
   const auto mask = ~(bmask << (8*sizeof(B)*off));
   val_[idx] &= mask;
-  val_[idx] |= (T(b) << (8*sizeof(B)*off));
+  val_[idx] |= (static_cast<T>(b) << (8*sizeof(B)*off));
   trim();
 }
 
@@ -491,9 +491,9 @@ inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& 
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] + rhs.val_[i] + carry;
     if (carry) {
-      carry = (res.val_[i] <= val_[i]) ? T(1) : T(0); 
+      carry = (res.val_[i] <= val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
     } else {
-      carry = (res.val_[i] < val_[i]) ? T(1) : T(0);
+      carry = (res.val_[i] < val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
     }
   }
   res.trim();
@@ -507,7 +507,7 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~val_[i];
     const T sum = res.val_[i] + carry;
-    carry = (sum < res.val_[i]) ? T(1) : T(0);
+    carry = (sum < res.val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
     res.val_[i] = sum;
   }
   res.trim();
@@ -522,9 +522,9 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase&
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] - rhs.val_[i] - carry;
     if (carry) {
-      carry = (res.val_[i] >= val_[i]) ? T(1) : T(0); 
+      carry = (res.val_[i] >= val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
     } else {
-      carry = (res.val_[i] > val_[i]) ? T(1) : T(0);
+      carry = (res.val_[i] > val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
     }
   }
   res.trim();
@@ -544,9 +544,9 @@ inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBa
   for (size_t ri = 0; ri < S; ++ri) {
     for (size_t bi = 0; bi <= ri; ++bi) {
       size_t ai = ri - bi;
-      tot += BT(val_[ai]) * BT(rhs.val_[bi]);
+      tot += static_cast<BT>(val_[ai]) * static_cast<BT>(rhs.val_[bi]);
     }
-    res.val_[ri] = (T)tot;
+    res.val_[ri] = static_cast<T>(tot);
     tot >>= bits_per_word();
   }
   res.trim();
@@ -554,15 +554,15 @@ inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBa
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
-  // TODO: This only words for single word inputs
+  // TODO(eschkufz) This only words for single word inputs
 
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
   if (signed_ && rhs.signed_) {
-    const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
-    const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
+    const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+    const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l / r;
   } else {
     res.val_[0] = val_[0] / rhs.val_[0];
@@ -573,15 +573,15 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
-  // TODO: This only words for single word inputs
+  // TODO(eschkufz) This only words for single word inputs
 
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
   if (signed_ && rhs.signed_) {
-    const ST l = is_negative() ? (val_[0] | (BT(-1) << size_)) : val_[0];
-    const ST r = rhs.is_negative() ? (rhs.val_[0] | (BT(-1) << rhs.size_)) : rhs.val_[0]; 
+    const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+    const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l % r;
   } else {
     res.val_[0] = val_[0] % rhs.val_[0];
@@ -592,7 +592,7 @@ inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& r
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& rhs, BitsBase& res) const {
-  // TODO: There's a lot wrong here:
+  // TODO(eschkufz) There's a lot wrong here:
   // 1. We're not respecting verilog semantics (wrt sign and result)
   // 2. This only works for single word inputs
 
@@ -607,55 +607,55 @@ inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& rhs, BitsBase& r
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_and(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (to_bool() && rhs.to_bool()) ? T(1) : T(0);
+  res.val_[0] = (to_bool() && rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_or(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (to_bool() || rhs.to_bool()) ? T(1) : T(0);
+  res.val_[0] = (to_bool() || rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_not(BitsBase& res) const {
-  res.val_[0] = to_bool() ? T(0) : T(1);
+  res.val_[0] = to_bool() ? static_cast<T>(0) : static_cast<T>(1);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_eq(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this == rhs) ? T(1) : T(0);
+  res.val_[0] = (*this == rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_ne(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this != rhs) ? T(1) : T(0);
+  res.val_[0] = (*this != rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_lt(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this < rhs) ? T(1) : T(0);
+  res.val_[0] = (*this < rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_lte(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this <= rhs) ? T(1) : T(0);
+  res.val_[0] = (*this <= rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_gt(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this > rhs) ? T(1) : T(0);
+  res.val_[0] = (*this > rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::logical_gte(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this >= rhs) ? T(1) : T(0);
+  res.val_[0] = (*this >= rhs) ? static_cast<T>(1) : static_cast<T>(0);
   res.trim();
 }
 
@@ -663,19 +663,19 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_and(BitsBase& res) const {
   // Logical operations always yield unsigned results
   for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
-    if (val_[i] != T(-1)) {
-      res.val_[0] = T(0);
+    if (val_[i] != static_cast<T>(-1)) {
+      res.val_[0] = static_cast<T>(0);
       res.trim();
       return;
     }
   }
-  const auto mask = (T(1) << (size_ % bits_per_word())) - 1;
+  const auto mask = (static_cast<T>(1) << (size_ % bits_per_word())) - 1;
   if ((val_.back() & mask) != mask) {
-    res.val_[0] = T(0);
+    res.val_[0] = static_cast<T>(0);
     res.trim();
     return; 
   }
-  res.val_[0] = T(1);
+  res.val_[0] = static_cast<T>(1);
   res.trim();
   return;
 }
@@ -683,26 +683,26 @@ inline void BitsBase<T, BT, ST>::reduce_and(BitsBase& res) const {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_nand(BitsBase& res) const {
   reduce_and(res);
-  res.val_[0] = res.val_[0] ? T(0) : T(1);
+  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_or(BitsBase& res) const {
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     if (val_[i]) {
-      res.val_[0] = T(1);
+      res.val_[0] = static_cast<T>(1);
       res.trim();
       return;
     }
   }
-  res.val_[0] = T(0);
+  res.val_[0] = static_cast<T>(0);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_nor(BitsBase& res) const {
   reduce_or(res);
-  res.val_[0] = res.val_[0] ? T(0) : T(1);
+  res.val_[0] = res.val_[0] ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
@@ -711,14 +711,14 @@ inline void BitsBase<T, BT, ST>::reduce_xor(BitsBase& res) const {
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     cnt += __builtin_popcount(val_[i]);
   }
-  res.val_[0] = T(cnt % 2);
+  res.val_[0] = static_cast<T>(cnt % 2);
   res.trim();
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_xnor(BitsBase& res) const {
   reduce_xor(res);
-  res.val_[0] = res.val_[0] ? T(0) : T(1);
+  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
@@ -736,7 +736,7 @@ inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
   if (lover == 0) {
     return val_[i] == rval;
   } else {
-    const auto mask = (T(1) << lover) - 1;
+    const auto mask = (static_cast<T>(1) << lover) - 1;
     return val_[i] == (rval & mask);
   } 
 }
@@ -758,7 +758,7 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
   assert(msb >= lsb);
 
   // Compute the size of this slice 
-  const auto slice = msb - lsb + 1;
+  const auto slice = (msb - lsb) + 1;
   // How many full words does it span and what's left over at the end?
   const auto span = slice / bits_per_word();
   const auto lover = slice % bits_per_word();
@@ -789,7 +789,7 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
   if ((loff > 0) && ((lower+span+1) < val_.size())) {
     word |= (val_[lower+span+1] << uoff);
   } 
-  const auto mask = (T(1) << lover) - 1;
+  const auto mask = (static_cast<T>(1) << lover) - 1;
   return (word & mask) == (rval & mask);
 }
 
@@ -818,7 +818,7 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
   assert(msb >= lsb);
 
   // Compute the size of this slice 
-  const auto slice = msb - lsb + 1;
+  const auto slice = (msb - lsb) + 1;
   // How many full words does it span and what's left over at the end?
   const auto span = slice / bits_per_word();
   const auto lover = slice % bits_per_word();
@@ -826,7 +826,7 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
   const auto lower = lsb / bits_per_word();
   const auto loff = lsb % bits_per_word();
   const auto uoff = bits_per_word() - loff;
-  const auto mask = (T(1) << loff) - 1;
+  const auto mask = (static_cast<T>(1) << loff) - 1;
 
   // Common Case: Copy entire words
   for (size_t i = 0; i < span; ++i) {
@@ -844,14 +844,14 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
     return;
   }
   // Edge Case: Copy the remaining bits
-  const auto lmask = (T(1) << lover) - 1;
+  const auto lmask = (static_cast<T>(1) << lover) - 1;
   const auto rval = rhs.signed_get(span);
   val_[lower+span] &= ~(lmask << loff);
   val_[lower+span] |= ((rval & lmask) << loff);
 
   if ((lover + loff) > bits_per_word()) {
-    const auto delta = lover + loff - bits_per_word();
-    const auto hmask = (T(1) << delta) - 1;
+    const auto delta = (lover + loff) - bits_per_word();
+    const auto hmask = (static_cast<T>(1) << delta) - 1;
     val_[lower+span+1] &= ~hmask;
     val_[lower+span+1] |= ((rval >> (lover-delta)) & hmask);
   }
@@ -859,9 +859,9 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t idx) {
-  val_[0] = idx < rhs.size() ? rhs.get(idx) : T(0);
+  val_[0] = (idx < rhs.size()) ? rhs.get(idx) : static_cast<T>(0);
   for (size_t i = 1, ie = val_.size(); i < ie; ++i) {
-    val_[i] = T(0);
+    val_[i] = static_cast<T>(0);
   }
 }
 
@@ -876,12 +876,12 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
   assert(msb >= lsb);
 
   // How many words does this slice span? Where does it start?
-  const auto span = (msb-lsb+bits_per_word()) / bits_per_word();
+  const auto span = ((msb-lsb)+bits_per_word()) / bits_per_word();
   const auto base = lsb / bits_per_word();
   const auto bamt = lsb % bits_per_word();
   // Create a mask for extracting the lowest bamt bits from top
   const auto mamt = bits_per_word() - bamt;
-  const auto mask = (T(1) << bamt) - 1;
+  const auto mask = (static_cast<T>(1) << bamt) - 1;
 
   // Copy as much of rhs as we can (maybe along with a few bits extra)
   size_t i = 0;
@@ -889,21 +889,21 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
     if (bamt == 0) {
       val_[i] = rhs.val_[base+i];
     } else {
-      const auto top = (base+i+1) < rhs.val_.size() ? rhs.val_[base+i+1] : T(0);
+      const auto top = ((base+i+1) < rhs.val_.size()) ? rhs.val_[base+i+1] : static_cast<T>(0);
       val_[i] = ((top & mask) << mamt) | (rhs.val_[base+i] >> bamt);
     }
   }
   
   // Zero out anything which is left over
-  const auto top = std::min((uint32_t)(msb-lsb+1), size_);
+  const auto top = std::min(static_cast<uint32_t>((msb-lsb)+1), size_);
   const auto zword = top / bits_per_word();
   const auto zidx = top % bits_per_word();
 
   if (zword < val_.size()) {
-    val_[zword] &= (T(1) << zidx) - 1;
+    val_[zword] &= (static_cast<T>(1) << zidx) - 1;
   }
   for (size_t i = zword+1, ie = val_.size(); i < ie; ++i) {
-    val_[i] = T(0);
+    val_[i] = static_cast<T>(0);
   }
 }
 
@@ -920,7 +920,7 @@ inline bool BitsBase<T, BT, ST>::get(size_t idx) const {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-  return val_[widx] & (T(1) << bidx);
+  return val_[widx] & (static_cast<T>(1) << bidx);
 }
 
 template <typename T, typename BT, typename ST>
@@ -930,9 +930,9 @@ inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::set(size_t idx, bool b) {
   const auto bidx = idx % bits_per_word();
 
   if (b) {
-    val_[widx] |= (T(1) << bidx);
+    val_[widx] |= (static_cast<T>(1) << bidx);
   } else {
-    val_[widx] &= ~(T(1) << bidx);
+    val_[widx] &= ~(static_cast<T>(1) << bidx);
   }
   return *this;
 }
@@ -945,9 +945,9 @@ inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::flip(size_t idx) {
   const bool b = (val_[widx] >> bidx) & T(1);
 
   if (!b) {
-    val_[widx] |= (T(1) << bidx);
+    val_[widx] |= (static_cast<T>(1) << bidx);
   } else {
-    val_[widx] &= ~(T(1) << bidx);
+    val_[widx] &= ~(static_cast<T>(1) << bidx);
   }
 
   return *this;
@@ -1046,7 +1046,7 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
   size_t idx = 0;
   for (int i = s.length()-1; i >= 0; --i) {
     // Convert character to bits
-    const T bits = isalpha(s[i]) ? (s[i]-'a'+10) : (s[i]-'0');
+    const T bits = static_cast<bool>(isalpha(s[i])) ? ((s[i]-'a')+10) : (s[i]-'0');
     // Copy bits into storage and bump idx.
     val_[word] |= (bits << idx);
     idx += step;
@@ -1097,7 +1097,7 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
 
   // How many bits do we consume per character? Make a mask.
   const size_t step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-  const auto mask = (T(1) << step) - 1;
+  const auto mask = (static_cast<T>(1) << step) - 1;
 
   // Walk over the string from lowest to highest order
   size_t idx = 0;
@@ -1115,7 +1115,7 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
       if (idx > bits_per_word()) {
         idx %= bits_per_word();
         if ((i+1) != ie) {
-          buf.back() |= (val_[i+1] & ((T(1) << idx) - 1)) << (step - idx);
+          buf.back() |= (val_[i+1] & ((static_cast<T>(1) << idx) - 1)) << (step - idx);
         }
         break;
       }
@@ -1130,9 +1130,9 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
     } else {
       zero = false;
       if (buf[i] > 9) {
-        os << (char)('a' + buf[i] - 10);
+        os << static_cast<char>('a' + (buf[i] - 10));
       } else {
-        os << (int)buf[i];
+        os << static_cast<int>(buf[i]);
       }
     }
   }
@@ -1173,8 +1173,8 @@ inline void BitsBase<T, BT, ST>::dec_halve(std::string& s) const {
   for (size_t i = 0, ie = s.length(); i < ie; ++i) {
     const auto val = s[i] - '0';
     auto carry = next_carry;
-    next_carry = (val % 2) ? 5 : 0;
-    s[i] = (val / 2 + carry) + '0';
+    next_carry = ((val % 2) != 0) ? 5 : 0;
+    s[i] = ((val/2) + carry) + '0';
   }
 }
 
@@ -1193,7 +1193,7 @@ inline void BitsBase<T, BT, ST>::dec_double(std::string& s) const {
   auto carry = 0;
   for (size_t i = 0, ie = s.size(); i < ie; ++i) {
     auto val = s[i] - '0';
-    val = 2 * val + carry;
+    val = (2*val) + carry;
     if (val >= 10) {
       s[i] = '0' + (val - 10);
       carry = 1;
@@ -1236,12 +1236,12 @@ inline void BitsBase<T, BT, ST>::bitwise_sll_const(size_t samt, BitsBase& res) c
   // top/bottom: The words that will be shifted into word; word can equal top
 
   // How many words ahead is bottom?
-  const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
+  const auto delta = ((samt + bits_per_word()) - 1) / bits_per_word();
   // How many bits are we taking from bottom and shifting top?
   const auto bamt = samt % bits_per_word();
   // Create a mask for extracting the highest bamt bits from bottom
   const auto mamt = bits_per_word() - bamt;
-  const auto mask = ((T(1) << bamt) - 1) << mamt;
+  const auto mask = ((static_cast<T>(1) << bamt) - 1) << mamt;
 
   // Work our way down until bottom hits zero
   int w = val_.size() - 1;
@@ -1253,7 +1253,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sll_const(size_t samt, BitsBase& res) c
     }
   }
   // There's one more block to build where bottom is implicitly zero
-  res.val_[w--] = (bamt == 0) ? T(0) : (val_[0] << bamt);
+  res.val_[w--] = (bamt == 0) ? static_cast<T>(0) : (val_[0] << bamt);
   // Everything else is zero
   for (; w >= 0; --w) {
     res.val_[w] = T(0);
@@ -1280,19 +1280,19 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 
   // Is the highest order bit a 1 and do we care?
   const auto idx = (size_-1) % bits_per_word();
-  const auto hob = arith && ((val_.back() & (T(1) << idx)) != 0); 
+  const auto hob = arith && ((val_.back() & (static_cast<T>(1) << idx)) != 0); 
   // How many words ahead is top?
-  const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
+  const auto delta = ((samt + bits_per_word()) - 1) / bits_per_word();
   // How many bits are we taking from top and shifting bottom?
   const auto bamt = samt % bits_per_word();
   // Create a mask for extracting the lowest bamt bits from top
   const auto mamt = bits_per_word() - bamt;
-  const auto mask = (T(1) << bamt) - 1;
+  const auto mask = (static_cast<T>(1) << bamt) - 1;
   // val_ is an array of unsigned values. If we are working with signed values,
   // we want the top bits of the top-most word to be filled with ones.
   // This is only used in the case where hob is set and the top word is not
   // completely full.
-  const auto upper_most_word = ((T(-1) << idx) | val_.back());
+  const auto upper_most_word = ((static_cast<T>(-1) << idx) | val_.back());
 
   // Work our way up until top goes out of range
   size_t w = 0;
@@ -1306,13 +1306,13 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
   }
   // There's one more block to build where top is implicitly zero
   if (hob) {
-    res.val_[w++] = (bamt == 0) ? T(-1) : ((upper_most_word >> bamt) | (mask << mamt));
+    res.val_[w++] = (bamt == 0) ? static_cast<T>(-1) : ((upper_most_word >> bamt) | (mask << mamt));
   } else {
-    res.val_[w++] = (bamt == 0) ? T(0) : (val_.back() >> bamt);
+    res.val_[w++] = (bamt == 0) ? static_cast<T>(0) : (val_.back() >> bamt);
   }
   // Everything else is zero or padded 1s
   for (size_t we = val_.size(); w < we; ++w) {
-    res.val_[w] = hob ? T(-1) : T(0);
+    res.val_[w] = hob ? static_cast<T>(-1) : static_cast<T>(0);
   }
   // Trim since we could have introduced trailing 1s
   res.trim();
@@ -1327,35 +1327,35 @@ void BitsBase<T, BT, ST>::trim() {
     return;
   }
   // Otherwise, mask these off
-  const auto mask = (T(1) << trailing) - 1;
+  const auto mask = (static_cast<T>(1) << trailing) - 1;
   val_.back() &= mask;
 }
     
 template <typename T, typename BT, typename ST>
 void BitsBase<T, BT, ST>::extend_to(size_t n) {
-  const auto words = (n + bits_per_word() - 1) / bits_per_word();
+  const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
   if (is_negative()) {
-    val_.back() |= (T(-1) << (size_ % bits_per_word()));
-    val_.resize(words, T(-1));
+    val_.back() |= (static_cast<T>(-1) << (size_ % bits_per_word()));
+    val_.resize(words, static_cast<T>(-1));
     size_ = n;
     trim();
   } else {
-    val_.resize(words, T(0));
+    val_.resize(words, static_cast<T>(0));
     size_ = n;
   }
 }
    
 template <typename T, typename BT, typename ST>
 void BitsBase<T, BT, ST>::shrink_to(size_t n) {
-  const auto words = (n + bits_per_word() - 1) / bits_per_word();
-  val_.resize(words, T(0));
+  const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
+  val_.resize(words, static_cast<T>(0));
   size_ = n;
   trim();
 }
 
 template <typename T, typename BT, typename ST>
 void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
-  val_.resize(1, T(0));
+  val_.resize(1, static_cast<T>(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
   signed_ = false;
@@ -1369,16 +1369,16 @@ bool BitsBase<T, BT, ST>::is_negative() const {
 template <typename T, typename BT, typename ST>
 T BitsBase<T, BT, ST>::signed_get(size_t n) const {
   // Difficult case: Do we need to sign extend this value?
-  if (n == val_.size()-1) {
+  if (n == (val_.size()-1)) {
     const auto top = size_ % bits_per_word();
     if (!is_negative() || (top == 0)) {
       return val_[n];
     }
-    return val_[n] | (T(-1) << top);
+    return val_[n] | (static_cast<T>(-1) << top);
   }
   // Easier Case: Do we need to return all 1s or 0s?
   else if (n >= val_.size()) {
-    return is_negative() ? T(-1) : T(0);
+    return is_negative() ? static_cast<T>(-1) : static_cast<T>(0);
   }
   // Easiest Case: Just return what's there
   else {
