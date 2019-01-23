@@ -59,7 +59,7 @@ Module::iterator& Module::iterator::operator++() {
   if (path_.front() == nullptr) {
     return *this;
   }
-  const auto ptr = path_.front();
+  const auto* ptr = path_.front();
   path_.pop_front();
   for (auto i = ptr->children_.rbegin(), ie = ptr->children_.rend(); i != ie; ++i) {
     path_.push_front(*i);
@@ -105,7 +105,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolat
 }
 
 Module::~Module() {
-  for (auto c : children_) {
+  for (auto* c : children_) {
     delete c;
   }
   if (src_ != nullptr) {
@@ -125,12 +125,12 @@ void Module::synchronize(size_t n) {
   }
   // 3. Record new gloabl ids and the modules that they reference.
   std::unordered_set<const ModuleDeclaration*> targets;
-  for (auto m : inst.instances_) {
-    for (auto r : ModuleInfo(m->psrc_).reads()) {
+  for (auto* m : inst.instances_) {
+    for (auto* r : ModuleInfo(m->psrc_).reads()) {
       targets.insert(Resolve().get_origin(r));
       dp_->register_id(isolate_->isolate(r));
     }
-    for (auto w : ModuleInfo(m->psrc_).writes()) {
+    for (auto* w : ModuleInfo(m->psrc_).writes()) {
       targets.insert(Resolve().get_origin(w));
       dp_->register_id(isolate_->isolate(w));
     }
@@ -141,13 +141,13 @@ void Module::synchronize(size_t n) {
     if (targets.find((*i)->psrc_) == targets.end()) {
       continue;
     }
-    for (auto r : ModuleInfo((*i)->psrc_).reads()) {
+    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
       const auto gid = isolate_->isolate(r);
       if (dp_->reader_find((*i)->engine_, gid) == dp_->reader_end(gid)) {
         (*i)->source_out_of_date_ = true;
       }
     }
-    for (auto w : ModuleInfo((*i)->psrc_).writes()) {
+    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
       const auto gid = isolate_->isolate(w);
       if (dp_->writer_find((*i)->engine_, gid) == dp_->writer_end(gid)) {
         (*i)->source_out_of_date_ = true;
@@ -178,11 +178,11 @@ void Module::synchronize(size_t n) {
   }
   // 7. Synchronize subscriptions with the buffer
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    for (auto r : ModuleInfo((*i)->psrc_).reads()) {
+    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
       const auto gid = isolate_->isolate(r);
       dp_->register_reader((*i)->engine_, gid);
     }
-    for (auto w : ModuleInfo((*i)->psrc_).writes()) {
+    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
       const auto gid = isolate_->isolate(w);
       dp_->register_writer((*i)->engine_, gid);
     }
@@ -199,17 +199,16 @@ Module::iterator Module::end() {
 
 ModuleDeclaration* Module::regenerate_ir_source() {
   const auto size = psrc_->size_items();
-  const auto ignore = parent_ == nullptr ? size - newest_evals_ : 0;
-  auto md = isolate_->isolate(psrc_, ignore);
+  const auto ignore = (parent_ == nullptr) ? (size - newest_evals_) : 0;
+  auto* md = isolate_->isolate(psrc_, ignore);
 
-  const auto std = md->get_attrs()->get<String>("__std");
+  const auto* std = md->get_attrs()->get<String>("__std");
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
     ModuleInfo(md).invalidate();
     DeAlias().run(md);
     ConstantProp().run(md);
     DeadCodeEliminate().run(md);
-    //TermPrinter(cout) << md << "\n";
   }
   return md;
 }
@@ -237,7 +236,7 @@ void Module::Instantiator::visit(const IfGenerateConstruct* igc) {
 
 void Module::Instantiator::visit(const LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -254,7 +253,7 @@ void Module::Instantiator::visit(const ModuleInstantiation* mi) {
   assert(itr != ModuleInfo(ptr_->psrc_).children().end());
 
   // Create a new node
-  auto child = new Module(itr->second, ptr_);
+  auto* child = new Module(itr->second, ptr_);
   ptr_->children_.push_back(child);
 
   // Continue down through this module

@@ -52,7 +52,7 @@ class fdbuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
    
     // Constructors:
-    fdbuf(int fd);
+    explicit fdbuf(int fd);
     ~fdbuf() override = default;
 
   private:

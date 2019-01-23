@@ -160,7 +160,7 @@ inline std::streambuf::pos_type bufbuf::seekpos(std::streambuf::pos_type pos, st
     gbump((eback() + pos) - gptr());
     return gptr()-eback();
   } 
-  return static_cast<std::streambuf::pos_type>(std::streambuf::off_type(-1));
+  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(-1));
 }
 
 inline std::streampos bufbuf::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) {
@@ -182,7 +182,7 @@ inline std::streampos bufbuf::seekoff(std::streamoff off, std::ios_base::seekdir
     gbump(target - gptr());
     return gptr()-eback();
   } 
-  return static_cast<std::streambuf::pos_type>(std::streambuf::off_type(-1));
+  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(-1));
 }
 
 inline std::streamsize bufbuf::showmanyc() {

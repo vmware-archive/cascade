@@ -43,8 +43,8 @@ namespace cascade {
 
 class incstream : public std::ifstream {
   public:
-    explicit incstream();
-    incstream(const std::string& dirs);
+    incstream();
+    explicit incstream(const std::string& dirs);
     ~incstream() override = default;
 
     std::string find(const std::string& path) const;

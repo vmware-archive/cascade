@@ -45,7 +45,7 @@ class DataPlane;
 class Isolate : public Builder {
   public:
     // Constructors:
-    Isolate(const DataPlane* dp);
+    explicit Isolate(const DataPlane* dp);
     ~Isolate() override = default;
 
     // Deterministically tranforms a program variable into a globally-unique
@@ -119,17 +119,17 @@ inline std::vector<ModuleItem*> Isolate::get_items(ItemsItr begin, ItemsItr end,
       continue;
     }
     // Flatten generate regions and generate constructs
-    else if (auto gr = dynamic_cast<const GenerateRegion*>(*mi)) {
+    else if (auto* gr = dynamic_cast<const GenerateRegion*>(*mi)) {
       flatten(res, gr);
-    } else if (auto cgc = dynamic_cast<const CaseGenerateConstruct*>(*mi)) {
+    } else if (auto* cgc = dynamic_cast<const CaseGenerateConstruct*>(*mi)) {
       flatten(res, cgc);
-    } else if (auto igc = dynamic_cast<const IfGenerateConstruct*>(*mi)) {
+    } else if (auto* igc = dynamic_cast<const IfGenerateConstruct*>(*mi)) {
       flatten(res, igc);
-    } else if (auto lgc = dynamic_cast<const LoopGenerateConstruct*>(*mi)) {
+    } else if (auto* lgc = dynamic_cast<const LoopGenerateConstruct*>(*mi)) {
       flatten(res, lgc);
     }
     // Either descend on instantiations or replace them with connections
-    else if (auto inst = dynamic_cast<const ModuleInstantiation*>(*mi)) {
+    else if (auto* inst = dynamic_cast<const ModuleInstantiation*>(*mi)) {
       if (Inline().is_inlined(inst)) {
         flatten(res, Inline().get_source(inst));
       } else {

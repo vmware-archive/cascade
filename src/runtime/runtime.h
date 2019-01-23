@@ -66,8 +66,8 @@ class Runtime : public Asynchronous {
     typedef std::function<void()> Interrupt;
 
     // Constructors:
-    Runtime(View* view);
-    ~Runtime();
+    explicit Runtime(View* view);
+    ~Runtime() override;
 
     // Configuration Interface:
     Runtime& set_compiler(Compiler* c);
@@ -197,7 +197,7 @@ class Runtime : public Asynchronous {
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.
-    void run_logic();
+    void run_logic() override;
 
     // REPL Helpers:
     //

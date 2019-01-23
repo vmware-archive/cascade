@@ -56,7 +56,7 @@ ModuleDeclaration* Isolate::isolate(const ModuleDeclaration* src, int ignore) {
 }
 
 VId Isolate::isolate(const Identifier* id) {
-  const auto r = Resolve().get_resolution(id);
+  const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
 
   auto itr = symbol_table_.find(r);
@@ -84,7 +84,7 @@ Expression* Isolate::build(const Identifier* id) {
 
 ModuleDeclaration* Isolate::build(const ModuleDeclaration* md) {
   // Create a new module with a mangled id and global io ports
-  auto res = get_shell();
+  auto* res = get_shell();
   // Generate local declarations. 
   auto ld = get_local_decls();
   res->push_back_items(ld.begin(), ld.end());
@@ -96,13 +96,13 @@ ModuleDeclaration* Isolate::build(const ModuleDeclaration* md) {
 }
 
 ModuleItem* Isolate::build(const InitialConstruct* ic) {
-  auto attrs = ic->get_attrs()->accept(this);
+  auto* attrs = ic->get_attrs()->accept(this);
   if (ignore_ >= 0) {
     attrs->set_or_replace("__ignore", new String("true"));
   }
   return new InitialConstruct (
     attrs,
-    (Statement*) ic->accept_stmt(this)
+    static_cast<Statement*>(ic->accept_stmt(this))
   );
 }
 
@@ -116,7 +116,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   // Careful: We aren't allowed to have initial values for arrays
-  auto res = new RegDeclaration(
+  auto* res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->accept_id(this),
     true,
@@ -131,7 +131,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
-  auto res = new LocalparamDeclaration(
+  auto* res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->get_signed(),
     ld->accept_dim(this),
@@ -149,7 +149,7 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // Parameter declarations are downgraded to local params
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
-  auto res = new LocalparamDeclaration(
+  auto* res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
     pd->get_signed(),
     pd->accept_dim(this),
@@ -167,7 +167,7 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   // Careful: We aren't allowed to have initial values for arrays
-  auto res = new RegDeclaration(
+  auto* res = new RegDeclaration(
     rd->get_attrs()->accept(this),
     rd->accept_id(this),
     rd->get_signed(),
@@ -200,7 +200,7 @@ Identifier* Isolate::to_mangled_id(const Identifier* id) {
 Identifier* Isolate::to_local_id(const Identifier* id) {
   stringstream ss;
   ss << "__l" << isolate(id);
-  auto res = new Identifier(new Id(ss.str()));
+  auto* res = new Identifier(new Id(ss.str()));
   id->accept_dim(this, res->back_inserter_dim());
   return res;
 }
@@ -208,7 +208,7 @@ Identifier* Isolate::to_local_id(const Identifier* id) {
 Identifier* Isolate::to_global_id(const Identifier* id) {
   stringstream ss;
   ss << "__x" << isolate(id);
-  auto res =  new Identifier(new Id(ss.str()));
+  auto* res =  new Identifier(new Id(ss.str()));
   id->accept_dim(this, res->back_inserter_dim());
   return res;
 }
@@ -216,7 +216,7 @@ Identifier* Isolate::to_global_id(const Identifier* id) {
 ModuleDeclaration* Isolate::get_shell() {
   ModuleInfo info(src_);
 
-  auto res = new ModuleDeclaration(
+  auto* res = new ModuleDeclaration(
     src_->get_attrs()->clone(),
     to_mangled_id(dynamic_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid())
   );
@@ -225,7 +225,7 @@ ModuleDeclaration* Isolate::get_shell() {
   ports.insert(info.reads().begin(), info.reads().end());
   ports.insert(info.writes().begin(), info.writes().end());
 
-  for (auto p : ports) {
+  for (auto* p : ports) {
     res->push_back_ports(new ArgAssign(
       nullptr,
       to_global_id(p)
@@ -235,28 +235,28 @@ ModuleDeclaration* Isolate::get_shell() {
     const auto w = info.is_write(p);
     const auto width = Evaluate().get_width(p);
 
-    // TODO: Is this logic correct? When should a global read/write be promoted
-    // to a register and when should it remain a net?
+    // TODO(eschkufz) Is this logic correct? When should a global read/write be
+    // promoted to a register and when should it remain a net?
 
-    auto pd = new PortDeclaration(
+    auto* pd = new PortDeclaration(
       new Attributes(), 
-      r && w ? PortDeclaration::INOUT : r ? PortDeclaration::INPUT : PortDeclaration::OUTPUT,
+      (r && w) ? PortDeclaration::INOUT : r ? PortDeclaration::INPUT : PortDeclaration::OUTPUT,
       (info.is_local(p) && (dynamic_cast<const RegDeclaration*>(p->get_parent()) != nullptr)) ? 
-        (Declaration*) new RegDeclaration(
+        static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),
           to_global_id(p),
           dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
-          width == 1 ? nullptr : new RangeExpression(width),
+          (width == 1) ? nullptr : new RangeExpression(width),
           dynamic_cast<const RegDeclaration*>(p->get_parent())->clone_val()
-        ) : 
-        (Declaration*) new NetDeclaration(
+        )) : 
+        static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
           NetDeclaration::WIRE,
           nullptr,
           to_global_id(p),
           dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
-          width == 1 ? nullptr : new RangeExpression(width)
-        )
+          (width == 1) ? nullptr : new RangeExpression(width)
+        ))
     );
     pd->get_attrs()->push_back_as(new AttrSpec(
       new Identifier("__id"), 
@@ -270,11 +270,11 @@ ModuleDeclaration* Isolate::get_shell() {
 
 vector<ModuleItem*> Isolate::get_local_decls() {
   vector<ModuleItem*> res;
-  for (auto l : ModuleInfo(src_).locals()) {
+  for (auto* l : ModuleInfo(src_).locals()) {
     if (ModuleInfo(src_).is_read(l) || ModuleInfo(src_).is_write(l)) {
       continue;
     }
-    auto d = dynamic_cast<const Declaration*>(l->get_parent())->accept(this);
+    auto* d = dynamic_cast<const Declaration*>(l->get_parent())->accept(this);
     if (d != nullptr) {
       res.push_back(d);
     }
@@ -288,13 +288,13 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
   assert(itr != conns.end());
 
   for (auto& c : itr->second) {
-    auto lhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
+    auto* lhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
         c.first->accept(this) : 
-        (Identifier*)c.second->accept(this);
-    auto rhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
-        (Expression*)c.second->accept(this) : 
+        static_cast<Identifier*>(c.second->accept(this));
+    auto* rhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
+        static_cast<Expression*>(c.second->accept(this)) : 
         c.first->accept(this);
-    auto ca = new ContinuousAssign(
+    auto* ca = new ContinuousAssign(
       nullptr,
       new VariableAssign(lhs, rhs)
     );
@@ -304,14 +304,14 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
 
 void Isolate::flatten(vector<ModuleItem*>& res, const CaseGenerateConstruct* cgc) {
   if (Elaborate().is_elaborated(cgc)) {
-    auto elab = Elaborate().get_elaboration(cgc);
+    auto* elab = Elaborate().get_elaboration(cgc);
     flatten(res, elab);
   }
 }
 
 void Isolate::flatten(vector<ModuleItem*>& res, const IfGenerateConstruct* igc) {
   if (Elaborate().is_elaborated(igc)) {
-    auto elab = Elaborate().get_elaboration(igc);
+    auto* elab = Elaborate().get_elaboration(igc);
     flatten(res, elab);
   }
 }
@@ -319,7 +319,7 @@ void Isolate::flatten(vector<ModuleItem*>& res, const IfGenerateConstruct* igc) 
 void Isolate::flatten(vector<ModuleItem*>& res, const LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
     auto elab = Elaborate().get_elaboration(lgc);
-    for (auto gb : elab) {
+    for (auto* gb : elab) {
       flatten(res, gb);
     }
   }

@@ -119,7 +119,7 @@ Runtime& Runtime::disable_warnings(bool dw) {
 }
 
 void Runtime::eval(const string& s) {
-  auto ss = new stringstream(s);
+  auto* ss = new stringstream(s);
   schedule_interrupt(Interrupt([this, ss]{
     log_->clear();
     eval_stream(*ss, false);
@@ -259,11 +259,11 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
 }
 
 bool Runtime::eval_node(Node* n) {
-  if (auto s = dynamic_cast<String*>(n)) {
+  if (auto* s = dynamic_cast<String*>(n)) {
     return eval_include(s);
-  } else if (auto md = dynamic_cast<ModuleDeclaration*>(n)) {
+  } else if (auto* md = dynamic_cast<ModuleDeclaration*>(n)) {
     return eval_decl(md);
-  } else if (auto mi = dynamic_cast<ModuleItem*>(n)) {
+  } else if (auto* mi = dynamic_cast<ModuleItem*>(n)) {
     return eval_item(mi);
   } else {
     assert(false);
@@ -314,7 +314,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
 
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
-  const auto src = program_->root_elab()->second;
+  const auto* src = program_->root_elab()->second;
   if (src->empty_items()) {
     root_ = new Module(src, this, dp_, isolate_, compiler_);
   } else {
@@ -352,7 +352,7 @@ void Runtime::rebuild() {
   clock_ = nullptr;
   inlined_logic_ = nullptr;
   // Reconfigure scheduling state and determine whether optimizations are possible
-  for (auto m : *root_) {
+  for (auto* m : *root_) {
     if (m->engine()->is_stub()) {
       continue;
     }
@@ -374,7 +374,7 @@ void Runtime::rebuild() {
 void Runtime::drain_active() {
   for (auto done = false; !done; ) {
     done = true;
-    for (auto m : logic_) {
+    for (auto* m : logic_) {
       if (schedule_all_ || m->engine()->there_are_reads()) {
         m->engine()->evaluate();
         done = false;
@@ -386,21 +386,21 @@ void Runtime::drain_active() {
 
 bool Runtime::drain_updates() {
   auto performed_update = false;
-  for (auto m : logic_) {
+  for (auto* m : logic_) {
     performed_update = performed_update || m->engine()->conditional_update();
   }
   if (!performed_update) {
     return false;
   }
   auto performed_evaluate = false;
-  for (auto m : logic_) {
+  for (auto* m : logic_) {
     performed_evaluate = performed_evaluate || m->engine()->conditional_evaluate();
   }
   return performed_evaluate;
 }
 
 void Runtime::done_step() {
-  for (auto m : done_logic_) {
+  for (auto* m : done_logic_) {
     m->engine()->done_step();
   }
 }
@@ -443,7 +443,7 @@ void Runtime::drain_interrupts() {
 }
 
 void Runtime::done_simulation() {
-  for (auto m : logic_) {
+  for (auto* m : logic_) {
     m->engine()->done_simulation();
   }
 }
@@ -471,7 +471,7 @@ void Runtime::open_loop_scheduler() {
   } else if (delta > open_loop_target_) {
     next >>= 1;
   }
-  open_loop_itrs_ = next > 0 ? next : open_loop_itrs_;
+  open_loop_itrs_ = (next > 0) ? next : open_loop_itrs_;
 }
 
 void Runtime::reference_scheduler() {

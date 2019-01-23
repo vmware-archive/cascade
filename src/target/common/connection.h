@@ -39,7 +39,7 @@ namespace cascade {
 
 class Connection {
   public:
-    Connection(Socket* sock);
+    explicit Connection(Socket* sock);
     ~Connection();
 
     bool error() const;
@@ -88,26 +88,26 @@ inline void Connection::send_ack() {
 }
 
 inline void Connection::recv_rpc(Rpc& rpc) {
-  sock_->recv((char*)&rpc.type_, sizeof(rpc.type_));
-  sock_->recv((char*)&rpc.id_, sizeof(rpc.id_));
+  sock_->recv(reinterpret_cast<char*>(&rpc.type_), sizeof(rpc.type_));
+  sock_->recv(reinterpret_cast<char*>(&rpc.id_), sizeof(rpc.id_));
 }
 
 inline void Connection::send_rpc(const Rpc& rpc) {
-  sock_->send((char*)&rpc.type_, sizeof(rpc.type_));
-  sock_->send((char*)&rpc.id_, sizeof(rpc.id_));
+  sock_->send(const_cast<char*>(reinterpret_cast<const char*>(&rpc.type_)), sizeof(rpc.type_));
+  sock_->send(const_cast<char*>(reinterpret_cast<const char*>(&rpc.id_)), sizeof(rpc.id_));
 }
 
 inline void Connection::recv_str(bufstream& bs) {
   uint32_t len = 0;
-  sock_->recv((char*)&len, sizeof(len));
+  sock_->recv(reinterpret_cast<char*>(&len), sizeof(len));
   bs.resize(len);
-  sock_->recv((char*)bs.data(), len);
+  sock_->recv(reinterpret_cast<char*>(bs.data()), len);
 }
 
 inline void Connection::send_str(const bufstream& bs) {
   const uint32_t len = bs.size();
-  sock_->send((char*)&len, sizeof(len));
-  sock_->send((char*)bs.data(), len);
+  sock_->send(const_cast<char*>(reinterpret_cast<const char*>(&len)), sizeof(len));
+  sock_->send(const_cast<char*>(reinterpret_cast<const char*>(bs.data())), len);
 }
 
 inline void Connection::recv_bool(bool& b) {

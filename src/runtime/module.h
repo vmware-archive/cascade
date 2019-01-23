@@ -60,7 +60,7 @@ class Module {
         std::forward_list<Module*> path_;
 
         iterator();
-        iterator(Module* m);
+        explicit iterator(Module* m);
     };
 
     // Constructors:
@@ -84,8 +84,8 @@ class Module {
 
   private:
     // Instantiation Helper Class:
-    struct Instantiator : public Visitor {
-      Instantiator(Module* ptr);
+    struct Instantiator : Visitor {
+      explicit Instantiator(Module* ptr);
       ~Instantiator() override = default;
 
       void visit(const CaseGenerateConstruct* cgc) override;
