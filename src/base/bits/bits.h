@@ -942,7 +942,7 @@ inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::flip(size_t idx) {
   assert(idx < size_);
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-  const auto b = (val_[widx] >> bidx) & T(1);
+  const bool b = (val_[widx] >> bidx) & T(1);
 
   if (!b) {
     val_[widx] |= (T(1) << bidx);
@@ -1096,7 +1096,7 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
   std::vector<uint8_t> buf;
 
   // How many bits do we consume per character? Make a mask.
-  const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
+  const size_t step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
   const auto mask = (T(1) << step) - 1;
 
   // Walk over the string from lowest to highest order
@@ -1280,7 +1280,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 
   // Is the highest order bit a 1 and do we care?
   const auto idx = (size_-1) % bits_per_word();
-  const auto hob = arith && (val_.back() & (T(1) << idx)); 
+  const auto hob = arith && ((val_.back() & (T(1) << idx)) != 0); 
   // How many words ahead is top?
   const auto delta = (samt + bits_per_word() - 1) / bits_per_word();
   // How many bits are we taking from top and shifting bottom?

@@ -382,30 +382,30 @@ const Node* Evaluate::get_root(const Expression* e) const {
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
     // Subscripts inside of identifiers 
-    if (dynamic_cast<const Expression*>(root) && dynamic_cast<const Identifier*>(root->get_parent())) {
+    if ((dynamic_cast<const Expression*>(root) != nullptr) && (dynamic_cast<const Identifier*>(root->get_parent()) != nullptr)) {
       return root;
     }
     // Ranges inside of declarations 
-    else if (dynamic_cast<const RangeExpression*>(root) && dynamic_cast<const Declaration*>(root->get_parent())) {
+    else if ((dynamic_cast<const RangeExpression*>(root) != nullptr) && (dynamic_cast<const Declaration*>(root->get_parent()) != nullptr)) {
       return root;
     }
     // Variables inside of declarations
-    else if (dynamic_cast<const Declaration*>(root->get_parent())) {
+    else if (dynamic_cast<const Declaration*>(root->get_parent()) != nullptr) {
       return root->get_parent();
     }
     // Continuous, non-blocking, or blocking assigns
-    else if (dynamic_cast<const VariableAssign*>(root->get_parent())) {
+    else if (dynamic_cast<const VariableAssign*>(root->get_parent()) != nullptr) {
       return root->get_parent();
     }
     // Multiple Concatenation
-    else if (dynamic_cast<const MultipleConcatenation*>(root->get_parent())) {
+    else if (dynamic_cast<const MultipleConcatenation*>(root->get_parent()) != nullptr) {
       return root;
     }
     // Subscripts inside of ids
-    else if (dynamic_cast<const Id*>(root->get_parent())) {
+    else if (dynamic_cast<const Id*>(root->get_parent()) != nullptr) {
       return root;
     }
-    else if (!dynamic_cast<const Expression*>(root->get_parent())) {
+    else if (dynamic_cast<const Expression*>(root->get_parent()) == nullptr) {
       return root;
     }
   } 

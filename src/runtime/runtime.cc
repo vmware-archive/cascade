@@ -387,14 +387,14 @@ void Runtime::drain_active() {
 bool Runtime::drain_updates() {
   auto performed_update = false;
   for (auto m : logic_) {
-    performed_update |= m->engine()->conditional_update();
+    performed_update = performed_update || m->engine()->conditional_update();
   }
   if (!performed_update) {
     return false;
   }
   auto performed_evaluate = false;
   for (auto m : logic_) {
-    performed_evaluate |= m->engine()->conditional_evaluate();
+    performed_evaluate = performed_evaluate || m->engine()->conditional_evaluate();
   }
   return performed_evaluate;
 }
