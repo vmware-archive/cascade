@@ -63,7 +63,7 @@ class ManyView : public View {
 inline ManyView::ManyView() : View() { }
 
 inline ManyView::~ManyView() {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     delete v;
   }
 }
@@ -73,55 +73,55 @@ inline void ManyView::attach(View* v) {
 }
 
 inline void ManyView::startup(size_t t) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->startup(t);
   }
 }
 
 inline void ManyView::shutdown(size_t t) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->shutdown(t);
   }
 }
 
 inline void ManyView::error(size_t t, const std::string& s) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->error(t, s);
   }
 }
 
 inline void ManyView::print(size_t t, const std::string& s) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->print(t, s);
   }
 }
 
 inline void ManyView::warn(size_t t, const std::string& s) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->warn(t, s);
   }
 }
 
 inline void ManyView::parse(size_t t, const std::string& s) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->parse(t, s);
   }
 }
 
 inline void ManyView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->eval_decl(t, p, md);
   }
 }
 
 inline void ManyView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->eval_item(t, p, md);
   }
 }
 
 inline void ManyView::crash() {
-  for (auto v : views_) {
+  for (auto* v : views_) {
     v->crash();
   }
 } 

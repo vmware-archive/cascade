@@ -114,7 +114,7 @@ inline SwFifo::SwFifo(Interface* interface, size_t depth, size_t byte_size) : Fi
   full_id_ = nullid();
 
   for (size_t i = 0; i <= depth; ++i) {
-    const auto next = i < depth ? i + 1 : 0;
+    const auto next = (i < depth) ? (i + 1) : 0;
     fifo_.push_back(std::make_pair(Bits(byte_size, 0), next));
   }
   head_ = 0;
@@ -197,11 +197,11 @@ inline SwFifo& SwFifo::set_full(VId id) {
 inline State* SwFifo::get_state() {
   VId id = nullid();
 
-  auto s = new State();
-  s->insert(++id, Bits(32, ifs_.is_open() ? (uint32_t)ifs_.tellg() : 0));
-  s->insert(++id, Bits(32, (uint32_t)count_));
-  s->insert(++id, Bits(32, (uint32_t)head_));
-  s->insert(++id, Bits(32, (uint32_t)tail_));
+  auto* s = new State();
+  s->insert(++id, Bits(32, ifs_.is_open() ? static_cast<uint32_t>(ifs_.tellg()) : 0));
+  s->insert(++id, Bits(32, static_cast<uint32_t>(count_)));
+  s->insert(++id, Bits(32, static_cast<uint32_t>(head_)));
+  s->insert(++id, Bits(32, static_cast<uint32_t>(tail_)));
   for (const auto& b : fifo_) {
     s->insert(++id, b.first);
   }
@@ -210,7 +210,7 @@ inline State* SwFifo::get_state() {
 } 
 
 inline void SwFifo::set_state(const State* s) {
-  // TODO: This is a bit lazy. If one variable appears, we assume they all do.
+  // TODO(eschkufz) This is a bit lazy. If one variable appears, we assume they all do.
   if (s->begin() == s->end()) {
     return;
   }
@@ -229,7 +229,7 @@ inline void SwFifo::set_state(const State* s) {
 }
 
 inline Input* SwFifo::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
   i->insert(clock_id_, Bits(1, clock_));
   i->insert(rreq_id_, Bits(1, rreq_));
   i->insert(wreq_id_, Bits(1, wreq_));
@@ -238,7 +238,7 @@ inline Input* SwFifo::get_input() {
 }
 
 inline void SwFifo::set_input(const Input* i) {
-  // TODO: This is a bit lazy. If one variable appears, we assume they all do.
+  // TODO(eschkufz) This is a bit lazy. If one variable appears, we assume they all do.
   if (i->begin() == i->end()) {
     return;
   }

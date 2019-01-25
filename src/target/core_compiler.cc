@@ -50,7 +50,7 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
 }
 
 Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
-  const auto std = md->get_attrs()->get<String>("__std");
+  const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
     return compile_clock(interface, md); 
   } else if (std->eq("fifo")) {

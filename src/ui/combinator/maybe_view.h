@@ -37,7 +37,7 @@ namespace cascade {
 
 class MaybeView : public View {
   public:
-    MaybeView(View* view = nullptr);
+    explicit MaybeView(View* view = nullptr);
     ~MaybeView() override;
 
     void attach(View* v);

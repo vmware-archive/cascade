@@ -389,7 +389,7 @@ void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo)
       if (j > 0) {
         os << ", ";
       }
-      os << "__var[" << (vinfo.index() + ((i+1)*je-j)-1) << "]";
+      os << "__var[" << (vinfo.index() + (i+1)*je-j-1) << "]";
     }
     os << "};" << endl;
   }

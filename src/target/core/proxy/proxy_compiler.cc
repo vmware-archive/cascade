@@ -47,7 +47,7 @@ ProxyCompiler::~ProxyCompiler() {
 }
 
 void ProxyCompiler::abort() {
-  // TODO: Invoke a remote abort
+  // TODO(eschkufz) Invoke a remote abort
 }
 
 Clock* ProxyCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
@@ -89,7 +89,7 @@ Connection* ProxyCompiler::get_conn(const ModuleDeclaration* md) {
     return itr->second;
   }
 
-  auto conn = loc.find(':') != string::npos ? get_tcp_conn(md) : get_unix_conn(md);
+  auto* conn = (loc.find(':') != string::npos) ? get_tcp_conn(md) : get_unix_conn(md);
   if (conn->error()) {
     delete conn;
     return nullptr; 
@@ -108,7 +108,7 @@ Connection* ProxyCompiler::get_tcp_conn(const ModuleDeclaration* md) {
   getline(ss, host, ':');
   ss >> port;
 
-  auto sock = new Socket();
+  auto* sock = new Socket();
   sock->connect(host, port);
   return new Connection(sock);
 }
@@ -116,7 +116,7 @@ Connection* ProxyCompiler::get_tcp_conn(const ModuleDeclaration* md) {
 Connection* ProxyCompiler::get_unix_conn(const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
 
-  auto sock = new Socket();
+  auto* sock = new Socket();
   sock->connect(loc);
   return new Connection(sock); 
 }

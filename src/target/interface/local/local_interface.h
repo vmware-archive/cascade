@@ -39,7 +39,7 @@ namespace cascade {
 
 class LocalInterface : public Interface {
   public:
-    LocalInterface(Runtime* rt);
+    explicit LocalInterface(Runtime* rt);
     ~LocalInterface() override = default;     
 
     void display(const std::string& s) override;

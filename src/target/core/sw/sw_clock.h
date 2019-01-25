@@ -72,7 +72,7 @@ inline SwClock::SwClock(Interface* interface, VId out) : Clock(interface) {
 }
 
 inline State* SwClock::get_state() {
-  auto s = new State();
+  auto* s = new State();
   s->insert(out_, Bits(1, val_ ? 1 : 0));
   return s;
 }

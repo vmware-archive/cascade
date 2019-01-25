@@ -47,17 +47,17 @@ using namespace std;
 namespace {
 
 void ev_handler(struct mg_connection* nc, int ev, void* ev_data) {
-  auto ui = (cascade::WebUi*) nc->mgr->user_data;
+  auto* ui = static_cast<cascade::WebUi*>(nc->mgr->user_data);
   if (ev == MG_EV_HTTP_REQUEST) {
-    ui->send_index(nc, (struct http_message*) ev_data);
+    ui->send_index(nc, static_cast<struct http_message*>(ev_data));
     return;
   }
   if (ev != MG_EV_WEBSOCKET_FRAME) {
     return;
   }
 
-  auto wm = (struct websocket_message*) ev_data;
-  string msg((char*) wm->data, wm->size);
+  auto* wm = static_cast<struct websocket_message*>(ev_data);
+  string msg(reinterpret_cast<char*>(wm->data), wm->size);
 
   const auto sep = msg.find(':');
   const auto api = msg.substr(0, sep);
@@ -147,7 +147,7 @@ void WebUi::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
   for (auto i = p->elab_begin(), ie = p->elab_end(); i != ie; ++i) {
     stringstream ss;
     ss << "{\"text\":\"[elab] ";
-    const auto fid = Resolve().get_full_id(ModuleInfo(i->second).id());
+    const auto* fid = Resolve().get_full_id(ModuleInfo(i->second).id());
     TextPrinter(ss) << fid;
     delete fid;
     ss << "\",\"value\":\"";
@@ -198,7 +198,7 @@ void WebUi::send_buffer(struct mg_connection* nc) {
   char addr[32];
   mg_sock_addr_to_str(&nc->sa, addr, sizeof(addr), MG_SOCK_STRINGIFY_IP | MG_SOCK_STRINGIFY_PORT);
   for (const auto& s : buffer_) {
-    for (auto c = mg_next(nc->mgr, NULL); c != NULL; c = mg_next(nc->mgr, c)) {
+    for (auto* c = mg_next(nc->mgr, nullptr); c != nullptr; c = mg_next(nc->mgr, c)) {
       mg_send_websocket_frame(c, WEBSOCKET_OP_TEXT, s.c_str(), s.length());
     }
   }
@@ -215,8 +215,8 @@ void WebUi::run_logic() {
   struct mg_mgr mgr;
   mg_mgr_init(&mgr, this);
 
-  auto nc = mg_bind(&mgr, port_.c_str(), ev_handler);
-  if (nc == NULL) {
+  auto* nc = mg_bind(&mgr, port_.c_str(), ev_handler);
+  if (nc == nullptr) {
     tv.error(0, "Unable to start server on port " + port_ + "!");
     return;
   } 

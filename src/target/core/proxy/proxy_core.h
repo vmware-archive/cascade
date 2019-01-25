@@ -93,7 +93,7 @@ inline State* ProxyCore<T>::get_state() {
   conn_->send_rpc(Rpc(Rpc::Type::GET_STATE, id_));
   conn_->recv_str(in_buf_);
 
-  auto s = new State();
+  auto* s = new State();
   s->deserialize(in_buf_);
   in_buf_.clear();
 
@@ -114,7 +114,7 @@ inline Input* ProxyCore<T>::get_input() {
   conn_->send_rpc(Rpc(Rpc::Type::GET_INPUT, id_));
   conn_->recv_str(in_buf_);
 
-  auto i = new Input();
+  auto* i = new Input();
   i->deserialize(in_buf_);
   in_buf_.clear();
 
@@ -216,9 +216,9 @@ inline bool ProxyCore<T>::conditional_update() {
 template <typename T>
 inline size_t ProxyCore<T>::open_loop(VId clk, bool val, size_t itr) {
   conn_->send_rpc(Rpc(Rpc::Type::OPEN_LOOP, id_));
-  conn_->send_double((uint32_t)clk);
+  conn_->send_double(static_cast<uint32_t>(clk));
   conn_->send_bool(val);
-  conn_->send_double((uint32_t)itr);
+  conn_->send_double(static_cast<uint32_t>(itr));
   uint32_t res = 0;
   conn_->recv_double(res);
   recv_response();
@@ -229,7 +229,7 @@ template <typename T>
 inline void ProxyCore<T>::recv_response() {
   conn_->recv_str(in_buf_);
   auto type = false;
-  for (in_buf_.read((char*)&type, sizeof(type)); !in_buf_.eof(); in_buf_.read((char*)&type, sizeof(type))) {
+  for (in_buf_.read(reinterpret_cast<char*>(&type), sizeof(type)); !in_buf_.eof(); in_buf_.read(reinterpret_cast<char*>(&type), sizeof(type))) {
     if (type) {
       Value temp(0, &bits_);
       temp.deserialize(in_buf_);

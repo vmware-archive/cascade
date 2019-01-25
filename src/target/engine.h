@@ -81,7 +81,7 @@ class Engine {
     void resync();
 
     // Extended State Management Interface:
-    // TODO: Does this really belong here? The only place this is called is in
+    // TODO(eschkufz) Does this really belong here? The only place this is called is in
     // the open loop scheduler. This could be a lot more efficient if it were
     // only defined for clocks.
     bool get_bit(VId id);
@@ -212,7 +212,7 @@ inline void Engine::resync() {
 }
 
 inline bool Engine::get_bit(VId id) {
-  auto s = get_state();
+  auto* s = get_state();
   assert(s->find(id) != s->end());
   assert(s->find(id)->second.size() == 1);
 
@@ -223,18 +223,18 @@ inline bool Engine::get_bit(VId id) {
 }
 
 inline void Engine::set_bit(VId id, bool b) {
-  auto s = new State();
+  auto* s = new State();
   s->insert(id, Bits(1, b));
   set_state(s);
   delete s;
 }
 
 inline void Engine::replace_with(Engine* e) {
-  const auto s = core_->get_state();
+  const auto* s = core_->get_state();
   e->core_->set_state(s);
   delete s;
 
-  const auto i = core_->get_input();
+  const auto* i = core_->get_input();
   e->core_->set_input(i);
   delete i;
 

@@ -43,7 +43,7 @@ namespace cascade {
 
 class WebUi : public Controller, public View {
   public:
-    WebUi(Runtime* rt);
+    explicit WebUi(Runtime* rt);
     ~WebUi() override = default;
 
     WebUi& set_port(const std::string& port);

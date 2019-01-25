@@ -48,8 +48,8 @@ class Runtime;
 
 class Controller : public Asynchronous {
   public:
-    Controller(Runtime* rt);
-    virtual ~Controller() = default;
+    explicit Controller(Runtime* rt);
+    ~Controller() override = default;
 
   protected:
     Runtime* runtime();

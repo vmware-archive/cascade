@@ -79,7 +79,7 @@ class ProxyCompiler : public CoreCompiler {
 
 template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
-  auto conn = get_conn(md);
+  auto* conn = get_conn(md);
   if (conn == nullptr) {
     error("Unable to establish connection with remote runtime");
     delete md;
@@ -99,7 +99,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
   conn->recv_rpc(res);
 
   if (res.type_ == Rpc::Type::ERROR) {
-    // TODO: Forward error messages from remote runtime to here
+    // TODO(eschkufz) Forward error messages from remote runtime to here
     error("An unhandled error occured during compilation in the remote runtime");
     return nullptr;
   }

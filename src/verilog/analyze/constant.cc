@@ -53,7 +53,7 @@ bool Constant::is_genvar_constant(const Expression* e) {
 void Constant::visit(const Identifier* i) {
   Visitor::visit(i);
 
-  const auto r = Resolve().get_resolution(i);
+  const auto* r = Resolve().get_resolution(i);
   if (r == nullptr) {
     res_ = false;
     return;

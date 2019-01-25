@@ -77,7 +77,7 @@ inline void SwLed::set_state(const State* s) {
 
 inline Input* SwLed::get_input() {
   std::lock_guard<std::mutex> lg(*lock_);
-  auto i = new Input();
+  auto* i = new Input();
   i->insert(in_, *val_);
   return i;
 }

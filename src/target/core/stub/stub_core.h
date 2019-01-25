@@ -39,13 +39,13 @@ namespace cascade {
 
 class StubCore : public Core {
   public:
-    StubCore(Interface* interface);
+    explicit StubCore(Interface* interface);
     ~StubCore() override = default;
 
     State* get_state() override;
-    void set_state(const State*) override;
+    void set_state(const State* s) override;
     Input* get_input() override;
-    void set_input(const Input*) override;
+    void set_input(const Input* i) override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;

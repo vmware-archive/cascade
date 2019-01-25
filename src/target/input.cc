@@ -39,14 +39,14 @@ size_t Input::deserialize(istream& is) {
 
   // How many elements are in this input?
   uint32_t n = 0;
-  is.read((char*)&n, 4);
+  is.read(reinterpret_cast<char*>(&n), 4);
   size_t res = 4;
 
   // Read that many id / bit pairs
   for (size_t i = 0; i < n; ++i) {
     VId id; 
     Bits bits;
-    is.read((char*)&id, 4);
+    is.read(reinterpret_cast<char*>(&id), 4);
     res += (4 + bits.deserialize(is));
     input_.insert(make_pair(id, bits));
   }
@@ -55,13 +55,13 @@ size_t Input::deserialize(istream& is) {
 
 size_t Input::serialize(ostream& os) const {
   // How many elements are in this input?
-  const uint32_t n = input_.size();
-  os.write((char*)&n, 4);
+  uint32_t n = input_.size();
+  os.write(reinterpret_cast<char*>(&n), 4);
   size_t res = 4;
 
   // Write that many id / bit pairs
   for (const auto& i : input_) {
-    os.write((char*)&i.first, 4);
+    os.write(const_cast<char*>(reinterpret_cast<const char*>(&i.first)), 4);
     res += (4 + i.second.serialize(os));
   }
   return res;

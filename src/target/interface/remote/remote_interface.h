@@ -40,7 +40,7 @@ namespace cascade {
 
 class RemoteInterface : public Interface {
   public:
-    RemoteInterface(bufstream* buf);
+    explicit RemoteInterface(bufstream* buf);
     ~RemoteInterface() override = default;
 
     void display(const std::string& s) override;
@@ -104,7 +104,7 @@ inline void RemoteInterface::write(VId id, const Bits* b) {
 }
 
 inline void RemoteInterface::write_flag(bool flag) {
-  buf_->write((char*)&flag, sizeof(flag));
+  buf_->write(reinterpret_cast<char*>(&flag), sizeof(flag));
 }
 
 } // namespace cascade

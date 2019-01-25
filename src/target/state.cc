@@ -39,20 +39,20 @@ size_t State::deserialize(istream& is) {
 
   // How many elements are in this state?
   uint32_t n = 0;
-  is.read((char*)&n, 4);
+  is.read(reinterpret_cast<char*>(&n), 4);
   size_t res = 4;
 
   // Read that many id / bit pairs
   for (size_t i = 0; i < n; ++i) {
     VId id; 
-    is.read((char*)&id, 4);
+    is.read(reinterpret_cast<char*>(&id), 4);
     res += 4;
 
     uint32_t arity = 0;
-    is.read((char*)&arity, 4);
+    is.read(reinterpret_cast<char*>(&arity), 4);
     res += 4;
 
-    for (size_t i = 0; i < arity; ++i) {
+    for (size_t j = 0; j < arity; ++j) {
       Bits bits;
       res += bits.deserialize(is);
       state_[id].push_back(bits);
@@ -63,17 +63,17 @@ size_t State::deserialize(istream& is) {
 
 size_t State::serialize(ostream& os) const {
   // How many elements are in this state?
-  const uint32_t n = state_.size();
-  os.write((char*)&n, 4);
+  uint32_t n = state_.size();
+  os.write(reinterpret_cast<char*>(&n), 4);
   size_t res = 4;
 
   // Write that many id / bit pairs
   for (const auto& s : state_) {
-    os.write((char*)&s.first, 4);
+    os.write(const_cast<char*>(reinterpret_cast<const char*>(&s.first)), 4);
     res += 4;
     
-    const uint32_t arity = s.second.size();
-    os.write((char*)&arity, 4);
+    uint32_t arity = s.second.size();
+    os.write(reinterpret_cast<char*>(&arity), 4);
     res += 4; 
            
     for (const auto& b : s.second) {

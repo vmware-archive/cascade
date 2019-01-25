@@ -175,7 +175,7 @@ inline SwMemory& SwMemory::set_wdata(VId id) {
 inline State* SwMemory::get_state() {
   VId id = nullid();
 
-  auto s = new State();
+  auto* s = new State();
   for (const auto& m : mem_) {
     s->insert(++id, m);
   }
@@ -195,12 +195,12 @@ inline void SwMemory::set_state(const State* s) {
 }
 
 inline Input* SwMemory::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
   i->insert(clock_id_, Bits(1, clock_));
   i->insert(wen_id_, Bits(1, wen_));
-  i->insert(raddr1_id_, Bits(32, (uint32_t)raddr1_));
-  i->insert(raddr2_id_, Bits(32, (uint32_t)raddr2_));
-  i->insert(waddr_id_, Bits(32, (uint32_t)waddr_));
+  i->insert(raddr1_id_, Bits(32, static_cast<uint32_t>(raddr1_)));
+  i->insert(raddr2_id_, Bits(32, static_cast<uint32_t>(raddr2_)));
+  i->insert(waddr_id_, Bits(32, static_cast<uint32_t>(waddr_)));
   i->insert(wdata_id_, wdata_);
   return i;
 }
@@ -293,7 +293,7 @@ inline void SwMemory::write_file() {
   size_t i = 0;
   for (const auto& m : mem_) {
     m.write(ofs, 16);
-    ofs << ((++i % 8 == 0) ? "\n" : " ");
+    ofs << (((++i % 8) == 0) ? "\n" : " ");
   }
   ofs.close();
 }

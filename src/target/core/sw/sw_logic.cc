@@ -81,7 +81,7 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
 }
 
 State* SwLogic::get_state() {
-  auto s = new State();
+  auto* s = new State();
   for (const auto& sv : state_) {
     s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
@@ -98,9 +98,9 @@ void SwLogic::set_state(const State* s) {
 }
 
 Input* SwLogic::get_input() {
-  auto i = new Input();
+  auto* i = new Input();
   for (size_t v = 0, ve = reads_.size(); v < ve; ++v) {
-    const auto id = reads_[v];
+    const auto* id = reads_[v];
     if (id == nullptr) {
       continue;
     }
@@ -111,7 +111,7 @@ Input* SwLogic::get_input() {
 
 void SwLogic::set_input(const Input* i) {
   for (size_t v = 0, ve = reads_.size(); v < ve; ++v) {
-    const auto id = reads_[v];
+    const auto* id = reads_[v];
     if (id == nullptr) {
       continue;
     }
@@ -125,20 +125,20 @@ void SwLogic::set_input(const Input* i) {
 void SwLogic::resync() {
   // Schedule always constructs and continuous assigns.
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if (dynamic_cast<const AlwaysConstruct*>(*i)) {
+    if (dynamic_cast<const AlwaysConstruct*>(*i) != nullptr) {
       schedule_now(*i);
-    } else if (auto ca = dynamic_cast<const ContinuousAssign*>(*i)) {
+    } else if (auto* ca = dynamic_cast<const ContinuousAssign*>(*i)) {
       schedule_now(ca);
     }
   }
-  for (auto l : ModuleInfo(src_).inputs()) {
+  for (auto* l : ModuleInfo(src_).inputs()) {
     notify(l);
   } 
 
   // Turn on silent mode and drain the active queue
   silent_ = true;
   while (!active_.empty()) {
-    auto e = active_.back();
+    auto* e = active_.back();
     active_.pop_back();
     const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
@@ -147,14 +147,14 @@ void SwLogic::resync() {
 
   // Now that signals have been propagated, schedule initial constructs
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if (auto ic = dynamic_cast<const InitialConstruct*>(*i)) {
+    if (auto* ic = dynamic_cast<const InitialConstruct*>(*i)) {
       schedule_now(ic);
     }
   }
 }
 
 void SwLogic::read(VId vid, const Bits* b) {
-  const auto id = reads_[vid];
+  const auto* id = reads_[vid];
   Evaluate().assign_value(id, *b);
   notify(id);
 }
@@ -163,7 +163,7 @@ void SwLogic::evaluate() {
   // This is a while loop. Active events can generate new active events.
   there_were_tasks_ = false;
   while (!active_.empty()) {
-    auto e = active_.back();
+    auto* e = active_.back();
     active_.pop_back();
     const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
@@ -189,7 +189,7 @@ void SwLogic::update() {
   // This is while loop. Active events can generate new active events.
   there_were_tasks_ = false;
   while (!active_.empty()) {
-    auto e = active_.back();
+    auto* e = active_.back();
     active_.pop_back();
     const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
@@ -216,13 +216,13 @@ void SwLogic::schedule_active(const Node* n) {
 }
 
 void SwLogic::notify(const Node* n) {
-  if (auto id = dynamic_cast<const Identifier*>(n)) {
-    for (auto m : id->monitor_) {
+  if (auto* id = dynamic_cast<const Identifier*>(n)) {
+    for (auto* m : id->monitor_) {
       schedule_active(m);
     }
     return;
   } 
-  const auto p = n->get_parent();
+  const auto* p = n->get_parent();
   if (dynamic_cast<const CaseItem*>(p)) {
     schedule_active(p->get_parent());
   } else if (dynamic_cast<const InitialConstruct*>(p) == nullptr) {
@@ -235,10 +235,10 @@ uint8_t& SwLogic::get_state(const Statement* s) {
 }
 
 void SwLogic::visit(const Event* e) {
-  // TODO: Support for complex expressions here
-  const auto id = dynamic_cast<const Identifier*>(e->get_expr());
+  // TODO(eschkufz) Support for complex expressions here
+  const auto* id = dynamic_cast<const Identifier*>(e->get_expr());
   assert(id != nullptr);
-  const auto r = Resolve().get_resolution(id);
+  const auto* r = Resolve().get_resolution(id);
 
   if (e->get_type() != Event::NEGEDGE && Evaluate().get_value(r).to_bool()) {
     notify(e);
@@ -252,20 +252,20 @@ void SwLogic::visit(const AlwaysConstruct* ac) {
 }
 
 void SwLogic::visit(const InitialConstruct* ic) {
-  const auto ign = ic->get_attrs()->get<String>("__ignore");
+  const auto* ign = ic->get_attrs()->get<String>("__ignore");
   if (ign == nullptr || !ign->eq("true")) {
     schedule_active(ic->get_stmt());
   }
 }
 
 void SwLogic::visit(const ContinuousAssign* ca) {
-  // TODO: Support for timing control
+  // TODO(eschkufz) Support for timing control
   assert(ca->is_null_ctrl());
   schedule_now(ca->get_assign());
 }
 
 void SwLogic::visit(const BlockingAssign* ba) {
-  // TODO: Support for timing control
+  // TODO(eschkufz) Support for timing control
   assert(ba->is_null_ctrl());
 
   schedule_now(ba->get_assign());
@@ -273,11 +273,11 @@ void SwLogic::visit(const BlockingAssign* ba) {
 }
 
 void SwLogic::visit(const NonblockingAssign* na) {
-  // TODO: Support for timing control
+  // TODO(eschkufz) Support for timing control
   assert(na->is_null_ctrl());
   
   if (!silent_) {
-    const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+    const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
     assert(r != nullptr);
     const auto target = Evaluate().dereference(r, na->get_assign()->get_lhs());
     const auto& res = Evaluate().get_value(na->get_assign()->get_rhs());
@@ -315,7 +315,7 @@ void SwLogic::visit(const SeqBlock* sb) {
   auto& state = get_state(sb);
   assert(state < 255);
   if (state < sb->size_stmts()) {
-    auto item = sb->get_stmts(state++);
+    auto* item = sb->get_stmts(state++);
     schedule_now(item);
   } else {
     state = 0;

@@ -81,7 +81,7 @@ SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  const auto out = *ModuleInfo(md).outputs().begin();
+  const auto* out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
   delete md;
 
@@ -94,9 +94,9 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   // Create a memory with the appropriate size and width parameters
   size_t depth = 0;
   size_t byte_size = 0;
-  for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
-      const auto id = ld->get_attrs()->get<Identifier>("__id");
+  for (auto* l : info.locals()) {
+    if (auto* ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
+      const auto* id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
       } else if (id->back_ids()->eq("DEPTH")) {
@@ -111,13 +111,13 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto fifo = new SwFifo(interface, depth, byte_size);
+  auto* fifo = new SwFifo(interface, depth, byte_size);
 
   // Set backup file if __file annotation was provided
-  auto file = md->get_attrs()->get<String>("__file");
-  auto count = md->get_attrs()->get<Number>("__count");
+  auto* file = md->get_attrs()->get<String>("__file");
+  auto* count = md->get_attrs()->get<Number>("__count");
   if (file != nullptr) {
-    const auto c = count == nullptr ? 1 : count->get_val().to_int();
+    const auto c = (count == nullptr) ? 1 : count->get_val().to_int();
     const auto f = incstream(include_dirs_).find(file->get_readable_val());
     if (f == "") {
       error("Unable to compile a software fifo with an unresolvable file annotation");
@@ -128,10 +128,10 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   } 
 
   // Set up input output connections
-  for (auto l : info.locals()) {
+  for (auto* l : info.locals()) {
     auto d = dynamic_cast<const Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
-      const auto id = pd->get_attrs()->get<Identifier>("__id");
+    if (auto* pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
+      const auto* id = pd->get_attrs()->get<Identifier>("__id");
       if (id->back_ids()->eq("clock")) {
         fifo->set_clock(to_vid(l));
       } else if (id->back_ids()->eq("rreq")) {
@@ -167,7 +167,7 @@ SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   }
   
   if (!ModuleInfo(md).inputs().empty()) {
-    const auto in = *ModuleInfo(md).inputs().begin();
+    const auto* in = *ModuleInfo(md).inputs().begin();
     const auto id = to_vid(in);
     const auto w = Evaluate().get_width(in);
     delete md;
@@ -180,14 +180,14 @@ SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
 
 SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
   ModuleInfo info(md);
-  auto c = new SwLogic(interface, md);
-  for (auto i : info.inputs()) {
+  auto* c = new SwLogic(interface, md);
+  for (auto* i : info.inputs()) {
     c->set_read(i, to_vid(i));
   }
-  for (auto o : info.outputs()) {
+  for (auto* o : info.outputs()) {
     c->set_write(o, to_vid(o));
   }
-  for (auto s : info.stateful()) { 
+  for (auto* s : info.stateful()) { 
     c->set_state(s, to_vid(s));
   }
   return c;
@@ -199,9 +199,9 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
   // Create a memory with the appropriate size and width parameters
   size_t addr_size = 0;
   size_t byte_size = 0;
-  for (auto l : info.locals()) {
-    if (auto ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
-      const auto id = ld->get_attrs()->get<Identifier>("__id");
+  for (auto* l : info.locals()) {
+    if (auto* ld = dynamic_cast<const LocalparamDeclaration*>(l->get_parent())) {
+      const auto* id = ld->get_attrs()->get<Identifier>("__id");
       if (id == nullptr) {
         continue;
       } else if (id->back_ids()->eq("ADDR_SIZE")) {
@@ -216,20 +216,20 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
     delete md;
     return nullptr;
   }
-  auto mem = new SwMemory(interface, addr_size, byte_size);
+  auto* mem = new SwMemory(interface, addr_size, byte_size);
 
   // Set backup file if __file annotation was provided
-  auto file = md->get_attrs()->get<String>("__file");
+  auto* file = md->get_attrs()->get<String>("__file");
   if (file != nullptr) {
     const auto f = incstream(include_dirs_).find(file->get_readable_val());
-    mem->set_file(f == "" ? file->get_readable_val() : f); 
+    mem->set_file((f == "") ? file->get_readable_val() : f); 
   }
 
   // Set up input output connections
-  for (auto l : info.locals()) {
-    auto d = dynamic_cast<const Declaration*>(l->get_parent());
-    if (auto pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
-      const auto id = pd->get_attrs()->get<Identifier>("__id");
+  for (auto* l : info.locals()) {
+    auto* d = dynamic_cast<const Declaration*>(l->get_parent());
+    if (auto* pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
+      const auto* id = pd->get_attrs()->get<Identifier>("__id");
       if (id->back_ids()->eq("clock")) {
         mem->set_clock(to_vid(l));
       } else if (id->back_ids()->eq("wen")) {
@@ -266,7 +266,7 @@ SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
     return nullptr;
   }
 
-  const auto out = *ModuleInfo(md).outputs().begin();
+  const auto* out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
   const auto w = Evaluate().get_width(out);
   delete md;
@@ -286,7 +286,7 @@ SwReset* SwCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) 
     return nullptr;
   }
 
-  const auto out = *ModuleInfo(md).outputs().begin();
+  const auto* out = *ModuleInfo(md).outputs().begin();
   const auto id = to_vid(out);
   delete md;
 

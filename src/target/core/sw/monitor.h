@@ -66,19 +66,19 @@ inline void Monitor::wait_on_node(Node* n, Identifier* m) {
 }
 
 inline void Monitor::wait_on_reads(Node* n, Expression* m) {
-  for (auto i : ReadSet(m)) {
-    auto r = Resolve().get_resolution(i);
+  for (auto* i : ReadSet(m)) {
+    auto* r = Resolve().get_resolution(i);
     assert(r != nullptr);
     wait_on_node(n, const_cast<Identifier*>(r));
   }
 }
 
 inline void Monitor::edit(Event* e) {
-  // TODO: Support for complex expressions here
-  auto id = dynamic_cast<Identifier*>(e->get_expr());
+  // TODO(eschkufz) Support for complex expressions here
+  auto* id = dynamic_cast<Identifier*>(e->get_expr());
   assert(id != nullptr);
 
-  auto r = Resolve().get_resolution(id);
+  auto* r = Resolve().get_resolution(id);
   wait_on_node(e, const_cast<Identifier*>(r));
 }
 
@@ -89,10 +89,10 @@ inline void Monitor::edit(ContinuousAssign* ca) {
 
 inline void Monitor::edit(EventControl* ec) {
   if (ec->empty_events()) {
-    auto tcs = dynamic_cast<TimingControlStatement*>(ec->get_parent());
+    auto* tcs = dynamic_cast<TimingControlStatement*>(ec->get_parent());
     assert(tcs != nullptr);
-    for (auto i : ReadSet(tcs->get_stmt())) {
-      auto r = Resolve().get_resolution(i);
+    for (auto* i : ReadSet(tcs->get_stmt())) {
+      auto* r = Resolve().get_resolution(i);
       assert(r != nullptr);
       wait_on_node(ec, const_cast<Identifier*>(r));
     }

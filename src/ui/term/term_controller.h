@@ -39,7 +39,7 @@ class Runtime;
 
 class TermController : public Controller {
   public:
-    TermController(Runtime* rt);
+    explicit TermController(Runtime* rt);
     ~TermController() override = default;
 
   protected:
