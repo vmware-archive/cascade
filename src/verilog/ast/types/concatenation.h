@@ -41,7 +41,7 @@ class Concatenation : public Primary {
   public:
     // Constructors:
     Concatenation();
-    Concatenation(Expression* expr);
+    explicit Concatenation(Expression* expr);
     template <typename ExprsItr>
     Concatenation(ExprsItr exprs_begin__, ExprsItr exprs_end__);
     ~Concatenation() override;
@@ -76,7 +76,7 @@ inline Concatenation::~Concatenation() {
 }
 
 inline Concatenation* Concatenation::clone() const {
-  auto res = new Concatenation();
+  auto* res = new Concatenation();
   MANY_CLONE(exprs);
   return res;
 }

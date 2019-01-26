@@ -41,7 +41,7 @@ namespace cascade {
 class IfGenerateClause : public Node {
   public:
     // Constructors:
-    IfGenerateClause(Expression* if__);
+    explicit IfGenerateClause(Expression* if__);
     IfGenerateClause(Expression* if__, GenerateBlock* then__);
     ~IfGenerateClause() override;
 
@@ -74,7 +74,7 @@ inline IfGenerateClause::~IfGenerateClause() {
 }
 
 inline IfGenerateClause* IfGenerateClause::clone() const {
-  auto res = new IfGenerateClause(if_->clone());
+  auto* res = new IfGenerateClause(if_->clone());
   MAYBE_CLONE(then);
   return res;
 }

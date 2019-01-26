@@ -114,7 +114,7 @@ inline ModuleDeclaration::~ModuleDeclaration() {
 }
 
 inline ModuleDeclaration* ModuleDeclaration::clone() const {
-  auto res = new ModuleDeclaration(attrs_->clone(), id_->clone());
+  auto* res = new ModuleDeclaration(attrs_->clone(), id_->clone());
   MANY_CLONE(ports);
   MANY_CLONE(items);
   return res;

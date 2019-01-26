@@ -41,7 +41,7 @@ namespace cascade {
 class CaseGenerateConstruct : public ConditionalGenerateConstruct {
   public:
     // Constructors:
-    CaseGenerateConstruct(Expression* cond__);
+    explicit CaseGenerateConstruct(Expression* cond__);
     template <typename ItemsItr>
     CaseGenerateConstruct(Expression* cond__, ItemsItr items_begin__, ItemsItr items_end__);
     ~CaseGenerateConstruct() override;
@@ -78,7 +78,7 @@ inline CaseGenerateConstruct::~CaseGenerateConstruct() {
 }
 
 inline CaseGenerateConstruct* CaseGenerateConstruct::clone() const {
-  auto res = new CaseGenerateConstruct(cond_->clone());
+  auto* res = new CaseGenerateConstruct(cond_->clone());
   MANY_CLONE(items);
   return res;
 }

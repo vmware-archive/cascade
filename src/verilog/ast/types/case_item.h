@@ -41,7 +41,7 @@ namespace cascade {
 class CaseItem : public Node {
   public:
     // Constructors:
-    CaseItem(Statement* stmt__);
+    explicit CaseItem(Statement* stmt__);
     template<typename ExprsItr>
     CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__);
     ~CaseItem() override;
@@ -76,7 +76,7 @@ inline CaseItem::~CaseItem() {
 }
 
 inline CaseItem* CaseItem::clone() const {
-  auto res = new CaseItem(stmt_->clone());
+  auto* res = new CaseItem(stmt_->clone());
   MANY_CLONE(exprs);
   return res;
 }

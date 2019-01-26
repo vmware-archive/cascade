@@ -40,7 +40,7 @@ namespace cascade {
 class FinishStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    FinishStatement(Expression* arg__);
+    explicit FinishStatement(Expression* arg__);
     ~FinishStatement() override;
 
     // Node Interface:

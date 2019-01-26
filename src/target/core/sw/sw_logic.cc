@@ -240,9 +240,9 @@ void SwLogic::visit(const Event* e) {
   assert(id != nullptr);
   const auto* r = Resolve().get_resolution(id);
 
-  if (e->get_type() != Event::NEGEDGE && Evaluate().get_value(r).to_bool()) {
+  if (e->get_type() != Event::Type::NEGEDGE && Evaluate().get_value(r).to_bool()) {
     notify(e);
-  } else if (e->get_type() != Event::POSEDGE && !Evaluate().get_value(r).to_bool()) {
+  } else if (e->get_type() != Event::Type::POSEDGE && !Evaluate().get_value(r).to_bool()) {
     notify(e);
   }
 }

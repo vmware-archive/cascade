@@ -639,7 +639,7 @@ parameter_type
 inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
-      auto t = PortDeclaration::INOUT;
+      auto t = PortDeclaration::Type::INOUT;
       auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
@@ -651,7 +651,7 @@ inout_declaration
 input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
-      auto t = PortDeclaration::INPUT;
+      auto t = PortDeclaration::Type::INPUT;
       auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
@@ -663,7 +663,7 @@ input_declaration
 output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
-      auto t = PortDeclaration::OUTPUT;
+      auto t = PortDeclaration::Type::OUTPUT;
       auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
@@ -673,7 +673,7 @@ output_declaration
   }
   | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
     for (auto va : $5) {
-      auto t = PortDeclaration::OUTPUT;
+      auto t = PortDeclaration::Type::OUTPUT;
       auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
@@ -761,7 +761,7 @@ net_type
   /* TODO | TRI0 */ 
   /* TODO | TRI1 */
   /* TODO | UWIRE */
-  : WIRE { $$ = NetDeclaration::WIRE; }
+  : WIRE { $$ = NetDeclaration::Type::WIRE; }
   /* TODO | WAND */
   /* TODO | WOR */
   ;
@@ -787,7 +787,7 @@ delay3
   /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
   ;
 delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, false); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, false); }
   /* TODO | real_number */
   /* TODO | identifier */
   ;
@@ -864,12 +864,12 @@ param_assignment
 /* A.2.5 Declaration Ranges */
 dimension
   : OSQUARE expression COLON expression CSQUARE { 
-    $$ = new RangeExpression($2, RangeExpression::CONSTANT, $4);
+    $$ = new RangeExpression($2, RangeExpression::Type::CONSTANT, $4);
   }
   ;
 range
   : OSQUARE expression COLON expression CSQUARE { 
-    $$ = new RangeExpression($2, RangeExpression::CONSTANT, $4);
+    $$ = new RangeExpression($2, RangeExpression::Type::CONSTANT, $4);
   }
   ;
 
@@ -1003,76 +1003,76 @@ genvar_expression
     $$ = new UnaryExpression($1,$2); parser->set_loc($$, $2); 
   }
   | genvar_expression AAMP /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::AAMP, $3); parser->set_loc($$, $1);
   }
   | genvar_expression AMP /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::AMP, $3); parser->set_loc($$, $1);
   }
   | genvar_expression BEEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::BEEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression BEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::BEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression CARAT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::CARAT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression DIV /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::DIV, $3); parser->set_loc($$, $1);
   }
   | genvar_expression EEEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::EEEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression EEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::EEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GGGT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GGGT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GGT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GGT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression GT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LEQ /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LEQ, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LLLT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LLLT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LLT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LLT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression LT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression MINUS /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::MINUS, $3); parser->set_loc($$, $1);
   }
   | genvar_expression MOD /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::MOD, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PIPE /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PIPE, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PPIPE /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PPIPE, $3); parser->set_loc($$, $1);
   }
   | genvar_expression PLUS /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PLUS, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TCARAT /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TCARAT, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TIMES /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TIMES, $3); parser->set_loc($$, $1);
   }
   | genvar_expression TTIMES /*attribute_instance_S*/ genvar_expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); parser->set_loc($$, $1);
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); parser->set_loc($$, $1);
   }
   | genvar_expression QMARK /*attribute_instance_S*/ genvar_expression COLON genvar_expression { 
     $$ = new ConditionalExpression($1,$3,$5); parser->set_loc($$, $1);
@@ -1277,13 +1277,13 @@ event_control
   ;
 event_expression
   : expression {
-    $$.push_back(new Event(Event::EDGE, $1));
+    $$.push_back(new Event(Event::Type::EDGE, $1));
   }
   | POSEDGE expression {
-    $$.push_back(new Event(Event::POSEDGE, $2));
+    $$.push_back(new Event(Event::Type::POSEDGE, $2));
   }
   | NEGEDGE expression {
-    $$.push_back(new Event(Event::NEGEDGE, $2));
+    $$.push_back(new Event(Event::Type::NEGEDGE, $2));
   }
   | event_expression OR event_expression {
     $$ = $1;
@@ -1321,13 +1321,13 @@ conditional_statement
 /* A.6.7 Case Statements */
 case_statement
   : CASE OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASE, $3, $5.begin(), $5.end());
+    $$ = new CaseStatement(CaseStatement::Type::CASE, $3, $5.begin(), $5.end());
   }
   | CASEZ OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASEZ, $3, $5.begin(), $5.end());
+    $$ = new CaseStatement(CaseStatement::Type::CASEZ, $3, $5.begin(), $5.end());
   }
   | CASEX OPAREN expression CPAREN case_item_P ENDCASE {
-    $$ = new CaseStatement(CaseStatement::CASEX, $3, $5.begin(), $5.end());
+    $$ = new CaseStatement(CaseStatement::Type::CASEX, $3, $5.begin(), $5.end());
   }
   ;
 case_item
@@ -1369,7 +1369,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FINISH SCOLON { 
-    $$ = new FinishStatement(new Number(Bits(false), Number::UNBASED)); 
+    $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
     parser->set_loc($$);
   }
   | SYS_FINISH OPAREN expression CPAREN SCOLON { 
@@ -1412,76 +1412,76 @@ expression
     $$ = new UnaryExpression($1,$2); 
   }
   | expression AAMP  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AAMP, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::AAMP, $3); 
   }
   | expression AMP  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::AMP, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::AMP, $3); 
   }
   | expression BEEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::BEEQ, $3); 
   }
   | expression BEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::BEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::BEQ, $3); 
   }
   | expression CARAT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::CARAT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::CARAT, $3); 
   }
   | expression DIV  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::DIV, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::DIV, $3); 
   }
   | expression EEEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::EEEQ, $3); 
   }
   | expression EEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::EEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::EEQ, $3); 
   }
   | expression GEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GEQ, $3); 
   }
   | expression GGGT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGGT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GGGT, $3); 
   }
   | expression GGT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GGT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GGT, $3); 
   }
   | expression GT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::GT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::GT, $3); 
   }
   | expression LEQ  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LEQ, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LEQ, $3); 
   }
   | expression LLLT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLLT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LLLT, $3); 
   }
   | expression LLT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LLT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LLT, $3); 
   }
   | expression LT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::LT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::LT, $3); 
   }
   | expression MINUS  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MINUS, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::MINUS, $3); 
   }
   | expression MOD  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::MOD, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::MOD, $3); 
   }
   | expression PIPE  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PIPE, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PIPE, $3); 
   }
   | expression PPIPE  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PPIPE, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PPIPE, $3); 
   }
   | expression PLUS  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::PLUS, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::PLUS, $3); 
   }
   | expression TCARAT  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TCARAT, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TCARAT, $3); 
   }
   | expression TIMES  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TIMES, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TIMES, $3); 
   }
   | expression TTIMES  /*attribute_instance_S*/ expression { 
-    $$ = new BinaryExpression($1, BinaryExpression::TTIMES, $3); 
+    $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
   ;
@@ -1491,9 +1491,9 @@ mintypmax_expression
   ;
 range_expression
   : expression { $$ = $1; }
-  | expression COLON expression { $$ = new RangeExpression($1, RangeExpression::CONSTANT, $3); }
-  | expression PCOLON expression { $$ = new RangeExpression($1, RangeExpression::PLUS, $3); }
-  | expression MCOLON expression { $$ = new RangeExpression($1, RangeExpression::MINUS, $3); } 
+  | expression COLON expression { $$ = new RangeExpression($1, RangeExpression::Type::CONSTANT, $3); }
+  | expression PCOLON expression { $$ = new RangeExpression($1, RangeExpression::Type::PLUS, $3); }
+  | expression MCOLON expression { $$ = new RangeExpression($1, RangeExpression::Type::MINUS, $3); } 
   ;
           
 /* A.8.4 Primaries */
@@ -1525,16 +1525,16 @@ variable_lvalue
 
 /* A.8.6 Operators */
 unary_operator
-  : PLUS   { $$ = UnaryExpression::PLUS; }
-  | MINUS  { $$ = UnaryExpression::MINUS; }
-  | BANG   { $$ = UnaryExpression::BANG; }
-  | TILDE  { $$ = UnaryExpression::TILDE; }
-  | AMP    { $$ = UnaryExpression::AMP; }
-  | TAMP   { $$ = UnaryExpression::TAMP; }
-  | PIPE   { $$ = UnaryExpression::PIPE; }
-  | TPIPE  { $$ = UnaryExpression::TPIPE; }
-  | CARAT  { $$ = UnaryExpression::CARAT; }
-  | TCARAT { $$ = UnaryExpression::TCARAT; }
+  : PLUS   { $$ = UnaryExpression::Op::PLUS; }
+  | MINUS  { $$ = UnaryExpression::Op::MINUS; }
+  | BANG   { $$ = UnaryExpression::Op::BANG; }
+  | TILDE  { $$ = UnaryExpression::Op::TILDE; }
+  | AMP    { $$ = UnaryExpression::Op::AMP; }
+  | TAMP   { $$ = UnaryExpression::Op::TAMP; }
+  | PIPE   { $$ = UnaryExpression::Op::PIPE; }
+  | TPIPE  { $$ = UnaryExpression::Op::TPIPE; }
+  | CARAT  { $$ = UnaryExpression::Op::CARAT; }
+  | TCARAT { $$ = UnaryExpression::Op::TCARAT; }
   ;
 /* INLINED binary_operator */
 
@@ -1547,23 +1547,23 @@ number
   /* TODO | real_number */
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::UNBASED, 32, true); parser->set_loc($$); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::DEC, 32, $1.first); parser->set_loc($$); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::DEC, $1, $2.first); parser->set_loc($$); }
+  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, true); parser->set_loc($$); }
+  | DECIMAL_VALUE { $$ = new Number($1.second, Number::Format::DEC, 32, $1.first); parser->set_loc($$); }
+  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::Format::DEC, $1, $2.first); parser->set_loc($$); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::BIN, 32, $1.first); parser->set_loc($$); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::BIN, $1, $2.first); parser->set_loc($$); }
+  : BINARY_VALUE { $$ = new Number($1.second, Number::Format::BIN, 32, $1.first); parser->set_loc($$); }
+  | size BINARY_VALUE { $$ = new Number($2.second, Number::Format::BIN, $1, $2.first); parser->set_loc($$); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::OCT, 32, $1.first); parser->set_loc($$); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::OCT, $1, $2.first); parser->set_loc($$); }
+  : OCTAL_VALUE { $$ = new Number($1.second, Number::Format::OCT, 32, $1.first); parser->set_loc($$); }
+  | size OCTAL_VALUE { $$ = new Number($2.second, Number::Format::OCT, $1, $2.first); parser->set_loc($$); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::HEX, 32, $1.first); parser->set_loc($$); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::HEX, $1, $2.first); parser->set_loc($$); }
+  : HEX_VALUE { $$ = new Number($1.second, Number::Format::HEX, 32, $1.first); parser->set_loc($$); }
+  | size HEX_VALUE { $$ = new Number($2.second, Number::Format::HEX, $1, $2.first); parser->set_loc($$); }
   ;
 size
   : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
@@ -1784,7 +1784,7 @@ net_type_L
   : net_type { $$ = std::make_pair(parser->get_loc().begin.line, $1); }
   ;
 net_type_Q
-  : %empty { $$ = NetDeclaration::WIRE; }
+  : %empty { $$ = NetDeclaration::Type::WIRE; }
   | net_type { $$ = $1; }
   ;
 non_port_module_item_S
@@ -1919,15 +1919,15 @@ alt_port_declaration
     }
     auto d = $2 ? 
       (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(), NetDeclaration::WIRE, nullptr, $5, $3, $4);
+      (Declaration*) new NetDeclaration(new Attributes(), NetDeclaration::Type::WIRE, nullptr, $5, $3, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(), $1, d);
   }
   ;
 alt_port_type
-  : INOUT { $$ = PortDeclaration::INOUT; }
-  | INPUT { $$ = PortDeclaration::INPUT; }
-  | OUTPUT { $$ = PortDeclaration::OUTPUT; }
+  : INOUT { $$ = PortDeclaration::Type::INOUT; }
+  | INPUT { $$ = PortDeclaration::Type::INPUT; }
+  | OUTPUT { $$ = PortDeclaration::Type::OUTPUT; }
   ;
 alt_net_type 
   : %empty { $$ = false; }

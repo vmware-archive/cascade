@@ -53,7 +53,7 @@ inline std::string Printf::format(InputItr begin, InputItr end) {
   std::stringstream ss;
   auto a = begin;
 
-  auto s = dynamic_cast<const String*>(*a);
+  auto* s = dynamic_cast<const String*>(*a);
   if (s == nullptr) {
     Evaluate().get_value(*a).write(ss, 10);
     return ss.str();

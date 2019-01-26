@@ -112,14 +112,14 @@ Vector<GenerateBlock*>& Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     return lgc->gen_;
   }
 
-  auto id = lgc->get_block()->is_null_id() ? get_name(lgc) : lgc->get_block()->get_id()->clone();
-  const auto itr = lgc->get_init()->get_lhs();
+  auto* id = lgc->get_block()->is_null_id() ? get_name(lgc) : lgc->get_block()->get_id()->clone();
+  const auto* itr = lgc->get_init()->get_lhs();
   for (
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_init()->get_rhs()));
     Evaluate().get_value(lgc->get_cond()).to_bool();
     Evaluate().assign_value(itr, Evaluate().get_value(lgc->get_update()->get_rhs()))
   ) {
-    const auto block = new GenerateBlock(true);
+    auto* block = new GenerateBlock(true);
     block->replace_id(new Identifier(new Id(
       id->front_ids()->get_sid(), 
       new Number(Evaluate().get_value(itr))
@@ -138,7 +138,7 @@ Vector<GenerateBlock*>& Elaborate::elaborate(LoopGenerateConstruct* lgc) {
   }  
   delete id;
 
-  for (auto b : lgc->gen_) {
+  for (auto* b : lgc->gen_) {
     b->parent_ = lgc;
   }
   return lgc->gen_;
@@ -209,7 +209,7 @@ void Elaborate::named_params(ModuleInstantiation* mi) {
   }
 
   for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
-    if (auto pd = dynamic_cast<ParameterDeclaration*>(*i)) {
+    if (auto* pd = dynamic_cast<ParameterDeclaration*>(*i)) {
       const auto itr = params.find(pd->get_id());
       if (itr != params.end()) {
         const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(itr->second)));
@@ -221,8 +221,8 @@ void Elaborate::named_params(ModuleInstantiation* mi) {
 void Elaborate::ordered_params(ModuleInstantiation* mi) {
   size_t idx = 0;
   for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
-    if (auto pd = dynamic_cast<ParameterDeclaration*>(*i)) {
-      const auto p = mi->get_params(idx++);
+    if (auto* pd = dynamic_cast<ParameterDeclaration*>(*i)) {
+      const auto* p = mi->get_params(idx++);
       const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(p->get_imp())));
     }
   }
@@ -239,12 +239,12 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b) {
     return;
   }
   // Also nothing to do if this is a directly nested block without begin/ends
-  if (auto block = dynamic_cast<GenerateBlock*>(cgc->get_parent())) {
+  if (auto* block = dynamic_cast<GenerateBlock*>(cgc->get_parent())) {
     const auto only_item = block->size_items() == 1;
-    const auto p = block->get_parent();
-    const auto nested_if = dynamic_cast<IfGenerateClause*>(p) != nullptr;
-    const auto nested_else = dynamic_cast<IfGenerateConstruct*>(p) != nullptr;
-    const auto nested_case = dynamic_cast<CaseGenerateItem*>(p) != nullptr;
+    const auto* p = block->get_parent();
+    const auto nested_if = dynamic_cast<const IfGenerateClause*>(p) != nullptr;
+    const auto nested_else = dynamic_cast<const IfGenerateConstruct*>(p) != nullptr;
+    const auto nested_case = dynamic_cast<const CaseGenerateItem*>(p) != nullptr;
     if (!block->get_scope() && only_item && (nested_if || nested_else || nested_case)) {
       return;
     }

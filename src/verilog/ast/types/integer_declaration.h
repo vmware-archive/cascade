@@ -73,7 +73,7 @@ inline IntegerDeclaration::~IntegerDeclaration() {
 }
 
 inline IntegerDeclaration* IntegerDeclaration::clone() const {
-  auto res = new IntegerDeclaration(attrs_->clone(), id_->clone());
+  auto* res = new IntegerDeclaration(attrs_->clone(), id_->clone());
   MAYBE_CLONE(val);
   return res;
 }

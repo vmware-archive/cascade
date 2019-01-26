@@ -41,7 +41,7 @@ namespace cascade {
 class BlockingAssign : public AssignStatement {
   public:
     // Constructors:
-    BlockingAssign(VariableAssign* assign__);
+    explicit BlockingAssign(VariableAssign* assign__);
     BlockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~BlockingAssign() override;
 
@@ -74,7 +74,7 @@ inline BlockingAssign::~BlockingAssign() {
 }
 
 inline BlockingAssign* BlockingAssign::clone() const {
-  auto res = new BlockingAssign(assign_->clone());
+  auto* res = new BlockingAssign(assign_->clone());
   MAYBE_CLONE(ctrl);
   return res;
 }

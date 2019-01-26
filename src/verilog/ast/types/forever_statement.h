@@ -40,7 +40,7 @@ namespace cascade {
 class ForeverStatement : public LoopStatement {
   public:
     // Constructors:
-    ForeverStatement(Statement* stmt__);
+    explicit ForeverStatement(Statement* stmt__);
     ~ForeverStatement() override;
 
     // Node Interface:

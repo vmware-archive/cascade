@@ -41,7 +41,7 @@ namespace cascade {
 class PortDeclaration : public ModuleItem {
   public:
     // Supporting Concepts:
-    enum Type : uint8_t {
+    enum class Type : uint8_t {
       INOUT = 0,
       INPUT,
       OUTPUT
@@ -53,7 +53,7 @@ class PortDeclaration : public ModuleItem {
 
     // Node Interface:
     NODE(PortDeclaration)
-    inline PortDeclaration* clone() const override;
+    PortDeclaration* clone() const override;
 
     // Get/Set:
     PTR_GET_SET(PortDeclaration, Attributes, attrs)

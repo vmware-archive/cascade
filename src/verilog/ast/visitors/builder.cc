@@ -42,7 +42,7 @@ ArgAssign* Builder::build(const ArgAssign* aa) {
 }
 
 Attributes* Builder::build(const Attributes* a) {
-  auto res = new Attributes();
+  auto* res = new Attributes();
   a->accept_as(this, res->back_inserter_as());
   return res;
 }
@@ -55,14 +55,14 @@ AttrSpec* Builder::build(const AttrSpec* as) {
 }
 
 CaseGenerateItem* Builder::build(const CaseGenerateItem* cgi) {
-  auto res = new CaseGenerateItem();
+  auto* res = new CaseGenerateItem();
   res->replace_block(cgi->accept_block(this));
   cgi->accept_exprs(this, res->back_inserter_exprs());
   return res;
 }
 
 CaseItem* Builder::build(const CaseItem* ci) {
-  auto res = new CaseItem(
+  auto* res = new CaseItem(
     ci->accept_stmt(this)
   );
   ci->accept_exprs(this, res->back_inserter_exprs());
@@ -93,13 +93,13 @@ Expression* Builder::build(const ConditionalExpression* ce) {
 }
 
 Expression* Builder::build(const Concatenation* c) {
-  auto res = new Concatenation();
+  auto* res = new Concatenation();
   c->accept_exprs(this, res->back_inserter_exprs());
   return res;
 }
 
 Expression* Builder::build(const Identifier* id) {
-  auto res = new Identifier();
+  auto* res = new Identifier();
   id->accept_ids(this, res->back_inserter_ids());
   id->accept_dim(this, res->back_inserter_dim());
   return res;
@@ -136,7 +136,7 @@ Expression* Builder::build(const UnaryExpression* ue) {
 }
 
 GenerateBlock* Builder::build(const GenerateBlock* gb) {
-  auto res = new GenerateBlock(
+  auto* res = new GenerateBlock(
     gb->get_scope()
   );
   res->replace_id(gb->accept_id(this));
@@ -159,7 +159,7 @@ IfGenerateClause* Builder::build(const IfGenerateClause* igc) {
 }
 
 ModuleDeclaration* Builder::build(const ModuleDeclaration* md) {
-  auto res = new ModuleDeclaration(
+  auto* res = new ModuleDeclaration(
     md->accept_attrs(this),
     md->accept_id(this)
   );
@@ -175,7 +175,7 @@ ModuleItem* Builder::build(const AlwaysConstruct* ac) {
 }
 
 ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
-  auto res = new IfGenerateConstruct(
+  auto* res = new IfGenerateConstruct(
     igc->accept_attrs(this)
   );
   igc->accept_clauses(this, res->back_inserter_clauses());
@@ -184,7 +184,7 @@ ModuleItem* Builder::build(const IfGenerateConstruct* igc) {
 }
 
 ModuleItem* Builder::build(const CaseGenerateConstruct* cgc) {
-  auto res = new CaseGenerateConstruct(
+  auto* res = new CaseGenerateConstruct(
     cgc->accept_cond(this)
   );
   cgc->accept_items(this, res->back_inserter_items());
@@ -271,13 +271,13 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
 }
 
 ModuleItem* Builder::build(const GenerateRegion* gr) {
-  auto res = new GenerateRegion();
+  auto* res = new GenerateRegion();
   gr->accept_items(this, res->back_inserter_items());
   return res;
 }
 
 ModuleItem* Builder::build(const ModuleInstantiation* mi) {
-  auto res = new ModuleInstantiation(
+  auto* res = new ModuleInstantiation(
     mi->accept_attrs(this),
     mi->accept_mid(this),
     mi->accept_iid(this)
@@ -311,7 +311,7 @@ Statement* Builder::build(const NonblockingAssign* na) {
 }
 
 Statement* Builder::build(const CaseStatement* cs) {
-  auto res = new CaseStatement(
+  auto* res = new CaseStatement(
     cs->get_type(),
     cs->accept_cond(this)
   );
@@ -350,7 +350,7 @@ Statement* Builder::build(const RepeatStatement* rs) {
 }
 
 Statement* Builder::build(const ParBlock* pb) {
-  auto res = new ParBlock();
+  auto* res = new ParBlock();
   res->replace_id(pb->accept_id(this));
   pb->accept_decls(this, res->back_inserter_decls());
   pb->accept_stmts(this, res->back_inserter_stmts());
@@ -358,7 +358,7 @@ Statement* Builder::build(const ParBlock* pb) {
 }
 
 Statement* Builder::build(const SeqBlock* sb) {
-  auto res = new SeqBlock();
+  auto* res = new SeqBlock();
   res->replace_id(sb->accept_id(this));
   sb->accept_decls(this, res->back_inserter_decls());
   sb->accept_stmts(this, res->back_inserter_stmts());
@@ -373,7 +373,7 @@ Statement* Builder::build(const TimingControlStatement* tcs) {
 }
 
 Statement* Builder::build(const DisplayStatement* ds) {
-  auto res = new DisplayStatement();
+  auto* res = new DisplayStatement();
   ds->accept_args(this, res->back_inserter_args());
   return res;
 }
@@ -385,7 +385,7 @@ Statement* Builder::build(const FinishStatement* fs) {
 }
 
 Statement* Builder::build(const WriteStatement* ws) {
-  auto res = new WriteStatement();
+  auto* res = new WriteStatement();
   ws->accept_args(this, res->back_inserter_args());
   return res;
 }
@@ -411,7 +411,7 @@ TimingControl* Builder::build(const DelayControl* dc) {
 }
 
 TimingControl* Builder::build(const EventControl* ec) {
-  auto res = new EventControl();
+  auto* res = new EventControl();
   ec->accept_events(this, res->back_inserter_events());
   return res;
 }

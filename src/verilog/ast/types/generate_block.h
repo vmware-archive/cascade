@@ -42,7 +42,7 @@ namespace cascade {
 class GenerateBlock : public Node, public Scope {
   public:
     // Constructors:
-    GenerateBlock(bool scope__);
+    explicit GenerateBlock(bool scope__);
     template <typename ItemsItr>
     GenerateBlock(Identifier* id__, bool scope__, ItemsItr items_begin__, ItemsItr items_end__);
     ~GenerateBlock() override;
@@ -77,7 +77,7 @@ inline GenerateBlock::GenerateBlock(Identifier* id__, bool scope__, ItemsItr ite
 }
 
 inline GenerateBlock* GenerateBlock::clone() const {
-  auto res = new GenerateBlock(scope_);
+  auto* res = new GenerateBlock(scope_);
   MAYBE_CLONE(id);
   MANY_CLONE(items);
   return res;

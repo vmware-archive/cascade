@@ -50,7 +50,7 @@ namespace cascade {
 class ModuleInfo : public Visitor {
   public:
     // Constructors:
-    ModuleInfo(const ModuleDeclaration* md);
+    explicit ModuleInfo(const ModuleDeclaration* md);
     // Does nothing. No state is stored in this class.
     ~ModuleInfo() override = default;
 

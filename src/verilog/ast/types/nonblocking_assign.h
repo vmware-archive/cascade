@@ -41,7 +41,7 @@ namespace cascade {
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
-    NonblockingAssign(VariableAssign* assign__);
+    explicit NonblockingAssign(VariableAssign* assign__);
     NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
     ~NonblockingAssign() override;
 
@@ -74,7 +74,7 @@ inline NonblockingAssign::~NonblockingAssign() {
 }
 
 inline NonblockingAssign* NonblockingAssign::clone() const {
-  auto res = new NonblockingAssign(assign_->clone());
+  auto* res = new NonblockingAssign(assign_->clone());
   MAYBE_CLONE(ctrl);
   return res;
 }

@@ -75,7 +75,7 @@ inline ArgAssign::~ArgAssign() {
 }
 
 inline ArgAssign* ArgAssign::clone() const {
-  auto res = new ArgAssign();
+  auto* res = new ArgAssign();
   MAYBE_CLONE(exp);
   MAYBE_CLONE(imp);
   return res;

@@ -44,8 +44,8 @@ class Identifier : public Primary {
   public:
     // Constructors:
     Identifier();
-    Identifier(const std::string& id__);
-    Identifier(Id* id__);
+    explicit Identifier(const std::string& id__);
+    explicit Identifier(Id* id__);
     Identifier(Id* id__, Expression* dim__);
     template <typename DimItr>
     Identifier(Id* id__, DimItr begin_dim__, DimItr end_dim__);
@@ -111,7 +111,7 @@ inline Identifier::~Identifier() {
 }
 
 inline Identifier* Identifier::clone() const {
-  auto res = new Identifier();
+  auto* res = new Identifier();
   MANY_CLONE(ids);
   MANY_CLONE(dim);
   return res;

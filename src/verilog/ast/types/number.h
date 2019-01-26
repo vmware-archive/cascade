@@ -42,7 +42,7 @@ namespace cascade {
 class Number : public Primary {
   public:
     // Supporting Concepts:
-    enum Format : uint8_t {
+    enum class Format : uint8_t {
       UNBASED = 0,
       DEC,
       BIN,
@@ -51,8 +51,8 @@ class Number : public Primary {
     };
   
     // Constructors:
-    Number(const std::string& val, Format format_ = UNBASED, size_t size = 0, bool is_signed = false);
-    Number(const Bits& val, Format format = UNBASED);
+    Number(const std::string& val, Format format_ = Format::UNBASED, size_t size = 0, bool is_signed = false);
+    Number(const Bits& val, Format format = Format::UNBASED);
     ~Number() override = default;
 
     // Node Interface 
@@ -65,7 +65,6 @@ class Number : public Primary {
     Format get_format() const;
     void set_format(Format format);
 
-  private:
     // NOTE: All attributes and decorations are stored in Node::common_ and
     // Expression::bit_val_
 };
@@ -76,17 +75,17 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
   bit_val_.resize(1);
   std::stringstream ss(val);
   switch (format) {
-    case UNBASED:
-    case DEC:
+    case Format::UNBASED:
+    case Format::DEC:
       bit_val_[0].read(ss, 10);  
       break;
-    case BIN:
+    case Format::BIN:
       bit_val_[0].read(ss, 2);
       break;
-    case OCT:
+    case Format::OCT:
       bit_val_[0].read(ss, 8);
       break;
-    case HEX:
+    case Format::HEX:
       bit_val_[0].read(ss, 16);
       break;
     default:
@@ -125,11 +124,11 @@ inline void Number::set_val(const Bits& val) {
 }
 
 inline Number::Format Number::get_format() const {
-  return (Format)Node::get_val<2,3>();  
+  return static_cast<Format>(Node::get_val<2,3>());  
 }
 
 inline void Number::set_format(Format f) {
-  Node::set_val<2,3>((uint32_t)f);
+  Node::set_val<2,3>(static_cast<uint32_t>(f));
 }
 
 } // namespace cascade

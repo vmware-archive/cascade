@@ -83,7 +83,7 @@ inline RegDeclaration::~RegDeclaration() {
 }
 
 inline RegDeclaration* RegDeclaration::clone() const {
-  auto res = new RegDeclaration(attrs_->clone(), id_->clone(), signed_);
+  auto* res = new RegDeclaration(attrs_->clone(), id_->clone(), signed_);
   MAYBE_CLONE(dim);
   MAYBE_CLONE(val);
   return res;

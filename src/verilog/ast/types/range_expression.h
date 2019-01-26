@@ -40,7 +40,7 @@ namespace cascade {
 class RangeExpression : public Expression {
   public:
     // Supporting Concepts:
-    enum Type : uint8_t {
+    enum class Type : uint8_t {
       CONSTANT = 0,
       PLUS,
       MINUS
@@ -68,13 +68,13 @@ class RangeExpression : public Expression {
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
   std::stringstream ssu;
-  ssu << i__-1;
+  ssu << (i__-1);
   std::stringstream ssl;
   ssl << j__;
 
-  upper_ = new Number(ssu.str(), Number::UNBASED, 32, false);
-  type_ = RangeExpression::CONSTANT;
-  lower_ = new Number(ssl.str(), Number::UNBASED, 32, false);
+  upper_ = new Number(ssu.str(), Number::Format::UNBASED, 32, false);
+  type_ = RangeExpression::Type::CONSTANT;
+  lower_ = new Number(ssl.str(), Number::Format::UNBASED, 32, false);
 }
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression() {

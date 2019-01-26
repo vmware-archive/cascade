@@ -56,7 +56,7 @@ class Inline : public Editor {
     class Qualify : public Builder {
       public:
         Qualify();
-        ~Qualify() = default;
+        ~Qualify() override = default;
         Expression* qualify_exp(const Expression* e);
         Identifier* qualify_id(const Identifier* id);
       private:

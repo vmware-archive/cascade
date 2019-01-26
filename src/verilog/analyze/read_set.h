@@ -47,8 +47,8 @@ class ReadSet : public Visitor {
     typedef std::unordered_set<const Identifier*>::const_iterator const_iterator;
 
     // Constructors:
-    ReadSet(const Expression* e);
-    ReadSet(const Statement* s);
+    explicit ReadSet(const Expression* e);
+    explicit ReadSet(const Statement* s);
     ~ReadSet() override = default;
 
     // Iterator Interface:

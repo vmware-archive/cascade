@@ -384,7 +384,7 @@ void TypeCheck::visit(const Identifier* id) {
 
   // CHECK: Range expression bit-selects
   if (const auto re = dynamic_cast<const RangeExpression*>(*cdr)) {
-    if (re->get_type() == RangeExpression::CONSTANT) {
+    if (re->get_type() == RangeExpression::Type::CONSTANT) {
       // CHECK: Non-constant values, values out of range, little-endian ranges
       // EXIT: We can't continue checking if we can't evaluate this range
       if (!Constant().is_static_constant(re)) {

@@ -83,7 +83,7 @@ inline ParBlock::~ParBlock() {
 }
 
 inline ParBlock* ParBlock::clone() const {
-  auto res = new ParBlock();
+  auto* res = new ParBlock();
   MAYBE_CLONE(id);
   MANY_CLONE(decls);
   MANY_CLONE(stmts);

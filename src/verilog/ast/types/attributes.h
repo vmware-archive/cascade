@@ -44,7 +44,7 @@ class Attributes : public Node {
   public:
     // Constructors:
     Attributes();
-    Attributes(AttrSpec* as);
+    explicit Attributes(AttrSpec* as);
     template <typename AttrItr>
     Attributes(AttrItr as_begin__, AttrItr as_end__);
     ~Attributes() override;
@@ -86,7 +86,7 @@ inline Attributes::~Attributes() {
 }
 
 inline Attributes* Attributes::clone() const {
-  auto res = new Attributes();
+  auto* res = new Attributes();
   MANY_CLONE(as);
   return res;
 }

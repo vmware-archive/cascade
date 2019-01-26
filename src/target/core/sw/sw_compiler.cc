@@ -129,7 +129,7 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
 
   // Set up input output connections
   for (auto* l : info.locals()) {
-    auto d = dynamic_cast<const Declaration*>(l->get_parent());
+    auto* d = dynamic_cast<const Declaration*>(l->get_parent());
     if (auto* pd = dynamic_cast<const PortDeclaration*>(d->get_parent())) {
       const auto* id = pd->get_attrs()->get<Identifier>("__id");
       if (id->back_ids()->eq("clock")) {

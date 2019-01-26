@@ -83,7 +83,7 @@ inline SeqBlock::~SeqBlock() {
 }
 
 inline SeqBlock* SeqBlock::clone() const {
-  auto res = new SeqBlock();
+  auto* res = new SeqBlock();
   MAYBE_CLONE(id);
   MANY_CLONE(decls);
   MANY_CLONE(stmts);

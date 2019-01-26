@@ -71,7 +71,7 @@ inline EventControl::~EventControl() {
 }
 
 inline EventControl* EventControl::clone() const {
-  auto res = new EventControl();
+  auto* res = new EventControl();
   MANY_CLONE(events);
   return res;
 }

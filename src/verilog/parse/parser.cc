@@ -77,7 +77,7 @@ void Parser::parse(istream& is, Log* log) {
 
   get_loc().step();
   parser.parse();
-  for (auto n : res_) {
+  for (auto* n : res_) {
     n->accept(this);
   }
 }

@@ -37,7 +37,7 @@ namespace cascade {
 
 class TextPrinter : public Printer {
   public:
-    TextPrinter(std::ostream& os);
+    explicit TextPrinter(std::ostream& os);
     ~TextPrinter() override = default;
   
   protected:

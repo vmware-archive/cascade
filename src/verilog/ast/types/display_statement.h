@@ -71,7 +71,7 @@ inline DisplayStatement::~DisplayStatement() {
 }
 
 inline DisplayStatement* DisplayStatement::clone() const {
-  auto res = new DisplayStatement();
+  auto* res = new DisplayStatement();
   MANY_CLONE(args);
   return res;
 }

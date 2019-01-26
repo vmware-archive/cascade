@@ -38,7 +38,7 @@ namespace cascade {
 
 class HtmlPrinter : public Printer {
   public:
-    HtmlPrinter(std::ostream& os);
+    explicit HtmlPrinter(std::ostream& os);
     ~HtmlPrinter() override;
   
   protected:

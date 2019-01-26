@@ -122,7 +122,7 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
     true,
     new RangeExpression(32,0),
     id->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(id->get_id()), Number::HEX) :
+      new Number(Evaluate().get_value(id->get_id()), Number::Format::HEX) :
       nullptr
   );
   return res;
@@ -136,7 +136,7 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
     ld->get_signed(),
     ld->accept_dim(this),
     ld->accept_id(this),
-    new Number(Evaluate().get_value(ld->get_id()), Number::HEX)
+    new Number(Evaluate().get_value(ld->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(
     new Identifier("__id"),
@@ -154,7 +154,7 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
     pd->get_signed(),
     pd->accept_dim(this),
     pd->accept_id(this),
-    new Number(Evaluate().get_value(pd->get_id()), Number::HEX)
+    new Number(Evaluate().get_value(pd->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(
     new Identifier("__id"),
@@ -173,7 +173,7 @@ ModuleItem* Isolate::build(const RegDeclaration* rd) {
     rd->get_signed(),
     rd->accept_dim(this),
     rd->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(rd->get_id()), Number::HEX) :
+      new Number(Evaluate().get_value(rd->get_id()), Number::Format::HEX) :
       nullptr
   );
   return res;
@@ -240,7 +240,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
     auto* pd = new PortDeclaration(
       new Attributes(), 
-      (r && w) ? PortDeclaration::INOUT : r ? PortDeclaration::INPUT : PortDeclaration::OUTPUT,
+      (r && w) ? PortDeclaration::Type::INOUT : r ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
       (info.is_local(p) && (dynamic_cast<const RegDeclaration*>(p->get_parent()) != nullptr)) ? 
         static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),
@@ -251,7 +251,7 @@ ModuleDeclaration* Isolate::get_shell() {
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
-          NetDeclaration::WIRE,
+          NetDeclaration::Type::WIRE,
           nullptr,
           to_global_id(p),
           dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),

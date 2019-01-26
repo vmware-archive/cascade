@@ -154,7 +154,7 @@ void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
 
 Expression* ConstantProp::rewrite(BinaryExpression* be) {
   if (RuntimeConstant(this).check(be)) {
-    auto res = new Number(Evaluate().get_value(be), Number::HEX);
+    auto res = new Number(Evaluate().get_value(be), Number::Format::HEX);
     Evaluate().invalidate(be);
     return res;
   }
@@ -183,7 +183,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
 
 Expression* ConstantProp::rewrite(Concatenation* c) {
   if (RuntimeConstant(this).check(c)) {
-    auto res = new Number(Evaluate().get_value(c), Number::HEX);
+    auto res = new Number(Evaluate().get_value(c), Number::Format::HEX);
     Evaluate().invalidate(c);
     return res;
   }
@@ -198,7 +198,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
     return Rewriter::rewrite(i);
   }
   if (RuntimeConstant(this).check(i)) {
-    auto res = new Number(Evaluate().get_value(i), Number::HEX);
+    auto res = new Number(Evaluate().get_value(i), Number::Format::HEX);
     Evaluate().invalidate(i);
     return res;
   }
@@ -207,7 +207,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
 
 Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
   if (RuntimeConstant(this).check(mc)) {
-    auto res = new Number(Evaluate().get_value(mc), Number::HEX);
+    auto res = new Number(Evaluate().get_value(mc), Number::Format::HEX);
     Evaluate().invalidate(mc);
     return res;
   }
@@ -226,7 +226,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
 
 Expression* ConstantProp::rewrite(UnaryExpression* ue) {
   if (RuntimeConstant(this).check(ue)) {
-    auto res = new Number(Evaluate().get_value(ue), Number::HEX);
+    auto res = new Number(Evaluate().get_value(ue), Number::Format::HEX);
     Evaluate().invalidate(ue);
     return res;
   }

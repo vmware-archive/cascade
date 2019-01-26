@@ -81,7 +81,7 @@ inline ParameterDeclaration::~ParameterDeclaration() {
 }
 
 inline ParameterDeclaration* ParameterDeclaration::clone() const {
-  auto res = new ParameterDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  auto* res = new ParameterDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
   MAYBE_CLONE(dim);
   return res;
 }

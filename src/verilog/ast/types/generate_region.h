@@ -70,7 +70,7 @@ inline GenerateRegion::~GenerateRegion() {
 }
 
 inline GenerateRegion* GenerateRegion::clone() const {
-  auto res = new GenerateRegion();
+  auto* res = new GenerateRegion();
   MANY_CLONE(items);
   return res;
 }

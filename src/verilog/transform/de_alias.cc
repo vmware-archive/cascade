@@ -214,17 +214,17 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
 
   // Compute x's least significant bit
   Expression* lsb = nullptr;
-  if (xre->get_type() == RangeExpression::MINUS) {
+  if (xre->get_type() == RangeExpression::Type::MINUS) {
     lsb = new BinaryExpression(
       xre->get_upper()->clone(),
-      BinaryExpression::MINUS,
+      BinaryExpression::Op::MINUS,
       new BinaryExpression(
         xre->get_lower()->clone(),
-        BinaryExpression::PLUS,
+        BinaryExpression::Op::PLUS,
         new Number("1")
       )
     );
-  } else if (xre->get_type() == RangeExpression::PLUS) {
+  } else if (xre->get_type() == RangeExpression::Type::PLUS) {
     lsb = xre->get_upper()->clone();      
   } else {
     lsb = xre->get_lower()->clone();
@@ -233,12 +233,12 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
   // Easy Case: If y is a single bit, then we can just add this value to x's lsb
   const auto yre = dynamic_cast<const RangeExpression*>(y);
   if (yre == nullptr) {
-    return new BinaryExpression(lsb, BinaryExpression::PLUS, y->clone());
+    return new BinaryExpression(lsb, BinaryExpression::Op::PLUS, y->clone());
   }
   // Easier Case: If y is a plus or minus range, we just need to change its offset
-  else if (yre->get_type() != RangeExpression::CONSTANT) {
+  else if (yre->get_type() != RangeExpression::Type::CONSTANT) {
     return new RangeExpression(
-      new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_upper()->clone()),
+      new BinaryExpression(lsb, BinaryExpression::Op::PLUS, yre->get_upper()->clone()),
       yre->get_type(),
       yre->get_lower()->clone()
     );
@@ -246,9 +246,9 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
   // Hard Case: If y is a constant range, we need to add lsb to both of its bounds
   else {
     return new RangeExpression(
-      new BinaryExpression(lsb, BinaryExpression::PLUS, yre->get_upper()->clone()),
-      RangeExpression::CONSTANT,
-      new BinaryExpression(lsb->clone(), BinaryExpression::PLUS, yre->get_lower()->clone())
+      new BinaryExpression(lsb, BinaryExpression::Op::PLUS, yre->get_upper()->clone()),
+      RangeExpression::Type::CONSTANT,
+      new BinaryExpression(lsb->clone(), BinaryExpression::Op::PLUS, yre->get_lower()->clone())
     );
   } 
 }

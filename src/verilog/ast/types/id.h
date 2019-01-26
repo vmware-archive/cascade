@@ -43,9 +43,9 @@ namespace cascade {
 class Id : public Node {
   public:
     // Constructors:
-    Id(const std::string& sid__);
+    explicit Id(const std::string& sid__);
     Id(const std::string& sid__, Expression* isel__);
-    Id(Tokenize::Token sid__);
+    explicit Id(Tokenize::Token sid__);
     Id(Tokenize::Token sid__, Expression* isel__);
     ~Id() override;
 
@@ -90,7 +90,7 @@ inline Id::~Id() {
 }
 
 inline Id* Id::clone() const {
-  auto res = new Id(sid_);
+  auto* res = new Id(sid_);
   MAYBE_CLONE(isel);
   return res;
 }

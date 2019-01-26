@@ -71,7 +71,7 @@ inline WriteStatement::~WriteStatement() {
 }
 
 inline WriteStatement* WriteStatement::clone() const {
-  auto res = new WriteStatement();
+  auto* res = new WriteStatement();
   MANY_CLONE(args);
   return res;
 }

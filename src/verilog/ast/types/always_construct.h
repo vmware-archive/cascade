@@ -40,7 +40,7 @@ namespace cascade {
 class AlwaysConstruct : public Construct {
   public:
     // Constructors:
-    AlwaysConstruct(Statement* stmt__);
+    explicit AlwaysConstruct(Statement* stmt__);
     ~AlwaysConstruct() override;
 
     // Node Interface:

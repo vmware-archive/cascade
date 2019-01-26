@@ -134,7 +134,7 @@ class Evaluate : public Editor {
     void flag_changed(const Identifier* id);
 
     // Invalidates bit, size, and type info for the expressions in this subtree
-    struct Invalidate : public Editor {
+    struct Invalidate : Editor {
       ~Invalidate() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
@@ -150,7 +150,7 @@ class Evaluate : public Editor {
       void edit(RegDeclaration* rd) override;
     };
     // Uses the self-determination to allocate bits, sizes, and types.
-    struct SelfDetermine : public Editor {
+    struct SelfDetermine : Editor {
       ~SelfDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
@@ -166,14 +166,12 @@ class Evaluate : public Editor {
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
-      void edit(VariableAssign* va) override;
     };
     // Propagates bit-width for context determined operators.
-    struct ContextDetermine : public Editor {
+    struct ContextDetermine : Editor {
       ~ContextDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;
       void edit(Number* n) override;

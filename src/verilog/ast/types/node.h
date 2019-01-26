@@ -98,20 +98,20 @@ inline const Node* Node::get_parent() const {
 template <size_t idx>
 inline void Node::set_flag(bool b) {
   if (b) {
-    common_ |= (uint32_t(1) << idx);
+    common_ |= (static_cast<int32_t>(1) << idx);
   } else {
-    common_ &= ~(uint32_t(1) << idx);
+    common_ &= ~(static_cast<uint32_t>(1) << idx);
   }
 }
 
 template <size_t idx>
 inline bool Node::get_flag() const {
-  return common_ & (uint32_t(1) << idx);
+  return common_ & (static_cast<uint32_t>(1) << idx);
 }
 
 template <size_t idx, size_t w>
 inline void Node::set_val(uint32_t val) {
-  const auto mask = (uint32_t(1) << w) - 1;
+  const auto mask = (static_cast<uint32_t>(1) << w) - 1;
   val &= mask;
   common_ &= ~(mask << idx);
   common_ |= (val << idx);
@@ -120,7 +120,7 @@ inline void Node::set_val(uint32_t val) {
 template <size_t idx, size_t w>
 inline uint32_t Node::get_val() const {
   const auto mask = (uint32_t(1) << w) - 1;
-  return uint32_t((common_ >> idx) & mask);
+  return static_cast<uint32_t>((common_ >> idx) & mask);
 }
 
 } // namespace cascade

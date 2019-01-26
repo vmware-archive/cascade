@@ -127,7 +127,7 @@ class Parser : public Editor {
     // Sets filename to the current path, line to a constant value
     void set_loc(const Node* n, size_t line);
     // Sets location to the current path and line 
-    void set_loc(const Node*);
+    void set_loc(const Node* n);
 };
 
 } // namespace cascade 

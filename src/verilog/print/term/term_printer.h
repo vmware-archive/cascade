@@ -37,7 +37,7 @@ namespace cascade {
 
 class TermPrinter : public Printer {
   public:
-    TermPrinter(std::ostream& os);
+    explicit TermPrinter(std::ostream& os);
     ~TermPrinter() override = default;
   
   protected:

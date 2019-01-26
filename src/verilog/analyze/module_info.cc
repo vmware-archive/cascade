@@ -73,61 +73,61 @@ bool ModuleInfo::is_instantiated() {
 }
 
 const Identifier* ModuleInfo::id() {
-  auto p = md_->get_parent();
+  auto* p = md_->get_parent();
   if (p == nullptr) {
     return nullptr;
   }
-  auto mi = dynamic_cast<ModuleInstantiation*>(p);
+  auto* mi = dynamic_cast<ModuleInstantiation*>(p);
   assert(mi != nullptr);
   return mi->get_iid();
 }
 
 bool ModuleInfo::is_local(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : (md_->locals_.find(r) != md_->locals_.end());
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->locals_.find(r) != md_->locals_.end());
 }
 
 bool ModuleInfo::is_input(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->inputs_.find(r) != md_->inputs_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->inputs_.find(r) != md_->inputs_.end());
 }
 
 bool ModuleInfo::is_stateful(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->stateful_.find(r) != md_->stateful_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->stateful_.find(r) != md_->stateful_.end());
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->outputs_.find(r) != md_->outputs_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->outputs_.find(r) != md_->outputs_.end());
 }
 
 bool ModuleInfo::is_external(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->externals_.find(r) != md_->externals_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->externals_.find(r) != md_->externals_.end());
 }
 
 bool ModuleInfo::is_read(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->reads_.find(r) != md_->reads_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->reads_.find(r) != md_->reads_.end());
 }
 
 bool ModuleInfo::is_write(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->writes_.find(r) != md_->writes_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->writes_.find(r) != md_->writes_.end());
 }
 
 bool ModuleInfo::is_child(const Identifier* id) {
   refresh();
-  const auto r = Resolve().get_resolution(id);
-  return r == nullptr ? false : md_->children_.find(r) != md_->children_.end();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->children_.find(r) != md_->children_.end());
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::locals() {
@@ -205,17 +205,17 @@ void ModuleInfo::named_parent_conn(const ModuleInstantiation* mi, const PortDecl
       continue;
     }
     // Nothing to do if this isn't the right port
-    const auto r = Resolve().get_resolution((*i)->get_exp()); 
+    const auto* r = Resolve().get_resolution((*i)->get_exp()); 
     if (r != pd->get_decl()->get_id()) {
       continue;
     }
 
     // Flag this variable as either a read or a write and return
     switch (pd->get_type()) {
-      case PortDeclaration::INPUT:
+      case PortDeclaration::Type::INPUT:
         record_local_read(r);
         return;
-      case PortDeclaration::OUTPUT:
+      case PortDeclaration::Type::OUTPUT:
         record_local_write(r);
         return;
       default:
@@ -231,7 +231,7 @@ void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDe
   if (idx >= mi->size_ports()) {
     return;
   }
-  auto p = mi->get_ports(idx);
+  auto* p = mi->get_ports(idx);
 
   // This is an ordered connection, so explicit port should always be null.
   // Typechecking should enforce this.
@@ -242,12 +242,12 @@ void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDe
   }
 
   // Flag this variable as either a read or a write
-  const auto r = pd->get_decl()->get_id();
+  const auto* r = pd->get_decl()->get_id();
   switch (pd->get_type()) {
-    case PortDeclaration::INPUT:
+    case PortDeclaration::Type::INPUT:
       record_local_read(r);
       break;
-    case PortDeclaration::OUTPUT:
+    case PortDeclaration::Type::OUTPUT:
       record_local_write(r);
       break;
     default:
@@ -269,21 +269,21 @@ void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
     }
 
     // Grab the declaration that this explicit port corresponds to
-    const auto r = Resolve().get_resolution((*i)->get_exp()); 
+    const auto* r = Resolve().get_resolution((*i)->get_exp()); 
     assert(r != nullptr);
     // Connect the variable tot he expression in this module
     conn.insert(make_pair(r, (*i)->get_imp()));
 
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
-    auto pd = dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent());
+    auto* pd = dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent());
     assert(pd != nullptr);
 
     switch (pd->get_type()) {
-      case PortDeclaration::INPUT:
+      case PortDeclaration::Type::INPUT:
         record_external_write(r);
         break;
-      case PortDeclaration::OUTPUT:
+      case PortDeclaration::Type::OUTPUT:
         record_external_read(r);
         break;
       default:
@@ -302,7 +302,7 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
   auto itre = Elaborate().get_elaboration(mi)->end_items();
 
   for (size_t i = 0, ie = mi->size_ports(); i < ie; ++i) {
-    const auto p = mi->get_ports(i);
+    const auto* p = mi->get_ports(i);
     // This is an ordered connection, so explicit port should always be null.
     // Typechecking should enforce this.
     assert(p->is_null_exp());
@@ -316,7 +316,7 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     assert(itr != itre);
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
-    auto pd = dynamic_cast<const PortDeclaration*>(*itr++);
+    auto* pd = dynamic_cast<const PortDeclaration*>(*itr++);
     assert(pd != nullptr);
 
     // Nothing to do for an empty ordered connection
@@ -325,15 +325,15 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     }
 
     // Grab the declaration that this port corresponds to
-    const auto r = pd->get_decl()->get_id();
+    const auto* r = pd->get_decl()->get_id();
     // Connect the variable to the expression in this module
     conn.insert(make_pair(r, p->get_imp()));
 
     switch (pd->get_type()) {
-      case PortDeclaration::INPUT:
+      case PortDeclaration::Type::INPUT:
         record_external_write(r);
         break;
-      case PortDeclaration::OUTPUT:
+      case PortDeclaration::Type::OUTPUT:
         record_external_read(r);
         break;
       default:
@@ -378,7 +378,7 @@ void ModuleInfo::record_external_write(const Identifier* id) {
 void ModuleInfo::record_external_use(const Identifier* id) {
   for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
     // Is this an identifier that resolves here?
-    if (auto eid = dynamic_cast<const Identifier*>(*i)) {
+    if (auto* eid = dynamic_cast<const Identifier*>(*i)) {
       // Nothing to do if this variable appears in this module
       if (Resolve().get_parent(eid) == md_) {
         continue;
@@ -388,7 +388,7 @@ void ModuleInfo::record_external_use(const Identifier* id) {
         continue;
       }
       // If it's on the lhs of an expression, it's a write, otherwise it's a read
-      auto va = dynamic_cast<const VariableAssign*>(eid->get_parent());
+      auto* va = dynamic_cast<const VariableAssign*>(eid->get_parent());
       if (va != nullptr && va->get_lhs() == eid) {
         record_local_read(id);
       } else {
@@ -407,7 +407,7 @@ void ModuleInfo::visit(const Attributes* as) {
 
 void ModuleInfo::visit(const Identifier* i) {
   // Do nothing if this is a local or unresolvable variable
-  const auto r = Resolve().get_resolution(i);
+  const auto* r = Resolve().get_resolution(i);
   if (r == nullptr || (md_->locals_.find(r) != md_->locals_.end())) {
     return;
   }
@@ -440,7 +440,7 @@ void ModuleInfo::visit(const LoopGenerateConstruct* lgc) {
   lgc->accept_cond(this);
   lgc->accept_update(this);
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -510,10 +510,10 @@ void ModuleInfo::visit(const ModuleInstantiation* mi) {
 void ModuleInfo::visit(const PortDeclaration* pd) {
   // Record input or output port
   switch(pd->get_type()) {
-    case PortDeclaration::INPUT:
+    case PortDeclaration::Type::INPUT:
       md_->inputs_.insert(pd->get_decl()->get_id());
       break;
-    case PortDeclaration::OUTPUT:
+    case PortDeclaration::Type::OUTPUT:
       md_->outputs_.insert(pd->get_decl()->get_id());
       break;
     default:
@@ -533,7 +533,7 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
     return;
   }
   // Otherwise, update read/write information for this connection
-  auto mi = dynamic_cast<const ModuleInstantiation*>(md_->get_parent());
+  auto* mi = dynamic_cast<const ModuleInstantiation*>(md_->get_parent());
   assert(mi != nullptr);
   if (mi->uses_named_ports()) {
     named_parent_conn(mi, pd);
@@ -545,7 +545,7 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
 void ModuleInfo::visit(const NonblockingAssign* na) {
   na->accept_assign(this);
 
-  auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
   assert(r != nullptr);
 
   if (md_->locals_.find(r) == md_->locals_.end()) {

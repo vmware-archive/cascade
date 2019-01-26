@@ -57,7 +57,7 @@ class Navigate : public Visitor {
         bool operator!=(const name_iterator& rhs) const;
       private:
         Scope::NameMap::const_iterator itr_;
-        name_iterator(Scope::NameMap::const_iterator itr);
+        explicit name_iterator(Scope::NameMap::const_iterator itr);
     };
     class child_iterator {
       friend class Navigate;
@@ -68,14 +68,14 @@ class Navigate : public Visitor {
         bool operator!=(const child_iterator& rhs) const;
       private:
         Scope::ChildMap::const_iterator itr_;
-        child_iterator(Scope::ChildMap::const_iterator itr);
+        explicit child_iterator(Scope::ChildMap::const_iterator itr);
     };
 
     // Constructors:
     // 
     // Creates a new scope navigator which is attached to the nearest scope
     // (inclusive) that contains this node.
-    Navigate(const Node* n);
+    explicit Navigate(const Node* n);
     ~Navigate() override = default;
 
     // Cache Maintenance:

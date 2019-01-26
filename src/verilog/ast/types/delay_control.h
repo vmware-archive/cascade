@@ -40,7 +40,7 @@ namespace cascade {
 class DelayControl : public TimingControl {
   public:
     // Constructors:
-    DelayControl(Expression* delay__);
+    explicit DelayControl(Expression* delay__);
     ~DelayControl() override;
 
     // Node Interface:

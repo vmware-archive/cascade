@@ -99,7 +99,7 @@ class Resolve {
     void cache_uses(const Declaration* d);
 
     // Examines every declaration below this node and inserts an empty use set
-    struct InitCacheUses : public Editor {
+    struct InitCacheUses : Editor {
       ~InitCacheUses() override = default;
       void edit(CaseGenerateConstruct* cgc) override;
       void edit(IfGenerateConstruct* igc) override;
@@ -113,7 +113,7 @@ class Resolve {
       void edit(ModuleInstantiation* mi) override;
     };
     // Populates use sets
-    struct CacheUses : public Editor {
+    struct CacheUses : Editor {
       ~CacheUses() override = default;
       void edit(Attributes* as) override;
       void edit(Identifier* i) override;
@@ -129,7 +129,7 @@ class Resolve {
       void edit(ModuleInstantiation* mi) override;
     };
     // Invalidation cache information:
-    struct Invalidate : public Editor {
+    struct Invalidate : Editor {
       ~Invalidate() override = default;
       void edit(Attributes* as) override;
       void edit(Identifier* id) override;

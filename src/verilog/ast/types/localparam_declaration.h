@@ -82,7 +82,7 @@ inline LocalparamDeclaration::~LocalparamDeclaration() {
 }
 
 inline LocalparamDeclaration* LocalparamDeclaration::clone() const {
-  auto res = new LocalparamDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  auto* res = new LocalparamDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
   MAYBE_CLONE(dim);
   return res;
 }

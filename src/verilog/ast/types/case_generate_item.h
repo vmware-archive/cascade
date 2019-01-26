@@ -77,7 +77,7 @@ inline CaseGenerateItem::~CaseGenerateItem() {
 }
 
 inline CaseGenerateItem* CaseGenerateItem::clone() const {
-  auto res = new CaseGenerateItem();
+  auto* res = new CaseGenerateItem();
   MANY_CLONE(exprs);
   MAYBE_CLONE(block);
   return res;

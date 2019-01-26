@@ -51,7 +51,7 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
     return id->resolution_;
   }
   // Slow Path: Perform resolution
-  const auto r = cache_resolution(id);
+  const auto* r = cache_resolution(id);
   const_cast<Identifier*>(id)->resolution_ = r;
   // Nothing to do if we failed or if this is a self-pointer
   if (r == nullptr || r == id) {
@@ -64,7 +64,7 @@ const Identifier* Resolve::get_resolution(const Identifier* id) {
 
 Identifier* Resolve::get_full_id(const Identifier* id) {
   Navigate nav(id);
-  auto fid = id->clone();
+  auto* fid = id->clone();
   fid->purge_ids();
   fid->push_back_ids(id->back_ids()->clone());
   while (!nav.lost() && nav.name() != nullptr) {
@@ -76,7 +76,7 @@ Identifier* Resolve::get_full_id(const Identifier* id) {
 
 const ModuleDeclaration* Resolve::get_parent(const Identifier* id) {
   for (const Node* n = id; n != nullptr; n = n->get_parent()) {
-    if (auto md = dynamic_cast<const ModuleDeclaration*>(n)) {
+    if (auto* md = dynamic_cast<const ModuleDeclaration*>(n)) {
       return md;
     }
   }
@@ -88,13 +88,13 @@ const ModuleDeclaration* Resolve::get_origin(const Identifier* id) {
 }
 
 bool Resolve::is_slice(const Identifier* id) {
-  const auto r = get_resolution(id);
+  const auto* r = get_resolution(id);
   assert(r != nullptr);
   return (r == id) ? false : (id->size_dim() > r->size_dim());
 }
 
 bool Resolve::is_scalar(const Identifier* id) {
-  const auto r = get_resolution(id);
+  const auto* r = get_resolution(id);
   assert(r != nullptr);
   return (id != r) || r->empty_dim();
 }
@@ -104,9 +104,9 @@ bool Resolve::is_array(const Identifier* id) {
 }
 
 Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
-  const auto r = get_resolution(id);
+  const auto* r = get_resolution(id);
   assert(r != nullptr);
-  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
+  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
 
   if (d->uses_ == nullptr) {
@@ -116,9 +116,9 @@ Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
 }
 
 Resolve::use_iterator Resolve::use_end(const Identifier* id) {
-  const auto r = get_resolution(id);
+  const auto* r = get_resolution(id);
   assert(r != nullptr);
-  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
+  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
 
   if (d->uses_ == nullptr) {
@@ -137,7 +137,7 @@ const Identifier* Resolve::cache_resolution(const Identifier* id) {
   // Easy Case: Id has arity 1; seek up the hierarchy until we find id
   if (id->size_ids() == 1) {
     while (!nav.lost()) {
-      const auto r = nav.find_name(id->front_ids());
+      const auto* r = nav.find_name(id->front_ids());
       if (r != nullptr) {
         return r;
       }
@@ -154,7 +154,7 @@ const Identifier* Resolve::cache_resolution(const Identifier* id) {
     return nullptr;
   }
   // Hard Case (2/3): Seek down the hierarchy
-  for (size_t i = 1; i < id->size_ids()-1; ++i) {
+  for (size_t i = 1; i < (id->size_ids()-1); ++i) {
     if (!nav.down(id->get_ids(i))) {
       return nullptr;
     }  
@@ -195,7 +195,7 @@ void Resolve::InitCacheUses::edit(IfGenerateConstruct* igc) {
 void Resolve::InitCacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -255,11 +255,11 @@ void Resolve::CacheUses::edit(Attributes* as) {
 void Resolve::CacheUses::edit(Identifier* i) {
   Editor::edit(i);
 
-  const auto r = Resolve().get_resolution(i);
+  const auto* r = Resolve().get_resolution(i);
   if (r == nullptr) {
     return;
   }
-  const auto d = dynamic_cast<const Declaration*>(r->get_parent());
+  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
   assert(d != nullptr);
   assert(d->uses_ != nullptr);
 
@@ -267,8 +267,8 @@ void Resolve::CacheUses::edit(Identifier* i) {
     return;
   } 
   d->uses_->push_back(i);
-  for (auto n = i->get_parent(); ; n = n->get_parent()) {
-    if (auto e = dynamic_cast<const Expression*>(n)) {
+  for (auto* n = i->get_parent(); ; n = n->get_parent()) {
+    if (auto* e = dynamic_cast<const Expression*>(n)) {
       if (find(d->uses_->begin(), d->uses_->end(), e) == d->uses_->end()) {
         d->uses_->push_back(e);
       }
@@ -295,7 +295,7 @@ void Resolve::CacheUses::edit(IfGenerateConstruct* igc) {
 void Resolve::CacheUses::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -366,7 +366,7 @@ void Resolve::Invalidate::edit(IfGenerateConstruct* igc) {
 void Resolve::Invalidate::edit(LoopGenerateConstruct* lgc) {
   Editor::edit(lgc);
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }

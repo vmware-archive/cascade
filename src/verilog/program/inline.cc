@@ -59,7 +59,7 @@ void Inline::outline_source(ModuleDeclaration* md) {
 }
 
 bool Inline::can_inline(const ModuleDeclaration* md) const {
-  const auto std = md->get_attrs()->get<String>("__std");
+  const auto* std = md->get_attrs()->get<String>("__std");
   return std != nullptr && std->eq("logic");
 }
 
@@ -83,10 +83,10 @@ Identifier* Inline::Qualify::qualify_id(const Identifier* id) {
 }
 
 Expression* Inline::Qualify::build(const Identifier* id) {
-  const auto r = Resolve().get_resolution(id);
+  const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
 
-  auto res = Resolve().get_full_id(r);
+  auto* res = Resolve().get_full_id(r);
   res->purge_dim();
   id->accept_dim(this, res->back_inserter_dim());
 
@@ -107,7 +107,7 @@ void Inline::edit(IfGenerateConstruct* igc) {
 
 void Inline::edit(LoopGenerateConstruct* lgc) {
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -129,7 +129,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   }
   // Nothing to do for code that we don't support inlining
   assert(Elaborate().is_elaborated(mi));
-  auto src = Elaborate().get_elaboration(mi);
+  auto* src = Elaborate().get_elaboration(mi);
   if (!can_inline(src)) {
     return;
   }
@@ -140,10 +140,10 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   assert(info_->connections().find(mi->get_iid()) != info_->connections().end());
   vector<ModuleItem*> conns;
   for (auto& c : info_->connections().find(mi->get_iid())->second) {
-    auto lhs = ModuleInfo(src).is_input(c.first) ? 
+    auto* lhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_id(c.first) : 
-      Qualify().qualify_id((Identifier*)c.second);
-    auto rhs = ModuleInfo(src).is_input(c.first) ? 
+      Qualify().qualify_id(static_cast<const Identifier*>(c.second));
+    auto* rhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_exp(c.second) : 
       Qualify().qualify_exp(c.first);
     conns.push_back(new ContinuousAssign(new VariableAssign(lhs, rhs)));
@@ -152,14 +152,14 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   // ports to regular declarations and parameters to localparams.
   vector<ModuleItem*> inline_src;
   while (!src->empty_items()) {
-    auto item = src->remove_front_items();
-    if (auto pd = dynamic_cast<PortDeclaration*>(item)) {
-      auto d = pd->get_decl()->clone();
+    auto* item = src->remove_front_items();
+    if (auto* pd = dynamic_cast<PortDeclaration*>(item)) {
+      auto* d = pd->get_decl()->clone();
       switch (pd->get_type()) {
-        case PortDeclaration::INPUT:
+        case PortDeclaration::Type::INPUT:
           d->get_attrs()->set_or_replace("__inline", new String("input"));
           break;
-        case PortDeclaration::OUTPUT:
+        case PortDeclaration::Type::OUTPUT:
           d->get_attrs()->set_or_replace("__inline", new String("output"));
           break;
         default:
@@ -170,25 +170,25 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       swap(d->uses_, pd->get_decl()->uses_);
       inline_src.push_back(d);
       delete pd;
-    } else if (auto pd = dynamic_cast<ParameterDeclaration*>(item)) {
-      auto ld = new LocalparamDeclaration(
+    } else if (auto* pad = dynamic_cast<ParameterDeclaration*>(item)) {
+      auto* ld = new LocalparamDeclaration(
         new Attributes(),
-        pd->get_signed(),
-        pd->clone_dim(),
-        pd->get_id()->clone(),
-        pd->get_val()->clone()
+        pad->get_signed(),
+        pad->clone_dim(),
+        pad->get_id()->clone(),
+        pad->get_val()->clone()
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
-      ld->swap_id(pd);
-      swap(ld->uses_, pd->uses_);
+      ld->swap_id(pad);
+      swap(ld->uses_, pad->uses_);
       inline_src.push_back(ld);
-      delete pd;
+      delete pad;
     } else {
       inline_src.push_back(item);
     }
   }
   // Record the number of items in the new source
-  auto attrs = new Attributes(new AttrSpec(
+  auto* attrs = new Attributes(new AttrSpec(
     new Identifier("__inline"),
     new Number(Bits(32, inline_src.size()))
   ));
@@ -196,7 +196,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   inline_src.insert(inline_src.end(), conns.begin(), conns.end());
 
   // Update inline decorations
-  auto igc = new IfGenerateConstruct(
+  auto* igc = new IfGenerateConstruct(
     attrs,
     new IfGenerateClause(
       new Number(Bits(true)),
@@ -220,7 +220,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
 }
 
 void Inline::outline_source(ModuleInstantiation* mi) {
-  // TODO: This method hasn't been called for some time. it's almost certainly
+  // TODO(eschkufz) This method hasn't been called for some time. it's almost certainly
   // suffering from bit-rot.
 
   // Nothing to do for code which has already been outlined
@@ -229,17 +229,17 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   }
   // Make sure that somehow we aren't outlining something we shouldn't have inlined
   assert(Elaborate().is_elaborated(mi));
-  auto src = Elaborate().get_elaboration(mi);
+  auto* src = Elaborate().get_elaboration(mi);
   assert(can_inline(src));
 
   // Move this inlined code back into the instantiation. Replace port and
   // parameter delcarations, and delete the connections.
   const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
-    auto item = mi->inline_->front_clauses()->get_then()->remove_front_items();
-    if (auto ld = dynamic_cast<LocalparamDeclaration*>(item)) {
+    auto* item = mi->inline_->front_clauses()->get_then()->remove_front_items();
+    if (auto* ld = dynamic_cast<LocalparamDeclaration*>(item)) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
-        auto pd = new ParameterDeclaration(
+        auto* pd = new ParameterDeclaration(
           new Attributes(),
           ld->get_signed(),
           ld->clone_dim(),
@@ -251,12 +251,12 @@ void Inline::outline_source(ModuleInstantiation* mi) {
         delete ld;
         continue;
       } 
-    } else if (auto d = dynamic_cast<Declaration*>(item)) {
-      auto annot = d->get_attrs()->get<String>("__inline");
+    } else if (auto* d = dynamic_cast<Declaration*>(item)) {
+      auto* annot = d->get_attrs()->get<String>("__inline");
       if (annot != nullptr && !annot->eq("parameter")) {
-        auto pd = new PortDeclaration(
+        auto* pd = new PortDeclaration(
           new Attributes(),
-          annot->eq("input") ? PortDeclaration::INPUT : annot->eq("output") ? PortDeclaration::OUTPUT : PortDeclaration::INOUT,
+          annot->eq("input") ? PortDeclaration::Type::INPUT : annot->eq("output") ? PortDeclaration::Type::OUTPUT : PortDeclaration::Type::INOUT,
           d->clone()
         );
         pd->get_decl()->replace_attrs(new Attributes());

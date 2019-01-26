@@ -52,7 +52,7 @@ class ModuleInstantiation : public Instantiation {
 
     // Node Interface:
     NODE(ModuleInstantiation)
-    inline ModuleInstantiation* clone() const override;
+    ModuleInstantiation* clone() const override;
 
     // Get/Set:
     PTR_GET_SET(ModuleInstantiation, Attributes, attrs)
@@ -118,7 +118,7 @@ inline ModuleInstantiation::~ModuleInstantiation() {
 }
 
 inline ModuleInstantiation* ModuleInstantiation::clone() const {
-  auto res = new ModuleInstantiation(attrs_->clone(), mid_->clone(), iid_->clone());
+  auto* res = new ModuleInstantiation(attrs_->clone(), mid_->clone(), iid_->clone());
   MAYBE_CLONE(range);
   MANY_CLONE(params);
   MANY_CLONE(ports);

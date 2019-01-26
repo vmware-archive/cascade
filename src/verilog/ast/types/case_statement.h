@@ -41,7 +41,7 @@ namespace cascade {
 class CaseStatement : public Statement {
   public:
     // Supporting Concepts:
-    enum Type : uint8_t {
+    enum class Type : uint8_t {
       CASE = 0,
       CASEX,
       CASEZ 
@@ -86,7 +86,7 @@ inline CaseStatement::~CaseStatement() {
 }
 
 inline CaseStatement* CaseStatement::clone() const {
-  auto res = new CaseStatement(type_, cond_->clone());
+  auto* res = new CaseStatement(type_, cond_->clone());
   MANY_CLONE(items);
   return res;
 }

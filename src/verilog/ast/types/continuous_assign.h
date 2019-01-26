@@ -41,7 +41,7 @@ namespace cascade {
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    ContinuousAssign(VariableAssign* assign__);
+    explicit ContinuousAssign(VariableAssign* assign__);
     ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__);
     ~ContinuousAssign() override;
 
@@ -74,7 +74,7 @@ inline ContinuousAssign::~ContinuousAssign() {
 }
 
 inline ContinuousAssign* ContinuousAssign::clone() const {
-  auto res = new ContinuousAssign(assign_->clone());
+  auto* res = new ContinuousAssign(assign_->clone());
   MAYBE_CLONE(ctrl);
   return res;
 }

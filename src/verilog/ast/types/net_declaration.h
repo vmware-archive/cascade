@@ -42,7 +42,7 @@ namespace cascade {
 class NetDeclaration : public Declaration {
   public:
     // Supporting Concepts:
-    enum Type : uint8_t {
+    enum class Type : uint8_t {
       WIRE = 0
     };
 
@@ -93,7 +93,7 @@ inline NetDeclaration::~NetDeclaration() {
 }
 
 inline NetDeclaration* NetDeclaration::clone() const {
-  auto res = new NetDeclaration(attrs_->clone(), type_, id_->clone(), signed_);
+  auto* res = new NetDeclaration(attrs_->clone(), type_, id_->clone(), signed_);
   MAYBE_CLONE(ctrl);
   MAYBE_CLONE(dim);
   return res;

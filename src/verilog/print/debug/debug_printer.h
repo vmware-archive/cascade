@@ -88,7 +88,7 @@ inline void DebugPrinter<T>::visit(const Identifier* id) {
   
   // If we can't resolve this variable (say because it's an attrspec or a
   // module type or something is just plain broken) give up
-  auto r = Resolve().get_resolution(id);
+  auto* r = Resolve().get_resolution(id);
   if (r == nullptr) {
     return;
   }
@@ -129,7 +129,7 @@ void DebugPrinter<T>::visit(const ModuleDeclaration* md) {
   if (mi.locals().empty()) {
     *this << Color::GREY << "\n  (none)" << Color::RESET;
   } else {
-    for (auto l : mi.locals()) {
+    for (auto* l : mi.locals()) {
       debug_id(mi, l);
     }
   }
@@ -137,7 +137,7 @@ void DebugPrinter<T>::visit(const ModuleDeclaration* md) {
   if (mi.externals().empty()) {
     *this << Color::GREY << "\n  (none)" << Color::RESET;
   } else {
-    for (auto e : mi.externals()) {
+    for (auto* e : mi.externals()) {
       debug_id(mi, e);
     }
   }
@@ -191,7 +191,7 @@ void DebugPrinter<T>::visit(const LoopGenerateConstruct* lgc) {
   *this << Color::GREY << "// for (...)" << Color::RESET;
   if (Elaborate().is_elaborated(lgc)) {
     *this << "\n";
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -203,7 +203,7 @@ void DebugPrinter<T>::visit(const ParameterDeclaration* pd) {
     return T::visit(pd);
   }
 
-  auto id = pd->get_id();
+  auto* id = pd->get_id();
   auto& op = ModuleInfo(Resolve().get_origin(id)).ordered_params();
 
   for (size_t i = 0, ie = op.size(); i < ie; ++i) {
@@ -231,7 +231,7 @@ void DebugPrinter<T>::visit(const PortDeclaration* pd) {
     return T::visit(pd);
   }
 
-  auto id = pd->get_decl()->get_id();
+  auto* id = pd->get_decl()->get_id();
   auto& op = ModuleInfo(Resolve().get_origin(id)).ordered_ports();
 
   for (size_t i = 0, ie = op.size(); i < ie; ++i) {
@@ -247,14 +247,14 @@ void DebugPrinter<T>::visit(const PortDeclaration* pd) {
 template <typename T>
 void DebugPrinter<T>::debug_id(ModuleInfo& mi, const Identifier* id) {
   *this << "\n  ";
-  auto decl = id->get_parent();
+  auto* decl = id->get_parent();
   if (dynamic_cast<const PortDeclaration*>(decl->get_parent()) != nullptr) {
     decl = decl->get_parent();
   }
   decl->accept(this);
 
   *this << "\n    ";
-  const auto fid = Resolve().get_full_id(id);
+  const auto* fid = Resolve().get_full_id(id);
   fid->accept(this);
   delete fid;
   if (mi.is_stateful(id)) {
@@ -281,10 +281,10 @@ void DebugPrinter<T>::debug_conn(ModuleInfo& mi, const Identifier* id) {
   inl_ = false;
 
   *this << "\n  ";
-  const auto inst = dynamic_cast<const ModuleInstantiation*>(id->get_parent());
+  const auto* inst = dynamic_cast<const ModuleInstantiation*>(id->get_parent());
   inst->accept(this);
 
-  const auto md = Elaborate().get_elaboration(inst);
+  const auto* md = Elaborate().get_elaboration(inst);
   if (md == nullptr) {
     return;
   }
@@ -316,7 +316,7 @@ void DebugPrinter<T>::debug_scope(const Node* n, size_t d) {
 
   for (auto n = nav.name_begin(), ne = nav.name_end(); n != ne; ++n) {
     *this << "\n";
-    for (size_t i = 0; i < d+1; ++i) {
+    for (size_t i = 0; i < (d+1); ++i) {
       *this << "  "; 
     }
     *this << *n;

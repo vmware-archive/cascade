@@ -140,7 +140,7 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
         get_table_range(r, lhs)
       ),
       new UnaryExpression(
-        UnaryExpression::TILDE,
+        UnaryExpression::Op::TILDE,
         new Identifier(
           new Id("__next_update_mask"),
           get_table_range(r, lhs)
@@ -181,15 +181,15 @@ Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *
     mul /= a;
     idx = new BinaryExpression(
       idx,
-      BinaryExpression::PLUS,
+      BinaryExpression::Op::PLUS,
       new BinaryExpression(
         (*iitr++)->clone(),
-        BinaryExpression::TIMES,
+        BinaryExpression::Op::TIMES,
         new Number(Bits(32, mul*titr->second.element_size()))
       )
     );
   }
-  return new RangeExpression(idx, RangeExpression::PLUS, new Number(Bits(32, titr->second.element_size())));
+  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
 }
 
 ModuleBoxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
@@ -214,7 +214,7 @@ void ModuleBoxer::Mangler::init(size_t id) {
         new Number(Bits(32, id))
       ),
       new UnaryExpression(
-        UnaryExpression::TILDE,
+        UnaryExpression::Op::TILDE,
         new Identifier(
           new Id("__next_task_mask"),
           new Number(Bits(32, id))
@@ -255,7 +255,7 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
         )
       );
     } else {
-      sext = new Number(Bits(32, 0), Number::HEX);
+      sext = new Number(Bits(32, 0), Number::Format::HEX);
     }
 
     // Concatenate the rhs with the sign extension bits

@@ -41,8 +41,8 @@ namespace cascade {
 class String : public Primary {
   public:
     // Constructors:
-    String(const std::string& val);
-    String(Tokenize::Token val);
+    explicit String(const std::string& val);
+    explicit String(Tokenize::Token val);
     ~String() override = default;
 
     // Node Interface:

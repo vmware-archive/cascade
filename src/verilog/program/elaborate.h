@@ -42,7 +42,7 @@ class Program;
 class Elaborate : public Visitor {
   public:
     // Constructors:
-    Elaborate(const Program* p = nullptr);
+    explicit Elaborate(const Program* p = nullptr);
     ~Elaborate() override = default;
 
     // Elaboration Interface:

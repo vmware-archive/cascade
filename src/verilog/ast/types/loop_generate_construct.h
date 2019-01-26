@@ -80,7 +80,7 @@ inline LoopGenerateConstruct::~LoopGenerateConstruct() {
   PTR_TEARDOWN(cond);
   PTR_TEARDOWN(update);
   PTR_TEARDOWN(block);
-  for (auto g : gen_) {
+  for (auto* g : gen_) {
     delete g;
   }
 }

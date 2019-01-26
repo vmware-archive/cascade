@@ -42,7 +42,7 @@ namespace cascade {
 
 class Printer : public Visitor {
   public:
-    Printer(std::ostream& os);
+    explicit Printer(std::ostream& os);
     ~Printer() override = default;
 
     void visit(const ArgAssign* aa) override;

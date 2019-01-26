@@ -42,7 +42,7 @@ namespace cascade {
 class IfGenerateConstruct : public ConditionalGenerateConstruct {
   public:
     // Constructors:
-    IfGenerateConstruct(Attributes* attrs__);
+    explicit IfGenerateConstruct(Attributes* attrs__);
     IfGenerateConstruct(Attributes* attrs__, IfGenerateClause* clause__, GenerateBlock* else__);
     template <typename ClausesItr>
     IfGenerateConstruct(Attributes* attrs__, ClausesItr clauses_begin__, ClausesItr clauses_end__, GenerateBlock* else__);
@@ -91,7 +91,7 @@ inline IfGenerateConstruct::~IfGenerateConstruct() {
 }
 
 inline IfGenerateConstruct* IfGenerateConstruct::clone() const {
-  auto res = new IfGenerateConstruct(attrs_->clone());
+  auto* res = new IfGenerateConstruct(attrs_->clone());
   MANY_CLONE(clauses);
   MAYBE_CLONE(else);
   return res;
