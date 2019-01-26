@@ -54,13 +54,13 @@ class Program : public Editor {
     // Creates a program by invoking declare_and_instantiate on md. Invoking
     // this constructor with a declaration which contains a type error is
     // undefined.
-    Program(ModuleDeclaration* md);
+    explicit Program(ModuleDeclaration* md);
     // Creates a program by declaring md and instantiating mi. Invoking this
     // constructor with declaration or instantiation which contain a type error
     // is undefined.
     Program(ModuleDeclaration* md, ModuleInstantiation* mi);
     // Destructor
-    ~Program();
+    ~Program() override;
 
     // Configuration Interface:
     //

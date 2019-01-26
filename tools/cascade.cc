@@ -55,6 +55,8 @@ using namespace cl;
 using namespace cascade;
 using namespace std;
 
+namespace {
+
 __attribute__((unused)) auto& g1 = Group::create("Cascade Runtime Options");
 auto& input_path = StrArg<string>::create("-e")
   .usage("path/to/file.v")
@@ -120,7 +122,7 @@ auto& disable_warnings = FlagArg::create("--disable_warnings")
 
 class Profiler : public Asynchronous {
   public:
-    Profiler(Runtime* rt) : Asynchronous() { 
+    explicit Profiler(Runtime* rt) : Asynchronous() { 
       rt_ = rt;
     }
     ~Profiler() override = default;
@@ -129,7 +131,7 @@ class Profiler : public Asynchronous {
       while (!stop_requested()) {
         clog << "TIME = " << time(nullptr) << endl;
         clog << "FREQ = " << rt_->current_frequency() << endl;
-        sleep_for(1000*profile_interval.value());        
+        sleep_for(1000*::profile_interval.value());        
       }
     }
     Runtime* rt_;
@@ -145,14 +147,16 @@ Profiler* profiler = nullptr;
 
 void int_handler(int sig) {
   (void) sig;
-  runtime->fatal(0, "User Interrupt:\n  > Caught Ctrl-C.");
+  ::runtime->fatal(0, "User Interrupt:\n  > Caught Ctrl-C.");
 }
 
 void segv_handler(int sig) {
   (void) sig;
-  view->crash();
+  ::view->crash();
   exit(1);
 }
+
+} // namespace
 
 int main(int argc, char** argv) {
   // Parse command line
@@ -161,98 +165,97 @@ int main(int argc, char** argv) {
   // Attach signal handlers
   { struct sigaction action;
     memset(&action, 0, sizeof(action));
-    action.sa_handler = segv_handler;
+    action.sa_handler = ::segv_handler;
     sigaction(SIGSEGV, &action, nullptr);
   }
   { struct sigaction action;
     memset(&action, 0, sizeof(action));
-    action.sa_handler = int_handler;
+    action.sa_handler = ::int_handler;
     sigaction(SIGINT, &action, nullptr);
   }
 
   // Setup Global MVC State
-  view = new ManyView();
-  runtime = new Runtime(view);
-  if (enable_logging) {
-    logfile = new ofstream("cascade.log", ofstream::app);
-    view->attach(new LogView(*logfile));
+  ::view = new ManyView();
+  ::runtime = new Runtime(::view);
+  if (::enable_logging) {
+    ::logfile = new ofstream("cascade.log", ofstream::app);
+    ::view->attach(new LogView(*::logfile));
   }
-  if (ui.value() == "web") {
-    auto mv = new MaybeView();
-    auto ui = new WebUi(runtime);
-    ui->set_port(web_ui_port.value());
-    ui->set_buffer(web_ui_buffer.value());
-    ui->set_debug(web_ui_debug.value());
-    controller = ui;
-    mv->attach(dynamic_cast<View*>(ui));
-    view->attach(mv);
+  if (::ui.value() == "web") {
+    auto* mv = new MaybeView();
+    auto* wui = new WebUi(::runtime);
+    wui->set_port(::web_ui_port.value());
+    wui->set_buffer(::web_ui_buffer.value());
+    wui->set_debug(::web_ui_debug.value());
+    ::controller = wui;
+    mv->attach(dynamic_cast<View*>(wui));
+    ::view->attach(mv);
   } else {
-    view->attach(new TermView());
-    controller = new TermController(runtime);
+    ::view->attach(new TermView());
+    ::controller = new TermController(::runtime);
   }
 
   // Setup Compiler State
-  auto dc = new De10Compiler();
-    dc->set_host(quartus_host.value());
-    dc->set_port(quartus_port.value());
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-    sc->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
-  auto lc = new LocalCompiler();
-    lc->set_runtime(runtime);
-  auto c = new Compiler();
+  auto* dc = new De10Compiler();
+    dc->set_host(::quartus_host.value());
+    dc->set_port(::quartus_port.value());
+  auto* pc = new ProxyCompiler();
+  auto* sc = new SwCompiler();
+    sc->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  auto* lc = new LocalCompiler();
+    lc->set_runtime(::runtime);
+  auto* c = new Compiler();
     c->set_de10_compiler(dc);
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
     c->set_local_compiler(lc);
 
   // Start the runtime
-  runtime->set_compiler(c);
-    runtime->set_include_dirs(inc_dirs.value() + ":" + System::src_root());
-    runtime->set_open_loop_target(open_loop_target.value());
-    //runtime->disable_inlining(disable_inlining.value());
-    runtime->disable_warnings(disable_warnings.value());
-  runtime->run();
+  ::runtime->set_compiler(c);
+    ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+    ::runtime->set_open_loop_target(::open_loop_target.value());
+    ::runtime->disable_warnings(::disable_warnings.value());
+  ::runtime->run();
 
   // Parse march configuration
   incstream mis(System::src_root());
   if (mis.open("data/march/" + march.value() + ".v")) {
-    StreamController(runtime, mis).run_to_completion();
+    StreamController(::runtime, mis).run_to_completion();
   } else {
-    view->error(0, "Unrecognized march option " + march.value() + "!");
+    ::view->error(0, "Unrecognized march option " + ::march.value() + "!");
   }
   // Translate -e to include statement if it was provided
   stringstream ss;
-  if (input_path.value() != "") {
-    ss << "include " << input_path.value() << ";";
-    StreamController(runtime, ss).run_to_completion();
+  if (::input_path.value() != "") {
+    ss << "include " << ::input_path.value() << ";";
+    StreamController(::runtime, ss).run_to_completion();
   }
 
   // Switch over to a live console (unless the --batch flag has been provided)
   // and turn on profiling (if the --profile flag was provided)
-  if (!batch.value()) {
-    controller->run();
+  if (!::batch.value()) {
+    ::controller->run();
   }
-  profiler = new Profiler(runtime);
-  if (profile_interval.value() > 0) {
-    profiler->run();
+  ::profiler = new Profiler(::runtime);
+  if (::profile_interval.value() > 0) {
+    ::profiler->run();
   }
 
   // Wait for the runtime to stop and then shutdown remaining threads
-  runtime->wait_for_stop();
-  controller->stop_now();
-  profiler->stop_now();
+  ::runtime->wait_for_stop();
+  ::controller->stop_now();
+  ::profiler->stop_now();
 
   // Tear down global state
-  delete runtime;
-  if (ui.value() == "web") {
-    delete controller;
+  delete ::runtime;
+  if (::ui.value() == "web") {
+    delete ::controller;
   } else {
-    delete view;
-    delete controller;
+    delete ::view;
+    delete ::controller;
   }
-  delete logfile;
-  delete profiler;
+  delete ::logfile;
+  delete ::profiler;
 
   cout << "Goodbye!" << endl;
   return 0;

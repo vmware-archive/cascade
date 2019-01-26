@@ -107,7 +107,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       error("A nested scope with this name already exists in this scope", mi);
     }
   }
-  // CHECK: TODO Recursive instantiation
+  // CHECK: TODO(eschkufz) Recursive instantiation
 
   // CHECK: Undefined type
   const auto itr = program_->decl_find(mi->get_mid());
@@ -120,7 +120,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
     // EXIT: Can't continue checking without access to source
     return;
   }
-  const auto src = itr->second;
+  const auto* src = itr->second;
 
   // CHECK: More overrides than declared parameters
   if (mi->size_params() > ModuleInfo(src).ordered_params().size()) {
@@ -162,10 +162,8 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       if ((*i)->is_null_imp()) {
         continue;
       }
-      if (ModuleInfo(src).is_output(*itr)) {
-        if (dynamic_cast<const Identifier*>((*i)->get_imp()) == nullptr) {
-          error("Instantiation contains a connection between an expression and a named output port", mi);
-        }
+      if (ModuleInfo(src).is_output(*itr) && (dynamic_cast<const Identifier*>((*i)->get_imp()) == nullptr)) {
+        error("Instantiation contains a connection between an expression and a named output port", mi);
       }
       check_arity(mi, *itr, (*i)->get_imp());
     }
@@ -173,14 +171,12 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
   if (!mi->uses_named_ports()) {
     const auto& op = ModuleInfo(src).ordered_ports();
     for (size_t i = 0, ie = min(op.size(), mi->size_ports()); i < ie; ++i) {
-      const auto p = mi->get_ports(i);
+      const auto* p = mi->get_ports(i);
       if (p->is_null_imp()) {
         continue;
       }
-      if (ModuleInfo(src).is_output(op[i])) {
-        if (dynamic_cast<const Identifier*>(p->get_imp()) == nullptr) {
-          error("Instantiation contains a connection between an expression and an ordered output port", mi);
-        }
+      if (ModuleInfo(src).is_output(op[i]) && (dynamic_cast<const Identifier*>(p->get_imp()) == nullptr)) {
+        error("Instantiation contains a connection between an expression and an ordered output port", mi);
       }
       check_arity(mi, op[i], p->get_imp());
     }
@@ -243,8 +239,8 @@ void TypeCheck::pre_elaboration_check(const LoopGenerateConstruct* lgc) {
       error("Non-constant expression appears in the guard for a loop generate construct", lgc->get_cond());
     }
     // CHECK: Initialization and update refer to same variable
-    const auto r1 = Resolve().get_resolution(lgc->get_init()->get_lhs());
-    const auto r2 = Resolve().get_resolution(lgc->get_update()->get_lhs());
+    const auto* r1 = Resolve().get_resolution(lgc->get_init()->get_lhs());
+    const auto* r2 = Resolve().get_resolution(lgc->get_update()->get_lhs());
     if (r1 != r2) {
       error("Initialization and update statements refer to different variables in loop generate construct", lgc->get_update()->get_lhs());
     }
@@ -266,7 +262,7 @@ void TypeCheck::post_elaboration_check(const Node* n) {
 void TypeCheck::warn(const string& s, const Node* n) {
   stringstream ss;
 
-  auto ptr = n;
+  auto* ptr = n;
   if (decl_check_) {
     TextPrinter(ss) << "In module declaration ";
   } else if (instantiation_ != nullptr) {
@@ -298,7 +294,7 @@ void TypeCheck::warn(const string& s, const Node* n) {
 void TypeCheck::error(const string& s, const Node* n) {
   stringstream ss;
 
-  auto ptr = n;
+  auto* ptr = n;
   if (decl_check_) {
     TextPrinter(ss) << "In module declaration ";
   } else if (instantiation_ != nullptr) {
@@ -350,7 +346,7 @@ void TypeCheck::visit(const Identifier* id) {
   }
 
   // CHECK: Reference to undefined identifier
-  const auto r = Resolve().get_resolution(id);
+  const auto* r = Resolve().get_resolution(id);
   if (r == nullptr) {
     exists_bad_id_ = true;
     if (decl_check_) {
@@ -360,10 +356,8 @@ void TypeCheck::visit(const Identifier* id) {
     }
   }
   // CHECK: Is this a reference to a genvar outside of a loop generate construct?
-  if (outermost_loop_ == nullptr) {
-    if ((r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
-      error("Found reference to a genvar outside of a loop generate construct", id);
-    }
+  if ((outermost_loop_ == nullptr) && (r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
+    error("Found reference to a genvar outside of a loop generate construct", id);
   }
   // EXIT: Can't continue checking if id can't be resolved
   if (r == nullptr) {
@@ -383,7 +377,7 @@ void TypeCheck::visit(const Identifier* id) {
   }
 
   // CHECK: Range expression bit-selects
-  if (const auto re = dynamic_cast<const RangeExpression*>(*cdr)) {
+  if (const auto* re = dynamic_cast<const RangeExpression*>(*cdr)) {
     if (re->get_type() == RangeExpression::Type::CONSTANT) {
       // CHECK: Non-constant values, values out of range, little-endian ranges
       // EXIT: We can't continue checking if we can't evaluate this range
@@ -409,21 +403,19 @@ void TypeCheck::visit(const Identifier* id) {
   else {
     // WARN: Can we say for sure that selects are out of range
     const auto rng = Evaluate().get_range(*cdr);
-    if ((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) {
-      if (!decl_check_) {
-        warn("Found bit- or part-select which is out of range of declared width for this variable", id);
-      }
+    if (((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) && !decl_check_) {
+      warn("Found bit- or part-select which is out of range of declared width for this variable", id);
     }
   } 
 }
 
 void TypeCheck::visit(const String* s) {
   auto e = false;
-  if (auto ws = dynamic_cast<const WriteStatement*>(s->get_parent())) {
+  if (auto* ws = dynamic_cast<const WriteStatement*>(s->get_parent())) {
     if (ws->front_args() != s) {
       e = true;
     }
-  } else if (auto ds = dynamic_cast<const DisplayStatement*>(s->get_parent())) {
+  } else if (auto* ds = dynamic_cast<const DisplayStatement*>(s->get_parent())) {
     if (ds->front_args() != s) {
       e = true;
     }
@@ -449,7 +441,7 @@ void TypeCheck::visit(const ModuleDeclaration* md) {
     if ((*i)->is_null_imp()) {
       error("Found a missing implicit port in module declaration", md);
     }
-    auto imp = dynamic_cast<const Identifier*>((*i)->get_imp());
+    auto* imp = dynamic_cast<const Identifier*>((*i)->get_imp());
     if (imp == nullptr) {
       error("Cascade does not currently support the use of implicit ports which are not identifiers", *i);
     } else {
@@ -485,7 +477,7 @@ void TypeCheck::visit(const LoopGenerateConstruct* lgc) {
     return;
   }
   if (Elaborate().is_elaborated(lgc)) {
-    for (auto b : Elaborate().get_elaboration(lgc)) {
+    for (auto* b : Elaborate().get_elaboration(lgc)) {
       b->accept(this);
     }
   }
@@ -670,14 +662,14 @@ void TypeCheck::visit(const ModuleInstantiation* mi) {
 }
 
 void TypeCheck::visit(const ParBlock* pb) {
-  // CHECK: TODO Duplicate definition
+  // CHECK: TODO(eschkufz) Duplicate definition
   // RECURSE: decls and body
   pb->accept_decls(this);
   pb->accept_stmts(this);
 }
 
 void TypeCheck::visit(const SeqBlock* sb) {
-  // CHECK: TODO Duplicate definition
+  // CHECK: TODO(eschkufz) Duplicate definition
   // RECURSE: decls and body
   sb->accept_decls(this);
   sb->accept_stmts(this);
@@ -687,7 +679,7 @@ void TypeCheck::visit(const BlockingAssign* ba) {
   // RECURSE: 
   Visitor::visit(ba);
   // CHECK: Target must be register or integer
-  const auto r = Resolve().get_resolution(ba->get_assign()->get_lhs());
+  const auto* r = Resolve().get_resolution(ba->get_assign()->get_lhs());
   if ((r != nullptr) && 
       (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
       (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
@@ -699,7 +691,7 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   // RECURSE:
   Visitor::visit(na);
   // CHECK: Target must be register or integer
-  const auto r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
   if ((r != nullptr) && 
       (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
       (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
@@ -823,11 +815,9 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
         error("Found non-constant array subscript in target of continuous assignment", *iitr);
       } 
     }
-    else if (Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) {
-      // WARN: Can we say for sure that this value is out of range?
-      if (!decl_check_) {
-        warn("Array subscript is out of range of declared dimension for this variable", *iitr);
-      }
+    // WARN: Can we say for sure that this value is out of range?
+    else if (((Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first)) && !decl_check_) {
+      warn("Array subscript is out of range of declared dimension for this variable", *iitr);
     }
   }    
   return iitr;
@@ -839,7 +829,7 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
     return;
   }
 
-  // TODO: REMOVE THIS CHECK TO ACTIVATE SUPPORT FOR INSTANTIATION ARRAYS
+  // TODO(eschkufz) REMOVE THIS CHECK TO ACTIVATE SUPPORT FOR INSTANTIATION ARRAYS
   return error("Cascade does not currently provide support for instantiation arrays", mi);
 
   // Ports and arguments with matching widths are okay
@@ -850,7 +840,7 @@ void TypeCheck::check_arity(const ModuleInstantiation* mi, const Identifier* por
   }
   // Arguments that divide evenly by number of instances are okay
   const auto mw = Evaluate().get_range(mi->get_range()).first + 1;
-  if ((aw % mw == 0) && (aw / mw == pw)) {
+  if (((aw % mw) == 0) && ((aw / mw) == pw)) {
     return;
   }
 

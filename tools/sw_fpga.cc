@@ -42,6 +42,8 @@ using namespace cl;
 using namespace cascade;
 using namespace std;
 
+namespace {
+        
 __attribute__((unused)) auto& g = Group::create("Software Target Options");
 auto& port = StrArg<size_t>::create("--port")
   .usage("<int>")
@@ -92,6 +94,8 @@ void draw_led(Bits& led, mutex& led_lock, int row, int col) {
   }
 }
 
+} // namespace 
+
 int main(int argc, char** argv) {
   // Parse command line:
   Simple::read(argc, argv);
@@ -115,17 +119,17 @@ int main(int argc, char** argv) {
   mutex pad_lock;
   mutex rst_lock;
 
-  auto sc = new SwCompiler();
+  auto* sc = new SwCompiler();
     sc->set_led(&led, &led_lock);
     sc->set_pad(&pad, &pad_lock);
     sc->set_reset(&rst, &rst_lock);
-  auto c = new Compiler();
+  auto* c = new Compiler();
     c->set_sw_compiler(sc);
 
-  auto runtime = new RemoteRuntime();
+  auto* runtime = new RemoteRuntime();
   runtime->set_compiler(c);
-  runtime->set_path(path.value());
-  runtime->set_port(port.value());
+  runtime->set_path(::path.value());
+  runtime->set_port(::port.value());
   runtime->run();
 
   for (auto running = true; running; ) {

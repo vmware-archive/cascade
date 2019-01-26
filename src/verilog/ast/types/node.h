@@ -98,7 +98,7 @@ inline const Node* Node::get_parent() const {
 template <size_t idx>
 inline void Node::set_flag(bool b) {
   if (b) {
-    common_ |= (static_cast<int32_t>(1) << idx);
+    common_ |= (static_cast<uint32_t>(1) << idx);
   } else {
     common_ &= ~(static_cast<uint32_t>(1) << idx);
   }
@@ -119,7 +119,7 @@ inline void Node::set_val(uint32_t val) {
 
 template <size_t idx, size_t w>
 inline uint32_t Node::get_val() const {
-  const auto mask = (uint32_t(1) << w) - 1;
+  const auto mask = (static_cast<uint32_t>(1) << w) - 1;
   return static_cast<uint32_t>((common_ >> idx) & mask);
 }
 

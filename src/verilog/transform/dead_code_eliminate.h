@@ -45,8 +45,8 @@ class DeadCodeEliminate : public Editor {
     void run(ModuleDeclaration* md);
 
   private:
-    struct Index : public Visitor {
-      Index(DeadCodeEliminate* dce);
+    struct Index : Visitor {
+      explicit Index(DeadCodeEliminate* dce);
       ~Index() override = default;
 
       void visit(const Attributes* a) override;

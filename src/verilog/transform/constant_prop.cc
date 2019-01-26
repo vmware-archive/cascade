@@ -46,9 +46,9 @@ void ConstantProp::run(ModuleDeclaration* md) {
   // Collect net assignments, we'll populate the runtime constant set lazily in
   // calls to RuntimeConstant::check().
   for (auto i = md->begin_items(), ie = md->end_items(); i != ie; ++i) {
-    if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
-      const auto lhs = ca->get_assign()->get_lhs();
-      const auto r = Resolve().get_resolution(lhs);
+    if (auto* ca = dynamic_cast<ContinuousAssign*>(*i)) {
+      const auto* lhs = ca->get_assign()->get_lhs();
+      const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
       const auto is_net = dynamic_cast<const NetDeclaration*>(r->get_parent()) != nullptr;
@@ -66,9 +66,9 @@ void ConstantProp::run(ModuleDeclaration* md) {
   // Go back and delete every continuous assignment which was consumed when we
   // populated the runtime constants set.
   for (auto i = md->begin_items(); i != md->end_items(); ) {
-    if (auto ca = dynamic_cast<ContinuousAssign*>(*i)) {
-      const auto lhs = ca->get_assign()->get_lhs();
-      const auto r = Resolve().get_resolution(lhs);
+    if (auto* ca = dynamic_cast<ContinuousAssign*>(*i)) {
+      const auto* lhs = ca->get_assign()->get_lhs();
+      const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
       const auto is_slice = Resolve().is_slice(lhs);
@@ -89,9 +89,9 @@ void ConstantProp::run(ModuleDeclaration* md) {
 }
 
 bool ConstantProp::is_assign_target(const Identifier* i) const {
-  const auto p = i->get_parent();
-  if (auto va = dynamic_cast<const VariableAssign*>(p)) {
-    const auto pp = p->get_parent();
+  const auto* p = i->get_parent();
+  if (auto* va = dynamic_cast<const VariableAssign*>(p)) {
+    const auto* pp = p->get_parent();
     if (dynamic_cast<const ContinuousAssign*>(pp)) {
       return i == va->get_lhs();
     }
@@ -122,7 +122,7 @@ void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
     return;
   }
   // If we can't resolve this identifier, it's not a runtime constant
-  const auto r = Resolve().get_resolution(i);
+  const auto* r = Resolve().get_resolution(i);
   if (r == nullptr) {
     res_ = false;
     return;
@@ -154,7 +154,7 @@ void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
 
 Expression* ConstantProp::rewrite(BinaryExpression* be) {
   if (RuntimeConstant(this).check(be)) {
-    auto res = new Number(Evaluate().get_value(be), Number::Format::HEX);
+    auto* res = new Number(Evaluate().get_value(be), Number::Format::HEX);
     Evaluate().invalidate(be);
     return res;
   }
@@ -183,7 +183,7 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
 
 Expression* ConstantProp::rewrite(Concatenation* c) {
   if (RuntimeConstant(this).check(c)) {
-    auto res = new Number(Evaluate().get_value(c), Number::Format::HEX);
+    auto* res = new Number(Evaluate().get_value(c), Number::Format::HEX);
     Evaluate().invalidate(c);
     return res;
   }
@@ -198,7 +198,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
     return Rewriter::rewrite(i);
   }
   if (RuntimeConstant(this).check(i)) {
-    auto res = new Number(Evaluate().get_value(i), Number::Format::HEX);
+    auto* res = new Number(Evaluate().get_value(i), Number::Format::HEX);
     Evaluate().invalidate(i);
     return res;
   }
@@ -207,7 +207,7 @@ Expression* ConstantProp::rewrite(Identifier* i) {
 
 Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
   if (RuntimeConstant(this).check(mc)) {
-    auto res = new Number(Evaluate().get_value(mc), Number::Format::HEX);
+    auto* res = new Number(Evaluate().get_value(mc), Number::Format::HEX);
     Evaluate().invalidate(mc);
     return res;
   }
@@ -217,7 +217,7 @@ Expression* ConstantProp::rewrite(MultipleConcatenation* mc) {
 Expression* ConstantProp::rewrite(RangeExpression* re) {
   if (RuntimeConstant(this).check(re)) {
     const auto rng = Evaluate().get_range(re);
-    auto res = new RangeExpression(rng.first+1, rng.second);
+    auto* res = new RangeExpression(rng.first+1, rng.second);
     Evaluate().invalidate(re);
     return res;
   }
@@ -226,7 +226,7 @@ Expression* ConstantProp::rewrite(RangeExpression* re) {
 
 Expression* ConstantProp::rewrite(UnaryExpression* ue) {
   if (RuntimeConstant(this).check(ue)) {
-    auto res = new Number(Evaluate().get_value(ue), Number::Format::HEX);
+    auto* res = new Number(Evaluate().get_value(ue), Number::Format::HEX);
     Evaluate().invalidate(ue);
     return res;
   }

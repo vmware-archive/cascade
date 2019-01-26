@@ -770,7 +770,7 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   size_t arity = 1;
   for (auto i = rd->get_id()->begin_dim(), ie = rd->get_id()->end_dim(); i != ie; ++i) {
     const auto rng = Evaluate().get_range(*i);
-    arity *= (rng.first-rng.second+1);
+    arity *= ((rng.first-rng.second)+1);
   }
   // Calculate width
   size_t w = 1;

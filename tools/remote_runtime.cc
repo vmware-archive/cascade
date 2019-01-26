@@ -43,6 +43,8 @@ using namespace cl;
 using namespace cascade;
 using namespace std;
 
+namespace {
+
 __attribute__((unused)) auto& g1 = Group::create("Backend Server Options");
 auto& port = StrArg<size_t>::create("--port")
   .usage("<int>")
@@ -74,31 +76,33 @@ void handler(int sig) {
   runtime->request_stop();
 }
 
+} // namespace
+
 int main(int argc, char** argv) {
   // Parse command line:
   Simple::read(argc, argv);
 
   struct sigaction action;
   memset(&action, 0, sizeof(action));
-  action.sa_handler = handler;
+  action.sa_handler = ::handler;
   sigaction(SIGINT, &action, nullptr);
 
-  auto dc = new De10Compiler();
-    dc->set_host(quartus_host.value());
-    dc->set_port(quartus_port.value());
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-  auto c = new Compiler();
+  auto* dc = new De10Compiler();
+    dc->set_host(::quartus_host.value());
+    dc->set_port(::quartus_port.value());
+  auto* pc = new ProxyCompiler();
+  auto* sc = new SwCompiler();
+  auto* c = new Compiler();
     c->set_de10_compiler(dc);
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
 
-  runtime = new RemoteRuntime();
-    runtime->set_compiler(c);
-    runtime->set_path(path.value());
-    runtime->set_port(port.value());
-    runtime->run();
-    runtime->wait_for_stop();
+  ::runtime = new RemoteRuntime();
+    ::runtime->set_compiler(c);
+    ::runtime->set_path(::path.value());
+    ::runtime->set_port(::port.value());
+    ::runtime->run();
+    ::runtime->wait_for_stop();
   delete runtime;
 
   cout << "Goodbye!" << endl;

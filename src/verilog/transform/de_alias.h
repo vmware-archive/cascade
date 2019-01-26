@@ -48,8 +48,8 @@ class DeAlias : public Rewriter {
   private:
     class AliasTable : public Visitor {
       public:
-        AliasTable(const ModuleDeclaration* md);
-        ~AliasTable();
+        explicit AliasTable(const ModuleDeclaration* md);
+        ~AliasTable() override;
 
         // Dealiases a variable or returns nullptr on failure. It is the
         // responsibility of the caller to deallocate any resulting memory.

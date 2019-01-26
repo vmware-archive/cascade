@@ -118,7 +118,7 @@ bool Program::declare_and_instantiate(ModuleDeclaration* md, Log* log, const Par
   auto iid = md->get_id()->front_ids()->get_readable_sid();
   transform(iid.begin(), iid.end(), iid.begin(), [](unsigned char c){return tolower(c);});
 
-  auto mi = new ModuleInstantiation(
+  auto* mi = new ModuleInstantiation(
     new Attributes(),
     md->get_id()->clone(),
     new Identifier(iid)
@@ -149,7 +149,7 @@ void Program::outline_all() {
 }
 
 const ModuleDeclaration* Program::src() const {
-  return root_eitr_ == elab_end() ? nullptr : root_eitr_->second;
+  return (root_eitr_ == elab_end()) ? nullptr : root_eitr_->second;
 }
 
 Program::decl_iterator Program::root_decl() const {
@@ -196,10 +196,10 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
 
   while (!log->error() && (!inst_queue_.empty() || !gen_queue_.empty())) {
     for (size_t i = 0; !log->error() && i < inst_queue_.size(); ++i) {
-      auto mi = inst_queue_[i];
+      auto* mi = inst_queue_[i];
       tc.pre_elaboration_check(mi);
       if (!log->error() && expand_insts_) {
-        auto e = Elaborate(this).elaborate(mi);
+        auto* e = Elaborate(this).elaborate(mi);
         assert(e != nullptr);
         e->accept(this);
         if (!Navigate(mi).lost()) {
@@ -216,36 +216,36 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
     }
     inst_queue_.clear();
 
-    // TODO: Technically, we're not supposed to elaborate any new generate
+    // TODO(eschkufz) Technically, we're not supposed to elaborate any new generate
     // statements that we create here until after we've recleared the
     // instantiation queue. In practice because don't support defparams
     // I don't *think* it makes a difference.
 
     for (size_t i = 0; !log->error() && i < gen_queue_.size(); ++i) {
-      auto gc = gen_queue_[i];
-      if (auto cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
+      auto* gc = gen_queue_[i];
+      if (auto* cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(cgc);
         if (!log->error() && expand_gens_) {
-          if (auto e = Elaborate().elaborate(cgc)) {
+          if (auto* e = Elaborate().elaborate(cgc)) {
             e->accept(this);
           }
           Navigate(cgc).invalidate();
         }
-      } else if (auto igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
+      } else if (auto* igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(igc);
         if (!log->error() && expand_gens_) {
-          if (auto e = Elaborate().elaborate(igc)) {
+          if (auto* e = Elaborate().elaborate(igc)) {
             e->accept(this);
           }
           Navigate(igc).invalidate();
         }
-      } else if (auto lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
+      } else if (auto* lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
         tc.pre_elaboration_check(lgc);
         if (!log->error() && expand_gens_) {
-          const auto itr = lgc->get_init()->get_lhs();
-          const auto r = Resolve().get_resolution(itr);
+          const auto* itr = lgc->get_init()->get_lhs();
+          const auto* r = Resolve().get_resolution(itr);
           Resolve().invalidate(r->get_parent());
-          for (auto b : Elaborate().elaborate(lgc)) {
+          for (auto* b : Elaborate().elaborate(lgc)) {
             b->accept(this);
           }
           Navigate(lgc).invalidate();
@@ -270,7 +270,7 @@ void Program::elaborate_item(ModuleItem* mi, Log* log, const Parser* p) {
 
 void Program::eval_root(ModuleItem* mi, Log* log, const Parser* p) {
   elabs_.checkpoint();
-  auto inst = dynamic_cast<ModuleInstantiation*>(mi);
+  auto* inst = dynamic_cast<ModuleInstantiation*>(mi);
   if ((inst == nullptr) || !EqId()(inst->get_mid(), root_decl()->first)) {
     log->error("Cannot evaluate code without first instantiating the root module");
   } else {
@@ -288,7 +288,7 @@ void Program::eval_root(ModuleItem* mi, Log* log, const Parser* p) {
 }
 
 void Program::eval_item(ModuleItem* mi, Log* log, const Parser* p) {
-  auto src = root_eitr_->second;
+  auto* src = root_eitr_->second;
   src->push_back_items(mi);
 
   elabs_.checkpoint();
@@ -331,7 +331,7 @@ void Program::inline_all(ModuleDeclaration* md) {
     return;
   }
   for (auto& c : ModuleInfo(md).children()) {
-    const auto fid = Resolve().get_full_id(c.first);
+    const auto* fid = Resolve().get_full_id(c.first);
     auto itr = elabs_.find(fid);
     delete fid;
     assert(itr != elabs_.end());
@@ -346,7 +346,7 @@ void Program::outline_all(ModuleDeclaration* md) {
   }
   Inline().outline_source(md);
   for (auto& c : ModuleInfo(md).children()) {
-    const auto fid = Resolve().get_full_id(c.first);
+    const auto* fid = Resolve().get_full_id(c.first);
     auto itr = elabs_.find(fid);
     delete fid;
     assert(itr != elabs_.end());

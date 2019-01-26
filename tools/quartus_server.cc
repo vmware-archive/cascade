@@ -55,8 +55,6 @@ auto& port = StrArg<uint32_t>::create("--port")
   .description("Port to run quartus server on")
   .initial(9900);
 
-} // namespace
-
 QuartusServer* qs = nullptr;
 
 void handler(int sig) {
@@ -64,27 +62,29 @@ void handler(int sig) {
   qs->request_stop();
 }
 
+} // namespace
+
 int main(int argc, char** argv) {
   // Parse command line:
   Simple::read(argc, argv);
 
   struct sigaction action;
   memset(&action, 0, sizeof(action));
-  action.sa_handler = handler;
+  action.sa_handler = ::handler;
   sigaction(SIGINT, &action, nullptr);
 
-  qs = new QuartusServer();
-  qs->path(path.value());
-  qs->usb(usb.value());
-  qs->port(port.value());
+  ::qs = new QuartusServer();
+  ::qs->path(::path.value());
+  ::qs->usb(::usb.value());
+  ::qs->port(::port.value());
 
-  if (!qs->check()) {
+  if (!::qs->check()) {
     cout << "Unable to locate core quartus components!" << endl;
   } else {
-    qs->run();
-    qs->wait_for_stop();
+    ::qs->run();
+    ::qs->wait_for_stop();
   }
-  delete qs;
+  delete ::qs;
 
   cout << "Goodbye!" << endl;
   return 0;

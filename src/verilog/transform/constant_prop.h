@@ -54,9 +54,9 @@ class ConstantProp : public Rewriter {
     bool is_assign_target(const Identifier* i) const;
 
     // Helper Class: Returns true if this expression is a runtime constant.
-    class RuntimeConstant : Visitor {
+    class RuntimeConstant : public Visitor {
       public:
-        RuntimeConstant(ConstantProp* cp);
+        explicit RuntimeConstant(ConstantProp* cp);
         ~RuntimeConstant() override = default;
 
         bool check(const Expression* e);
@@ -77,7 +77,7 @@ class ConstantProp : public Rewriter {
     Expression* rewrite(MultipleConcatenation* mc) override;
     Expression* rewrite(RangeExpression* re) override;
     Expression* rewrite(UnaryExpression* ue) override;
-    // TODO: Add support for constexpr evaluating case statements
+    // TODO(eschkufz) Add support for constexpr evaluating case statements
     Statement* rewrite(ConditionalStatement* cs) override;
 };
 
