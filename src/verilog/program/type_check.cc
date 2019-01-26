@@ -154,18 +154,18 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       if (!ports.insert((*i)->get_exp()).second) {
         error("Instantiation contains duplicate named connections", mi);
       }
-      const auto itr = np.find((*i)->get_exp());
-      if (itr == np.end()) {
+      const auto nitr = np.find((*i)->get_exp());
+      if (nitr == np.end()) {
         error("Instantiation contains a reference to an unresolvable explicit port", mi);
         continue;
       }
       if ((*i)->is_null_imp()) {
         continue;
       }
-      if (ModuleInfo(src).is_output(*itr) && (dynamic_cast<const Identifier*>((*i)->get_imp()) == nullptr)) {
+      if (ModuleInfo(src).is_output(*nitr) && (dynamic_cast<const Identifier*>((*i)->get_imp()) == nullptr)) {
         error("Instantiation contains a connection between an expression and a named output port", mi);
       }
-      check_arity(mi, *itr, (*i)->get_imp());
+      check_arity(mi, *nitr, (*i)->get_imp());
     }
   } 
   if (!mi->uses_named_ports()) {
@@ -816,7 +816,7 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
       } 
     }
     // WARN: Can we say for sure that this value is out of range?
-    else if (((Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first)) && !decl_check_) {
+    else if ((Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) && !decl_check_) {
       warn("Array subscript is out of range of declared dimension for this variable", *iitr);
     }
   }    

@@ -456,6 +456,4 @@ void De10Logic::Sync::visit(const Identifier* id) {
   de_->read_scalar(vinfo->second);
 }
 
-#undef MANGLE
-
 } // namespace cascade

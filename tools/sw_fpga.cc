@@ -69,7 +69,7 @@ void draw_pad(Bits& pad, mutex& pad_lock, int row, int col) {
   for (int i = 0; i < 4; ++i) {
     const auto p = pad.get(i) ? '_' : '-';
     attron(COLOR_PAIR(2));
-    mvprintw(row/2+1, col/2+2*i-4, "%c ", p);
+    mvprintw((row/2)+1, (col/2)+(2*i)-4, "%c ", p);
     attroff(COLOR_PAIR(2));
   }
 }
@@ -78,7 +78,7 @@ void draw_rst(Bits& rst, mutex& rst_lock, int row, int col) {
   lock_guard<mutex> lg(rst_lock);
   const auto r = rst.to_bool() ? '_' : '-';
   attron(COLOR_PAIR(1));
-  mvprintw(row/2+1, col/2+6, "%c ", r);
+  mvprintw((row/2)+1, (col/2)+6, "%c ", r);
   attroff(COLOR_PAIR(1));
 }
 
@@ -89,7 +89,7 @@ void draw_led(Bits& led, mutex& led_lock, int row, int col) {
     const auto cl = l ? 1 : 2;
     const auto ch = l ? '*' : '.';
     attron(COLOR_PAIR(cl));
-    mvprintw(row/2-1, col/2+2*i-8, "%c ", ch);
+    mvprintw((row/2)-1, (col/2)+(2*i)-8, "%c ", ch);
     attroff(COLOR_PAIR(cl));
   }
 }
@@ -152,7 +152,8 @@ int main(int argc, char** argv) {
         break;
     }
 
-    int row, col;
+    int row; 
+    int col;
     getmaxyx(stdscr, row, col);
     draw_pad(pad, pad_lock, row, col);
     draw_rst(rst, rst_lock, row, col);
