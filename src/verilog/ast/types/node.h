@@ -138,6 +138,7 @@ class Node {
     const Node* get_parent() const;
 
     // Runtime Type Identification:
+    bool is_concept(Tag tag) const;
     bool is_subclass_of(Tag tag) const;
     bool is(Tag tag) const;
 
@@ -181,6 +182,10 @@ inline Node* Node::get_parent() {
 
 inline const Node* Node::get_parent() const {
   return parent_;
+}
+
+inline bool Node::is_concept(Tag tag) const {
+  return (static_cast<uint32_t>(tag_) & static_cast<uint32_t>(tag)) == static_cast<uint32_t>(tag);
 }
 
 inline bool Node::is_subclass_of(Tag tag) const {

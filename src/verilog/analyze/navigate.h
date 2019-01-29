@@ -141,6 +141,7 @@ class Navigate : public Visitor {
     // Scope Navigation Helpers:
     bool boundary_check() const;
     bool location_check() const;
+    Scope* get_scope(Node* n) const;
 
     // Caching Helpers:
     void cache_name(const Identifier* id);

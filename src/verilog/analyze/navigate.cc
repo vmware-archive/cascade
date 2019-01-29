@@ -88,10 +88,11 @@ Navigate::Navigate(const Node* n) : Visitor() {
   // is in explicit port and parameter assignments. These actually point DOWN
   // into the instantiation that they appear in.
   auto* p = n->get_parent();
-  if (auto* aa = dynamic_cast<const ArgAssign*>(p)) {
+  if ((p != nullptr) && p->is(Node::Tag::arg_assign)) {
+    auto* aa = static_cast<const ArgAssign*>(p);
     if (n == aa->get_exp()) {
-      auto* mi = dynamic_cast<const ModuleInstantiation*>(aa->get_parent());
-      assert(mi != nullptr);
+      assert(aa->get_parent()->is(Node::Tag::module_instantiation));
+      auto* mi = static_cast<const ModuleInstantiation*>(aa->get_parent());
       if (Elaborate().is_elaborated(mi)) {
         where_ = const_cast<ModuleDeclaration*>(Elaborate().get_elaboration(mi));
       }
@@ -109,7 +110,7 @@ Navigate::Navigate(const Node* n) : Visitor() {
 
 void Navigate::invalidate() {
   assert(location_check());
-  auto* s = dynamic_cast<Scope*>(where_);
+  auto* s = get_scope(where_);
   if (s->next_supdate_ > 0) {
     s->next_supdate_ = 0;
     s->snames_.clear();
@@ -131,7 +132,7 @@ bool Navigate::down(const Id* id) {
   assert(location_check());
 
   // Fail if we can't find a child with this id
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   const auto itr = s->schildren_.find(id);
   if (itr == s->schildren_.end()) {
     return false;
@@ -168,28 +169,28 @@ const Node* Navigate::where() const {
 const Identifier* Navigate::name() const {
   assert(location_check());
 
-  if (auto* gb = dynamic_cast<GenerateBlock*>(where_)) {
+  if (where_->is(Node::Tag::generate_block)) {
+    auto* gb = static_cast<GenerateBlock*>(where_);
     assert(gb->is_non_null_id());
     return gb->get_id();
   }
-  if (auto* pb = dynamic_cast<ParBlock*>(where_)) {
-    assert(pb->is_non_null_id());
-    return pb->get_id();
-  }
-  if (auto* md = dynamic_cast<ModuleDeclaration*>(where_)) {
+  if (where_->is(Node::Tag::module_declaration)) {
+    auto* md = static_cast<ModuleDeclaration*>(where_);
     auto* p = md->get_parent();
     if (p == nullptr) {
       return nullptr;
     }
-    auto* mi = dynamic_cast<ModuleInstantiation*>(p);
-    assert(mi != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+    auto* mi = static_cast<ModuleInstantiation*>(p);
     return mi->get_iid();
   }
-  if (auto* pb = dynamic_cast<ParBlock*>(where_)) {
+  if (where_->is(Node::Tag::par_block)) {
+    auto* pb = static_cast<ParBlock*>(where_);
     assert(pb->is_non_null_id());
     return pb->get_id();
   }
-  if (auto* sb = dynamic_cast<SeqBlock*>(where_)) {
+  if (where_->is(Node::Tag::seq_block)) {
+    auto* sb = static_cast<SeqBlock*>(where_);
     assert(sb->is_non_null_id());
     return sb->get_id();
   }
@@ -203,7 +204,7 @@ const Identifier* Navigate::find_name(const Id* id) {
 
   // Fail if we can't find an id that matches this one. Otherwise return an
   // arbitrary result.
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   const auto itr = s->snames_.find(id);
   return (itr != s->snames_.end()) ? itr->second.first : nullptr;
 }
@@ -214,7 +215,7 @@ const Identifier* Navigate::find_duplicate_name(const Id* id) {
   // Fail if there's at most one id that matches this one. Otherwise return an
   // element which is distinct from id. Because we keep two, we'll always be
   // able to find at least one.
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   const auto itr = s->snames_.find(id);
   if (itr == s->snames_.end() || (itr->second.second == nullptr)) {
     return nullptr;
@@ -226,14 +227,14 @@ const Identifier* Navigate::find_duplicate_name(const Id* id) {
 
 const Node* Navigate::find_child(const Id* id) {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   const auto itr = s->schildren_.find(id);
   return (itr != s->schildren_.end()) ? itr->second : nullptr;
 }
 
 const Node* Navigate::find_child_ignore_subscripts(const Id* id) {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   for (auto i = s->schildren_.begin(), ie = s->schildren_.end(); i != ie; ++i) {
     if (i->first->get_sid() == id->get_sid()) {
       return i->second;
@@ -244,38 +245,40 @@ const Node* Navigate::find_child_ignore_subscripts(const Id* id) {
 
 Navigate::name_iterator Navigate::name_begin() const {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   return name_iterator(s->snames_.begin());
 }
 
 Navigate::name_iterator Navigate::name_end() const {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   return name_iterator(s->snames_.end());
 }
 
 Navigate::child_iterator Navigate::child_begin() const {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   return child_iterator(s->schildren_.begin());
 }
 
 Navigate::child_iterator Navigate::child_end() const {
   assert(location_check());
-  const auto* s = dynamic_cast<Scope*>(where_);
+  const auto* s = get_scope(where_);
   return child_iterator(s->schildren_.end());
 }
 
 bool Navigate::boundary_check() const {
-  if (auto* gb = dynamic_cast<const GenerateBlock*>(where_)) {
+  if (where_->is(Node::Tag::generate_block)) {
+    auto* gb = static_cast<const GenerateBlock*>(where_);
     if (gb->is_non_null_id()) {
       return true; 
     }
-  } else if (auto* bs = dynamic_cast<const BlockStatement*>(where_)) {
+  } else if (where_->is_subclass_of(Node::Tag::block_statement)) {
+    auto* bs = static_cast<const BlockStatement*>(where_);
     if (bs->is_non_null_id()) {
       return true; 
     }
-  } else if (dynamic_cast<const ModuleDeclaration*>(where_)) {
+  } else if (where_->is(Node::Tag::module_declaration)) {
     return true;
   }
   return false;
@@ -285,12 +288,26 @@ bool Navigate::location_check() const {
   if (lost()) {
     return false;
   }
-  return dynamic_cast<Scope*>(where_);
+  return where_->is_concept(Node::Tag::scope);
+}
+
+Scope* Navigate::get_scope(Node* n) const {
+  if (where_->is(Node::Tag::generate_block)) {
+    return &static_cast<GenerateBlock*>(n)->scope_idx_;
+  } else if (where_->is(Node::Tag::module_declaration)) {
+    return &static_cast<ModuleDeclaration*>(n)->scope_idx_;
+  } else if (where_->is(Node::Tag::par_block)) {
+    return &static_cast<ParBlock*>(n)->scope_idx_;
+  } else if (where_->is(Node::Tag::seq_block)) {
+    return &static_cast<SeqBlock*>(n)->scope_idx_;
+  }
+
+  assert(false);
+  return nullptr;
 }
 
 void Navigate::cache_name(const Identifier* id) {
-  auto* s = dynamic_cast<Scope*>(where_);
-  assert(s != nullptr);
+  auto* s = get_scope(where_);
 
   const auto* i = id->front_ids();
   auto itr = s->snames_.find(i);
@@ -308,8 +325,7 @@ void Navigate::visit(const GenerateBlock* gb) {
     return;
   } 
   // Otherwise we've hit a child
-  auto* s = dynamic_cast<Scope*>(where_);
-  assert(s != nullptr);
+  auto* s = get_scope(where_);
   s->schildren_.insert(make_pair(gb->get_id()->front_ids(), gb));
 }
 
@@ -365,8 +381,7 @@ void Navigate::visit(const ModuleInstantiation* mi) {
   }
   // If it's been instantiated, cache the scope below it.
   if (Elaborate().is_elaborated(mi)) {
-    auto* s = dynamic_cast<Scope*>(where_);
-    assert(s != nullptr);
+    auto* s = get_scope(where_);
     const auto* md = Elaborate().get_elaboration(mi);
     s->schildren_.insert(make_pair(mi->get_iid()->front_ids(), md));
   } 
@@ -380,8 +395,7 @@ void Navigate::visit(const ParBlock* pb) {
     return;
   } 
   // Otherwise we've hit a child
-  auto* s = dynamic_cast<Scope*>(where_);
-  assert(s != nullptr);
+  auto* s = get_scope(where_);
   s->schildren_.insert(make_pair(pb->get_id()->front_ids(), pb));
 }
 
@@ -393,15 +407,15 @@ void Navigate::visit(const SeqBlock* sb) {
     return;
   } 
   // Otherwise we've hit a child
-  auto* s = dynamic_cast<Scope*>(where_);
-  assert(s != nullptr);
+  auto* s = get_scope(where_);
   s->schildren_.insert(make_pair(sb->get_id()->front_ids(), sb));
 }
 
 void Navigate::refresh() {
   assert(location_check());
-  auto* s = dynamic_cast<Scope*>(where_);
-  if (auto* md = dynamic_cast<ModuleDeclaration*>(where_)) {
+  auto* s = get_scope(where_);
+  if (where_->is(Node::Tag::module_declaration)) {
+    auto* md = static_cast<ModuleDeclaration*>(where_);
     for (auto e = md->size_items(); s->next_supdate_ < e; ++s->next_supdate_) {
       md->get_items(s->next_supdate_)->accept(this);
     }
