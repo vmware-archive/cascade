@@ -188,7 +188,7 @@ inline bool Node::is_subclass_of(Tag tag) const {
 }
 
 inline bool Node::is(Tag tag) const {
-  return (static_cast<uint32_t>(tag_) & 0x0000ffff) == static_cast<uint32_t>(tag);
+  return tag_ == tag;
 }
 
 template <size_t idx>

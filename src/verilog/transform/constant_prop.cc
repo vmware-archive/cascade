@@ -46,12 +46,13 @@ void ConstantProp::run(ModuleDeclaration* md) {
   // Collect net assignments, we'll populate the runtime constant set lazily in
   // calls to RuntimeConstant::check().
   for (auto i = md->begin_items(), ie = md->end_items(); i != ie; ++i) {
-    if (auto* ca = dynamic_cast<ContinuousAssign*>(*i)) {
+    if ((*i)->is(Node::Tag::continuous_assign)) {
+      auto* ca = static_cast<ContinuousAssign*>(*i);
       const auto* lhs = ca->get_assign()->get_lhs();
       const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
-      const auto is_net = dynamic_cast<const NetDeclaration*>(r->get_parent()) != nullptr;
+      const auto is_net = r->get_parent()->is(Node::Tag::net_declaration);
       const auto is_slice = Resolve().is_slice(lhs);
       const auto is_array = Resolve().is_array(r);
       if (is_net && !is_slice && !is_array) {
@@ -66,7 +67,8 @@ void ConstantProp::run(ModuleDeclaration* md) {
   // Go back and delete every continuous assignment which was consumed when we
   // populated the runtime constants set.
   for (auto i = md->begin_items(); i != md->end_items(); ) {
-    if (auto* ca = dynamic_cast<ContinuousAssign*>(*i)) {
+    if ((*i)->is(Node::Tag::continuous_assign)) {
+      auto* ca = static_cast<ContinuousAssign*>(*i);
       const auto* lhs = ca->get_assign()->get_lhs();
       const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
@@ -90,9 +92,10 @@ void ConstantProp::run(ModuleDeclaration* md) {
 
 bool ConstantProp::is_assign_target(const Identifier* i) const {
   const auto* p = i->get_parent();
-  if (auto* va = dynamic_cast<const VariableAssign*>(p)) {
+  if (p->is(Node::Tag::variable_assign)) {
+    auto* va = static_cast<const VariableAssign*>(p);
     const auto* pp = p->get_parent();
-    if (dynamic_cast<const ContinuousAssign*>(pp)) {
+    if (pp->is(Node::Tag::continuous_assign)) {
       return i == va->get_lhs();
     }
   }
@@ -191,7 +194,7 @@ Expression* ConstantProp::rewrite(Concatenation* c) {
 }
 
 Expression* ConstantProp::rewrite(Identifier* i) {
-  if (dynamic_cast<Declaration*>(i->get_parent())) {
+  if (i->get_parent()->is_subclass_of(Node::Tag::declaration)) {
     return Rewriter::rewrite(i);
   }
   if (is_assign_target(i)) {

@@ -89,8 +89,9 @@ void DeadCodeEliminate::Index::visit(const RegDeclaration* rd) {
 void DeadCodeEliminate::edit(ModuleDeclaration* md) {
   auto dead = false;
   for (auto i = md->begin_items(); i != md->end_items(); ) {
-    if (auto* d = dynamic_cast<Declaration*>(*i)) {
-      const auto is_port = dynamic_cast<PortDeclaration*>(d->get_parent()) != nullptr;
+    if ((*i)->is_subclass_of(Node::Tag::declaration)) {
+      auto* d = static_cast<Declaration*>(*i);
+      const auto is_port = d->get_parent()->is(Node::Tag::port_declaration);
       const auto is_dead = use_.find(d->get_id()) == use_.end();
       if (!is_port && is_dead) {
         dead = true;

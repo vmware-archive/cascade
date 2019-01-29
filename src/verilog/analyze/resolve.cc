@@ -76,8 +76,8 @@ Identifier* Resolve::get_full_id(const Identifier* id) {
 
 const ModuleDeclaration* Resolve::get_parent(const Identifier* id) {
   for (const Node* n = id; n != nullptr; n = n->get_parent()) {
-    if (auto* md = dynamic_cast<const ModuleDeclaration*>(n)) {
-      return md;
+    if (n->is(Node::Tag::module_declaration)) {
+      return static_cast<const ModuleDeclaration*>(n);
     }
   }
   return nullptr;
@@ -106,9 +106,9 @@ bool Resolve::is_array(const Identifier* id) {
 Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
   const auto* r = get_resolution(id);
   assert(r != nullptr);
-  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
-  assert(d != nullptr);
 
+  assert(r->get_parent()->is_subclass_of(Node::Tag::declaration));
+  const auto* d = static_cast<const Declaration*>(r->get_parent());
   if (d->uses_ == nullptr) {
     cache_uses(d);
   }
@@ -118,9 +118,9 @@ Resolve::use_iterator Resolve::use_begin(const Identifier* id) {
 Resolve::use_iterator Resolve::use_end(const Identifier* id) {
   const auto* r = get_resolution(id);
   assert(r != nullptr);
-  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
-  assert(d != nullptr);
 
+  assert(r->get_parent()->is_subclass_of(Node::Tag::declaration));
+  const auto* d = static_cast<const Declaration*>(r->get_parent());
   if (d->uses_ == nullptr) {
     cache_uses(d);
   }
@@ -259,8 +259,8 @@ void Resolve::CacheUses::edit(Identifier* i) {
   if (r == nullptr) {
     return;
   }
-  const auto* d = dynamic_cast<const Declaration*>(r->get_parent());
-  assert(d != nullptr);
+  assert(r->get_parent()->is_subclass_of(Node::Tag::declaration));
+  const auto* d = static_cast<const Declaration*>(r->get_parent());
   assert(d->uses_ != nullptr);
 
   if (find(d->uses_->begin(), d->uses_->end(), i) != d->uses_->end()) {
@@ -268,7 +268,8 @@ void Resolve::CacheUses::edit(Identifier* i) {
   } 
   d->uses_->push_back(i);
   for (auto* n = i->get_parent(); ; n = n->get_parent()) {
-    if (auto* e = dynamic_cast<const Expression*>(n)) {
+    if (n->is_subclass_of(Node::Tag::expression)) {
+      auto* e = static_cast<const Expression*>(n);
       if (find(d->uses_->begin(), d->uses_->end(), e) == d->uses_->end()) {
         d->uses_->push_back(e);
       }
