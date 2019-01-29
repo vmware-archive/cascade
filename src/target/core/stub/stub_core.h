@@ -52,6 +52,8 @@ class StubCore : public Core {
     bool there_are_updates() const override;
     void update() override;
     bool there_were_tasks() const override;
+
+    bool is_stub() const override;
 };
 
 inline StubCore::StubCore(Interface* interface) : Core(interface) { }
@@ -94,6 +96,10 @@ inline void StubCore::update() {
 
 inline bool StubCore::there_were_tasks() const {
   return false;
+}
+
+inline bool StubCore::is_stub() const {
+  return true;
 }
 
 } // namespace cascade

@@ -107,7 +107,7 @@ template <typename T>
 inline const T* Attributes::get(const std::string& s) const {
   for (auto i = begin_as(), ie = end_as(); i != ie; ++i) {
     if ((*i)->get_lhs()->eq(s) && (*i)->is_non_null_rhs()) {
-      return dynamic_cast<const T*>((*i)->get_rhs());
+      return static_cast<const T*>((*i)->get_rhs());
     }
   }
   return nullptr;

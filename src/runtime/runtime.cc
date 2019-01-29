@@ -259,11 +259,14 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
 }
 
 bool Runtime::eval_node(Node* n) {
-  if (auto* s = dynamic_cast<String*>(n)) {
+  if (n->is(Node::Tag::string)) {
+    auto* s = static_cast<String*>(n);
     return eval_include(s);
-  } else if (auto* md = dynamic_cast<ModuleDeclaration*>(n)) {
+  } else if (n->is(Node::Tag::module_declaration)) {
+    auto* md = static_cast<ModuleDeclaration*>(n);
     return eval_decl(md);
-  } else if (auto* mi = dynamic_cast<ModuleItem*>(n)) {
+  } else if (n->is_subclass_of(Node::Tag::module_item)) {
+    auto* mi = static_cast<ModuleItem*>(n);
     return eval_item(mi);
   } else {
     assert(false);

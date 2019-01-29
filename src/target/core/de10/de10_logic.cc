@@ -419,13 +419,16 @@ void De10Logic::handle_tasks() {
     if ((task_queue & 0x1) == 0) {
       continue;
     }
-    if (const auto* ds = dynamic_cast<const DisplayStatement*>(tasks_[i])) {
+    if (tasks_[i]->is(Node::Tag::display_statement)) {
+      const auto* ds = static_cast<const DisplayStatement*>(tasks_[i]);
       Sync sync(this);
       ds->accept_args(&sync);
       interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
-    } else if (const auto* fs = dynamic_cast<const FinishStatement*>(tasks_[i])) {
+    } else if (tasks_[i]->is(Node::Tag::finish_statement)) {
+      const auto* fs = static_cast<const FinishStatement*>(tasks_[i]);
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
-    } else if (const auto* ws = dynamic_cast<const WriteStatement*>(tasks_[i])) {
+    } else if (tasks_[i]->is(Node::Tag::write_statement)) {
+      const auto* ws = static_cast<const WriteStatement*>(tasks_[i]);
       Sync sync(this);
       ws->accept_args(&sync);
       interface()->write(Printf().format(ws->begin_args(), ws->end_args()));

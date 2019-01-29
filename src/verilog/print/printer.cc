@@ -471,9 +471,9 @@ void Printer::visit(const ConditionalStatement* cs) {
   cs->accept_if(this);
   *this << Color::RED << ") " << Color::RESET;
 
-  const auto* tpb = dynamic_cast<const ParBlock*>(cs->get_then());
-  const auto* tsb = dynamic_cast<const SeqBlock*>(cs->get_then());
-  if ((tpb == nullptr) && (tsb == nullptr)) {
+  const auto tpb = cs->get_then()->is(Node::Tag::par_block);
+  const auto tsb = cs->get_then()->is(Node::Tag::seq_block);
+  if (!tpb && !tsb) {
     os_.tab();
     *this << "\n";
     cs->accept_then(this);
@@ -482,16 +482,17 @@ void Printer::visit(const ConditionalStatement* cs) {
     cs->accept_then(this);
   }
 
-  const auto* epb = dynamic_cast<const ParBlock*>(cs->get_else());
-  const auto* esb = dynamic_cast<const SeqBlock*>(cs->get_else());
-  if ((epb == nullptr) && (esb == nullptr)) {
+  const auto epb = cs->get_else()->is(Node::Tag::par_block);
+  const auto esb = cs->get_else()->is(Node::Tag::seq_block);
+  if (!epb && !esb) {
     *this << "\n";
     *this << Color::GREEN << "else " << Color::RESET;
     os_.tab();
     *this << "\n";
     cs->accept_else(this);
     os_.untab();
-  } else if (((epb != nullptr) && !epb->empty_stmts()) || ((esb != nullptr) && !esb->empty_stmts())) {
+  } else if ((epb && !static_cast<const ParBlock*>(cs->get_else())->empty_stmts()) || 
+             (esb && !static_cast<const SeqBlock*>(cs->get_else())->empty_stmts())) {
     *this << "\n";
     *this << Color::GREEN << "else " << Color::RESET;
     cs->accept_else(this);

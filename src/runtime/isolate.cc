@@ -38,7 +38,6 @@
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
 #include "src/verilog/program/elaborate.h"
 
 using namespace std;
@@ -216,9 +215,10 @@ Identifier* Isolate::to_global_id(const Identifier* id) {
 ModuleDeclaration* Isolate::get_shell() {
   ModuleInfo info(src_);
 
+  assert(src_->get_parent()->is(Node::Tag::module_instantiation));
   auto* res = new ModuleDeclaration(
     src_->get_attrs()->clone(),
-    to_mangled_id(dynamic_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid())
+    to_mangled_id(static_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid())
   );
 
   unordered_set<const Identifier*> ports;
@@ -241,20 +241,20 @@ ModuleDeclaration* Isolate::get_shell() {
     auto* pd = new PortDeclaration(
       new Attributes(), 
       (r && w) ? PortDeclaration::Type::INOUT : r ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
-      (info.is_local(p) && (dynamic_cast<const RegDeclaration*>(p->get_parent()) != nullptr)) ? 
+      (info.is_local(p) && p->get_parent()->is(Node::Tag::reg_declaration)) ? 
         static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),
           to_global_id(p),
-          dynamic_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
+          static_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
           (width == 1) ? nullptr : new RangeExpression(width),
-          dynamic_cast<const RegDeclaration*>(p->get_parent())->clone_val()
+          static_cast<const RegDeclaration*>(p->get_parent())->clone_val()
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
           NetDeclaration::Type::WIRE,
           nullptr,
           to_global_id(p),
-          dynamic_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
+          static_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
           (width == 1) ? nullptr : new RangeExpression(width)
         ))
     );
@@ -274,7 +274,8 @@ vector<ModuleItem*> Isolate::get_local_decls() {
     if (ModuleInfo(src_).is_read(l) || ModuleInfo(src_).is_write(l)) {
       continue;
     }
-    auto* d = dynamic_cast<const Declaration*>(l->get_parent())->accept(this);
+    assert(l->get_parent()->is_subclass_of(Node::Tag::declaration));
+    auto* d = static_cast<const Declaration*>(l->get_parent())->accept(this);
     if (d != nullptr) {
       res.push_back(d);
     }

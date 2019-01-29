@@ -75,9 +75,8 @@ inline void Monitor::wait_on_reads(Node* n, Expression* m) {
 
 inline void Monitor::edit(Event* e) {
   // TODO(eschkufz) Support for complex expressions here
-  auto* id = dynamic_cast<Identifier*>(e->get_expr());
-  assert(id != nullptr);
-
+  assert(e->get_expr()->is(Node::Tag::identifier));
+  auto* id = static_cast<Identifier*>(e->get_expr());
   auto* r = Resolve().get_resolution(id);
   wait_on_node(e, const_cast<Identifier*>(r));
 }
@@ -89,8 +88,8 @@ inline void Monitor::edit(ContinuousAssign* ca) {
 
 inline void Monitor::edit(EventControl* ec) {
   if (ec->empty_events()) {
-    auto* tcs = dynamic_cast<TimingControlStatement*>(ec->get_parent());
-    assert(tcs != nullptr);
+    assert(ec->get_parent()->is(Node::Tag::timing_control_statement));
+    auto* tcs = static_cast<TimingControlStatement*>(ec->get_parent());
     for (auto* i : ReadSet(tcs->get_stmt())) {
       auto* r = Resolve().get_resolution(i);
       assert(r != nullptr);

@@ -119,15 +119,15 @@ inline Engine::~Engine() {
 }
 
 inline bool Engine::is_clock() const {
-  return dynamic_cast<Clock*>(core_) != nullptr;
+  return core_->is_clock();
 }
 
 inline bool Engine::is_logic() const {
-  return dynamic_cast<Logic*>(core_) != nullptr;
+  return core_->is_logic();
 }
 
 inline bool Engine::is_stub() const {
-  return dynamic_cast<StubCore*>(core_) != nullptr;
+  return core_->is_stub();
 }
 
 inline bool Engine::overrides_done_step() const {

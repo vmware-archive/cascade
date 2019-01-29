@@ -118,6 +118,11 @@ class Core {
     // must report the number of iterations that it ran for. 
     virtual size_t open_loop(VId clk, bool val, size_t itr);
 
+    // Light-weight RTTI:
+    virtual bool is_clock() const;
+    virtual bool is_logic() const;
+    virtual bool is_stub() const;
+
   protected:
     Interface* interface();
 
@@ -134,6 +139,7 @@ class Clock : public Core {
   public:
     using Core::Core;
     bool there_were_tasks() const override;
+    bool is_clock() const override;
 };
 
 class Fifo : public Core { 
@@ -157,6 +163,7 @@ class Led : public Core {
 class Logic : public Core { 
   public:
     using Core::Core;
+    bool is_logic() const override;
 };
 
 class Memory : public Core { 
@@ -230,12 +237,28 @@ inline size_t Core::open_loop(VId clk, bool val, size_t itr) {
   return res;  
 }
 
+inline bool Core::is_clock() const {
+  return false;
+}
+
+inline bool Core::is_logic() const {
+  return false;
+}
+
+inline bool Core::is_stub() const {
+  return false;
+}
+
 inline Interface* Core::interface() {
   return interface_;
 }
 
 inline bool Clock::there_were_tasks() const {
   return false;
+}
+
+inline bool Clock::is_clock() const {
+  return true;
 }
 
 inline bool Fifo::there_were_tasks() const {
@@ -248,6 +271,10 @@ inline bool Gpio::there_were_tasks() const {
 
 inline bool Led::there_were_tasks() const {
   return false;
+}
+
+inline bool Logic::is_logic() const {
+  return true;
 }
 
 inline bool Memory::there_were_tasks() const {

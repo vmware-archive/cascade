@@ -162,7 +162,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       if ((*i)->is_null_imp()) {
         continue;
       }
-      if (ModuleInfo(src).is_output(*nitr) && (dynamic_cast<const Identifier*>((*i)->get_imp()) == nullptr)) {
+      if (ModuleInfo(src).is_output(*nitr) && !(*i)->get_imp()->is(Node::Tag::identifier)) {
         error("Instantiation contains a connection between an expression and a named output port", mi);
       }
       check_arity(mi, *nitr, (*i)->get_imp());
@@ -175,7 +175,7 @@ void TypeCheck::pre_elaboration_check(const ModuleInstantiation* mi) {
       if (p->is_null_imp()) {
         continue;
       }
-      if (ModuleInfo(src).is_output(op[i]) && (dynamic_cast<const Identifier*>(p->get_imp()) == nullptr)) {
+      if (ModuleInfo(src).is_output(op[i]) && !p->get_imp()->is(Node::Tag::identifier)) {
         error("Instantiation contains a connection between an expression and an ordered output port", mi);
       }
       check_arity(mi, op[i], p->get_imp());
@@ -356,7 +356,7 @@ void TypeCheck::visit(const Identifier* id) {
     }
   }
   // CHECK: Is this a reference to a genvar outside of a loop generate construct?
-  if ((outermost_loop_ == nullptr) && (r != nullptr) && (dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr)) {
+  if ((outermost_loop_ == nullptr) && (r != nullptr) && r->get_parent()->is(Node::Tag::genvar_declaration)) {
     error("Found reference to a genvar outside of a loop generate construct", id);
   }
   // EXIT: Can't continue checking if id can't be resolved
@@ -377,7 +377,8 @@ void TypeCheck::visit(const Identifier* id) {
   }
 
   // CHECK: Range expression bit-selects
-  if (const auto* re = dynamic_cast<const RangeExpression*>(*cdr)) {
+  if ((*cdr)->is(Node::Tag::range_expression)) {
+    const auto* re = static_cast<const RangeExpression*>(*cdr);
     if (re->get_type() == RangeExpression::Type::CONSTANT) {
       // CHECK: Non-constant values, values out of range, little-endian ranges
       // EXIT: We can't continue checking if we can't evaluate this range
@@ -411,11 +412,13 @@ void TypeCheck::visit(const Identifier* id) {
 
 void TypeCheck::visit(const String* s) {
   auto e = false;
-  if (auto* ws = dynamic_cast<const WriteStatement*>(s->get_parent())) {
+  if (s->get_parent()->is(Node::Tag::write_statement)) {
+    auto* ws = static_cast<const WriteStatement*>(s->get_parent());
     if (ws->front_args() != s) {
       e = true;
     }
-  } else if (auto* ds = dynamic_cast<const DisplayStatement*>(s->get_parent())) {
+  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
+    auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
     if (ds->front_args() != s) {
       e = true;
     }
@@ -441,12 +444,11 @@ void TypeCheck::visit(const ModuleDeclaration* md) {
     if ((*i)->is_null_imp()) {
       error("Found a missing implicit port in module declaration", md);
     }
-    auto* imp = dynamic_cast<const Identifier*>((*i)->get_imp());
-    if (imp == nullptr) {
+    if (!(*i)->get_imp()->is(Node::Tag::identifier)) {
       error("Cascade does not currently support the use of implicit ports which are not identifiers", *i);
     } else {
       // RECURSE: implicit port
-      imp->accept(this);
+      static_cast<const Identifier*>((*i)->get_imp())->accept(this);
     }
   }
 
@@ -500,7 +502,7 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
     return;
   }
 
-  if (dynamic_cast<const NetDeclaration*>(l->get_parent()) == nullptr) {
+  if (!l->get_parent()->is(Node::Tag::net_declaration)) {
     error("Continuous assignments are only permitted for variables with type wire", ca);
   }
 
@@ -681,8 +683,8 @@ void TypeCheck::visit(const BlockingAssign* ba) {
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(ba->get_assign()->get_lhs());
   if ((r != nullptr) && 
-      (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
-      (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
+      !r->get_parent()->is(Node::Tag::reg_declaration) && 
+      !r->get_parent()->is(Node::Tag::integer_declaration)) {
     error("Found a blocking assignments to a variable with type other than reg or integer", ba);
   }
 }
@@ -693,8 +695,8 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
   if ((r != nullptr) && 
-      (dynamic_cast<const RegDeclaration*>(r->get_parent()) == nullptr) && 
-      (dynamic_cast<const IntegerDeclaration*>(r->get_parent()) == nullptr)) {
+      !r->get_parent()->is(Node::Tag::reg_declaration) && 
+      !r->get_parent()->is(Node::Tag::integer_declaration)) {
     error("Found a non-blocking assignments to a variable with type other than reg or integer", na);
   }
 }
@@ -794,7 +796,7 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
   else if (diff == 0) {
     if (i->empty_dim()) {
       return i->end_dim();
-    } else if (dynamic_cast<const RangeExpression*>(i->back_dim())) {
+    } else if (i->back_dim()->is(Node::Tag::range_expression)) {
       error("Found a range expression found where a scalar subscript was expected", i);
       return i->end_dim();
     }

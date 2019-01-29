@@ -207,8 +207,8 @@ Engine* RemoteRuntime::compile(Connection* conn) {
   Log log;
   p.parse(in_buf_, &log);
   assert(p.success());
-  auto* md = dynamic_cast<ModuleDeclaration*>(*p.begin());
-  assert(md != nullptr);
+  assert((*p.begin())->is(Node::Tag::module_declaration));
+  auto* md = static_cast<ModuleDeclaration*>(*p.begin());
 
   in_buf_.clear();
   if (log.error() || md == nullptr) {
