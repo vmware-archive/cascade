@@ -38,7 +38,7 @@ namespace cascade {
 class AssignStatement : public Statement {
   public:
     // Constructors
-    AssignStatement();
+    AssignStatement(Node::Tag tag);
     ~AssignStatement() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class AssignStatement : public Statement {
     void accept(Visitor* v) const override = 0;
 };
 
-inline AssignStatement::AssignStatement() : Statement() { }
+inline AssignStatement::AssignStatement(Node::Tag tag) : Statement(tag) { }
 
 } // namespace cascade 
 

@@ -57,7 +57,7 @@ class AttrSpec : public Node {
     MAYBE_ATTR(Expression, rhs);
 };
 
-inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node() { 
+inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node(Node::Tag::attr_spec) { 
   PTR_SETUP(lhs);
   MAYBE_SETUP(rhs);
   parent_ = nullptr;

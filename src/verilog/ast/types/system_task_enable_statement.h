@@ -38,7 +38,7 @@ namespace cascade {
 class SystemTaskEnableStatement : public Statement {
   public:
     // Constructors
-    SystemTaskEnableStatement();
+    SystemTaskEnableStatement(Node::Tag tag);
     ~SystemTaskEnableStatement() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class SystemTaskEnableStatement : public Statement {
     void accept(Visitor* v) const override = 0;
 };
 
-inline SystemTaskEnableStatement::SystemTaskEnableStatement() : Statement() { }
+inline SystemTaskEnableStatement::SystemTaskEnableStatement(Node::Tag tag) : Statement(tag) { }
 
 } // namespace cascade 
 

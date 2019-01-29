@@ -85,7 +85,7 @@ class BinaryExpression : public Expression {
     PTR_ATTR(Expression, rhs);
 };
 
-inline BinaryExpression::BinaryExpression(Expression* lhs__, Op op__, Expression* rhs__) : Expression() {
+inline BinaryExpression::BinaryExpression(Expression* lhs__, Op op__, Expression* rhs__) : Expression(Node::Tag::binary_expression) {
   PTR_SETUP(lhs);
   VAL_SETUP(op);
   PTR_SETUP(rhs);

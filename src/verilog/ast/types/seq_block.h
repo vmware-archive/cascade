@@ -61,7 +61,7 @@ class SeqBlock : public BlockStatement, public Scope {
     MANY_ATTR(Statement, stmts);
 };
 
-inline SeqBlock::SeqBlock() : BlockStatement(), Scope() {
+inline SeqBlock::SeqBlock() : BlockStatement(Node::Tag::seq_block), Scope() {
   MAYBE_DEFAULT_SETUP(id);
   MANY_DEFAULT_SETUP(decls);
   MANY_DEFAULT_SETUP(stmts);

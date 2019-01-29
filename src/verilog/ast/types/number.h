@@ -69,7 +69,7 @@ class Number : public Primary {
     // Expression::bit_val_
 };
 
-inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary() {
+inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary(Node::Tag::number) {
   parent_ = nullptr;
 
   bit_val_.resize(1);
@@ -102,7 +102,7 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
   Node::set_val<6,26>(bit_val_[0].size());
 }
 
-inline Number::Number(const Bits& val, Format format) : Primary() {
+inline Number::Number(const Bits& val, Format format) : Primary(Node::Tag::number) {
   parent_ = nullptr;
 
   bit_val_.push_back(val);

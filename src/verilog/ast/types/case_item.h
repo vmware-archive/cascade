@@ -59,7 +59,7 @@ class CaseItem : public Node {
     PTR_ATTR(Statement, stmt);
 };
 
-inline CaseItem::CaseItem(Statement* stmt__) : Node() {
+inline CaseItem::CaseItem(Statement* stmt__) : Node(Node::Tag::case_item) {
   MANY_DEFAULT_SETUP(exprs);
   PTR_SETUP(stmt);
   parent_ = nullptr;

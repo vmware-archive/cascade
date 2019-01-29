@@ -61,7 +61,7 @@ class ParBlock : public BlockStatement, public Scope {
     MANY_ATTR(Statement, stmts);
 };
 
-inline ParBlock::ParBlock() : BlockStatement(), Scope() {
+inline ParBlock::ParBlock() : BlockStatement(Node::Tag::par_block), Scope() {
   MAYBE_DEFAULT_SETUP(id);
   MANY_DEFAULT_SETUP(decls);
   MANY_DEFAULT_SETUP(stmts);

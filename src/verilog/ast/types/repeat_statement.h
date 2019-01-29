@@ -57,7 +57,7 @@ class RepeatStatement : public LoopStatement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline RepeatStatement::RepeatStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
+inline RepeatStatement::RepeatStatement(Expression* cond__, Statement* stmt__) : LoopStatement(Node::Tag::repeat_statement) {
   PTR_SETUP(cond);
   PTR_SETUP(stmt);
   parent_ = nullptr;

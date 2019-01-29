@@ -62,7 +62,7 @@ class GenerateBlock : public Node, public Scope {
     MANY_ATTR(ModuleItem, items);
 };
 
-inline GenerateBlock::GenerateBlock(bool scope__) : Node(), Scope() {
+inline GenerateBlock::GenerateBlock(bool scope__) : Node(Node::Tag::generate_block), Scope() {
   MAYBE_DEFAULT_SETUP(id);
   VAL_SETUP(scope);
   MANY_DEFAULT_SETUP(items);

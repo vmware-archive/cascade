@@ -58,7 +58,7 @@ class BlockingAssign : public AssignStatement {
     PTR_ATTR(VariableAssign, assign);
 };
 
-inline BlockingAssign::BlockingAssign(VariableAssign* assign__) : AssignStatement() {
+inline BlockingAssign::BlockingAssign(VariableAssign* assign__) : AssignStatement(Node::Tag::blocking_assign) {
   MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(assign); 
   parent_ = nullptr;

@@ -41,6 +41,7 @@ namespace cascade {
 class Expression : public Node {
   public:
     // Constructors:
+    Expression(Node::Tag tag);
     ~Expression() override = default;
 
     // Node Interface:
@@ -54,6 +55,8 @@ class Expression : public Node {
     friend class Evaluate;
     DECORATION(Vector<Bits>, bit_val);
 };
+
+inline Expression::Expression(Node::Tag tag) : Node(tag) { }
 
 } // namespace cascade 
 

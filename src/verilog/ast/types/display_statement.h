@@ -56,7 +56,7 @@ class DisplayStatement : public SystemTaskEnableStatement {
     MANY_ATTR(Expression, args);
 };
 
-inline DisplayStatement::DisplayStatement() : SystemTaskEnableStatement() {
+inline DisplayStatement::DisplayStatement() : SystemTaskEnableStatement(Node::Tag::display_statement) {
   MANY_DEFAULT_SETUP(args);
   parent_ = nullptr;
 }

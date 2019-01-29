@@ -55,7 +55,7 @@ class IntegerDeclaration : public Declaration {
     MAYBE_ATTR(Expression, val);
 };
 
-inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__) : Declaration() {
+inline IntegerDeclaration::IntegerDeclaration(Attributes* attrs__, Identifier* id__) : Declaration(Node::Tag::integer_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   MAYBE_DEFAULT_SETUP(val);

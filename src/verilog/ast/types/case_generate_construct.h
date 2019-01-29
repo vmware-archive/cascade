@@ -59,7 +59,7 @@ class CaseGenerateConstruct : public ConditionalGenerateConstruct {
     MANY_ATTR(CaseGenerateItem, items);
 };
 
-inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__) : ConditionalGenerateConstruct() {
+inline CaseGenerateConstruct::CaseGenerateConstruct(Expression* cond__) : ConditionalGenerateConstruct(Node::Tag::case_generate_construct) {
   PTR_SETUP(cond);
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;

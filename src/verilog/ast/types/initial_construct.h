@@ -57,7 +57,7 @@ class InitialConstruct : public Construct {
     PTR_ATTR(Statement, stmt);
 };
 
-inline InitialConstruct::InitialConstruct(Attributes* attrs__, Statement* stmt__) : Construct() {
+inline InitialConstruct::InitialConstruct(Attributes* attrs__, Statement* stmt__) : Construct(Node::Tag::initial_construct) {
   PTR_SETUP(attrs);
   PTR_SETUP(stmt);
   parent_ = nullptr;

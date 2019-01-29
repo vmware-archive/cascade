@@ -64,7 +64,7 @@ class IfGenerateConstruct : public ConditionalGenerateConstruct {
     MAYBE_ATTR(GenerateBlock, else);
 };
 
-inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__) : ConditionalGenerateConstruct() {
+inline IfGenerateConstruct::IfGenerateConstruct(Attributes* attrs__) : ConditionalGenerateConstruct(Node::Tag::if_generate_construct) {
   PTR_SETUP(attrs);
   MANY_DEFAULT_SETUP(clauses);
   MAYBE_DEFAULT_SETUP(else);

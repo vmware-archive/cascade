@@ -67,7 +67,7 @@ class Attributes : public Node {
     MANY_ATTR(AttrSpec, as);
 };
 
-inline Attributes::Attributes() : Node() {
+inline Attributes::Attributes() : Node(Node::Tag::attributes) {
   MANY_DEFAULT_SETUP(as);
   parent_ = nullptr;
 }

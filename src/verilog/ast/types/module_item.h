@@ -38,7 +38,7 @@ namespace cascade {
 class ModuleItem : public Node {
   public:
     // Constructors:
-    ModuleItem();
+    ModuleItem(Node::Tag tag);
     ~ModuleItem() override = default;
 
     // Node Interface:
@@ -49,7 +49,7 @@ class ModuleItem : public Node {
     ModuleItem* accept(Rewriter* r) override = 0;
 };
 
-inline ModuleItem::ModuleItem() : Node() { }
+inline ModuleItem::ModuleItem(Node::Tag tag) : Node(tag) { }
 
 } // namespace cascade 
 

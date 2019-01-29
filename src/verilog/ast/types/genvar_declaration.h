@@ -47,7 +47,7 @@ class GenvarDeclaration : public Declaration {
     GenvarDeclaration* clone() const override;
 };
 
-inline GenvarDeclaration::GenvarDeclaration(Attributes* attrs__, Identifier* id__) : Declaration() {
+inline GenvarDeclaration::GenvarDeclaration(Attributes* attrs__, Identifier* id__) : Declaration(Node::Tag::genvar_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   parent_ = nullptr;

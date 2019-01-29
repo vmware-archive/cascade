@@ -54,7 +54,7 @@ class AlwaysConstruct : public Construct {
     PTR_ATTR(Statement, stmt);
 };
 
-inline AlwaysConstruct::AlwaysConstruct(Statement* stmt__) : Construct() {
+inline AlwaysConstruct::AlwaysConstruct(Statement* stmt__) : Construct(Node::Tag::always_construct) {
   PTR_SETUP(stmt);
   parent_ = nullptr;
 }

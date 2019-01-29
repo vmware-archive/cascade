@@ -90,7 +90,7 @@ class ModuleDeclaration : public Node, public Scope {
     DECORATION(ChildMap, children);
 };
 
-inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__) : Node(), Scope() {
+inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__) : Node(Node::Tag::module_declaration), Scope() {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   MANY_DEFAULT_SETUP(ports);

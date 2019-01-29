@@ -38,7 +38,7 @@ namespace cascade {
 class Instantiation : public ModuleItem {
   public:
     // Constructors
-    Instantiation();
+    Instantiation(Node::Tag tag);
     ~Instantiation() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class Instantiation : public ModuleItem {
     void accept(Visitor* v) const override = 0;
 };
 
-inline Instantiation::Instantiation() : ModuleItem() { }
+inline Instantiation::Instantiation(Node::Tag tag) : ModuleItem(tag) { }
 
 } // namespace cascade 
 

@@ -65,7 +65,7 @@ class String : public Primary {
 
 inline String::String(const std::string& val) : String(Tokenize().map(val)) { }
 
-inline String::String(Tokenize::Token val) : Primary() {
+inline String::String(Tokenize::Token val) : Primary(Node::Tag::string) {
   val_ = val;
   parent_ = nullptr;
 }

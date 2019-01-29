@@ -82,7 +82,7 @@ class ModuleInstantiation : public Instantiation {
     DECORATION(IfGenerateConstruct*, inline);
 };
 
-inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__) : Instantiation() {
+inline ModuleInstantiation::ModuleInstantiation(Attributes* attrs__, Identifier* mid__, Identifier* iid__) : Instantiation(Node::Tag::module_instantiation) {
   PTR_SETUP(attrs);
   PTR_SETUP(mid);
   PTR_SETUP(iid);

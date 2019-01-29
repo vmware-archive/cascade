@@ -58,7 +58,7 @@ class IfGenerateClause : public Node {
     MAYBE_ATTR(GenerateBlock, then);
 };
 
-inline IfGenerateClause::IfGenerateClause(Expression* if__) : Node() {
+inline IfGenerateClause::IfGenerateClause(Expression* if__) : Node(Node::Tag::if_generate_clause) {
   PTR_SETUP(if);
   MAYBE_DEFAULT_SETUP(then);
   parent_ = nullptr;

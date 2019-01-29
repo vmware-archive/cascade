@@ -69,7 +69,7 @@ class UnaryExpression : public Expression {
     PTR_ATTR(Expression, lhs);
 };
 
-inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression() {
+inline UnaryExpression::UnaryExpression(Op op__, Expression* lhs__) : Expression(Node::Tag::unary_expression) {
   parent_ = nullptr;
   VAL_SETUP(op);
   PTR_SETUP(lhs);

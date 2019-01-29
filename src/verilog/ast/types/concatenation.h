@@ -57,7 +57,7 @@ class Concatenation : public Primary {
     MANY_ATTR(Expression, exprs);
 };
 
-inline Concatenation::Concatenation() : Primary() {
+inline Concatenation::Concatenation() : Primary(Node::Tag::concatenation) {
   MANY_DEFAULT_SETUP(exprs);
   parent_ = nullptr;
 }

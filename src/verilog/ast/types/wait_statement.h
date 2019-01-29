@@ -56,7 +56,7 @@ class WaitStatement : public Statement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline WaitStatement::WaitStatement(Expression* cond__, Statement* stmt__) : Statement() {
+inline WaitStatement::WaitStatement(Expression* cond__, Statement* stmt__) : Statement(Node::Tag::wait_statement) {
   PTR_SETUP(cond);
   PTR_SETUP(stmt);
   parent_ = nullptr;

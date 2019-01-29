@@ -56,7 +56,7 @@ class WriteStatement : public SystemTaskEnableStatement {
     MANY_ATTR(Expression, args);
 };
 
-inline WriteStatement::WriteStatement() : SystemTaskEnableStatement() {
+inline WriteStatement::WriteStatement() : SystemTaskEnableStatement(Node::Tag::write_statement) {
   MANY_DEFAULT_SETUP(args);
   parent_ = nullptr;
 }

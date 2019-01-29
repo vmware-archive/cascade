@@ -58,7 +58,7 @@ class ArgAssign : public Node {
     MAYBE_ATTR(Expression, imp);
 };
 
-inline ArgAssign::ArgAssign() : Node() { 
+inline ArgAssign::ArgAssign() : Node(Node::Tag::arg_assign) { 
   MAYBE_DEFAULT_SETUP(exp);
   MAYBE_DEFAULT_SETUP(imp);
   parent_ = nullptr;

@@ -38,7 +38,7 @@ namespace cascade {
 class LoopStatement : public Statement {
   public:
     // Constructors
-    LoopStatement();
+    LoopStatement(Node::Tag tag);
     ~LoopStatement() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class LoopStatement : public Statement {
     void accept(Visitor* v) const override = 0;
 };
 
-inline LoopStatement::LoopStatement() : Statement() { }
+inline LoopStatement::LoopStatement(Node::Tag tag) : Statement(tag) { }
 
 } // namespace cascade 
 
