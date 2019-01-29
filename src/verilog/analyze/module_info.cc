@@ -77,8 +77,8 @@ const Identifier* ModuleInfo::id() {
   if (p == nullptr) {
     return nullptr;
   }
-  auto* mi = dynamic_cast<ModuleInstantiation*>(p);
-  assert(mi != nullptr);
+  assert(p->is(Node::Tag::module_instantiation));
+  auto* mi = static_cast<ModuleInstantiation*>(p);
   return mi->get_iid();
 }
 
@@ -276,8 +276,8 @@ void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
 
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
-    auto* pd = dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent());
-    assert(pd != nullptr);
+    assert(r->get_parent()->get_parent()->is(Node::Tag::port_declaration));
+    auto* pd = static_cast<const PortDeclaration*>(r->get_parent()->get_parent());
 
     switch (pd->get_type()) {
       case PortDeclaration::Type::INPUT:
@@ -310,14 +310,14 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     // Track to the first port declaration. It's kind of ugly to have to iterate
     // over the entire text of this module every time we refresh, but it's the price
     // we pay for not having to rely on its module info.
-    while (dynamic_cast<const PortDeclaration*>(*itr) == nullptr && itr != itre) {
+    while (!(*itr)->is(Node::Tag::port_declaration) && (itr != itre)) {
       ++itr;
     }
     assert(itr != itre);
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
-    auto* pd = dynamic_cast<const PortDeclaration*>(*itr++);
-    assert(pd != nullptr);
+    assert((*itr)->is(Node::Tag::port_declaration));
+    auto* pd = static_cast<const PortDeclaration*>(*itr++);
 
     // Nothing to do for an empty ordered connection
     if (p->is_null_imp()) {
@@ -378,18 +378,19 @@ void ModuleInfo::record_external_write(const Identifier* id) {
 void ModuleInfo::record_external_use(const Identifier* id) {
   for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
     // Is this an identifier that resolves here?
-    if (auto* eid = dynamic_cast<const Identifier*>(*i)) {
+    if ((*i)->is(Node::Tag::identifier)) {
+      auto* eid = static_cast<const Identifier*>(*i);
       // Nothing to do if this variable appears in this module
       if (Resolve().get_parent(eid) == md_) {
         continue;
       }
       // Do nothing If this is a named variable connection
-      if ((eid->get_parent() != nullptr) && (dynamic_cast<const ArgAssign*>(eid->get_parent()) != nullptr)) {
+      if ((eid->get_parent() != nullptr) && (eid->get_parent()->is(Node::Tag::arg_assign))) {
         continue;
       }
       // If it's on the lhs of an expression, it's a write, otherwise it's a read
-      auto* va = dynamic_cast<const VariableAssign*>(eid->get_parent());
-      if (va != nullptr && va->get_lhs() == eid) {
+      auto* p = eid->get_parent();
+      if (p->is(Node::Tag::variable_assign) && (static_cast<const VariableAssign*>(p)->get_lhs() == eid)) {
         record_local_read(id);
       } else {
         record_local_write(id);
@@ -533,8 +534,8 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
     return;
   }
   // Otherwise, update read/write information for this connection
-  auto* mi = dynamic_cast<const ModuleInstantiation*>(md_->get_parent());
-  assert(mi != nullptr);
+  assert(md_->get_parent()->is(Node::Tag::module_instantiation));
+  auto* mi = static_cast<const ModuleInstantiation*>(md_->get_parent());
   if (mi->uses_named_ports()) {
     named_parent_conn(mi, pd);
   } else {

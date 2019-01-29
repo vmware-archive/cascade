@@ -49,7 +49,8 @@ void DeAlias::run(ModuleDeclaration* md) {
   // Replace aliases and delete zero-time self-assignments 
   md->accept(this);
   for (auto i = md->begin_items(); i != md->end_items(); ) {
-    if (auto* ca = dynamic_cast<ContinuousAssign*>(*i)) {
+    if ((*i)->is(Node::Tag::continuous_assign)) {
+      auto* ca = static_cast<ContinuousAssign*>(*i);
       if (is_self_assign(ca)) {
         i = md->purge_items(i);
         continue;
@@ -124,10 +125,10 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
     return;
   }
   // Ignore assignments with right-hand-sides which aren't identifiers
-  const auto* rhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_rhs());
-  if (rhs == nullptr) {
+  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
     return;
   }
+  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
   // Ignore assignments which don't preserve bit-width
   if (Resolve().is_slice(rhs)) {
     if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
@@ -209,8 +210,8 @@ void DeAlias::AliasTable::collapse(Row& row) {
 Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y) {
   // Sanity Check: x can't be a single-bit, because if it were we wouldn't be
   // able to slice it any further.
-  const auto* xre = dynamic_cast<const RangeExpression*>(x);
-  assert(xre != nullptr);
+  assert(x->is(Node::Tag::range_expression));
+  const auto* xre = static_cast<const RangeExpression*>(x);
 
   // Compute x's least significant bit
   Expression* lsb = nullptr;
@@ -231,12 +232,12 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
   }
 
   // Easy Case: If y is a single bit, then we can just add this value to x's lsb
-  const auto* yre = dynamic_cast<const RangeExpression*>(y);
-  if (yre == nullptr) {
+  if (!y->is(Node::Tag::range_expression)) {
     return new BinaryExpression(lsb, BinaryExpression::Op::PLUS, y->clone());
   }
+  const auto* yre = static_cast<const RangeExpression*>(y);
   // Easier Case: If y is a plus or minus range, we just need to change its offset
-  else if (yre->get_type() != RangeExpression::Type::CONSTANT) {
+  if (yre->get_type() != RangeExpression::Type::CONSTANT) {
     return new RangeExpression(
       new BinaryExpression(lsb, BinaryExpression::Op::PLUS, yre->get_upper()->clone()),
       yre->get_type(),
@@ -255,11 +256,11 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
 
 bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
   const auto* lhs = ca->get_assign()->get_lhs();
-  const auto* rhs = dynamic_cast<const Identifier*>(ca->get_assign()->get_rhs());
   // An rhs which isn't an identifier can't be a self-assignment
-  if (rhs == nullptr) {
+  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
     return false;
   } 
+  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
   // Identifiers which point to different variables can't be self assignments
   if (Resolve().get_resolution(lhs) != Resolve().get_resolution(rhs)) {
     return false;
@@ -294,7 +295,7 @@ Attributes* DeAlias::rewrite(Attributes* as) {
 
 Expression* DeAlias::rewrite(Identifier* id) {
   // Don't rewrite anything in a declaration
-  if (dynamic_cast<Declaration*>(id->get_parent())) {
+  if (id->get_parent()->is_subclass_of(Node::Tag::declaration)) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite things we can't resolve like scope names
@@ -309,7 +310,7 @@ Expression* DeAlias::rewrite(Identifier* id) {
   // Don't rewrite references to ports. Mostly we just care about output ports.
   // We'll never find an aliasing relationship for an input, since it would have
   // to appear on the left-hand-side of an assignment.
-  if (dynamic_cast<const PortDeclaration*>(r->get_parent()->get_parent())) {
+  if (r->get_parent()->get_parent()->is(Node::Tag::port_declaration)) {
     return Rewriter::rewrite(id);
   }
   // Don't rewrite variables we don't have a de-aliasing relationship for.

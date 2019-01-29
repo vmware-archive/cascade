@@ -63,7 +63,7 @@ class Event : public Node {
     PTR_ATTR(Expression, expr);
 };
 
-inline Event::Event(Type type__, Expression* expr__) : Node() {
+inline Event::Event(Type type__, Expression* expr__) : Node(Node::Tag::event) {
   VAL_SETUP(type);
   PTR_SETUP(expr);
   parent_ = nullptr;

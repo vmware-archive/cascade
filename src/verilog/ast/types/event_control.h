@@ -56,7 +56,7 @@ class EventControl : public TimingControl {
     MANY_ATTR(Event, events);
 };
 
-inline EventControl::EventControl() : TimingControl() {
+inline EventControl::EventControl() : TimingControl(Node::Tag::event_control) {
   MANY_DEFAULT_SETUP(events);
   parent_ = nullptr;
 }

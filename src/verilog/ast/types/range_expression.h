@@ -66,7 +66,7 @@ class RangeExpression : public Expression {
     PTR_ATTR(Expression, lower);
 };
 
-inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
+inline RangeExpression::RangeExpression(size_t i__, size_t j__) : Expression(Node::Tag::range_expression) {
   std::stringstream ssu;
   ssu << (i__-1);
   std::stringstream ssl;
@@ -77,7 +77,7 @@ inline RangeExpression::RangeExpression(size_t i__, size_t j__) {
   lower_ = new Number(ssl.str(), Number::Format::UNBASED, 32, false);
 }
 
-inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression() {
+inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression(Node::Tag::range_expression) {
   parent_ = nullptr;
   PTR_SETUP(upper);
   VAL_SETUP(type);

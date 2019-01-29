@@ -41,8 +41,89 @@ namespace cascade {
 
 class Node {
   public:
+    // Type tags:
+    enum class Tag : uint32_t {
+      // Tags for abstract classes are assigned in most- to least-significant
+      // bit order. Tags are assigned such that we have the invariant:
+      // TAG(superclass) & TAG(subclass) == TAG(superclass).
+      node                           = 0b1'0000'0000'0'0'00000'0000000000000000,
+      expression                     = 0b1'1000'0000'0'0'00000'0000000000000000,
+      primary                        = 0b1'1000'1000'0'0'00000'0000000000000000,
+      module_item                    = 0b1'0100'0000'0'0'00000'0000000000000000,
+      construct                      = 0b1'0100'1000'0'0'00000'0000000000000000,
+      generate_construct             = 0b1'0100'1000'1'0'00000'0000000000000000,
+      conditional_generate_construct = 0b1'0100'1000'1'1'00000'0000000000000000,
+      declaration                    = 0b1'0100'0100'0'0'00000'0000000000000000,
+      instantiation                  = 0b1'0100'0010'0'0'00000'0000000000000000,
+      statement                      = 0b1'0010'0000'0'0'00000'0000000000000000,
+      assign_statement               = 0b1'0010'1000'0'0'00000'0000000000000000,
+      block_statement                = 0b1'0010'0100'0'0'00000'0000000000000000,
+      loop_statement                 = 0b1'0010'0010'0'0'00000'0000000000000000,
+      system_task_enable_statement   = 0b1'0010'0001'0'0'00000'0000000000000000,
+      timing_control                 = 0b1'0001'0000'0'0'00000'0000000000000000,
+      // Tags for supporting concepts are assigned in most- to least- significat
+      // bit order following bits reserved for abstract classes.
+      scope                          = 0b0'0000'0000'0'0'10000'0000000000000000,
+      // Tags for concrete classes are assigned in ascending order from zero
+      // and unioned with the tag for their most-specific subclass and any
+      // supporting concepts.
+      arg_assign                     =  0 | node,
+      attributes                     =  1 | node,
+      attr_spec                      =  2 | node,
+      case_generate_item             =  3 | node,
+      case_item                      =  4 | node,
+      event                          =  5 | node,
+      binary_expression              =  6 | expression,
+      conditional_expression         =  7 | expression,
+      concatenation                  =  8 | primary, 
+      identifier                     =  9 | primary, 
+      multiple_concatenation         = 10 | primary, 
+      number                         = 11 | primary, 
+      string                         = 12 | primary, 
+      range_expression               = 13 | expression, 
+      unary_expression               = 14 | expression, 
+      generate_block                 = 15 | scope | node, 
+      id                             = 16 | node, 
+      if_generate_clause             = 17 | node, 
+      module_declaration             = 18 | scope | node, 
+      always_construct               = 19 | construct, 
+      case_generate_construct        = 20 | conditional_generate_construct, 
+      if_generate_construct          = 21 | conditional_generate_construct, 
+      loop_generate_construct        = 22 | generate_construct, 
+      initial_construct              = 23 | construct, 
+      continuous_assign              = 24 | module_item, 
+      genvar_declaration             = 25 | declaration, 
+      integer_declaration            = 26 | declaration, 
+      localparam_declaration         = 27 | declaration, 
+      net_declaration                = 28 | declaration, 
+      parameter_declaration          = 29 | declaration, 
+      reg_declaration                = 30 | declaration, 
+      generate_region                = 31 | module_item, 
+      module_instantiation           = 32 | instantiation, 
+      port_declaration               = 33 | module_item, 
+      simple_id                      = 34 | node, 
+      blocking_assign                = 35 | assign_statement, 
+      nonblocking_assign             = 36 | assign_statement, 
+      par_block                      = 37 | scope | block_statement, 
+      seq_block                      = 38 | scope | block_statement, 
+      case_statement                 = 39 | statement, 
+      conditional_statement          = 30 | statement, 
+      for_statement                  = 41 | loop_statement, 
+      forever_statement              = 42 | loop_statement, 
+      repeat_statement               = 43 | loop_statement, 
+      while_statement                = 44 | loop_statement, 
+      timing_control_statement       = 45 | statement, 
+      display_statement              = 46 | system_task_enable_statement, 
+      finish_statement               = 47 | system_task_enable_statement, 
+      write_statement                = 48 | system_task_enable_statement, 
+      wait_statement                 = 49 | statement, 
+      delay_control                  = 50 | timing_control,
+      event_control                  = 51 | timing_control,
+      variable_assign                = 52 | node
+    };
+
     // Constructors:
-    Node();
+    Node(Tag tag);
     virtual ~Node() = default;
 
     // Node Interface:
@@ -55,6 +136,11 @@ class Node {
     // Get/Set:
     Node* get_parent();
     const Node* get_parent() const;
+
+    // Runtime Type Identification:
+    bool is_concept(Tag tag) const;
+    bool is_subclass_of(Tag tag) const;
+    bool is(Tag tag) const;
 
   private:
     friend class Elaborate;
@@ -71,6 +157,8 @@ class Node {
     // common_[5]    Number:   signed_
     // common_[6-31] Number:   size_
 
+    DECORATION(Tag, tag);
+
     template <size_t idx>
     void set_flag(bool b);
     template <size_t idx>
@@ -82,9 +170,10 @@ class Node {
     uint32_t get_val() const;
 };
 
-inline Node::Node() {
+inline Node::Node(Tag tag) {
   set_flag<0>(true);
   set_flag<1>(false);
+  tag_ = tag;
 }
 
 inline Node* Node::get_parent() {
@@ -93,6 +182,18 @@ inline Node* Node::get_parent() {
 
 inline const Node* Node::get_parent() const {
   return parent_;
+}
+
+inline bool Node::is_concept(Tag tag) const {
+  return (static_cast<uint32_t>(tag_) & static_cast<uint32_t>(tag)) == static_cast<uint32_t>(tag);
+}
+
+inline bool Node::is_subclass_of(Tag tag) const {
+  return (static_cast<uint32_t>(tag_) & static_cast<uint32_t>(tag)) == static_cast<uint32_t>(tag);
+}
+
+inline bool Node::is(Tag tag) const {
+  return tag_ == tag;
 }
 
 template <size_t idx>

@@ -59,12 +59,14 @@ void Constant::visit(const Identifier* i) {
     return;
   } 
 
-  const auto is_param = dynamic_cast<const ParameterDeclaration*>(r->get_parent()) != nullptr;
-  const auto is_localparam = dynamic_cast<const LocalparamDeclaration*>(r->get_parent()) != nullptr;
+
+  const auto* p = r->get_parent();
+  const auto is_param = p->is(Node::Tag::parameter_declaration);
+  const auto is_localparam = p->is(Node::Tag::localparam_declaration);
   if (is_param || is_localparam) {
     return;
   }
-  const auto is_genvar = dynamic_cast<const GenvarDeclaration*>(r->get_parent()) != nullptr;
+  const auto is_genvar = p->is(Node::Tag::genvar_declaration);
   if (is_genvar && genvar_ok_) { 
     return;
   }

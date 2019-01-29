@@ -58,7 +58,7 @@ class ConditionalStatement : public Statement {
     PTR_ATTR(Statement, else);
 };
 
-inline ConditionalStatement::ConditionalStatement(Expression* if__, Statement* then__, Statement* else__) : Statement() {
+inline ConditionalStatement::ConditionalStatement(Expression* if__, Statement* then__, Statement* else__) : Statement(Node::Tag::conditional_statement) {
   PTR_SETUP(if);
   PTR_SETUP(then);
   PTR_SETUP(else);

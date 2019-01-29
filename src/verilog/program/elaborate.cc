@@ -209,7 +209,8 @@ void Elaborate::named_params(ModuleInstantiation* mi) {
   }
 
   for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
-    if (auto* pd = dynamic_cast<ParameterDeclaration*>(*i)) {
+    if ((*i)->is(Node::Tag::parameter_declaration)) {
+      auto* pd = static_cast<ParameterDeclaration*>(*i);
       const auto itr = params.find(pd->get_id());
       if (itr != params.end()) {
         const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(itr->second)));
@@ -221,7 +222,8 @@ void Elaborate::named_params(ModuleInstantiation* mi) {
 void Elaborate::ordered_params(ModuleInstantiation* mi) {
   size_t idx = 0;
   for (auto i = mi->inst_->begin_items(), ie = mi->inst_->end_items(); i != ie; ++i) {
-    if (auto* pd = dynamic_cast<ParameterDeclaration*>(*i)) {
+    if ((*i)->is(Node::Tag::parameter_declaration)) {
+      auto* pd = static_cast<ParameterDeclaration*>(*i);
       const auto* p = mi->get_params(idx++);
       const_cast<ParameterDeclaration*>(pd)->replace_val(new Number(Evaluate().get_value(p->get_imp())));
     }
@@ -239,12 +241,13 @@ void Elaborate::elaborate(ConditionalGenerateConstruct* cgc, GenerateBlock* b) {
     return;
   }
   // Also nothing to do if this is a directly nested block without begin/ends
-  if (auto* block = dynamic_cast<GenerateBlock*>(cgc->get_parent())) {
+  if (cgc->get_parent()->is(Node::Tag::generate_block)) {
+    auto* block = static_cast<GenerateBlock*>(cgc->get_parent());
     const auto only_item = block->size_items() == 1;
     const auto* p = block->get_parent();
-    const auto nested_if = dynamic_cast<const IfGenerateClause*>(p) != nullptr;
-    const auto nested_else = dynamic_cast<const IfGenerateConstruct*>(p) != nullptr;
-    const auto nested_case = dynamic_cast<const CaseGenerateItem*>(p) != nullptr;
+    const auto nested_if = p->is(Node::Tag::if_generate_clause);
+    const auto nested_else = p->is(Node::Tag::if_generate_construct);
+    const auto nested_case = p->is(Node::Tag::case_generate_item);
     if (!block->get_scope() && only_item && (nested_if || nested_else || nested_case)) {
       return;
     }

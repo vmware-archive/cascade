@@ -74,7 +74,7 @@ inline Id::Id(const std::string& sid__) : Id(Tokenize().map(sid__)) { }
 
 inline Id::Id(const std::string& sid__, Expression* isel__) : Id(Tokenize().map(sid__), isel__) { }
 
-inline Id::Id(Tokenize::Token sid__) : Node() {
+inline Id::Id(Tokenize::Token sid__) : Node(Node::Tag::id) {
   VAL_SETUP(sid);
   MAYBE_DEFAULT_SETUP(isel);
   parent_ = nullptr;

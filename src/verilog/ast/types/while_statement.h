@@ -57,7 +57,7 @@ class WhileStatement : public LoopStatement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline WhileStatement::WhileStatement(Expression* cond__, Statement* stmt__) : LoopStatement() {
+inline WhileStatement::WhileStatement(Expression* cond__, Statement* stmt__) : LoopStatement(Node::Tag::while_statement) {
   PTR_SETUP(cond);
   PTR_SETUP(stmt);
   parent_ = nullptr;

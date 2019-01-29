@@ -58,7 +58,7 @@ class ContinuousAssign : public ModuleItem {
     PTR_ATTR(VariableAssign, assign);
 };
 
-inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem() {
+inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem(Node::Tag::continuous_assign) {
   MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(assign);
   parent_ = nullptr;

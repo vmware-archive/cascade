@@ -43,7 +43,7 @@ namespace cascade {
 class Declaration : public ModuleItem {
   public:
     // Constructors:
-    Declaration();
+    Declaration(Node::Tag tag);
     ~Declaration() override;
 
     // Node Interface:
@@ -66,7 +66,7 @@ class Declaration : public ModuleItem {
     DECORATION(Vector<const Expression*>*, uses);
 };
 
-inline Declaration::Declaration() : ModuleItem() { 
+inline Declaration::Declaration(Node::Tag tag) : ModuleItem(tag) { 
   uses_ = nullptr;
 }
 

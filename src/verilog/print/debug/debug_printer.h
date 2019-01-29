@@ -248,7 +248,7 @@ template <typename T>
 void DebugPrinter<T>::debug_id(ModuleInfo& mi, const Identifier* id) {
   *this << "\n  ";
   auto* decl = id->get_parent();
-  if (dynamic_cast<const PortDeclaration*>(decl->get_parent()) != nullptr) {
+  if (decl->get_parent()->is(Node::Tag::port_declaration)) {
     decl = decl->get_parent();
   }
   decl->accept(this);
@@ -281,7 +281,8 @@ void DebugPrinter<T>::debug_conn(ModuleInfo& mi, const Identifier* id) {
   inl_ = false;
 
   *this << "\n  ";
-  const auto* inst = dynamic_cast<const ModuleInstantiation*>(id->get_parent());
+  assert(id->get_parent()->is(Node::Tag::module_instantiation));
+  const auto* inst = static_cast<const ModuleInstantiation*>(id->get_parent());
   inst->accept(this);
 
   const auto* md = Elaborate().get_elaboration(inst);
@@ -322,7 +323,7 @@ void DebugPrinter<T>::debug_scope(const Node* n, size_t d) {
     *this << *n;
   }
   for (auto c = nav.child_begin(), ce = nav.child_end(); c != ce; ++c) {
-    if (dynamic_cast<const ModuleDeclaration*>(*c)) {
+    if ((*c)->is(Node::Tag::module_declaration)) {
       continue;
     }
     debug_scope(*c, d+1);

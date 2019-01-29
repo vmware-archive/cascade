@@ -53,11 +53,11 @@ inline std::string Printf::format(InputItr begin, InputItr end) {
   std::stringstream ss;
   auto a = begin;
 
-  auto* s = dynamic_cast<const String*>(*a);
-  if (s == nullptr) {
+  if (!(*a)->is(Node::Tag::string)) {
     Evaluate().get_value(*a).write(ss, 10);
     return ss.str();
   } 
+  auto* s = static_cast<const String*>(*a);
 
   for (size_t i = 0, j = 0; ; i = j+2) {
     j = s->get_readable_val().find_first_of('%', i);

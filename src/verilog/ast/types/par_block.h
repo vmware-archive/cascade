@@ -40,7 +40,7 @@
 
 namespace cascade {
 
-class ParBlock : public BlockStatement, public Scope {
+class ParBlock : public BlockStatement {
   public:
     // Constructors:
     ParBlock();
@@ -59,14 +59,17 @@ class ParBlock : public BlockStatement, public Scope {
   private:
     MANY_ATTR(Declaration, decls);
     MANY_ATTR(Statement, stmts);
+
+    friend class Navigate;
+    DECORATION(Scope, scope_idx);
 };
 
-inline ParBlock::ParBlock() : BlockStatement(), Scope() {
+inline ParBlock::ParBlock() : BlockStatement(Node::Tag::par_block) {
   MAYBE_DEFAULT_SETUP(id);
   MANY_DEFAULT_SETUP(decls);
   MANY_DEFAULT_SETUP(stmts);
   parent_ = nullptr;
-  next_supdate_ = 0;
+  scope_idx_.next_supdate_ = 0;
 }
 
 template <typename DeclsItr, typename StmtsItr>

@@ -59,7 +59,7 @@ class CaseGenerateItem : public Node {
     MAYBE_ATTR(GenerateBlock, block);
 };
 
-inline CaseGenerateItem::CaseGenerateItem() : Node() {
+inline CaseGenerateItem::CaseGenerateItem() : Node(Node::Tag::case_generate_item) {
   MANY_DEFAULT_SETUP(exprs);
   MAYBE_DEFAULT_SETUP(block);
   parent_ = nullptr;

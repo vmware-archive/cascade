@@ -153,7 +153,8 @@ void Inline::inline_source(ModuleInstantiation* mi) {
   vector<ModuleItem*> inline_src;
   while (!src->empty_items()) {
     auto* item = src->remove_front_items();
-    if (auto* pd = dynamic_cast<PortDeclaration*>(item)) {
+    if (item->is(Node::Tag::port_declaration)) {
+      auto* pd = static_cast<PortDeclaration*>(item);
       auto* d = pd->get_decl()->clone();
       switch (pd->get_type()) {
         case PortDeclaration::Type::INPUT:
@@ -170,7 +171,8 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       swap(d->uses_, pd->get_decl()->uses_);
       inline_src.push_back(d);
       delete pd;
-    } else if (auto* pad = dynamic_cast<ParameterDeclaration*>(item)) {
+    } else if (item->is(Node::Tag::port_declaration)) {
+      auto* pad = static_cast<ParameterDeclaration*>(item);
       auto* ld = new LocalparamDeclaration(
         new Attributes(),
         pad->get_signed(),
@@ -237,7 +239,8 @@ void Inline::outline_source(ModuleInstantiation* mi) {
   const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
   for (size_t i = 0; i < length; ++i) {
     auto* item = mi->inline_->front_clauses()->get_then()->remove_front_items();
-    if (auto* ld = dynamic_cast<LocalparamDeclaration*>(item)) {
+    if (item->is(Node::Tag::localparam_declaration)) {
+      auto* ld = static_cast<LocalparamDeclaration*>(item);
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto* pd = new ParameterDeclaration(
           new Attributes(),
@@ -251,7 +254,8 @@ void Inline::outline_source(ModuleInstantiation* mi) {
         delete ld;
         continue;
       } 
-    } else if (auto* d = dynamic_cast<Declaration*>(item)) {
+    } else if (item->is_subclass_of(Node::Tag::declaration)) {
+      auto* d = static_cast<Declaration*>(item);
       auto* annot = d->get_attrs()->get<String>("__inline");
       if (annot != nullptr && !annot->eq("parameter")) {
         auto* pd = new PortDeclaration(

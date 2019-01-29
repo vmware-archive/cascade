@@ -38,7 +38,7 @@ namespace cascade {
 class Construct : public ModuleItem {
   public:
     // Constructors:
-    Construct();
+    Construct(Node::Tag tag);
     ~Construct() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class Construct : public ModuleItem {
     void accept(Visitor* v) const override = 0;
 };
 
-inline Construct::Construct() : ModuleItem() { }
+inline Construct::Construct(Node::Tag tag) : ModuleItem(tag) { }
 
 } // namespace cascade 
 

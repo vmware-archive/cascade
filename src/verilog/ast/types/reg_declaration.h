@@ -60,7 +60,7 @@ class RegDeclaration : public Declaration {
     MAYBE_ATTR(Expression, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration() {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration(Node::Tag::reg_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   VAL_SETUP(signed);

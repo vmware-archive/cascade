@@ -39,7 +39,7 @@ namespace cascade {
 class ConditionalGenerateConstruct : public GenerateConstruct {
   public:
     // Constructors
-    ConditionalGenerateConstruct();
+    ConditionalGenerateConstruct(Node::Tag tag);
     ~ConditionalGenerateConstruct() override = default;
 
     // Node Interface:
@@ -53,7 +53,7 @@ class ConditionalGenerateConstruct : public GenerateConstruct {
     DECORATION(GenerateBlock*, gen);
 };
 
-inline ConditionalGenerateConstruct::ConditionalGenerateConstruct() : GenerateConstruct() { }
+inline ConditionalGenerateConstruct::ConditionalGenerateConstruct(Node::Tag tag) : GenerateConstruct(tag) { }
 
 } // namespace cascade 
 

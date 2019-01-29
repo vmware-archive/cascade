@@ -125,10 +125,8 @@ void SwLogic::set_input(const Input* i) {
 void SwLogic::resync() {
   // Schedule always constructs and continuous assigns.
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if (dynamic_cast<const AlwaysConstruct*>(*i) != nullptr) {
+    if ((*i)->is(Node::Tag::always_construct) || (*i)->is(Node::Tag::continuous_assign)) {
       schedule_now(*i);
-    } else if (auto* ca = dynamic_cast<const ContinuousAssign*>(*i)) {
-      schedule_now(ca);
     }
   }
   for (auto* l : ModuleInfo(src_).inputs()) {
@@ -147,8 +145,8 @@ void SwLogic::resync() {
 
   // Now that signals have been propagated, schedule initial constructs
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if (auto* ic = dynamic_cast<const InitialConstruct*>(*i)) {
-      schedule_now(ic);
+    if ((*i)->is(Node::Tag::initial_construct)) {
+      schedule_now(*i);
     }
   }
 }
@@ -216,16 +214,16 @@ void SwLogic::schedule_active(const Node* n) {
 }
 
 void SwLogic::notify(const Node* n) {
-  if (auto* id = dynamic_cast<const Identifier*>(n)) {
-    for (auto* m : id->monitor_) {
+  if (n->is(Node::Tag::identifier)) {
+    for (auto* m : static_cast<const Identifier*>(n)->monitor_) {
       schedule_active(m);
     }
     return;
   } 
   const auto* p = n->get_parent();
-  if (dynamic_cast<const CaseItem*>(p)) {
+  if (p->is(Node::Tag::case_item)) {
     schedule_active(p->get_parent());
-  } else if (dynamic_cast<const InitialConstruct*>(p) == nullptr) {
+  } else if (!p->is(Node::Tag::initial_construct)) {
     schedule_active(p); 
   }
 }
@@ -236,8 +234,8 @@ uint8_t& SwLogic::get_state(const Statement* s) {
 
 void SwLogic::visit(const Event* e) {
   // TODO(eschkufz) Support for complex expressions here
-  const auto* id = dynamic_cast<const Identifier*>(e->get_expr());
-  assert(id != nullptr);
+  assert(e->get_expr()->is(Node::Tag::identifier));
+  const auto* id = static_cast<const Identifier*>(e->get_expr());
   const auto* r = Resolve().get_resolution(id);
 
   if (e->get_type() != Event::Type::NEGEDGE && Evaluate().get_value(r).to_bool()) {

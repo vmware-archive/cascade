@@ -39,7 +39,7 @@ namespace cascade {
 class BlockStatement : public Statement {
   public:
     // Constructors
-    BlockStatement();
+    BlockStatement(Node::Tag tag);
     ~BlockStatement() override = default;
 
     // Node Interface:
@@ -55,7 +55,7 @@ class BlockStatement : public Statement {
     MAYBE_ATTR(Identifier, id);
 };
 
-inline BlockStatement::BlockStatement() : Statement() { }
+inline BlockStatement::BlockStatement(Node::Tag tag) : Statement(tag) { }
 
 } // namespace cascade 
 

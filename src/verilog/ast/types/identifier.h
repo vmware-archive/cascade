@@ -76,7 +76,7 @@ class Identifier : public Primary {
     DECORATION(Vector<const Node*>, monitor);
 };
 
-inline Identifier::Identifier() { 
+inline Identifier::Identifier() : Primary(Node::Tag::identifier) { 
   MANY_DEFAULT_SETUP(ids);
   MANY_DEFAULT_SETUP(dim);
   parent_ = nullptr;

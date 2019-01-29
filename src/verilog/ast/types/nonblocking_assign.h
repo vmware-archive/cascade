@@ -58,7 +58,7 @@ class NonblockingAssign : public AssignStatement {
     PTR_ATTR(VariableAssign, assign);
 };
 
-inline NonblockingAssign::NonblockingAssign(VariableAssign* assign__) : AssignStatement() {
+inline NonblockingAssign::NonblockingAssign(VariableAssign* assign__) : AssignStatement(Node::Tag::nonblocking_assign) {
   MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(assign); 
   parent_ = nullptr;

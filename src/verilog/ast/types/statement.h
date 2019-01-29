@@ -38,7 +38,7 @@ namespace cascade {
 class Statement : public Node {
   public:
     // Constructors
-    Statement();
+    Statement(Node::Tag tag);
     ~Statement() override = default;
 
     // Node Interface:
@@ -53,7 +53,7 @@ class Statement : public Node {
     DECORATION(uint8_t, ctrl);
 };
 
-inline Statement::Statement() : Node() { 
+inline Statement::Statement(Node::Tag tag) : Node(tag) { 
   ctrl_ = 0;
 }
 

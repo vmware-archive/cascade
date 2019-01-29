@@ -56,7 +56,7 @@ class TimingControlStatement : public Statement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline TimingControlStatement::TimingControlStatement(TimingControl* ctrl__, Statement* stmt__) : Statement() {
+inline TimingControlStatement::TimingControlStatement(TimingControl* ctrl__, Statement* stmt__) : Statement(Node::Tag::timing_control_statement) {
   PTR_SETUP(ctrl);
   PTR_SETUP(stmt);
   parent_ = nullptr;

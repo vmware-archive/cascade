@@ -68,7 +68,7 @@ class NetDeclaration : public Declaration {
     MAYBE_ATTR(RangeExpression, dim);
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__) : Declaration() {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Type type__, Identifier* id__, bool signed__) : Declaration(Node::Tag::net_declaration) {
   PTR_SETUP(attrs);
   VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(ctrl);

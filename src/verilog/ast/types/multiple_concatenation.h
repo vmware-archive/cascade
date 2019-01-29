@@ -57,7 +57,7 @@ class MultipleConcatenation : public Primary {
     PTR_ATTR(Concatenation, concat);
 };
 
-inline MultipleConcatenation::MultipleConcatenation(Expression* expr__, Concatenation* concat__) : Primary() {
+inline MultipleConcatenation::MultipleConcatenation(Expression* expr__, Concatenation* concat__) : Primary(Node::Tag::multiple_concatenation) {
   PTR_SETUP(expr);
   PTR_SETUP(concat);
   parent_ = nullptr;

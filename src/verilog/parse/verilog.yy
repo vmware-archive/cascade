@@ -47,7 +47,8 @@ typedef std::pair<size_t, std::string> IdList;
 namespace {
 
 bool is_null(const cascade::Expression* e) {
-  if (auto i = dynamic_cast<const cascade::Identifier*>(e)) {
+  if (e->is(cascade::Node::Tag::identifier)) {
+    auto i = static_cast<const cascade::Identifier*>(e);
     return i->eq("__null");
   }
   return false;
@@ -449,7 +450,8 @@ module_declaration
       ENDMODULE {
       std::vector<ArgAssign*> ps;
       for (auto p : $5) {
-        auto d = dynamic_cast<PortDeclaration*>(p)->get_decl();
+        assert(p->is(Node::Tag::port_declaration));
+        auto* d = static_cast<PortDeclaration*>(p)->get_decl();
         ps.push_back(new ArgAssign(nullptr, d->get_id()->clone()));
       }
       $4.insert($4.end(), $5.begin(), $5.end());
@@ -492,21 +494,24 @@ port_reference
 port_declaration
   : attribute_instance_S inout_declaration { 
     for (auto pd : $2) {
-      dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
+      assert(pd->is(Node::Tag::port_declaration));
+      static_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
   }
   | attribute_instance_S input_declaration {
     for (auto pd : $2) {
-      dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
+      assert(pd->is(Node::Tag::port_declaration));
+      static_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
   }
   | attribute_instance_S output_declaration {
     for (auto pd : $2) {
-      dynamic_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
+      assert(pd->is(Node::Tag::port_declaration));
+      static_cast<PortDeclaration*>(pd)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
@@ -529,7 +534,8 @@ module_or_generate_item
   /* TODO | attribute_instance_S udp_instantiation */
   | attribute_instance_S module_instantiation { 
     for (auto mi : $2) {
-      dynamic_cast<ModuleInstantiation*>(mi)->replace_attrs($1->clone());
+      assert(pd->is(Node::Tag::port_declaration));
+      static_cast<ModuleInstantiation*>(mi)->replace_attrs($1->clone());
     }
     delete $1;
     $$ = $2;
@@ -545,7 +551,9 @@ module_or_generate_item
     $$.push_back($1); 
   }
   | attribute_instance_S conditional_generate_construct { 
-    if (auto igc = dynamic_cast<IfGenerateConstruct*>($2)) {
+    if ($2->is(Node::Tag::if_generate_construct)) {
+      assert($2->is(Node::Tag::if_generate_construct));
+      auto igc = static_cast<IfGenerateConstruct*>($2);
       igc->replace_attrs($1);
     } else {
       delete $1;
@@ -1100,8 +1108,8 @@ if_generate_construct
       // Nothing to do.
     }
     // Was it an unscoped if/then?
-    else if (!$7->get_scope() && ($7->size_items() == 1) && dynamic_cast<IfGenerateConstruct*>($7->front_items())) {
-      auto igc = dynamic_cast<IfGenerateConstruct*>($7->remove_front_items());
+    else if (!$7->get_scope() && ($7->size_items() == 1) && $7->front_items()->is(Node::Tag::if_generate_construct)) {
+      auto igc = static_cast<IfGenerateConstruct*>($7->remove_front_items());
       delete $7;
       while (!igc->empty_clauses()) {
         $$->push_back_clauses(igc->remove_front_clauses());
@@ -1594,7 +1602,7 @@ hierarchical_identifier
     $$ = new Identifier(new Id($1.second), $2.begin(), $2.end()); 
     parser->set_loc($$, $1.first);
     for (auto e : $2) {
-      if ((e != $2.back()) && (dynamic_cast<const RangeExpression*>(e) != nullptr)) {
+      if ((e != $2.back()) && e->is(Node::Tag::range_expression)) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
@@ -1607,7 +1615,7 @@ hierarchical_identifier
       YYERROR;
     }
     if (!$$->empty_dim()) {
-      if (dynamic_cast<RangeExpression*>($$->back_dim()) != nullptr) {
+      if ($$->back_dim()->is(Node::Tag::range_expression)) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
@@ -1617,7 +1625,7 @@ hierarchical_identifier
     $$->purge_dim();
     $$->push_back_dim($4.begin(), $4.end());
     for (auto e : $4) {
-      if ((e != $4.back()) && (dynamic_cast<RangeExpression*>(e) != nullptr)) {
+      if ((e != $4.back()) && e->is(Node::Tag::range_expression)) {
         error(parser->get_loc(), "Unexpected range expression in array subscript");
         YYERROR;
       }
@@ -1820,7 +1828,8 @@ parameter_declaration_P
   | parameter_declaration_P COMMA list_of_param_assignments {
     $$ = $1;
     for (auto va : $3) {
-      auto pd = dynamic_cast<ParameterDeclaration*>($1.back()->clone());
+      assert($1.back()->is(Node::Tag::parameter_declaration));
+      auto pd = static_cast<ParameterDeclaration*>($1.back()->clone());
       pd->replace_id(va->get_lhs()->clone());
       pd->replace_val(va->get_rhs()->clone());
       delete va; 
@@ -1846,14 +1855,17 @@ port_declaration_P
   | port_declaration_P COMMA list_of_variable_port_identifiers {
     $$ = $1;
     for (auto va : $3) {
-      auto pd = dynamic_cast<PortDeclaration*>($1.back()->clone());
-      if (auto nd = dynamic_cast<NetDeclaration*>(pd->get_decl())) {
+      assert($1.back()->is(Node::Tag::port_declaration));
+      auto pd = static_cast<PortDeclaration*>($1.back()->clone());
+      if (pd->get_decl()->is(Node::Tag::net_declaration)) {
+        auto nd = static_cast<NetDeclaration*>(pd->get_decl());
         nd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
           error(parser->get_loc(), "Found initialization value in net declaration!");
           YYERROR;
         }
-      } else if (auto rd = dynamic_cast<RegDeclaration*>(pd->get_decl())) {
+      } else if (pd->get_decl()->is(Node::Tag::reg_declaration)) {
+        auto rd = static_cast<RegDeclaration*>(pd->get_decl());
         rd->replace_id(va->get_lhs()->clone());
         if (!is_null(va->get_rhs())) {
           rd->replace_val(va->get_rhs()->clone());

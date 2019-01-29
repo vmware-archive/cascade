@@ -57,7 +57,7 @@ class ConditionalExpression : public Expression {
     PTR_ATTR(Expression, rhs);
 };
 
-inline ConditionalExpression::ConditionalExpression(Expression* cond__, Expression* lhs__, Expression* rhs__) : Expression() {
+inline ConditionalExpression::ConditionalExpression(Expression* cond__, Expression* lhs__, Expression* rhs__) : Expression(Node::Tag::conditional_expression) {
   PTR_SETUP(cond);
   PTR_SETUP(lhs);
   PTR_SETUP(rhs);

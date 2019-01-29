@@ -80,7 +80,8 @@ const Vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
 }
 
 pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
-  if (const auto* re = dynamic_cast<const RangeExpression*>(e)) {
+  if (e->is(Node::Tag::range_expression)) {
+    const auto* re = static_cast<const RangeExpression*>(e);
     const auto upper = get_value(re->get_upper()).to_int();
     const auto lower = get_value(re->get_lower()).to_int();
     switch (re->get_type()) {
@@ -159,8 +160,8 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
 
   // Walk along subscripts 
   for (auto re = r->end_dim(); ritr != re; ++iitr, ++ritr) {
-    assert(dynamic_cast<const RangeExpression*>(*ritr) != nullptr);
-    assert(dynamic_cast<const RangeExpression*>(*iitr) == nullptr);
+    assert((*ritr)->is(Node::Tag::range_expression));
+    assert(!(*iitr)->is(Node::Tag::range_expression));
 
     const auto rval = get_range(*ritr);
     const auto ival = get_value(*iitr).to_int();
@@ -382,30 +383,30 @@ const Node* Evaluate::get_root(const Expression* e) const {
   const Node* root = nullptr;
   for (root = e; ; root = root->get_parent()) {
     // Subscripts inside of identifiers 
-    if ((dynamic_cast<const Expression*>(root) != nullptr) && (dynamic_cast<const Identifier*>(root->get_parent()) != nullptr)) {
+    if (root->is_subclass_of(Node::Tag::expression) && root->get_parent()->is(Node::Tag::identifier)) {
       return root;
     }
     // Ranges inside of declarations 
-    else if ((dynamic_cast<const RangeExpression*>(root) != nullptr) && (dynamic_cast<const Declaration*>(root->get_parent()) != nullptr)) {
+    else if (root->is(Node::Tag::range_expression) && root->get_parent()->is_subclass_of(Node::Tag::declaration)) {
       return root;
     }
     // Variables inside of declarations
-    else if (dynamic_cast<const Declaration*>(root->get_parent()) != nullptr) {
+    else if (root->get_parent()->is_subclass_of(Node::Tag::declaration)) {
       return root->get_parent();
     }
     // Continuous, non-blocking, or blocking assigns
-    else if (dynamic_cast<const VariableAssign*>(root->get_parent()) != nullptr) {
+    else if (root->get_parent()->is(Node::Tag::variable_assign)) {
       return root->get_parent();
     }
     // Multiple Concatenation
-    else if (dynamic_cast<const MultipleConcatenation*>(root->get_parent()) != nullptr) {
+    else if (root->get_parent()->is(Node::Tag::multiple_concatenation)) {
       return root;
     }
     // Subscripts inside of ids
-    else if (dynamic_cast<const Id*>(root->get_parent()) != nullptr) {
+    else if (root->get_parent()->is(Node::Tag::id)) {
       return root;
     }
-    else if (dynamic_cast<const Expression*>(root->get_parent()) == nullptr) {
+    else if (!root->get_parent()->is_subclass_of(Node::Tag::expression)) {
       return root;
     }
   } 
@@ -596,7 +597,8 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
   if (id->size_dim() == r->size_dim()) {
     w = Evaluate().get_width(r);
     s = Evaluate().get_signed(r);
-  } else if (auto* re = dynamic_cast<RangeExpression*>(id->back_dim())) {
+  } else if (id->back_dim()->is(Node::Tag::range_expression)) {
+    auto* re = static_cast<RangeExpression*>(id->back_dim());
     const auto lower = Evaluate().get_value(re->get_lower()).to_int();
     if (re->get_type() == RangeExpression::Type::CONSTANT) {
       const auto upper = Evaluate().get_value(re->get_upper()).to_int();

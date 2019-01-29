@@ -54,7 +54,7 @@ class FinishStatement : public SystemTaskEnableStatement {
     PTR_ATTR(Expression, arg);
 };
 
-inline FinishStatement::FinishStatement(Expression* arg__) : SystemTaskEnableStatement() {
+inline FinishStatement::FinishStatement(Expression* arg__) : SystemTaskEnableStatement(Node::Tag::finish_statement) {
   PTR_SETUP(arg);
   parent_ = nullptr;
 }

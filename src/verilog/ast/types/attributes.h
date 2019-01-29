@@ -67,7 +67,7 @@ class Attributes : public Node {
     MANY_ATTR(AttrSpec, as);
 };
 
-inline Attributes::Attributes() : Node() {
+inline Attributes::Attributes() : Node(Node::Tag::attributes) {
   MANY_DEFAULT_SETUP(as);
   parent_ = nullptr;
 }
@@ -107,7 +107,7 @@ template <typename T>
 inline const T* Attributes::get(const std::string& s) const {
   for (auto i = begin_as(), ie = end_as(); i != ie; ++i) {
     if ((*i)->get_lhs()->eq(s) && (*i)->is_non_null_rhs()) {
-      return dynamic_cast<const T*>((*i)->get_rhs());
+      return static_cast<const T*>((*i)->get_rhs());
     }
   }
   return nullptr;

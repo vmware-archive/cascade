@@ -57,7 +57,7 @@ class VariableAssign : public Node {
     PTR_ATTR(Expression, rhs);
 };
 
-inline VariableAssign::VariableAssign(Identifier* lhs__, Expression* rhs__) : Node() { 
+inline VariableAssign::VariableAssign(Identifier* lhs__, Expression* rhs__) : Node(Node::Tag::variable_assign) { 
   PTR_SETUP(lhs);
   PTR_SETUP(rhs);
   parent_ = nullptr;

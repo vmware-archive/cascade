@@ -305,7 +305,8 @@ void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
 
   os << "// Update State" << endl;
   for (auto* s : info.stateful()) {
-    auto* rd = dynamic_cast<RegDeclaration*>(s->get_parent()->clone());
+    assert(s->get_parent()->is(Node::Tag::reg_declaration));
+    auto* rd = static_cast<RegDeclaration*>(s->get_parent()->clone());
     rd->get_id()->purge_ids();
     rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
     rd->replace_val(nullptr);
@@ -360,10 +361,12 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
 void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo) {
   const RangeExpression* re = nullptr;
   auto is_signed = false;
-  if (auto* nd = dynamic_cast<const NetDeclaration*>(vinfo.id()->get_parent())) {
+  if (vinfo.id()->get_parent()->is(Node::Tag::net_declaration)) {
+    auto* nd = static_cast<const NetDeclaration*>(vinfo.id()->get_parent());
     re = nd->get_dim();
     is_signed = nd->get_signed();
-  } else if (auto* rd = dynamic_cast<const RegDeclaration*>(vinfo.id()->get_parent())) {
+  } else if (vinfo.id()->get_parent()->is(Node::Tag::reg_declaration)) {
+    auto* rd = static_cast<const RegDeclaration*>(vinfo.id()->get_parent());
     re = rd->get_dim();
     is_signed = rd->get_signed();
   } else {

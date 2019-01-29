@@ -223,7 +223,8 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
 
     for (size_t i = 0; !log->error() && i < gen_queue_.size(); ++i) {
       auto* gc = gen_queue_[i];
-      if (auto* cgc = dynamic_cast<CaseGenerateConstruct*>(gc)) {
+      if (gc->is(Node::Tag::case_generate_construct)) {
+        auto* cgc = static_cast<CaseGenerateConstruct*>(gc);
         tc.pre_elaboration_check(cgc);
         if (!log->error() && expand_gens_) {
           if (auto* e = Elaborate().elaborate(cgc)) {
@@ -231,7 +232,8 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           }
           Navigate(cgc).invalidate();
         }
-      } else if (auto* igc = dynamic_cast<IfGenerateConstruct*>(gc)) {
+      } else if (gc->is(Node::Tag::if_generate_construct)) {
+        auto* igc = static_cast<IfGenerateConstruct*>(gc);
         tc.pre_elaboration_check(igc);
         if (!log->error() && expand_gens_) {
           if (auto* e = Elaborate().elaborate(igc)) {
@@ -239,7 +241,8 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           }
           Navigate(igc).invalidate();
         }
-      } else if (auto* lgc = dynamic_cast<LoopGenerateConstruct*>(gc)) {
+      } else if (gc->is(Node::Tag::loop_generate_construct)) {
+        auto* lgc = static_cast<LoopGenerateConstruct*>(gc);
         tc.pre_elaboration_check(lgc);
         if (!log->error() && expand_gens_) {
           const auto* itr = lgc->get_init()->get_lhs();
@@ -270,8 +273,11 @@ void Program::elaborate_item(ModuleItem* mi, Log* log, const Parser* p) {
 
 void Program::eval_root(ModuleItem* mi, Log* log, const Parser* p) {
   elabs_.checkpoint();
-  auto* inst = dynamic_cast<ModuleInstantiation*>(mi);
-  if ((inst == nullptr) || !EqId()(inst->get_mid(), root_decl()->first)) {
+  if (!mi->is(Node::Tag::module_instantiation)) { 
+    log->error("Cannot evaluate code without first instantiating the root module");
+  }
+  auto* inst = static_cast<ModuleInstantiation*>(mi);
+  if (!EqId()(inst->get_mid(), root_decl()->first)) {
     log->error("Cannot evaluate code without first instantiating the root module");
   } else {
     elaborate_item(inst, log, p);

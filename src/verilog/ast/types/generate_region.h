@@ -55,13 +55,13 @@ class GenerateRegion : public ModuleItem {
     MANY_ATTR(ModuleItem, items);
 };
 
-inline GenerateRegion::GenerateRegion() : ModuleItem() {
+inline GenerateRegion::GenerateRegion() : ModuleItem(Node::Tag::generate_region) {
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
 }
 
 template <typename ItemsItr>
-inline GenerateRegion::GenerateRegion(ItemsItr items_begin__, ItemsItr items_end__) {
+inline GenerateRegion::GenerateRegion(ItemsItr items_begin__, ItemsItr items_end__) : GenerateRegion() {
   MANY_SETUP(items); 
 }
 

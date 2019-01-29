@@ -34,7 +34,7 @@
 #include <unordered_map>
 #include <vector>
 #include "src/runtime/ids.h"
-#include "src/verilog/ast/ast_fwd.h"
+#include "src/verilog/ast/ast.h"
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/program/inline.h"
 
@@ -115,21 +115,26 @@ inline std::vector<ModuleItem*> Isolate::get_items(ItemsItr begin, ItemsItr end,
       --ignore_;
     }
     // Ignore Declarations. We handle them at the top level.
-    if (dynamic_cast<const Declaration*>(*mi)) {
+    if ((*mi)->is_subclass_of(Node::Tag::declaration)) {
       continue;
     }
     // Flatten generate regions and generate constructs
-    else if (auto* gr = dynamic_cast<const GenerateRegion*>(*mi)) {
+    else if ((*mi)->is(Node::Tag::generate_region)) {
+      auto* gr = static_cast<const GenerateRegion*>(*mi);
       flatten(res, gr);
-    } else if (auto* cgc = dynamic_cast<const CaseGenerateConstruct*>(*mi)) {
+    } else if ((*mi)->is(Node::Tag::case_generate_construct)) {
+      auto* cgc = static_cast<const CaseGenerateConstruct*>(*mi);
       flatten(res, cgc);
-    } else if (auto* igc = dynamic_cast<const IfGenerateConstruct*>(*mi)) {
+    } else if ((*mi)->is(Node::Tag::if_generate_construct)) {
+      auto* igc = static_cast<const IfGenerateConstruct*>(*mi);
       flatten(res, igc);
-    } else if (auto* lgc = dynamic_cast<const LoopGenerateConstruct*>(*mi)) {
+    } else if ((*mi)->is(Node::Tag::loop_generate_construct)) {
+      auto* lgc = static_cast<const LoopGenerateConstruct*>(*mi);
       flatten(res, lgc);
     }
     // Either descend on instantiations or replace them with connections
-    else if (auto* inst = dynamic_cast<const ModuleInstantiation*>(*mi)) {
+    else if ((*mi)->is(Node::Tag::module_instantiation)) {
+      auto* inst = static_cast<const ModuleInstantiation*>(*mi);
       if (Inline().is_inlined(inst)) {
         flatten(res, Inline().get_source(inst));
       } else {

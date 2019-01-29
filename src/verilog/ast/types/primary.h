@@ -38,7 +38,7 @@ namespace cascade {
 class Primary : public Expression {
   public:
     // Constructors:
-    Primary();
+    Primary(Node::Tag tag);
     ~Primary() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class Primary : public Expression {
     void accept(Visitor* v) const override = 0;
 };
 
-inline Primary::Primary() : Expression() { }
+inline Primary::Primary(Node::Tag tag) : Expression(tag) { }
 
 } // namespace cascade 
 

@@ -62,7 +62,7 @@ class ForStatement : public LoopStatement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline ForStatement::ForStatement(VariableAssign* init__, Expression* cond__, VariableAssign* update__, Statement* stmt__) : LoopStatement() {
+inline ForStatement::ForStatement(VariableAssign* init__, Expression* cond__, VariableAssign* update__, Statement* stmt__) : LoopStatement(Node::Tag::for_statement) {
   PTR_SETUP(init);
   PTR_SETUP(cond);
   PTR_SETUP(update);

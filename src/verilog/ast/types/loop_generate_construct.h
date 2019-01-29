@@ -67,7 +67,7 @@ class LoopGenerateConstruct : public GenerateConstruct {
     DECORATION(Vector<GenerateBlock*>, gen);
 };
 
-inline LoopGenerateConstruct::LoopGenerateConstruct(VariableAssign* init__, Expression* cond__, VariableAssign* update__, GenerateBlock* block__) : GenerateConstruct() {
+inline LoopGenerateConstruct::LoopGenerateConstruct(VariableAssign* init__, Expression* cond__, VariableAssign* update__, GenerateBlock* block__) : GenerateConstruct(Node::Tag::loop_generate_construct) {
   PTR_SETUP(init);
   PTR_SETUP(cond);
   PTR_SETUP(update);

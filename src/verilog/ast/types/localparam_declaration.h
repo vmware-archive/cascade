@@ -60,7 +60,7 @@ class LocalparamDeclaration : public Declaration {
     PTR_ATTR(Expression, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration() {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration(Node::Tag::localparam_declaration) {
   PTR_SETUP(attrs);
   VAL_SETUP(signed);
   MAYBE_DEFAULT_SETUP(dim);

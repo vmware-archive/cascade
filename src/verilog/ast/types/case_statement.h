@@ -68,7 +68,7 @@ class CaseStatement : public Statement {
     MANY_ATTR(CaseItem, items);
 };
 
-inline CaseStatement::CaseStatement(Type type__, Expression* cond__) : Statement() {
+inline CaseStatement::CaseStatement(Type type__, Expression* cond__) : Statement(Node::Tag::case_statement) {
   VAL_SETUP(type);
   PTR_SETUP(cond);
   parent_ = nullptr;

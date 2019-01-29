@@ -38,7 +38,7 @@ namespace cascade {
 class TimingControl : public Node {
   public:
     // Constructors
-    TimingControl();
+    TimingControl(Node::Tag tag);
     ~TimingControl() override = default;
 
     // Node Interface:
@@ -49,7 +49,7 @@ class TimingControl : public Node {
     TimingControl* accept(Rewriter* r) override = 0;
 };
 
-inline TimingControl::TimingControl() : Node() { }
+inline TimingControl::TimingControl(Node::Tag tag) : Node(tag) { }
 
 } // namespace cascade 
 

@@ -66,7 +66,7 @@ class PortDeclaration : public ModuleItem {
     PTR_ATTR(Declaration, decl);
 };
 
-inline PortDeclaration::PortDeclaration(Attributes* attrs__, Type type__, Declaration* decl__) : ModuleItem() {
+inline PortDeclaration::PortDeclaration(Attributes* attrs__, Type type__, Declaration* decl__) : ModuleItem(Node::Tag::port_declaration) {
   PTR_SETUP(attrs);
   VAL_SETUP(type);
   PTR_SETUP(decl);

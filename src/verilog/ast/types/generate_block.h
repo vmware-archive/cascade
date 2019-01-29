@@ -39,7 +39,7 @@
 
 namespace cascade {
 
-class GenerateBlock : public Node, public Scope {
+class GenerateBlock : public Node {
   public:
     // Constructors:
     explicit GenerateBlock(bool scope__);
@@ -60,14 +60,17 @@ class GenerateBlock : public Node, public Scope {
     MAYBE_ATTR(Identifier, id);
     VAL_ATTR(bool, scope);
     MANY_ATTR(ModuleItem, items);
+
+    friend class Navigate;
+    DECORATION(Scope, scope_idx);
 };
 
-inline GenerateBlock::GenerateBlock(bool scope__) : Node(), Scope() {
+inline GenerateBlock::GenerateBlock(bool scope__) : Node(Node::Tag::generate_block) {
   MAYBE_DEFAULT_SETUP(id);
   VAL_SETUP(scope);
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
-  next_supdate_ = 0;
+  scope_idx_.next_supdate_ = 0;
 }
 
 template <typename ItemsItr>

@@ -54,7 +54,7 @@ class ForeverStatement : public LoopStatement {
     PTR_ATTR(Statement, stmt);
 };
 
-inline ForeverStatement::ForeverStatement(Statement* stmt__) : LoopStatement() {
+inline ForeverStatement::ForeverStatement(Statement* stmt__) : LoopStatement(Node::Tag::forever_statement) {
   parent_ = nullptr;
   PTR_SETUP(stmt);
 }

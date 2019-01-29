@@ -39,14 +39,12 @@
 
 namespace cascade {
 
-class Scope {
-  public:
-    friend class Navigate;
-    DECORATION(size_t, next_supdate);
-    typedef std::unordered_map<const Id*, std::pair<const Identifier*, const Identifier*>, HashId, EqId> NameMap;
-    DECORATION(NameMap, snames);
-    typedef std::unordered_map<const Id*, const Node*, HashId, EqId> ChildMap;
-    DECORATION(ChildMap, schildren);
+struct Scope {
+  DECORATION(size_t, next_supdate);
+  typedef std::unordered_map<const Id*, std::pair<const Identifier*, const Identifier*>, HashId, EqId> NameMap;
+  DECORATION(NameMap, snames);
+  typedef std::unordered_map<const Id*, const Node*, HashId, EqId> ChildMap;
+  DECORATION(ChildMap, schildren);
 };
 
 } // namespace cascade

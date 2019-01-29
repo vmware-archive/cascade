@@ -45,7 +45,7 @@
 
 namespace cascade {
 
-class ModuleDeclaration : public Node, public Scope {
+class ModuleDeclaration : public Node {
   public:
     // Constructors:
     ModuleDeclaration(Attributes* attrs__, Identifier* id__);
@@ -88,16 +88,19 @@ class ModuleDeclaration : public Node, public Scope {
     DECORATION(ConnMap, connections);
     typedef std::unordered_map<const Identifier*, const ModuleDeclaration*> ChildMap;
     DECORATION(ChildMap, children);
+
+    friend class Navigate;
+    DECORATION(Scope, scope_idx);
 };
 
-inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__) : Node(), Scope() {
+inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id__) : Node(Node::Tag::module_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
   MANY_DEFAULT_SETUP(ports);
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
   next_update_ = 0;
-  next_supdate_ = 0;
+  scope_idx_.next_supdate_ = 0;
 }
 
 template <typename PortsItr, typename ItemsItr>

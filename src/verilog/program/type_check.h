@@ -142,7 +142,8 @@ void TypeCheck::check_printf(size_t n, ArgsItr begin, ArgsItr end) {
     return;
   }
   // If first arg is a string, number of %'s must be one less than number of args
-  if (const auto* str = dynamic_cast<const String*>(*begin)) {
+  if ((*begin)->is(Node::Tag::string)) {
+    const auto* str = static_cast<const String*>(*begin);
     if (static_cast<size_t>(std::count(str->get_readable_val().begin(), str->get_readable_val().end(), '%')) != (n-1)) {
       error("Incorrect number of printf-style arguments provided", (*begin)->get_parent());
     }

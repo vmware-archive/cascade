@@ -38,7 +38,7 @@ namespace cascade {
 class GenerateConstruct : public Construct {
   public:
     // Constructors:
-    GenerateConstruct();
+    GenerateConstruct(Node::Tag tag);
     ~GenerateConstruct() override = default;
 
     // Node Interface:
@@ -48,7 +48,7 @@ class GenerateConstruct : public Construct {
     void accept(Visitor* v) const override = 0;
 };
 
-inline GenerateConstruct::GenerateConstruct() : Construct() { }
+inline GenerateConstruct::GenerateConstruct(Node::Tag tag) : Construct(tag) { }
 
 } // namespace cascade 
 

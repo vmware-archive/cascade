@@ -54,7 +54,7 @@ class DelayControl : public TimingControl {
     PTR_ATTR(Expression, delay);
 };
 
-inline DelayControl::DelayControl(Expression* delay__) : TimingControl() {
+inline DelayControl::DelayControl(Expression* delay__) : TimingControl(Node::Tag::delay_control) {
   PTR_SETUP(delay);
   parent_ = nullptr;
 }
