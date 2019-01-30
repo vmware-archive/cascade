@@ -49,7 +49,7 @@ module Mips32(
   wire[31:0] reg_read1;
   wire[31:0] reg_read2;
   wire[31:0] reg_write;
-  Memory#(5,32) regs(
+  Mem#(2**5,32) regs(
     .clock(clock.val),
     .wen(c_reg_write),
     .raddr1(instr[25:21]),
@@ -83,7 +83,7 @@ module Mips32(
   // Data Memory (2^16 aligned 32-bit words)
   // (Aligned word addressable, so addres are shifted right 2)
   wire[31:0] mem_read;
-  Memory#(16,32) dmem(
+  Mem#(2**16,32) dmem(
     .clock(clock.val),
     .wen(mem_write),
     .raddr1(result >> 2),
