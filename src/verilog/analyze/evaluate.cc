@@ -105,26 +105,31 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
   init(const_cast<Identifier*>(r));
-
-  // Perform the assignment
+  // Calculate its index
   const auto dres = dereference(r, id);
+  const auto idx = static_cast<size_t>(get<0>(dres));
+
+  // Corner Case: Ignore writes to out of range indices
+  if (idx >= r->bit_val_.size()) {
+    return;
+  }
   // Simple Case: Full Assignment
-  if (get<1>(dres) == -1) {
-    if (!r->bit_val_[get<0>(dres)].eq(val)) {
-      const_cast<Identifier*>(r)->bit_val_[get<0>(dres)].assign(val);
+  else if (get<1>(dres) == -1) {
+    if (!r->bit_val_[idx].eq(val)) {
+      const_cast<Identifier*>(r)->bit_val_[idx].assign(val);
       flag_changed(r);
     }
   } 
-  // Corner Case: Subscript completely out of range; the write evaporates
+  // Corner Case: Ignore writes to bit ranges which are entirely out of range
   else if (static_cast<size_t>(get<2>(dres)) >= get_width(r)) {
     return;
   }
-  // Partial Case: Perform as much of the assignment as possible
+  // Partial Case: Write as much as possible to a partially valid range
   else {
     const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
     const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
-    if (!r->bit_val_[get<0>(dres)].eq(msb, lsb, val)) {
-      const_cast<Identifier*>(r)->bit_val_[get<0>(dres)].assign(msb, lsb, val);
+    if (!r->bit_val_[idx].eq(msb, lsb, val)) {
+      const_cast<Identifier*>(r)->bit_val_[idx].assign(msb, lsb, val);
       flag_changed(r);
     }
   }
@@ -176,25 +181,28 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
     mul /= ((rval.first-rval.second)+1);
     idx += mul * ival;
   }
-  // Out of bounds accesses are undefined, so we'll map them to a safe value
   const auto rng = (iitr == i->end_dim()) ?
     make_pair<size_t, size_t>(-1,-1) : 
     get_range(*iitr);
-  return make_tuple((idx >= r->bit_val_.size()) ? 0 : idx, rng.first, rng.second);
+  return make_tuple(idx, rng.first, rng.second);
 }
 
 void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
   init(const_cast<Identifier*>(id));
   assert(idx < id->bit_val_.size());
 
+  // Corner Case: Ignore writes to out of bounds indices
+  if (idx >= id->bit_val_.size()) {
+    return;
+  }
   // Fast Path: Single bit assignments are easy to check
-  if (msb == -1) {
+  else if (msb == -1) {
     if (!id->bit_val_[idx].eq(val)) {
       const_cast<Identifier*>(id)->bit_val_[idx].assign(val);
       flag_changed(id);
     }
   } 
-  // Corner Case: Subscript completely out of range; the write evaporates
+  // Corner Case: Ignore writes to bit ranges which are completely out of bounds
   else if (static_cast<size_t>(lsb) >= get_width(id)) {
     return;
   }
@@ -317,17 +325,23 @@ void Evaluate::edit(Identifier* id) {
   if (r == id) {
     return;
   }
-  // Otherwise copy or slice 
+  // Compute the index of this dereference
   const auto dres = dereference(r, id);
+  const auto idx = static_cast<size_t>(get<0>(dres));
+
+  // Corner Case: Ignore reads from out of bounds indices
+  if (idx >= get_array_value(r).size()) {
+    return;
+  }
   // Simple Case: Full value assignment
-  if (get<1>(dres) == -1) {
-    id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)]);
+  else if (get<1>(dres) == -1) {
+    id->bit_val_[0].assign(get_array_value(r)[idx]);
   } 
-  // Partial Case: Reads from out of bounds locations are undefined
+  // Partial Case: Ignore reads from bit ranges which are out of bounds
   else {
     const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
     const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
-    id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)], msb, lsb);
+    id->bit_val_[0].assign(get_array_value(r)[idx], msb, lsb);
   }
 }
 
