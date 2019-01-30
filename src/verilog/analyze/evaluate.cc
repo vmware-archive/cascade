@@ -108,12 +108,19 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
 
   // Perform the assignment
   const auto dres = dereference(r, id);
+  // Simple Case: Full Assignment
   if (get<1>(dres) == -1) {
     if (!r->bit_val_[get<0>(dres)].eq(val)) {
       const_cast<Identifier*>(r)->bit_val_[get<0>(dres)].assign(val);
       flag_changed(r);
     }
-  } else {
+  } 
+  // Corner Case: Subscript completely out of range; the write evaporates
+  else if (static_cast<size_t>(get<2>(dres)) >= get_width(r)) {
+    return;
+  }
+  // Partial Case: Perform as much of the assignment as possible
+  else {
     const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
     const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
     if (!r->bit_val_[get<0>(dres)].eq(msb, lsb, val)) {
@@ -180,12 +187,19 @@ void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, 
   init(const_cast<Identifier*>(id));
   assert(idx < id->bit_val_.size());
 
+  // Fast Path: Single bit assignments are easy to check
   if (msb == -1) {
     if (!id->bit_val_[idx].eq(val)) {
       const_cast<Identifier*>(id)->bit_val_[idx].assign(val);
       flag_changed(id);
     }
-  } else {
+  } 
+  // Corner Case: Subscript completely out of range; the write evaporates
+  else if (static_cast<size_t>(lsb) >= get_width(id)) {
+    return;
+  }
+  // Partial Case: Perform as much of the assignment as possible
+  else {
     const auto m = min(static_cast<size_t>(msb), get_width(id)-1);
     const auto l = min(static_cast<size_t>(lsb), get_width(id)-1);
     if (!id->bit_val_[idx].eq(m, l, val)) {
@@ -305,9 +319,12 @@ void Evaluate::edit(Identifier* id) {
   }
   // Otherwise copy or slice 
   const auto dres = dereference(r, id);
+  // Simple Case: Full value assignment
   if (get<1>(dres) == -1) {
     id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)]);
-  } else {
+  } 
+  // Partial Case: Reads from out of bounds locations are undefined
+  else {
     const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
     const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
     id->bit_val_[0].assign(get_array_value(r)[get<0>(dres)], msb, lsb);
