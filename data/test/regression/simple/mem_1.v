@@ -23,16 +23,18 @@ module Mem#(
 endmodule
 
 reg[3:0] COUNT = 0;
+wire[1:0] raddr = COUNT;
+wire[1:0] waddr = COUNT+1;
 wire[2:0] rd1, rd2;
 
-Mem#(2,3) mem1(
+Mem#(4,3) mem1(
   .clock(clock.val),
   .wen(1), 
-  .raddr1(COUNT), 
+  .raddr1(raddr), 
   .rdata1(rd1), 
-  .raddr2(COUNT), 
+  .raddr2(raddr), 
   .rdata2(rd2),
-  .waddr(COUNT+1),
+  .waddr(waddr),
   .wdata(COUNT+1) 
 );
 

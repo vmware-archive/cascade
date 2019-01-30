@@ -177,6 +177,24 @@ TEST(simple, inst_3) {
 TEST(simple, issue_20a) {
   run_code("minimal","data/test/regression/simple/issue_20a.v", "");
 }
+TEST(simple, issue_41a) {
+  run_code("minimal","data/test/regression/simple/issue_41a.v", "-1");
+}
+TEST(simple, issue_41b) {
+  run_code("minimal","data/test/regression/simple/issue_41b.v", "-4");
+}
+TEST(simple, issue_47a) {
+  run_code("minimal","data/test/regression/simple/issue_47a.v", "00254");
+}
+TEST(simple, issue_47b) {
+  run_code("minimal","data/test/regression/simple/issue_47b.v", "00254");
+}
+TEST(simple, issue_47c) {
+  run_code("minimal","data/test/regression/simple/issue_47c.v", "000");
+}
+TEST(simple, issue_47d) {
+  run_code("minimal","data/test/regression/simple/issue_47d.v", "000");
+}
 TEST(simple, issue_228) {
   run_code("minimal","data/test/regression/simple/issue_228.v", "");
 }
@@ -279,9 +297,3 @@ TEST(simple, sign_2) {
 //TEST(simple, while_1) {
 //  run_code("minimal","data/test/regression/simple/while_1.v", "333");
 //}
-TEST(simple, issue_41a) {
-    run_code("minimal","data/test/regression/simple/issue_41a.v", "-1");
-}
-TEST(simple, issue_41b) {
-    run_code("minimal","data/test/regression/simple/issue_41b.v", "-4");
-}
