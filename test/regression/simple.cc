@@ -189,6 +189,12 @@ TEST(simple, issue_47a) {
 TEST(simple, issue_47b) {
   run_code("minimal","data/test/regression/simple/issue_47b.v", "00254");
 }
+TEST(simple, issue_47c) {
+  run_code("minimal","data/test/regression/simple/issue_47c.v", "000");
+}
+TEST(simple, issue_47d) {
+  run_code("minimal","data/test/regression/simple/issue_47d.v", "000");
+}
 TEST(simple, issue_228) {
   run_code("minimal","data/test/regression/simple/issue_228.v", "");
 }
