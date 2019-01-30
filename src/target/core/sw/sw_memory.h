@@ -277,13 +277,13 @@ inline void SwMemory::update() {
 
 inline void SwMemory::read_file() {
   std::ifstream ifs(file_);
-  Bits temp;
   for (auto& m : mem_) {
+    Bits temp;
     temp.read(ifs, 16);
+    m.assign(m.size()-1, 0, temp);
     if (ifs.eof()) {
       break;
     }  
-    m.assign(m.size()-1, 0, temp);
   }
   ifs.close();
 }
