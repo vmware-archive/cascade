@@ -447,5 +447,5 @@ More generally, Cascade will defer typechecking for code that appears inside of 
 #### I get it, but it seems like there's something about pretty much every module declaration that Cascade can't prove.
 The truth hurts. If you'd like to disable warnings you can type.
 ```
-$ ./bin/cascade --disable_warnings
+$ ./bin/cascade --disable_warning
 ```

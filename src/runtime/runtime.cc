@@ -68,7 +68,9 @@ Runtime::Runtime(View* view) : Asynchronous() {
   open_loop_itrs_ = 2;
   open_loop_target_ = 1;
   disable_inlining_ = false;
-  disable_warnings_ = false;
+  disable_info_ = false;
+  disable_warning_ = false;
+  disable_error_ = false;
 
   schedule_all_ = false;
   clock_ = nullptr;
@@ -113,8 +115,18 @@ Runtime& Runtime::disable_inlining(bool di) {
   return *this;
 }
 
-Runtime& Runtime::disable_warnings(bool dw) {
-  disable_warnings_ = dw;
+Runtime& Runtime::disable_info(bool di) {
+  disable_info_ = di;
+  return *this;
+}
+
+Runtime& Runtime::disable_warning(bool dw) {
+  disable_warning_ = dw;
+  return *this;
+}
+
+Runtime& Runtime::disable_error(bool de) {
+  disable_error_ = de;
   return *this;
 }
 
@@ -503,7 +515,7 @@ void Runtime::log_parse_errors() {
 }
 
 void Runtime::log_checker_warns() {
-  if (disable_warnings_) {
+  if (disable_warning_) {
     return;
   }
   if (log_->warn_begin() == log_->warn_end()) {

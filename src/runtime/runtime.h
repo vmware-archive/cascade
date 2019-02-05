@@ -74,7 +74,9 @@ class Runtime : public Asynchronous {
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& disable_inlining(bool di);
-    Runtime& disable_warnings(bool dw);
+    Runtime& disable_info(bool di);
+    Runtime& disable_warning(bool dw);
+    Runtime& disable_error(bool de);
 
     // Controller Interface:
     // 
@@ -162,15 +164,23 @@ class Runtime : public Asynchronous {
     Compiler* compiler_;
 
     // Program State:
-    std::string include_dirs_;
     Program* program_;
     Module* root_;
 
-    // Optimization State:
+    // Configuration State:
+    std::string include_dirs_;
     bool disable_inlining_;
     bool enable_open_loop_;
     size_t open_loop_itrs_;
     size_t open_loop_target_;
+    bool disable_info_;
+    bool disable_warning_;
+    bool disable_error_;
+
+    // Interrupt Queue:
+    size_t item_evals_;
+    std::vector<Interrupt> ints_;
+    std::recursive_mutex int_lock_;
 
     // Generic Scheduling State:
     std::vector<Module*> logic_;
@@ -181,19 +191,11 @@ class Runtime : public Asynchronous {
     Module* clock_;
     Module* inlined_logic_;
 
-    // Interrupt Queue:
-    size_t item_evals_;
-    std::vector<Interrupt> ints_;
-    std::recursive_mutex int_lock_;
-
     // Time Keeping:
     time_t begin_time_;
     time_t last_time_;
     uint64_t last_logical_time_;
     uint64_t logical_time_;
-
-    // Warnings and Errors:
-    bool disable_warnings_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.

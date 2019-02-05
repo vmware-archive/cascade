@@ -111,9 +111,13 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
-__attribute__((unused)) auto& g6 = Group::create("Warnings and Errors");
-auto& disable_warnings = FlagArg::create("--disable_warnings")
-  .description("Turn of warnings");
+__attribute__((unused)) auto& g6 = Group::create("Elaboration Tasks");
+auto& disable_info = FlagArg::create("--disable_info")
+  .description("Turn of info messages");
+auto& disable_warning = FlagArg::create("--disable_warning")
+  .description("Turn of warning messages");
+auto& disable_error = FlagArg::create("--disable_error")
+  .description("Turn of error messages");
 
 class Profiler : public Asynchronous {
   public:
@@ -209,7 +213,9 @@ int main(int argc, char** argv) {
   ::runtime->set_compiler(c);
     ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
     ::runtime->set_open_loop_target(::open_loop_target.value());
-    ::runtime->disable_warnings(::disable_warnings.value());
+    ::runtime->disable_info(::disable_info.value());
+    ::runtime->disable_warning(::disable_warning.value());
+    ::runtime->disable_error(::disable_error.value());
   ::runtime->run();
 
   // Parse march configuration
