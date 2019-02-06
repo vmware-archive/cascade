@@ -73,7 +73,7 @@ ITEM OK
 Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
-*** Typechecker Error:
+>>> Typechecker Error:
   > In final line of user input:
     Referenece to unresolved identifier: y
 ```
@@ -82,7 +82,7 @@ Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. I
 >>> wire x,y,x;
 ITEM OK
 ITEM OK
->>> *** Typechecker Error:
+>>> Typechecker Error:
   > In final line of user input:
     A variable named x already appears in this scope.
     Previous declaration appears in previous user input.
@@ -447,5 +447,5 @@ More generally, Cascade will defer typechecking for code that appears inside of 
 #### I get it, but it seems like there's something about pretty much every module declaration that Cascade can't prove.
 The truth hurts. If you'd like to disable warnings you can type.
 ```
-$ ./bin/cascade --disable_warnings
+$ ./bin/cascade --disable_warning
 ```

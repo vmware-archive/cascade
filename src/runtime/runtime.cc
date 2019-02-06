@@ -68,7 +68,9 @@ Runtime::Runtime(View* view) : Asynchronous() {
   open_loop_itrs_ = 2;
   open_loop_target_ = 1;
   disable_inlining_ = false;
-  disable_warnings_ = false;
+  enable_info_ = false;
+  disable_warning_ = false;
+  disable_error_ = false;
 
   schedule_all_ = false;
   clock_ = nullptr;
@@ -113,41 +115,51 @@ Runtime& Runtime::disable_inlining(bool di) {
   return *this;
 }
 
-Runtime& Runtime::disable_warnings(bool dw) {
-  disable_warnings_ = dw;
+Runtime& Runtime::enable_info(bool ei) {
+  enable_info_ = ei;
+  return *this;
+}
+
+Runtime& Runtime::disable_warning(bool dw) {
+  disable_warning_ = dw;
+  return *this;
+}
+
+Runtime& Runtime::disable_error(bool de) {
+  disable_error_ = de;
   return *this;
 }
 
 void Runtime::eval(const string& s) {
   auto* ss = new stringstream(s);
-  schedule_interrupt(Interrupt([this, ss]{
+  schedule_interrupt([this, ss]{
     log_->clear();
     eval_stream(*ss, false);
     delete ss;
-  }));
+  });
 }
 
 void Runtime::eval(istream& is, bool is_term) {
-  schedule_interrupt(Interrupt([this, &is, is_term]{
+  schedule_interrupt([this, &is, is_term]{
     log_->clear();
     eval_stream(is, is_term);
-  }));
+  });
 }
 
 void Runtime::display(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
+  schedule_interrupt([this, s]{
     view_->print(logical_time_, s + "\n");
-  }));
+  });
 }
 
 void Runtime::write(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
+  schedule_interrupt([this, s]{
     view_->print(logical_time_, s);
-  }));
+  });
 }
 
 void Runtime::finish(int arg) {
-  schedule_interrupt(Interrupt([this, arg]{
+  schedule_interrupt([this, arg]{
     if (arg > 0) {
       stringstream ss;
       ss << "Simulation Time: " << time() << endl;
@@ -156,23 +168,31 @@ void Runtime::finish(int arg) {
       view_->print(logical_time_, ss.str());
     } 
     request_stop();
-  }));
+  });
 }
 
 void Runtime::error(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
-    view_->error(logical_time_, s);
-  }));
+  if (!disable_error_) {
+    schedule_interrupt([this, s]{
+      view_->error(logical_time_, s);
+    });
+  }
 }
 
 void Runtime::warning(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
-    view_->warn(logical_time_, s);
-  }));
+  if (!disable_warning_) {
+    schedule_interrupt([this, s]{
+      view_->warn(logical_time_, s);
+    });
+  }
 }
 
 void Runtime::info(const string& s) {
-  display(s);
+  if (enable_info_) {
+    schedule_interrupt([this, s]{
+      view_->info(logical_time_, s);
+    });
+  }
 }
 
 void Runtime::fatal(int arg, const string& s) {
@@ -231,7 +251,11 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
     parser_->parse(is, log_); 
-    view_->parse(logical_time_, parser_->get_text());
+    const auto text = parser_->get_text();
+    const auto depth = parser_->get_depth();
+    schedule_interrupt([this, text, depth]{
+      view_->parse(logical_time_, depth, text);
+    });
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (log_->error()) {
@@ -287,6 +311,9 @@ bool Runtime::eval_include(String* s) {
     }
     return false;
   }
+  schedule_interrupt([this, path]{
+    view_->include(logical_time_, path);
+  });
 
   parser_->push(path);
   const auto res = eval_stream(ifs, false);
@@ -302,7 +329,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
-  view_->eval_decl(logical_time_, program_, md);
+  schedule_interrupt([this, md]{
+    view_->decl(logical_time_, program_, md);
+  });
   return true;
 }
 
@@ -313,7 +342,9 @@ bool Runtime::eval_item(ModuleItem* mi) {
     log_checker_errors();
     return false;
   }
-  view_->eval_item(logical_time_, program_, program_->root_elab()->second);
+  schedule_interrupt([this]{
+    view_->item(logical_time_, program_, program_->root_elab()->second);
+  });
 
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
@@ -436,9 +467,9 @@ void Runtime::drain_interrupts() {
   // codebase.
   lock_guard<recursive_mutex> lg(int_lock_);
   item_evals_ = 0;
-  schedule_interrupt(Interrupt([this]{
+  schedule_interrupt([this]{
     rebuild();
-  }));
+  });
   for (size_t i = 0; i < ints_.size() && !stop_requested(); ++i) {
     ints_[i]();
   }
@@ -488,7 +519,7 @@ void Runtime::reference_scheduler() {
 
 void Runtime::log_parse_errors() {
   stringstream ss;
-  ss << "*** Parse Error:";
+  ss << "Parse Error:";
 
   indstream is(ss);
   is.tab();
@@ -498,20 +529,16 @@ void Runtime::log_parse_errors() {
     is << *e;
     is.untab();
   }
-
   error(ss.str());
 }
 
 void Runtime::log_checker_warns() {
-  if (disable_warnings_) {
-    return;
-  }
   if (log_->warn_begin() == log_->warn_end()) {
     return;
   }
 
   stringstream ss;
-  ss << "*** Typechecker Warning:";
+  ss << "Typechecker Warning:";
 
   indstream is(ss);
   is.tab();
@@ -521,13 +548,12 @@ void Runtime::log_checker_warns() {
     is << *w;
     is.untab();
   }
-
   warning(ss.str());
 }
 
 void Runtime::log_checker_errors() {
   stringstream ss;
-  ss << "*** Typechecker Error:";
+  ss << "Typechecker Error:";
 
   indstream is(ss);
   is.tab();
@@ -537,16 +563,15 @@ void Runtime::log_checker_errors() {
     is << *e;
     is.untab();
   }
-
   error(ss.str());
 }
 
 void Runtime::log_compiler_errors() {
-  fatal(0, "*** Internal Compiler Error:\n  > " + compiler_->what());
+  fatal(0, "Internal Compiler Error:\n  > " + compiler_->what());
 }
 
 void Runtime::log_ctrl_d() {
-  fatal(0, "*** User Interrupt:\n  > Caught Ctrl-D.");
+  fatal(0, "User Interrupt:\n  > Caught Ctrl-D.");
 }
 
 string Runtime::format_freq(uint64_t f) const {

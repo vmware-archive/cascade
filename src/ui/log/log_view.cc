@@ -49,29 +49,38 @@ void LogView::shutdown(size_t t) {
   os_ << "SHUTDOWN " << t << " " << time(nullptr) << endl;
 }
 
-void LogView::error(size_t t, const string& s) {
-  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
-}
-
 void LogView::print(size_t t, const string& s) {
   os_ << "PRINT " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::info(size_t t, const string& s) {
+  os_ << "INFO " << t << " " << time(nullptr) << endl << s << endl;
 }
 
 void LogView::warn(size_t t, const string& s) {
   os_ << "WARN " << t << " " << time(nullptr) << endl << s << endl;
 }
 
-void LogView::parse(size_t t, const string& s) {
+void LogView::error(size_t t, const string& s) {
+  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::parse(size_t t, size_t d, const string& s) {
+  (void) d;
   os_ << "PARSE " << t << " " << time(nullptr) << endl << s << endl;
 }
 
-void LogView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+void LogView::include(size_t t, const string& s) {
+  os_ << "INCLUDE " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) p;
   os_ << "DECL " << t << " " << time(nullptr) << endl;
   TextPrinter(os_) << md << "\n";
 }
 
-void LogView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+void LogView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) p;
   os_ << "ITEM " << t << " " << time(nullptr) << endl;
   TextPrinter(os_) << md << "\n";

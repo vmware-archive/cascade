@@ -56,19 +56,23 @@ class View {
     // Shutdown hook
     virtual void shutdown(size_t t);
 
-    // Display an error message
-    virtual void error(size_t t, const std::string& s);
     // Display a normal message
     virtual void print(size_t t, const std::string& s);
+    // Display an info message
+    virtual void info(size_t t, const std::string& s);
     // Display a warning message
     virtual void warn(size_t t, const std::string& s);
+    // Display an error message
+    virtual void error(size_t t, const std::string& s);
 
     // A string was parsed
-    virtual void parse(size_t t, const std::string& s);
+    virtual void parse(size_t t, size_t d, const std::string& s);
+    // An include path was resolved
+    virtual void include(size_t t, const std::string& s);
     // A module declaration was successfully eval'ed.
-    virtual void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md);
+    virtual void decl(size_t t, const Program* p, const ModuleDeclaration* md);
     // A module item was successfully eval'ed.
-    virtual void eval_item(size_t t, const Program* p, const ModuleDeclaration* md);
+    virtual void item(size_t t, const Program* p, const ModuleDeclaration* md);
 
     // The program crashed --- everything has gone up in flames
     virtual void crash();
@@ -82,12 +86,12 @@ inline void View::shutdown(size_t t) {
   (void) t;
 }
 
-inline void View::error(size_t t, const std::string& s) {
+inline void View::print(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }
 
-inline void View::print(size_t t, const std::string& s) {
+inline void View::info(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }
@@ -97,18 +101,29 @@ inline void View::warn(size_t t, const std::string& s) {
   (void) s;
 }
 
-inline void View::parse(size_t t, const std::string& s) {
+inline void View::error(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }
 
-inline void View::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void View::parse(size_t t, size_t d, const std::string& s) {
+  (void) t;
+  (void) d;
+  (void) s;
+}
+
+inline void View::include(size_t t, const std::string& s) {
+  (void) t;
+  (void) s;
+}
+
+inline void View::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   (void) md;
 }
 
-inline void View::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void View::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   (void) md;

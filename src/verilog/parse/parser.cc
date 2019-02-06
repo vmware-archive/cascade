@@ -98,6 +98,10 @@ Parser::const_iterator Parser::end() const {
   return res_.end();
 }
 
+size_t Parser::get_depth() const {
+  return stack_.size();
+}
+
 const std::string& Parser::get_text() const {
   return last_parse_;
 }

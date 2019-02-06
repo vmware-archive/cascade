@@ -38,15 +38,17 @@ namespace cascade {
 
 class TermView : public View {
   public:
-    TermView();
     ~TermView() override = default;
 
-    void error(size_t t, const std::string& s) override;
     void print(size_t t, const std::string& s) override;
+    void info(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
-    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void parse(size_t t, size_t d, const std::string& s) override;
+    void include(size_t t, const std::string& s) override;
+    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 

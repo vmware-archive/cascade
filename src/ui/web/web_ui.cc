@@ -100,18 +100,18 @@ WebUi& WebUi::set_debug(bool debug) {
   return *this;
 }
 
-void WebUi::error(size_t t, const string& s) {
-  (void) t;
-  stringstream ss;
-  HtmlPrinter(ss) << Color::RED << s << Color::RESET << "\n";
-  buffer("log", ss.str(), true, true);
-}
-
 void WebUi::print(size_t t, const string& s) {
   (void) t;
   stringstream ss;
   HtmlPrinter(ss) << s;
   buffer("log", ss.str(), true, false);
+}
+
+void WebUi::info(size_t t, const string& s) {
+  (void) t;
+  stringstream ss;
+  HtmlPrinter(ss) << Color::GREY << s << Color::RESET << "\n";
+  buffer("log", ss.str(), true, true);
 }
 
 void WebUi::warn(size_t t, const string& s) {
@@ -121,7 +121,14 @@ void WebUi::warn(size_t t, const string& s) {
   buffer("log", ss.str(), true, true);
 }
 
-void WebUi::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+void WebUi::error(size_t t, const string& s) {
+  (void) t;
+  stringstream ss;
+  HtmlPrinter(ss) << Color::RED << s << Color::RESET << "\n";
+  buffer("log", ss.str(), true, true);
+}
+
+void WebUi::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   ok("DECL");
@@ -139,7 +146,7 @@ void WebUi::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   buffer("eval", ss.str(), false, true);
 }
 
-void WebUi::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+void WebUi::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) md;
   ok("ITEM");

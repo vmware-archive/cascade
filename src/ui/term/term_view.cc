@@ -38,22 +38,18 @@ using namespace std;
 
 namespace cascade {
 
-TermView::TermView() : View() { 
-  cout << ">>> ";
-}
-
-void TermView::error(size_t t, const string& s) {
-  (void) t;
-  lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
-  cout << ">>> ";
-  cout.flush();
-}
-
 void TermView::print(size_t t, const string& s) {
   (void) t;
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << s;
+  cout << ">>> ";
+  cout.flush();
+}
+
+void TermView::info(size_t t, const string& s) {
+  (void) t;
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::GREY << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }
@@ -66,7 +62,34 @@ void TermView::warn(size_t t, const string& s) {
   cout.flush();
 }
 
-void TermView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+void TermView::error(size_t t, const string& s) {
+  (void) t;
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
+  cout << ">>> ";
+  cout.flush();
+}
+
+void TermView::parse(size_t t, size_t d, const string& s) {
+  (void) t;
+  (void) s;
+  lock_guard<mutex> lg(lock_);
+  if ((d == 1) && (s != "")) {
+    cout << ">>> ";
+    cout.flush();
+  }
+}
+
+void TermView::include(size_t t, const string& s) {
+  (void) t;
+  (void) s;
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::GREEN << "INCL OK" << Color::RESET << "\n";
+  cout << ">>> ";
+  cout.flush();
+}
+
+void TermView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   (void) md;
@@ -77,7 +100,7 @@ void TermView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md
   cout.flush();
 }
 
-void TermView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+void TermView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   (void) md;
