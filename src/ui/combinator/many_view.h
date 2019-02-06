@@ -46,9 +46,10 @@ class ManyView : public View {
     void startup(size_t t) override;
     void shutdown(size_t t) override;
 
-    void error(size_t t, const std::string& s) override;
     void print(size_t t, const std::string& s) override;
+    void info(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
     void parse(size_t t, size_t d, const std::string& s) override;
     void include(size_t t, const std::string& s) override;
@@ -85,12 +86,6 @@ inline void ManyView::shutdown(size_t t) {
   }
 }
 
-inline void ManyView::error(size_t t, const std::string& s) {
-  for (auto* v : views_) {
-    v->error(t, s);
-  }
-}
-
 inline void ManyView::print(size_t t, const std::string& s) {
   for (auto* v : views_) {
     v->print(t, s);
@@ -100,6 +95,18 @@ inline void ManyView::print(size_t t, const std::string& s) {
 inline void ManyView::warn(size_t t, const std::string& s) {
   for (auto* v : views_) {
     v->warn(t, s);
+  }
+}
+
+inline void ManyView::info(size_t t, const std::string& s) {
+  for (auto* v : views_) {
+    v->info(t, s);
+  }
+}
+
+inline void ManyView::error(size_t t, const std::string& s) {
+  for (auto* v : views_) {
+    v->error(t, s);
   }
 }
 

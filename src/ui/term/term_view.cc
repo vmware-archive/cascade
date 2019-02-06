@@ -38,14 +38,6 @@ using namespace std;
 
 namespace cascade {
 
-void TermView::error(size_t t, const string& s) {
-  (void) t;
-  lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
-  cout << ">>> ";
-  cout.flush();
-}
-
 void TermView::print(size_t t, const string& s) {
   (void) t;
   lock_guard<mutex> lg(lock_);
@@ -54,10 +46,26 @@ void TermView::print(size_t t, const string& s) {
   cout.flush();
 }
 
+void TermView::info(size_t t, const string& s) {
+  (void) t;
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::GREY << s << Color::RESET << "\n";
+  cout << ">>> ";
+  cout.flush();
+}
+
 void TermView::warn(size_t t, const string& s) {
   (void) t;
   lock_guard<mutex> lg(lock_);
   TermPrinter(cout) << Color::YELLOW << s << Color::RESET << "\n";
+  cout << ">>> ";
+  cout.flush();
+}
+
+void TermView::error(size_t t, const string& s) {
+  (void) t;
+  lock_guard<mutex> lg(lock_);
+  TermPrinter(cout) << Color::RED << s << Color::RESET << "\n";
   cout << ">>> ";
   cout.flush();
 }

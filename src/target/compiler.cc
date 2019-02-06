@@ -41,6 +41,7 @@
 #include "src/target/interface/remote/remote_compiler.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
 
@@ -196,6 +197,11 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
+  // Text which we'll use later
+  stringstream ss;
+  TextPrinter(ss) << "recompilation of " <<  md->get_id() << " with attributes " << md->get_attrs();
+  const auto str = ss.str();
+
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
   const auto* t2 = md->get_attrs()->get<String>("__target2");
@@ -227,22 +233,28 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
     return error("An unhandled error occurred during module compilation");
   }
   e->replace_with(e_fast);
+  if (e->is_stub()) {
+    rt->info("Deferring " + str);
+  } else {
+    rt->info("Finished fast-pass " + str);
+  }
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. Note that we schedule an
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error.
   if (jit) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2, str]{
       Masker().mask(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([this, e, e_slow]{
+      rt->schedule_interrupt([this, e, e_slow, str]{
         // Nothing to do if compilation failed or was aborted
         if (error() || (e_slow == nullptr)) {
           return;
         } 
         e->replace_with(e_slow);
       });
+      rt->info("Finished slow-pass " + str);
     }));
   }
 }

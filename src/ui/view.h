@@ -56,12 +56,14 @@ class View {
     // Shutdown hook
     virtual void shutdown(size_t t);
 
-    // Display an error message
-    virtual void error(size_t t, const std::string& s);
     // Display a normal message
     virtual void print(size_t t, const std::string& s);
+    // Display an info message
+    virtual void info(size_t t, const std::string& s);
     // Display a warning message
     virtual void warn(size_t t, const std::string& s);
+    // Display an error message
+    virtual void error(size_t t, const std::string& s);
 
     // A string was parsed
     virtual void parse(size_t t, size_t d, const std::string& s);
@@ -84,17 +86,22 @@ inline void View::shutdown(size_t t) {
   (void) t;
 }
 
-inline void View::error(size_t t, const std::string& s) {
-  (void) t;
-  (void) s;
-}
-
 inline void View::print(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }
 
+inline void View::info(size_t t, const std::string& s) {
+  (void) t;
+  (void) s;
+}
+
 inline void View::warn(size_t t, const std::string& s) {
+  (void) t;
+  (void) s;
+}
+
+inline void View::error(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }

@@ -100,13 +100,6 @@ WebUi& WebUi::set_debug(bool debug) {
   return *this;
 }
 
-void WebUi::error(size_t t, const string& s) {
-  (void) t;
-  stringstream ss;
-  HtmlPrinter(ss) << Color::RED << s << Color::RESET << "\n";
-  buffer("log", ss.str(), true, true);
-}
-
 void WebUi::print(size_t t, const string& s) {
   (void) t;
   stringstream ss;
@@ -114,10 +107,24 @@ void WebUi::print(size_t t, const string& s) {
   buffer("log", ss.str(), true, false);
 }
 
+void WebUi::info(size_t t, const string& s) {
+  (void) t;
+  stringstream ss;
+  HtmlPrinter(ss) << Color::GREY << s << Color::RESET << "\n";
+  buffer("log", ss.str(), true, true);
+}
+
 void WebUi::warn(size_t t, const string& s) {
   (void) t;
   stringstream ss;
   HtmlPrinter(ss) << Color::YELLOW << s << Color::RESET << "\n";
+  buffer("log", ss.str(), true, true);
+}
+
+void WebUi::error(size_t t, const string& s) {
+  (void) t;
+  stringstream ss;
+  HtmlPrinter(ss) << Color::RED << s << Color::RESET << "\n";
   buffer("log", ss.str(), true, true);
 }
 

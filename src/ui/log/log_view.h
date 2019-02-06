@@ -44,9 +44,10 @@ class LogView : public View {
     void startup(size_t t) override;
     void shutdown(size_t t) override;
 
-    void error(size_t t, const std::string& s) override;
     void print(size_t t, const std::string& s) override;
+    void info(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
     void parse(size_t t, size_t d, const std::string& s) override;
     void include(size_t t, const std::string& s) override;

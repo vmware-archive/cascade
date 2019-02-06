@@ -132,34 +132,34 @@ Runtime& Runtime::disable_error(bool de) {
 
 void Runtime::eval(const string& s) {
   auto* ss = new stringstream(s);
-  schedule_interrupt(Interrupt([this, ss]{
+  schedule_interrupt([this, ss]{
     log_->clear();
     eval_stream(*ss, false);
     delete ss;
-  }));
+  });
 }
 
 void Runtime::eval(istream& is, bool is_term) {
-  schedule_interrupt(Interrupt([this, &is, is_term]{
+  schedule_interrupt([this, &is, is_term]{
     log_->clear();
     eval_stream(is, is_term);
-  }));
+  });
 }
 
 void Runtime::display(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
+  schedule_interrupt([this, s]{
     view_->print(logical_time_, s + "\n");
-  }));
+  });
 }
 
 void Runtime::write(const string& s) {
-  schedule_interrupt(Interrupt([this, s]{
+  schedule_interrupt([this, s]{
     view_->print(logical_time_, s);
-  }));
+  });
 }
 
 void Runtime::finish(int arg) {
-  schedule_interrupt(Interrupt([this, arg]{
+  schedule_interrupt([this, arg]{
     if (arg > 0) {
       stringstream ss;
       ss << "Simulation Time: " << time() << endl;
@@ -168,28 +168,30 @@ void Runtime::finish(int arg) {
       view_->print(logical_time_, ss.str());
     } 
     request_stop();
-  }));
+  });
 }
 
 void Runtime::error(const string& s) {
   if (!disable_error_) {
-    schedule_interrupt(Interrupt([this, s]{
+    schedule_interrupt([this, s]{
       view_->error(logical_time_, s);
-    }));
+    });
   }
 }
 
 void Runtime::warning(const string& s) {
   if (!disable_warning_) {
-    schedule_interrupt(Interrupt([this, s]{
+    schedule_interrupt([this, s]{
       view_->warn(logical_time_, s);
-    }));
+    });
   }
 }
 
 void Runtime::info(const string& s) {
   if (enable_info_) {
-    display(s);
+    schedule_interrupt([this, s]{
+      view_->info(logical_time_, s);
+    });
   }
 }
 
@@ -251,9 +253,9 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     parser_->parse(is, log_); 
     const auto text = parser_->get_text();
     const auto depth = parser_->get_depth();
-    schedule_interrupt(Interrupt([this, text, depth]{
+    schedule_interrupt([this, text, depth]{
       view_->parse(logical_time_, depth, text);
-    }));
+    });
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (log_->error()) {
@@ -309,9 +311,9 @@ bool Runtime::eval_include(String* s) {
     }
     return false;
   }
-  schedule_interrupt(Interrupt([this, path]{
+  schedule_interrupt([this, path]{
     view_->include(logical_time_, path);
-  }));
+  });
 
   parser_->push(path);
   const auto res = eval_stream(ifs, false);
@@ -327,9 +329,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
-  schedule_interrupt(Interrupt([this, md]{
+  schedule_interrupt([this, md]{
     view_->decl(logical_time_, program_, md);
-  }));
+  });
   return true;
 }
 
@@ -340,9 +342,9 @@ bool Runtime::eval_item(ModuleItem* mi) {
     log_checker_errors();
     return false;
   }
-  schedule_interrupt(Interrupt([this]{
+  schedule_interrupt([this]{
     view_->item(logical_time_, program_, program_->root_elab()->second);
-  }));
+  });
 
   // If the root is empty, we just instantiated it. Otherwise, count this as an
   // item instantiated within the root.
@@ -465,9 +467,9 @@ void Runtime::drain_interrupts() {
   // codebase.
   lock_guard<recursive_mutex> lg(int_lock_);
   item_evals_ = 0;
-  schedule_interrupt(Interrupt([this]{
+  schedule_interrupt([this]{
     rebuild();
-  }));
+  });
   for (size_t i = 0; i < ints_.size() && !stop_requested(); ++i) {
     ints_[i]();
   }

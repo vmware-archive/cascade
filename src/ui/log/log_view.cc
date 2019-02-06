@@ -49,16 +49,20 @@ void LogView::shutdown(size_t t) {
   os_ << "SHUTDOWN " << t << " " << time(nullptr) << endl;
 }
 
-void LogView::error(size_t t, const string& s) {
-  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
-}
-
 void LogView::print(size_t t, const string& s) {
   os_ << "PRINT " << t << " " << time(nullptr) << endl << s << endl;
 }
 
+void LogView::info(size_t t, const string& s) {
+  os_ << "INFO " << t << " " << time(nullptr) << endl << s << endl;
+}
+
 void LogView::warn(size_t t, const string& s) {
   os_ << "WARN " << t << " " << time(nullptr) << endl << s << endl;
+}
+
+void LogView::error(size_t t, const string& s) {
+  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
 }
 
 void LogView::parse(size_t t, size_t d, const string& s) {
