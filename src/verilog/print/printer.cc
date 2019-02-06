@@ -566,10 +566,42 @@ void Printer::visit(const DisplayStatement* ds) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const ErrorStatement* es) {
+  *this << Color::YELLOW << "$error" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  int cnt = 0;
+  es->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const FatalStatement* fs) {
+  *this << Color::YELLOW << "$fatal" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  fs->accept_arg(this);
+  fs->accept_args(this, [this]{*this << Color::RED << "," << Color::RESET;}, []{});
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const FinishStatement* fs) {
   *this << Color::YELLOW << "$finish" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   fs->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const InfoStatement* is) {
+  *this << Color::YELLOW << "$info" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  int cnt = 0;
+  is->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const WarningStatement* ws) {
+  *this << Color::YELLOW << "$warning" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  int cnt = 0;
+  ws->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 

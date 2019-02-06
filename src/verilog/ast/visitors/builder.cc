@@ -378,10 +378,34 @@ Statement* Builder::build(const DisplayStatement* ds) {
   return res;
 }
 
+Statement* Builder::build(const ErrorStatement* es) {
+  auto* res = new ErrorStatement();
+  es->accept_args(this, res->back_inserter_args());
+  return res;
+}
+
+Statement* Builder::build(const FatalStatement* fs) {
+  auto* res = new FatalStatement(fs->accept_arg(this));
+  fs->accept_args(this, res->back_inserter_args());
+  return res;
+}
+
 Statement* Builder::build(const FinishStatement* fs) {
   return new FinishStatement(
     fs->accept_arg(this)
   );
+}
+
+Statement* Builder::build(const InfoStatement* is) {
+  auto* res = new InfoStatement();
+  is->accept_args(this, res->back_inserter_args());
+  return res;
+}
+
+Statement* Builder::build(const WarningStatement* ws) {
+  auto* res = new WarningStatement();
+  ws->accept_args(this, res->back_inserter_args());
+  return res;
 }
 
 Statement* Builder::build(const WriteStatement* ws) {

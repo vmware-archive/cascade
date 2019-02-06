@@ -530,7 +530,11 @@
   friend class WhileStatement; \
   friend class TimingControlStatement; \
   friend class DisplayStatement; \
+  friend class ErrorStatement; \
+  friend class FatalStatement; \
   friend class FinishStatement; \
+  friend class InfoStatement; \
+  friend class WarningStatement; \
   friend class WriteStatement; \
   friend class WaitStatement; \
   friend class DelayControl; \

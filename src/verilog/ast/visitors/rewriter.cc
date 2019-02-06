@@ -315,9 +315,30 @@ Statement* Rewriter::rewrite(DisplayStatement* ds) {
   return ds;
 }
 
+Statement* Rewriter::rewrite(ErrorStatement* es) {
+  es->accept_args(this);
+  return es;
+}
+
+Statement* Rewriter::rewrite(FatalStatement* fs) {
+  fs->accept_arg(this);
+  fs->accept_args(this);
+  return fs;
+}
+
 Statement* Rewriter::rewrite(FinishStatement* fs) {
   fs->accept_arg(this);
   return fs;
+}
+
+Statement* Rewriter::rewrite(InfoStatement* is) {
+  is->accept_args(this);
+  return is;
+}
+
+Statement* Rewriter::rewrite(WarningStatement* ws) {
+  ws->accept_args(this);
+  return ws;
 }
 
 Statement* Rewriter::rewrite(WriteStatement* ws) {

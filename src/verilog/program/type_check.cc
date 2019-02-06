@@ -412,14 +412,34 @@ void TypeCheck::visit(const Identifier* id) {
 
 void TypeCheck::visit(const String* s) {
   auto e = false;
-  if (s->get_parent()->is(Node::Tag::write_statement)) {
-    auto* ws = static_cast<const WriteStatement*>(s->get_parent());
+  if (s->get_parent()->is(Node::Tag::display_statement)) {
+    auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
+    if (ds->front_args() != s) {
+      e = true;
+    }
+  } else if (s->get_parent()->is(Node::Tag::error_statement)) {
+    auto* es = static_cast<const ErrorStatement*>(s->get_parent());
+    if (es->front_args() != s) {
+      e = true;
+    }
+  } else if (s->get_parent()->is(Node::Tag::fatal_statement)) {
+    auto* fs = static_cast<const FatalStatement*>(s->get_parent());
+    if (fs->front_args() != s) {
+      e = true;
+    }
+  } else if (s->get_parent()->is(Node::Tag::info_statement)) {
+    auto* is = static_cast<const InfoStatement*>(s->get_parent());
+    if (is->front_args() != s) {
+      e = true;
+    }
+  } else if (s->get_parent()->is(Node::Tag::warning_statement)) {
+    auto* ws = static_cast<const WarningStatement*>(s->get_parent());
     if (ws->front_args() != s) {
       e = true;
     }
-  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
-    auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
-    if (ds->front_args() != s) {
+  } else if (s->get_parent()->is(Node::Tag::write_statement)) {
+    auto* ws = static_cast<const WriteStatement*>(s->get_parent());
+    if (ws->front_args() != s) {
       e = true;
     }
   } else {
@@ -720,6 +740,22 @@ void TypeCheck::visit(const WhileStatement* ws) {
 void TypeCheck::visit(const DisplayStatement* ds) {
   ds->accept_args(this);
   check_printf(ds->size_args(), ds->begin_args(), ds->end_args());
+}
+
+void TypeCheck::visit(const ErrorStatement* es) {
+  es->accept_args(this);
+  check_printf(es->size_args(), es->begin_args(), es->end_args());
+}
+
+void TypeCheck::visit(const FatalStatement* fs) {
+  fs->accept_arg(this);
+  fs->accept_args(this);
+  check_printf(fs->size_args(), fs->begin_args(), fs->end_args());
+}
+
+void TypeCheck::visit(const WarningStatement* ws) {
+  ws->accept_args(this);
+  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
 }
 
 void TypeCheck::visit(const WriteStatement* ws) {
