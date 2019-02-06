@@ -44,12 +44,13 @@ class RemoteInterface : public Interface {
     ~RemoteInterface() override = default;
 
     void display(const std::string& s) override;
-    void write(const std::string& s) override;
-    void finish(int arg) override;
     void error(const std::string& s) override;
-    void warning(const std::string& s) override;
-    void info(const std::string& s) override;
     void fatal(int arg, const std::string& s) override;
+    void finish(int arg) override;
+    void info(const std::string& s) override;
+    void retarget(const std::string& s) override;
+    void warning(const std::string& s) override;
+    void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
       
@@ -68,9 +69,14 @@ inline void RemoteInterface::display(const std::string& s) {
   SysTask(SysTask::Type::DISPLAY, s).serialize(*buf_);
 }
 
-inline void RemoteInterface::write(const std::string& s) {
+inline void RemoteInterface::error(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::Type::WRITE, s).serialize(*buf_);
+  SysTask(SysTask::Type::ERROR, s).serialize(*buf_);
+}
+
+inline void RemoteInterface::fatal(int arg, const std::string& s) {
+  write_flag(false);
+  SysTask(SysTask::Type::FATAL, s, arg).serialize(*buf_);
 }
 
 inline void RemoteInterface::finish(int arg) {
@@ -78,9 +84,14 @@ inline void RemoteInterface::finish(int arg) {
   SysTask(SysTask::Type::FINISH, "", arg).serialize(*buf_);
 }
 
-inline void RemoteInterface::error(const std::string& s) {
+inline void RemoteInterface::info(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::Type::ERROR, s).serialize(*buf_);
+  SysTask(SysTask::Type::INFO, s).serialize(*buf_);
+}
+
+inline void RemoteInterface::retarget(const std::string& s) {
+  write_flag(false);
+  SysTask(SysTask::Type::RETARGET, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::warning(const std::string& s) {
@@ -88,14 +99,9 @@ inline void RemoteInterface::warning(const std::string& s) {
   SysTask(SysTask::Type::WARNING, s).serialize(*buf_);
 }
 
-inline void RemoteInterface::info(const std::string& s) {
+inline void RemoteInterface::write(const std::string& s) {
   write_flag(false);
-  SysTask(SysTask::Type::INFO, s).serialize(*buf_);
-}
-
-inline void RemoteInterface::fatal(int arg, const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::FATAL, s, arg).serialize(*buf_);
+  SysTask(SysTask::Type::WRITE, s).serialize(*buf_);
 }
 
 inline void RemoteInterface::write(VId id, const Bits* b) {

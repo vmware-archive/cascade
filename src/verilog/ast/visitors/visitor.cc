@@ -289,6 +289,10 @@ void Visitor::visit(const InfoStatement* is) {
   is->accept_args(this);
 }
 
+void Visitor::visit(const RetargetStatement* rs) {
+  rs->accept_arg(this);
+}
+
 void Visitor::visit(const WarningStatement* ws) {
   ws->accept_args(this);
 }

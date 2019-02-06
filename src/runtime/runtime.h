@@ -95,7 +95,7 @@ class Runtime : public Asynchronous {
     template <typename InputItr>
     void eval(InputItr begin, InputItr end);
 
-    // Display System Task Interface:
+    // Display System Task Interface (Verilog 2005):
     //
     // Print a newline-teriminated string to the view between this and the next
     // timestep. Returns immediately.
@@ -104,13 +104,13 @@ class Runtime : public Asynchronous {
     // immediately.
     void write(const std::string& s);
 
-    // Simulation Control System Task Interface:
+    // Simulation Control System Task Interface (Verilog 2005):
     //
     // Shutdown the runtime and print statistics if arg is non-zero between
     // this and the next timestep. Returns immediately.
     void finish(int arg);
 
-    // Severity System Task Interface:
+    // Elaboration System Task Interface (System Verilog):
     //
     // Prints an error message between this and the next timestep. Returns
     // immediately.
@@ -124,6 +124,11 @@ class Runtime : public Asynchronous {
     // Prints a fatal error message and invokes $finish between this and the
     // next timestep. Returns immediately.
     void fatal(int arg, const std::string& s);
+
+    // Cascade-Specific System Task Interface (Cascade Only):
+    //
+    // Forces a recompilation of the current program to a new march target
+    void retarget(const std::string& s);
 
     // Program-Logic Interface:
     //

@@ -40,12 +40,13 @@ namespace cascade {
 struct SysTask : Serializable {
   enum class Type : uint8_t {
     DISPLAY = 0,
-    WRITE,
-    FINISH,
     ERROR,
-    WARNING,
+    FATAL,
+    FINISH,
     INFO,
-    FATAL  
+    RETARGET,
+    WARNING,
+    WRITE
   };
 
   SysTask();

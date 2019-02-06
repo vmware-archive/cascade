@@ -86,6 +86,7 @@ auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
 auto& web_ui_debug = FlagArg::create("--web_ui_debug")
   .description("Print debug information to web ui");
 
+__attribute__((unused)) auto& g3 = Group::create("Quartus Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")

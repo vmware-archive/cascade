@@ -432,6 +432,9 @@ void TypeCheck::visit(const String* s) {
     if (is->front_args() != s) {
       e = true;
     }
+  } else if (s->get_parent()->is(Node::Tag::retarget_statement)) {
+    // Control should never reach here
+    assert(false);
   } else if (s->get_parent()->is(Node::Tag::warning_statement)) {
     auto* ws = static_cast<const WarningStatement*>(s->get_parent());
     if (ws->front_args() != s) {
@@ -751,6 +754,16 @@ void TypeCheck::visit(const FatalStatement* fs) {
   fs->accept_arg(this);
   fs->accept_args(this);
   check_printf(fs->size_args(), fs->begin_args(), fs->end_args());
+}
+
+void TypeCheck::visit(const InfoStatement* is) {
+  is->accept_args(this);
+  check_printf(is->size_args(), is->begin_args(), is->end_args());
+}
+
+void TypeCheck::visit(const RetargetStatement* rs) {
+  (void) rs;
+  // Does nothing. Don't descend on arg which is guaranteed to be a string.
 }
 
 void TypeCheck::visit(const WarningStatement* ws) {

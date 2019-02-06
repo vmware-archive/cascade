@@ -98,6 +98,7 @@ class Node;
       class FatalStatement;
       class FinishStatement;
       class InfoStatement;
+      class RetargetStatement;
       class WarningStatement;
       class WriteStatement;
     class WaitStatement;

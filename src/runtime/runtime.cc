@@ -200,6 +200,10 @@ void Runtime::fatal(int arg, const string& s) {
   finish(arg);
 }
 
+void Runtime::retarget(const string& s) {
+  info("RETARGET REQUEST FOR " + s);
+}
+
 void Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
   ints_.push_back(int_);

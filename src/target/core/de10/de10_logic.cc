@@ -363,6 +363,11 @@ void De10Logic::visit(const InfoStatement* is) {
   is->accept_args(&i);
 }
 
+void De10Logic::visit(const RetargetStatement* rs) {
+  // Record this task, but no need to descend on its argument (which is a constant)
+  tasks_.push_back(rs);
+}
+
 void De10Logic::visit(const WarningStatement* ws) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
@@ -478,6 +483,9 @@ void De10Logic::handle_tasks() {
       Sync sync(this);
       is->accept_args(&sync);
       interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::retarget_statement)) {
+      const auto* rs = static_cast<const RetargetStatement*>(tasks_[i]);
+      interface()->retarget(rs->get_arg()->get_readable_val());
     } else if (tasks_[i]->is(Node::Tag::warning_statement)) {
       const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
       Sync sync(this);
