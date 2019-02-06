@@ -74,7 +74,7 @@ class Runtime : public Asynchronous {
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& disable_inlining(bool di);
-    Runtime& disable_info(bool di);
+    Runtime& enable_info(bool ei);
     Runtime& disable_warning(bool dw);
     Runtime& disable_error(bool de);
 
@@ -173,7 +173,7 @@ class Runtime : public Asynchronous {
     bool enable_open_loop_;
     size_t open_loop_itrs_;
     size_t open_loop_target_;
-    bool disable_info_;
+    bool enable_info_;
     bool disable_warning_;
     bool disable_error_;
 

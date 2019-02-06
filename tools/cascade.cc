@@ -112,12 +112,12 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .initial(1);
 
 __attribute__((unused)) auto& g6 = Group::create("Elaboration Tasks");
-auto& disable_info = FlagArg::create("--disable_info")
-  .description("Turn of info messages");
+auto& enable_info = FlagArg::create("--enable_info")
+  .description("Turn on info messages");
 auto& disable_warning = FlagArg::create("--disable_warning")
-  .description("Turn of warning messages");
+  .description("Turn off warning messages");
 auto& disable_error = FlagArg::create("--disable_error")
-  .description("Turn of error messages");
+  .description("Turn off error messages");
 
 class Profiler : public Asynchronous {
   public:
@@ -213,23 +213,25 @@ int main(int argc, char** argv) {
   ::runtime->set_compiler(c);
     ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
     ::runtime->set_open_loop_target(::open_loop_target.value());
-    ::runtime->disable_info(::disable_info.value());
+    ::runtime->enable_info(::enable_info.value());
     ::runtime->disable_warning(::disable_warning.value());
     ::runtime->disable_error(::disable_error.value());
   ::runtime->run();
 
   // Parse march configuration
   incstream mis(System::src_root());
+  stringstream ss1;
   if (mis.open("data/march/" + march.value() + ".v")) {
-    StreamController(::runtime, mis).run_to_completion();
+    ss1 << "include data/march/" + march.value() + ".v;";
+    StreamController(::runtime, ss1).run_to_completion();
   } else {
     ::view->error(0, "Unrecognized march option " + ::march.value() + "!");
   }
   // Translate -e to include statement if it was provided
-  stringstream ss;
+  stringstream ss2;
   if (::input_path.value() != "") {
-    ss << "include " << ::input_path.value() << ";";
-    StreamController(::runtime, ss).run_to_completion();
+    ss2 << "include " << ::input_path.value() << ";";
+    StreamController(::runtime, ss2).run_to_completion();
   }
 
   // Switch over to a live console (unless the --batch flag has been provided)

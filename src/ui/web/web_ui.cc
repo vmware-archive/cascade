@@ -121,7 +121,7 @@ void WebUi::warn(size_t t, const string& s) {
   buffer("log", ss.str(), true, true);
 }
 
-void WebUi::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+void WebUi::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) p;
   ok("DECL");
@@ -139,7 +139,7 @@ void WebUi::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   buffer("eval", ss.str(), false, true);
 }
 
-void WebUi::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+void WebUi::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   (void) t;
   (void) md;
   ok("ITEM");

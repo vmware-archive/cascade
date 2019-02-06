@@ -50,9 +50,10 @@ class ManyView : public View {
     void print(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
 
-    void parse(size_t t, const std::string& s) override;
-    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void parse(size_t t, size_t d, const std::string& s) override;
+    void include(size_t t, const std::string& s) override;
+    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 
@@ -102,21 +103,27 @@ inline void ManyView::warn(size_t t, const std::string& s) {
   }
 }
 
-inline void ManyView::parse(size_t t, const std::string& s) {
+inline void ManyView::parse(size_t t, size_t d, const std::string& s) {
   for (auto* v : views_) {
-    v->parse(t, s);
+    v->parse(t, d, s);
   }
 }
 
-inline void ManyView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void ManyView::include(size_t t, const std::string& s) {
   for (auto* v : views_) {
-    v->eval_decl(t, p, md);
+    v->include(t, s);
   }
 }
 
-inline void ManyView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void ManyView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
   for (auto* v : views_) {
-    v->eval_item(t, p, md);
+    v->decl(t, p, md);
+  }
+}
+
+inline void ManyView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  for (auto* v : views_) {
+    v->item(t, p, md);
   }
 }
 

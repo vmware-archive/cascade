@@ -81,6 +81,8 @@ class Parser : public Editor {
     // Returns iterators over the results of the previous parse
     const_iterator begin() const;
     const_iterator end() const;
+    // Returns the path nesting depth of the parser stack
+    size_t get_depth() const;
     // Returns the last string which was parsed.
     const std::string& get_text() const;
     // Returns the file and line number for a node from the last parse.

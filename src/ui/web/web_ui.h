@@ -54,8 +54,8 @@ class WebUi : public Controller, public View {
     void print(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
 
-    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 

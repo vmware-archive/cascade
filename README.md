@@ -73,7 +73,7 @@ ITEM OK
 Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
-*** Typechecker Error:
+>>> Typechecker Error:
   > In final line of user input:
     Referenece to unresolved identifier: y
 ```
@@ -82,7 +82,7 @@ Anything you enter into the REPL is lexed, parsed, type-checked, and compiled. I
 >>> wire x,y,x;
 ITEM OK
 ITEM OK
->>> *** Typechecker Error:
+>>> Typechecker Error:
   > In final line of user input:
     A variable named x already appears in this scope.
     Previous declaration appears in previous user input.
