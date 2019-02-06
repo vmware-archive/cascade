@@ -87,7 +87,11 @@ struct Editor {
   virtual void edit(SeqBlock* sb);
   virtual void edit(TimingControlStatement* rcs);
   virtual void edit(DisplayStatement* ds);
+  virtual void edit(ErrorStatement* es);
+  virtual void edit(FatalStatement* fs);
   virtual void edit(FinishStatement* fs);
+  virtual void edit(InfoStatement* is);
+  virtual void edit(WarningStatement* ws);
   virtual void edit(WriteStatement* ws);
   virtual void edit(WaitStatement* ws);
   virtual void edit(WhileStatement* ws);

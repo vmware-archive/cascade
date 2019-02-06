@@ -437,12 +437,44 @@ void SwLogic::visit(const DisplayStatement* ds) {
   notify(ds);
 }
 
+void SwLogic::visit(const ErrorStatement* es) {
+  if (!silent_) {
+    interface()->error(Printf().format(es->begin_args(), es->end_args()));
+    there_were_tasks_ = true;
+  }
+  notify(es);
+}
+
+void SwLogic::visit(const FatalStatement* fs) {
+  if (!silent_) {
+    interface()->fatal(Evaluate().get_value(fs->get_arg()).to_int(), Printf().format(fs->begin_args(), fs->end_args()));
+    there_were_tasks_ = true;
+  }
+  notify(fs);
+}
+
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
     interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
     there_were_tasks_ = true;
   }
   notify(fs);
+}
+
+void SwLogic::visit(const InfoStatement* is) {
+  if (!silent_) {
+    interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    there_were_tasks_ = true;
+  }
+  notify(is);
+}
+
+void SwLogic::visit(const WarningStatement* ws) {
+  if (!silent_) {
+    interface()->warning(Printf().format(ws->begin_args(), ws->end_args()));
+    there_were_tasks_ = true;
+  }
+  notify(ws);
 }
 
 void SwLogic::visit(const WriteStatement* ws) {

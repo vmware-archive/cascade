@@ -151,7 +151,11 @@ bool is_null(const cascade::Expression* e) {
 
 /* System Task Identifiers */
 %token SYS_DISPLAY "$display"
+%token SYS_ERROR   "$error"
+%token SYS_FATAL   "$fatal"
 %token SYS_FINISH  "$finish"
+%token SYS_INFO    "$info"
+%token SYS_WARNING "$warning"
 %token SYS_WRITE   "$write"
 
 /* Identifiers and Strings */
@@ -1376,12 +1380,70 @@ system_task_enable
     $$ = new DisplayStatement($3.begin(), $3.end()); 
     parser->set_loc($$);
   }
+  | SYS_ERROR SCOLON { 
+    $$ = new ErrorStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_ERROR OPAREN CPAREN SCOLON { 
+    $$ = new ErrorStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_ERROR OPAREN expression_P CPAREN SCOLON { 
+    $$ = new ErrorStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
+  | SYS_FATAL SCOLON { 
+    $$ = new FatalStatement(new Number(Bits(false), Number::Format::UNBASED)); 
+    parser->set_loc($$);
+  }
+  | SYS_FATAL OPAREN CPAREN SCOLON { 
+    $$ = new FatalStatement(new Number(Bits(false), Number::Format::UNBASED)); 
+    parser->set_loc($$);
+  }
+  | SYS_FATAL OPAREN expression_P CPAREN SCOLON { 
+    auto begin = $3.begin();
+    ++begin;
+    if (begin == $3.end()) {
+      $$ = new FatalStatement(*$3.begin());
+    } else {
+      $$ = new FatalStatement(*$3.begin(), begin, $3.end()); 
+    }
+    parser->set_loc($$);
+  }
   | SYS_FINISH SCOLON { 
+    $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
+    parser->set_loc($$);
+  }
+  | SYS_FINISH OPAREN CPAREN SCOLON { 
     $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
     parser->set_loc($$);
   }
   | SYS_FINISH OPAREN expression CPAREN SCOLON { 
     $$ = new FinishStatement($3); 
+    parser->set_loc($$);
+  }
+  | SYS_INFO SCOLON { 
+    $$ = new InfoStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_INFO OPAREN CPAREN SCOLON { 
+    $$ = new InfoStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
+    $$ = new InfoStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
+  | SYS_WARNING SCOLON { 
+    $$ = new WarningStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_WARNING OPAREN CPAREN SCOLON { 
+    $$ = new WarningStatement(); 
+    parser->set_loc($$);
+  }
+  | SYS_WARNING OPAREN expression_P CPAREN SCOLON { 
+    $$ = new WarningStatement($3.begin(), $3.end()); 
     parser->set_loc($$);
   }
   | SYS_WRITE SCOLON { 

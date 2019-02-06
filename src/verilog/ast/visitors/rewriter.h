@@ -89,7 +89,11 @@ struct Rewriter {
   virtual Statement* rewrite(SeqBlock* sb);
   virtual Statement* rewrite(TimingControlStatement* rcs);
   virtual Statement* rewrite(DisplayStatement* ds);
+  virtual Statement* rewrite(ErrorStatement* es);
+  virtual Statement* rewrite(FatalStatement* fs);
   virtual Statement* rewrite(FinishStatement* fs);
+  virtual Statement* rewrite(InfoStatement* is);
+  virtual Statement* rewrite(WarningStatement* ws);
   virtual Statement* rewrite(WriteStatement* ws);
   virtual Statement* rewrite(WaitStatement* ws);
   virtual Statement* rewrite(WhileStatement* ws);
