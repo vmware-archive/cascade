@@ -116,10 +116,14 @@ class Node {
       display_statement              = 46 | system_task_enable_statement, 
       finish_statement               = 47 | system_task_enable_statement, 
       write_statement                = 48 | system_task_enable_statement, 
-      wait_statement                 = 49 | statement, 
-      delay_control                  = 50 | timing_control,
-      event_control                  = 51 | timing_control,
-      variable_assign                = 52 | node
+      info_statement                 = 49 | system_task_enable_statement, 
+      warning_statement              = 50 | system_task_enable_statement, 
+      error_statement                = 51 | system_task_enable_statement, 
+      fatal_statement                = 52 | system_task_enable_statement, 
+      wait_statement                 = 53 | statement, 
+      delay_control                  = 54 | timing_control,
+      event_control                  = 55 | timing_control,
+      variable_assign                = 56 | node
     };
 
     // Constructors:
@@ -138,6 +142,7 @@ class Node {
     const Node* get_parent() const;
 
     // Runtime Type Identification:
+    Tag get_tag() const;
     bool is_concept(Tag tag) const;
     bool is_subclass_of(Tag tag) const;
     bool is(Tag tag) const;
@@ -182,6 +187,10 @@ inline Node* Node::get_parent() {
 
 inline const Node* Node::get_parent() const {
   return parent_;
+}
+
+inline Node::Tag Node::get_tag() const {
+  return tag_;
 }
 
 inline bool Node::is_concept(Tag tag) const {

@@ -28,34 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_VIEW_H
-#define CASCADE_SRC_UI_TERM_TERM_VIEW_H
+#ifndef CASCADE_SRC_VERILOG_AST_INFO_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_INFO_STATEMENT_H
 
-#include <mutex>
-#include "src/ui/view.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-class TermView : public View {
+class InfoStatement : public SystemTaskEnableStatement {
   public:
-    ~TermView() override = default;
+    // Constructors:
+    InfoStatement();
+    template <typename ArgsItr>
+    InfoStatement(ArgsItr args_begin__, ArgsItr args_end__);
+    ~InfoStatement() override;
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+    // Node Interface:
+    NODE(InfoStatement)
+    InfoStatement* clone() const override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void crash() override;
+    // Get/Set:
+    MANY_GET_SET(InfoStatement, Expression, args)
 
   private:
-    std::mutex lock_;
+    MANY_ATTR(Expression, args);
 };
 
-} // namespace cascade
+inline InfoStatement::InfoStatement() : SystemTaskEnableStatement(Node::Tag::info_statement) {
+  MANY_DEFAULT_SETUP(args);
+  parent_ = nullptr;
+}
+
+template <typename ArgsItr>
+inline InfoStatement::InfoStatement(ArgsItr args_begin__, ArgsItr args_end__) : InfoStatement() {
+  MANY_SETUP(args);
+}
+
+inline InfoStatement::~InfoStatement() {
+  MANY_TEARDOWN(args);
+}
+
+inline InfoStatement* InfoStatement::clone() const {
+  auto* res = new InfoStatement();
+  MANY_CLONE(args);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif

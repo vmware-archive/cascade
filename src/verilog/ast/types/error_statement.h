@@ -28,34 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_VIEW_H
-#define CASCADE_SRC_UI_TERM_TERM_VIEW_H
+#ifndef CASCADE_SRC_VERILOG_AST_ERROR_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_ERROR_STATEMENT_H
 
-#include <mutex>
-#include "src/ui/view.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-class TermView : public View {
+class ErrorStatement : public SystemTaskEnableStatement {
   public:
-    ~TermView() override = default;
+    // Constructors:
+    ErrorStatement();
+    template <typename ArgsItr>
+    ErrorStatement(ArgsItr args_begin__, ArgsItr args_end__);
+    ~ErrorStatement() override;
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+    // Node Interface:
+    NODE(ErrorStatement)
+    ErrorStatement* clone() const override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void crash() override;
+    // Get/Set:
+    MANY_GET_SET(ErrorStatement, Expression, args)
 
   private:
-    std::mutex lock_;
+    MANY_ATTR(Expression, args);
 };
 
-} // namespace cascade
+inline ErrorStatement::ErrorStatement() : SystemTaskEnableStatement(Node::Tag::error_statement) {
+  MANY_DEFAULT_SETUP(args);
+  parent_ = nullptr;
+}
+
+template <typename ArgsItr>
+inline ErrorStatement::ErrorStatement(ArgsItr args_begin__, ArgsItr args_end__) : ErrorStatement() {
+  MANY_SETUP(args);
+}
+
+inline ErrorStatement::~ErrorStatement() {
+  MANY_TEARDOWN(args);
+}
+
+inline ErrorStatement* ErrorStatement::clone() const {
+  auto* res = new ErrorStatement();
+  MANY_CLONE(args);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif

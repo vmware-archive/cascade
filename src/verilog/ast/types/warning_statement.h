@@ -28,34 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_VIEW_H
-#define CASCADE_SRC_UI_TERM_TERM_VIEW_H
+#ifndef CASCADE_SRC_VERILOG_AST_WARNING_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_WARNING_STATEMENT_H
 
-#include <mutex>
-#include "src/ui/view.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-class TermView : public View {
+class WarningStatement : public SystemTaskEnableStatement {
   public:
-    ~TermView() override = default;
+    // Constructors:
+    WarningStatement();
+    template <typename ArgsItr>
+    WarningStatement(ArgsItr args_begin__, ArgsItr args_end__);
+    ~WarningStatement() override;
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+    // Node Interface:
+    NODE(WarningStatement)
+    WarningStatement* clone() const override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void crash() override;
+    // Get/Set:
+    MANY_GET_SET(WarningStatement, Expression, args)
 
   private:
-    std::mutex lock_;
+    MANY_ATTR(Expression, args);
 };
 
-} // namespace cascade
+inline WarningStatement::WarningStatement() : SystemTaskEnableStatement(Node::Tag::warning_statement) {
+  MANY_DEFAULT_SETUP(args);
+  parent_ = nullptr;
+}
+
+template <typename ArgsItr>
+inline WarningStatement::WarningStatement(ArgsItr args_begin__, ArgsItr args_end__) : WarningStatement() {
+  MANY_SETUP(args);
+}
+
+inline WarningStatement::~WarningStatement() {
+  MANY_TEARDOWN(args);
+}
+
+inline WarningStatement* WarningStatement::clone() const {
+  auto* res = new WarningStatement();
+  MANY_CLONE(args);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif

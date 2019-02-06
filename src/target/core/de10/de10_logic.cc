@@ -330,10 +330,45 @@ void De10Logic::visit(const DisplayStatement* ds) {
   ds->accept_args(&i);
 }
 
-void De10Logic::visit(const FinishStatement* fs) {
-  // Record this task. The only arguments we expect to see here are numeric
-  // constants, so no need to interact with the variable table.
+void De10Logic::visit(const ErrorStatement* es) {
+  // Record this task and insert materialized instances of the
+  // variables in its arguments into the variable table.
+  tasks_.push_back(es);
+  Inserter i(this);
+  es->accept_args(&i);
+}
+
+void De10Logic::visit(const FatalStatement* fs) {
+  // Record this task and insert materialized instances of the
+  // variables in its arguments into the variable table.
   tasks_.push_back(fs);
+  Inserter i(this);
+  fs->accept_arg(&i);
+  fs->accept_args(&i);
+}
+
+void De10Logic::visit(const FinishStatement* fs) {
+  // Record this task and insert materialized instances of the
+  // variables in its arguments into the variable table.
+  tasks_.push_back(fs);
+  Inserter i(this);
+  fs->accept_arg(&i);
+}
+
+void De10Logic::visit(const InfoStatement* is) {
+  // Record this task and insert materialized instances of the
+  // variables in its arguments into the variable table.
+  tasks_.push_back(is);
+  Inserter i(this);
+  is->accept_args(&i);
+}
+
+void De10Logic::visit(const WarningStatement* ws) {
+  // Record this task and insert materialized instances of the
+  // variables in its arguments into the variable table.
+  tasks_.push_back(ws);
+  Inserter i(this);
+  ws->accept_args(&i);
 }
 
 void De10Logic::visit(const WriteStatement* ws) {
@@ -424,9 +459,30 @@ void De10Logic::handle_tasks() {
       Sync sync(this);
       ds->accept_args(&sync);
       interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::error_statement)) {
+      const auto* es = static_cast<const ErrorStatement*>(tasks_[i]);
+      Sync sync(this);
+      es->accept_args(&sync);
+      interface()->error(Printf().format(es->begin_args(), es->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::fatal_statement)) {
+      const auto* fs = static_cast<const FatalStatement*>(tasks_[i]);
+      Sync sync(this);
+      fs->accept_arg(&sync);
+      fs->accept_args(&sync);
+      interface()->fatal(Evaluate().get_value(fs->get_arg()).to_int(), Printf().format(fs->begin_args(), fs->end_args()));
     } else if (tasks_[i]->is(Node::Tag::finish_statement)) {
       const auto* fs = static_cast<const FinishStatement*>(tasks_[i]);
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
+    } else if (tasks_[i]->is(Node::Tag::info_statement)) {
+      const auto* is = static_cast<const InfoStatement*>(tasks_[i]);
+      Sync sync(this);
+      is->accept_args(&sync);
+      interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::warning_statement)) {
+      const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
+      Sync sync(this);
+      ws->accept_args(&sync);
+      interface()->warning(Printf().format(ws->begin_args(), ws->end_args()));
     } else if (tasks_[i]->is(Node::Tag::write_statement)) {
       const auto* ws = static_cast<const WriteStatement*>(tasks_[i]);
       Sync sync(this);

@@ -272,8 +272,25 @@ void Visitor::visit(const DisplayStatement* ds) {
   ds->accept_args(this);
 }
 
+void Visitor::visit(const ErrorStatement* es) {
+  es->accept_args(this);
+}
+
+void Visitor::visit(const FatalStatement* fs) {
+  fs->accept_arg(this);
+  fs->accept_args(this);
+}
+
 void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
+}
+
+void Visitor::visit(const InfoStatement* is) {
+  is->accept_args(this);
+}
+
+void Visitor::visit(const WarningStatement* ws) {
+  ws->accept_args(this);
 }
 
 void Visitor::visit(const WriteStatement* ws) {

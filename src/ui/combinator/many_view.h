@@ -46,13 +46,15 @@ class ManyView : public View {
     void startup(size_t t) override;
     void shutdown(size_t t) override;
 
-    void error(size_t t, const std::string& s) override;
     void print(size_t t, const std::string& s) override;
+    void info(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
-    void parse(size_t t, const std::string& s) override;
-    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void parse(size_t t, size_t d, const std::string& s) override;
+    void include(size_t t, const std::string& s) override;
+    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 
@@ -84,12 +86,6 @@ inline void ManyView::shutdown(size_t t) {
   }
 }
 
-inline void ManyView::error(size_t t, const std::string& s) {
-  for (auto* v : views_) {
-    v->error(t, s);
-  }
-}
-
 inline void ManyView::print(size_t t, const std::string& s) {
   for (auto* v : views_) {
     v->print(t, s);
@@ -102,21 +98,39 @@ inline void ManyView::warn(size_t t, const std::string& s) {
   }
 }
 
-inline void ManyView::parse(size_t t, const std::string& s) {
+inline void ManyView::info(size_t t, const std::string& s) {
   for (auto* v : views_) {
-    v->parse(t, s);
+    v->info(t, s);
   }
 }
 
-inline void ManyView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void ManyView::error(size_t t, const std::string& s) {
   for (auto* v : views_) {
-    v->eval_decl(t, p, md);
+    v->error(t, s);
   }
 }
 
-inline void ManyView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void ManyView::parse(size_t t, size_t d, const std::string& s) {
   for (auto* v : views_) {
-    v->eval_item(t, p, md);
+    v->parse(t, d, s);
+  }
+}
+
+inline void ManyView::include(size_t t, const std::string& s) {
+  for (auto* v : views_) {
+    v->include(t, s);
+  }
+}
+
+inline void ManyView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  for (auto* v : views_) {
+    v->decl(t, p, md);
+  }
+}
+
+inline void ManyView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  for (auto* v : views_) {
+    v->item(t, p, md);
   }
 }
 

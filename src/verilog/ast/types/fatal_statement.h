@@ -28,34 +28,58 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_VIEW_H
-#define CASCADE_SRC_UI_TERM_TERM_VIEW_H
+#ifndef CASCADE_SRC_VERILOG_AST_FATAL_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_FATAL_STATEMENT_H
 
-#include <mutex>
-#include "src/ui/view.h"
+#include "src/verilog/ast/types/expression.h"
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-class TermView : public View {
+class FatalStatement : public SystemTaskEnableStatement {
   public:
-    ~TermView() override = default;
+    // Constructors:
+    FatalStatement(Expression* arg__);
+    template <typename ArgsItr>
+    FatalStatement(Expression* arg__, ArgsItr args_begin__, ArgsItr args_end__);
+    ~FatalStatement() override;
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+    // Node Interface:
+    NODE(FatalStatement)
+    FatalStatement* clone() const override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void crash() override;
+    // Get/Set:
+    PTR_GET_SET(FatalStatement, Expression, arg)
+    MANY_GET_SET(FatalStatement, Expression, args)
 
   private:
-    std::mutex lock_;
+    PTR_ATTR(Expression, arg);
+    MANY_ATTR(Expression, args);
 };
 
-} // namespace cascade
+inline FatalStatement::FatalStatement(Expression* arg__) : SystemTaskEnableStatement(Node::Tag::fatal_statement) {
+  PTR_SETUP(arg);
+  MANY_DEFAULT_SETUP(args);
+  parent_ = nullptr;
+}
+
+template <typename ArgsItr>
+inline FatalStatement::FatalStatement(Expression* arg__, ArgsItr args_begin__, ArgsItr args_end__) : FatalStatement(arg__) {
+  MANY_SETUP(args);
+}
+
+inline FatalStatement::~FatalStatement() {
+  PTR_TEARDOWN(arg);
+  MANY_TEARDOWN(args);
+}
+
+inline FatalStatement* FatalStatement::clone() const {
+  auto* res = new FatalStatement(arg_->clone());
+  MANY_CLONE(args);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif

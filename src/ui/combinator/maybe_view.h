@@ -45,13 +45,15 @@ class MaybeView : public View {
     void startup(size_t t) override;
     void shutdown(size_t t) override;
 
-    void error(size_t t, const std::string& s) override;
     void print(size_t t, const std::string& s) override;
+    void info(size_t t, const std::string& s) override;
     void warn(size_t t, const std::string& s) override;
+    void error(size_t t, const std::string& s) override;
 
-    void parse(size_t t, const std::string& s) override;
-    void eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void eval_item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void parse(size_t t, size_t d, const std::string& s) override;
+    void include(size_t t, const std::string& s) override;
+    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
+    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
     void crash() override;
 
@@ -88,15 +90,15 @@ inline void MaybeView::shutdown(size_t t) {
   }
 }
 
-inline void MaybeView::error(size_t t, const std::string& s) {
-  if (view_ != nullptr) {
-    view_->error(t, s);
-  }
-}
-
 inline void MaybeView::print(size_t t, const std::string& s) {
   if (view_ != nullptr) {
     view_->print(t, s);
+  }
+}
+
+inline void MaybeView::info(size_t t, const std::string& s) {
+  if (view_ != nullptr) {
+    view_->info(t, s);
   }
 }
 
@@ -106,21 +108,33 @@ inline void MaybeView::warn(size_t t, const std::string& s) {
   }
 }
 
-inline void MaybeView::parse(size_t t, const std::string & s) {
+inline void MaybeView::error(size_t t, const std::string& s) {
   if (view_ != nullptr) {
-    view_->parse(t, s);
+    view_->error(t, s);
   }
 }
 
-inline void MaybeView::eval_decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void MaybeView::parse(size_t t, size_t d, const std::string & s) {
   if (view_ != nullptr) {
-    view_->eval_decl(t, p, md);
+    view_->parse(t, d, s);
   }
 }
 
-inline void MaybeView::eval_item(size_t t, const Program* p, const ModuleDeclaration* md) {
+inline void MaybeView::include(size_t t, const std::string & s) {
   if (view_ != nullptr) {
-    view_->eval_item(t, p, md);
+    view_->include(t, s);
+  }
+}
+
+inline void MaybeView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
+  if (view_ != nullptr) {
+    view_->decl(t, p, md);
+  }
+}
+
+inline void MaybeView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
+  if (view_ != nullptr) {
+    view_->item(t, p, md);
   }
 }
 

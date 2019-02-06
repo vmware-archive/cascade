@@ -272,8 +272,25 @@ void Editor::edit(DisplayStatement* ds) {
   ds->accept_args(this);
 }
 
+void Editor::edit(ErrorStatement* es) {
+  es->accept_args(this);
+}
+
+void Editor::edit(FatalStatement* fs) {
+  fs->accept_arg(this);
+  fs->accept_args(this);
+}
+
 void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
+}
+
+void Editor::edit(InfoStatement* is) {
+  is->accept_args(this);
+}
+
+void Editor::edit(WarningStatement* ws) {
+  ws->accept_args(this);
 }
 
 void Editor::edit(WriteStatement* ws) {
