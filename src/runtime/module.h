@@ -68,17 +68,25 @@ class Module {
     ~Module();
 
     // Runtime Interface:
+    // 
+    // Synchronizes the module hierarchy with changes which have been made to
+    // the ast since the previous invocation of synchronize. n is the number of
+    // items which have been added to the top-level module in the interim.
     void synchronize(size_t n);
+    // Forces a recompilation of the entire module hierarchy. This method
+    // should only be called in a state where synchronize has been invoked and
+    // no further changes have been made to the text of the user's program.
+    void rebuild();
 
     // Hierarchy Interface:
+    // 
+    // Returns the first element in a depth-first traversal of the hierarchy.
     iterator begin();
+    // Returns the last element in a depth-first traversal of the hierarchy.
     iterator end();
 
     // Attribute Interface:
     // 
-    // Generates ir source for this module.  The caller of this method assumes
-    // ownership of the resulting code.
-    ModuleDeclaration* regenerate_ir_source();
     // Returns the engine associated with this module.
     Engine* engine();
 
@@ -105,7 +113,6 @@ class Module {
 
     // Implementation State:
     ModuleDeclaration* src_;
-    size_t newest_evals_;
     Engine* engine_;
     bool source_out_of_date_;
     bool engine_out_of_date_;
@@ -114,6 +121,13 @@ class Module {
     const ModuleDeclaration* psrc_;
     Module* parent_;
     std::vector<Module*> children_;
+
+    // Compilation Helpers:
+    //
+    // Generates ir source for this module.  Initial statements which appear
+    // within the first 'ignore' items of this module are masked as ignored.
+    // The caller of this method assumes ownership of the resulting code.
+    ModuleDeclaration* regenerate_ir_source(size_t ignore);
 
     // Constructors:
     Module(const ModuleDeclaration* psrc, Module* parent);

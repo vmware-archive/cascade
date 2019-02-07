@@ -1402,8 +1402,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FATAL OPAREN expression_P CPAREN SCOLON { 
-    auto begin = $3.begin();
-    ++begin;
+    const auto begin = $3.begin() + 1;
     if (begin == $3.end()) {
       $$ = new FatalStatement(*$3.begin());
     } else {

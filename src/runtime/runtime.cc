@@ -201,7 +201,22 @@ void Runtime::fatal(int arg, const string& s) {
 }
 
 void Runtime::retarget(const string& s) {
-  info("RETARGET REQUEST FOR " + s);
+  (void) s;
+  schedule_interrupt([this, s]{
+    // An unfortunate corner case: Have some evals snuck into the interrupt
+    // queue? Remember that Module::rebuild() can only be invoked in a state
+    // where there are no unhandled evals. Fortunately, there's an easy fix:
+    // just reinvoke retarget().  This will reschedule us on the far side of
+    // Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
+    if (item_evals_ > 0) {
+      return retarget(s);
+    }
+
+    // Now that we know there's no outstanding code to evaluate, we can update
+    // annotations based on the new march target and force a recompile of the
+    // entire program.
+    root_->rebuild();
+  });
 }
 
 void Runtime::schedule_interrupt(Interrupt int_) {
