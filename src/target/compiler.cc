@@ -197,35 +197,36 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
-  // Text which we'll use later
-  stringstream ss;
-  TextPrinter(ss) << "recompilation of " <<  md->get_id() << " with attributes " << md->get_attrs();
-  const auto str = ss.str();
-
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
-  const auto* t2 = md->get_attrs()->get<String>("__target2");
-  const auto* l2 = md->get_attrs()->get<String>("__loc2");
+  const auto* t = md->get_attrs()->get<String>("__target");
+  const auto* l = md->get_attrs()->get<String>("__loc");
 
   // Check: Is this a stub, an std module, was jit compilation requested?  
-  const auto jit = std->eq("logic") && !StubCheck().check(md) && (t2 != nullptr || l2 != nullptr);
+  const auto tsep = t->get_readable_val().find_first_of(':');
+  const auto lsep = l->get_readable_val().find_first_of(':');
+  const auto jit = std->eq("logic") && !StubCheck().check(md) && ((tsep != string::npos) || (lsep != string::npos));
 
   // If we're jit compiling, we'll need a second copy of the source and we'll
   // need to adjust the annotations.
   ModuleDeclaration* md2 = nullptr;
   if (jit) {
     md2 = md->clone();
-    if (t2 != nullptr) {
-      md2->get_attrs()->set_or_replace("__target", t2->clone());
+    if (tsep != string::npos) {
+      md2->get_attrs()->set_or_replace("__target", new String(t->get_readable_val().substr(tsep+1)));
+      md->get_attrs()->set_or_replace("__target", new String(t->get_readable_val().substr(0, tsep)));
     }
-    if (l2 != nullptr) {
-      md2->get_attrs()->set_or_replace("__loc", l2->clone());
+    if (lsep != string::npos) {
+      md2->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(lsep+1)));
+      md->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(0, lsep)));
     }
   }
 
   // Fast Path. Compile and replace the original engine.  If an error occurred,
   // then simply preserve the original message. If compilation was aborted
   // without explanation, that's an error that requires explanation.
+  stringstream ss;
+  TextPrinter(ss) << "fast-pass recompilation of " <<  md->get_id() << " with attributes " << md->get_attrs();
   auto* e_fast = compile(md);
   if (error()) {
     return;
@@ -234,9 +235,9 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   }
   e->replace_with(e_fast);
   if (e->is_stub()) {
-    rt->info("Deferring " + str);
+    rt->info("Deferring " + ss.str());
   } else {
-    rt->info("Finished fast-pass " + str);
+    rt->info("Finished " + ss.str());
   }
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
@@ -244,17 +245,22 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error.
   if (jit) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, str]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
+      stringstream ss;
+      TextPrinter(ss) << "slow-pass recompilation of " <<  md2->get_id() << " with attributes " << md2->get_attrs();
+      const auto str = ss.str();
+
       Masker().mask(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([this, e, e_slow, str]{
+      rt->schedule_interrupt([this, e, e_slow, rt, str]{
         // Nothing to do if compilation failed or was aborted
         if (error() || (e_slow == nullptr)) {
+          rt->info("Aborted " + str);
           return;
         } 
         e->replace_with(e_slow);
       });
-      rt->info("Finished slow-pass " + str);
+      rt->info("Finished " + str);
     }));
   }
 }
