@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     ss1 << "include data/march/" + march.value() + ".v;";
     StreamController(::runtime, ss1).run_to_completion();
   } else {
-    ::view->error(0, "Unrecognized march option " + ::march.value() + "!");
+    ::runtime->fatal(0, "Unrecognized march option '" + ::march.value() + "'!");
   }
   // Translate -e to include statement if it was provided
   stringstream ss2;

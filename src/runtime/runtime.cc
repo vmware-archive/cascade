@@ -37,6 +37,7 @@
 #include <sstream>
 #include "src/base/stream/incstream.h"
 #include "src/base/stream/indstream.h"
+#include "src/base/system/system.h"
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
 #include "src/runtime/module.h"
@@ -212,9 +213,12 @@ void Runtime::retarget(const string& s) {
       return retarget(s);
     }
 
-    // Now that we know there's no outstanding code to evaluate, we can update
-    // annotations based on the new march target and force a recompile of the
-    // entire program.
+    // Try to open the march file 
+    incstream ifs(System::src_root());
+    if (!ifs.open("data/march/" + s + ".v")) {
+      return fatal(0, "Unrecognized march option '" + s + "'!");
+    }
+
     root_->rebuild();
   });
 }
