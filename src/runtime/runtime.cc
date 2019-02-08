@@ -391,6 +391,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
+  if (disable_inlining_ && (program_->root_decl()->second == md)) {
+    md->get_attrs()->set_or_replace("__no_inline", new String("true"));
+  }
   schedule_interrupt([this, md]{
     view_->decl(logical_time_, program_, md);
   });
