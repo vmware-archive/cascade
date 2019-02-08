@@ -222,8 +222,10 @@ void Inline::inline_source(ModuleInstantiation* mi) {
 }
 
 void Inline::outline_source(ModuleInstantiation* mi) {
-  // TODO(eschkufz) This method hasn't been called for some time. it's almost certainly
-  // suffering from bit-rot.
+  // TODO(eschkufz) It's been a long time since this method was actually used. I'm adding
+  // an assertion here to flag the fact that it's almost certainly bit-rotted. If and when
+  // it goes back into production, we can remove this.
+  assert(false);
 
   // Nothing to do for code which has already been outlined
   if (!is_inlined(mi)) {
