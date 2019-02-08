@@ -170,7 +170,8 @@ void Module::synchronize(size_t n) {
     if (!(*i)->engine_out_of_date_) {
       continue;
     }
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
@@ -198,7 +199,8 @@ void Module::rebuild() {
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
