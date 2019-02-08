@@ -12,17 +12,14 @@
 // annotations.  Additional module-specific annotations are discussed below.
 //
 // __target = "..." 
-//   Required. Tells the compiler class which core compiler to use.
-// __target2 = "..."
-//   Optional. Enables jit compilation and tells the compiler class which core
-//   compiler to use during the second pass compilation.
+//   Required. Tells the compiler class which core compiler to use. Providing
+//   a second target, separated by a colon, tells the compiler class which
+//   core compiler to use during second pass compilation.
 // __loc = "..."
 //   Optional. Tells the compiler class which interface compiler to use.  If
 //   not provided, defaults to "runtime", ie in the same process space as the
-//   runtime.
-// __loc2 = "..."
-//   Optional. Enables jit compilation and tells the compiler class which
-//   interface compiler to use during the second pass compilation.
+//   runtime. Providing a second location, separated by a colon, tells the
+//   compiler class which core compiler to use during second pass compilation.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -120,7 +117,7 @@ endmodule
 // __file = "..."
 //   Optional. If specified the contents of this memory will be read/written
 //   from/to this file when the program begins/finishes executing.
-(*__std="memory",__target="sw"*)
+(*__std="memory",__target="sw",__loc="runtime"*)
 module Memory#(
   parameter ADDR_SIZE = 4,
   parameter BYTE_SIZE = 8
@@ -170,7 +167,7 @@ endmodule
 // __count = "..."
 //   Optional. If specifid along with __file, this fifo will be initialized
 //   with 'count' copies of the data in __file.
-(*__std="fifo",__target="sw"*)
+(*__std="fifo",__target="sw",__loc="runtime"*)
 module Fifo#(
   parameter DEPTH = 8,
   parameter BYTE_SIZE = 8

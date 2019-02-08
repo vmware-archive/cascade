@@ -189,7 +189,6 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
 
 void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
   init(const_cast<Identifier*>(id));
-  assert(idx < id->bit_val_.size());
 
   // Corner Case: Ignore writes to out of bounds indices
   if (idx >= id->bit_val_.size()) {

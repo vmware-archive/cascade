@@ -4,7 +4,7 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw", __target2="sw", __loc="runtime"*)
+(*__target="sw:sw", __loc="runtime"*)
 Root root();
 
 (*__target="sw", __loc="runtime"*)                    

@@ -43,12 +43,13 @@ class LocalInterface : public Interface {
     ~LocalInterface() override = default;     
 
     void display(const std::string& s) override;
-    void write(const std::string& s) override;
-    void finish(int arg) override;
     void error(const std::string& s) override;
-    void warning(const std::string& s) override;
-    void info(const std::string& s) override;
     void fatal(int arg, const std::string& s) override;
+    void finish(int arg) override;
+    void info(const std::string& s) override;
+    void retarget(const std::string& s) override;
+    void warning(const std::string& s) override;
+    void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
@@ -65,28 +66,32 @@ inline void LocalInterface::display(const std::string& s) {
   rt_->display(s);
 }
 
-inline void LocalInterface::write(const std::string& s) {
-  rt_->write(s);
+inline void LocalInterface::error(const std::string& s) {
+  rt_->error(s);
+}
+
+inline void LocalInterface::fatal(int arg, const std::string& s) {
+  rt_->fatal(arg, s);
 }
 
 inline void LocalInterface::finish(int arg) {
   rt_->finish(arg);
 }
 
-inline void LocalInterface::error(const std::string& s) {
-  rt_->error(s);
+inline void LocalInterface::info(const std::string& s) {
+  rt_->info(s);
+}
+
+inline void LocalInterface::retarget(const std::string& s) {
+  rt_->retarget(s);
 }
 
 inline void LocalInterface::warning(const std::string& s) {
   rt_->warning(s);
 }
 
-inline void LocalInterface::info(const std::string& s) {
-  rt_->info(s);
-}
-
-inline void LocalInterface::fatal(int arg, const std::string& s) {
-  rt_->fatal(arg, s);
+inline void LocalInterface::write(const std::string& s) {
+  rt_->write(s);
 }
 
 inline void LocalInterface::write(VId id, const Bits* b) {

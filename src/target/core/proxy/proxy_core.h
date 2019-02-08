@@ -248,18 +248,20 @@ inline void ProxyCore<T>::recv_task(const SysTask& t) {
   switch (t.type_) {
     case SysTask::Type::DISPLAY:
       return T::interface()->display(t.text_);
-    case SysTask::Type::WRITE:
-      return T::interface()->write(t.text_);
-    case SysTask::Type::FINISH:
-      return T::interface()->finish(t.arg_);
     case SysTask::Type::ERROR:
       return T::interface()->error(t.text_);
-    case SysTask::Type::WARNING:
-      return T::interface()->warning(t.text_);
-    case SysTask::Type::INFO:
-      return T::interface()->info(t.text_);
     case SysTask::Type::FATAL:
       return T::interface()->fatal(t.arg_, t.text_);
+    case SysTask::Type::FINISH:
+      return T::interface()->finish(t.arg_);
+    case SysTask::Type::INFO:
+      return T::interface()->info(t.text_);
+    case SysTask::Type::RETARGET:
+      return T::interface()->retarget(t.text_);
+    case SysTask::Type::WARNING:
+      return T::interface()->warning(t.text_);
+    case SysTask::Type::WRITE:
+      return T::interface()->write(t.text_);
     default:
       return T::interface()->fatal(0, "Unrecognized sys task rpc!");
   }

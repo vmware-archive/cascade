@@ -402,6 +402,12 @@ Statement* Builder::build(const InfoStatement* is) {
   return res;
 }
 
+Statement* Builder::build(const RetargetStatement* rs) {
+  return new RetargetStatement(
+    rs->accept_arg(this)
+  );
+}
+
 Statement* Builder::build(const WarningStatement* ws) {
   auto* res = new WarningStatement();
   ws->accept_args(this, res->back_inserter_args());

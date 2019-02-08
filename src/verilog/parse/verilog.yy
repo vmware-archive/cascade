@@ -150,13 +150,14 @@ bool is_null(const cascade::Expression* e) {
 %token WIRE        "wire"
 
 /* System Task Identifiers */
-%token SYS_DISPLAY "$display"
-%token SYS_ERROR   "$error"
-%token SYS_FATAL   "$fatal"
-%token SYS_FINISH  "$finish"
-%token SYS_INFO    "$info"
-%token SYS_WARNING "$warning"
-%token SYS_WRITE   "$write"
+%token SYS_DISPLAY  "$display"
+%token SYS_ERROR    "$error"
+%token SYS_FATAL    "$fatal"
+%token SYS_FINISH   "$finish"
+%token SYS_INFO     "$info"
+%token SYS_RETARGET "$retarget"
+%token SYS_WARNING  "$warning"
+%token SYS_WRITE    "$write"
 
 /* Identifiers and Strings */
 %token <std::string> INCLUDE
@@ -1401,8 +1402,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FATAL OPAREN expression_P CPAREN SCOLON { 
-    auto begin = $3.begin();
-    ++begin;
+    const auto begin = $3.begin() + 1;
     if (begin == $3.end()) {
       $$ = new FatalStatement(*$3.begin());
     } else {
@@ -1432,6 +1432,10 @@ system_task_enable
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
     $$ = new InfoStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
+  | SYS_RETARGET OPAREN string_ CPAREN SCOLON {
+    $$ = new RetargetStatement($3);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 

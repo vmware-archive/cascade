@@ -120,13 +120,14 @@ std::string strip_path(const char* c);
 "while"       YY_REC; return yyParser::make_WHILE(parser->get_loc());
 "wire"        YY_REC; return yyParser::make_WIRE(parser->get_loc());
 
-"$display" YY_REC; return yyParser::make_SYS_DISPLAY(parser->get_loc());
-"$error"   YY_REC; return yyParser::make_SYS_ERROR(parser->get_loc());
-"$fatal"   YY_REC; return yyParser::make_SYS_FATAL(parser->get_loc());
-"$finish"  YY_REC; return yyParser::make_SYS_FINISH(parser->get_loc());
-"$info"    YY_REC; return yyParser::make_SYS_INFO(parser->get_loc());
-"$warning" YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
-"$write"   YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
+"$display"  YY_REC; return yyParser::make_SYS_DISPLAY(parser->get_loc());
+"$error"    YY_REC; return yyParser::make_SYS_ERROR(parser->get_loc());
+"$fatal"    YY_REC; return yyParser::make_SYS_FATAL(parser->get_loc());
+"$finish"   YY_REC; return yyParser::make_SYS_FINISH(parser->get_loc());
+"$info"     YY_REC; return yyParser::make_SYS_INFO(parser->get_loc());
+"$retarget" YY_REC; return yyParser::make_SYS_RETARGET(parser->get_loc());
+"$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
+"$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 
 "include"[ \t\n]+[^;]+";" YY_REC; return yyParser::make_INCLUDE(strip_path(yytext), parser->get_loc());
 

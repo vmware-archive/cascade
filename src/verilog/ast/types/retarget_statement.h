@@ -28,54 +28,45 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_H
-#define CASCADE_SRC_TARGET_INTERFACE_H
+#ifndef CASCADE_SRC_VERILOG_AST_RETARGET_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_RETARGET_STATEMENT_H
 
-#include <string>
-#include "src/base/bits/bits.h"
-#include "src/runtime/ids.h"
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/string.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-// This module encapsulates the mechanism by which a core communicates values
-// and system task executions back to the runtime.
-
-class Interface {
+class RetargetStatement : public SystemTaskEnableStatement {
   public:
-    Interface();
-    virtual ~Interface() = default;
+    // Constructors:
+    explicit RetargetStatement(String* arg__);
+    ~RetargetStatement() override;
 
-    // These methods must perform whatever target-specific logic is necessary to
-    // cause the corresponding system task calls to be invoked in the runtime.
-    virtual void display(const std::string& s) = 0;
-    virtual void error(const std::string& s) = 0;
-    virtual void fatal(int arg, const std::string& s) = 0;
-    virtual void finish(int arg) = 0;
-    virtual void info(const std::string& s) = 0;
-    virtual void retarget(const std::string& s) = 0;
-    virtual void warning(const std::string& s) = 0;
-    virtual void write(const std::string& s) = 0;
+    // Node Interface:
+    NODE(RetargetStatement)
+    RetargetStatement* clone() const override;
 
-    // These method must perform whatever target-specific logic is necessary to
-    // communicate changes in the value of logic elements back to the runtime.
-    virtual void write(VId id, const Bits* b) = 0;
-
-    // Target-specific implementations may override this method if there is a
-    // performance-specific advantage to doing so. This method may be invoked
-    // whenever a write of a single-bit variable is required.
-    virtual void write(VId id, bool b);
+    // Get/Set:
+    PTR_GET_SET(RetargetStatement, String, arg)
 
   private:
-    Bits temp_;
+    PTR_ATTR(String, arg);
 };
 
-inline Interface::Interface() : temp_(1,0) { }
-
-inline void Interface::write(VId id, bool b) {
-  temp_.set(0, b ? 1 : 0);
-  write(id, &temp_);
+inline RetargetStatement::RetargetStatement(String* arg__) : SystemTaskEnableStatement(Node::Tag::retarget_statement) {
+  PTR_SETUP(arg);
+  parent_ = nullptr;
 }
 
-} // namespace cascade
+inline RetargetStatement::~RetargetStatement() {
+  PTR_TEARDOWN(arg);
+}
+
+inline RetargetStatement* RetargetStatement::clone() const {
+  return new RetargetStatement(arg_->clone());
+}
+
+} // namespace cascade 
 
 #endif

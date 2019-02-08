@@ -86,6 +86,7 @@ auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
 auto& web_ui_debug = FlagArg::create("--web_ui_debug")
   .description("Print debug information to web ui");
 
+__attribute__((unused)) auto& g3 = Group::create("Quartus Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
@@ -225,7 +226,7 @@ int main(int argc, char** argv) {
     ss1 << "include data/march/" + march.value() + ".v;";
     StreamController(::runtime, ss1).run_to_completion();
   } else {
-    ::view->error(0, "Unrecognized march option " + ::march.value() + "!");
+    ::runtime->fatal(0, "Unrecognized march option '" + ::march.value() + "'!");
   }
   // Translate -e to include statement if it was provided
   stringstream ss2;

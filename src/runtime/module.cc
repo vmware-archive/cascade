@@ -95,7 +95,6 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolat
   compiler_ = compiler;
 
   src_ = nullptr;
-  newest_evals_ = 0;
   engine_ = new Engine();
   source_out_of_date_ = true;
   engine_out_of_date_ = true;
@@ -154,13 +153,15 @@ void Module::synchronize(size_t n) {
       }
     }
   }
-  // 5. Regenerate source where necessary and invalidate engines
+  // 5. Regenerate source where necessary and invalidate engines. Modules below the
+  //    root which require new source are fresh. None of their initial blocks should
+  //    be ignored.
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     if (!(*i)->source_out_of_date_) {
       continue;
     }
-    (*i)->newest_evals_ = n;
-    (*i)->src_ = (*i)->regenerate_ir_source();
+    const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
+    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     (*i)->source_out_of_date_ = false;
     (*i)->engine_out_of_date_ = true;
   }
@@ -189,28 +190,28 @@ void Module::synchronize(size_t n) {
   }
 }
 
+void Module::rebuild() {
+  // This method should only be called in a state where all modules are in sync
+  // with the user's program. However(!) we do still need to regenerate source.
+  // Recall that compilation takes over ownership of a module's source code,
+  // and in many cases, deletes or modifies it.
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto ignore = (*i)->psrc_->size_items();
+    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
+    (*i)->src_ = nullptr;
+    if (compiler_->error()) {
+      return;
+    }
+  }
+}
+
 Module::iterator Module::begin() {
   return iterator(this); 
 }
 
 Module::iterator Module::end() {
   return iterator();
-}
-
-ModuleDeclaration* Module::regenerate_ir_source() {
-  const auto size = psrc_->size_items();
-  const auto ignore = (parent_ == nullptr) ? (size - newest_evals_) : 0;
-  auto* md = isolate_->isolate(psrc_, ignore);
-
-  const auto* std = md->get_attrs()->get<String>("__std");
-  const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
-  if (is_logic) {
-    ModuleInfo(md).invalidate();
-    DeAlias().run(md);
-    ConstantProp().run(md);
-    DeadCodeEliminate().run(md);
-  }
-  return md;
 }
 
 Engine* Module::engine() {
@@ -261,6 +262,19 @@ void Module::Instantiator::visit(const ModuleInstantiation* mi) {
   instances_.push_back(ptr_);
   ptr_->psrc_->accept(this);
   ptr_ = child->parent_;
+}
+
+ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
+  auto* md = isolate_->isolate(psrc_, ignore);
+  const auto* std = md->get_attrs()->get<String>("__std");
+  const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
+  if (is_logic) {
+    ModuleInfo(md).invalidate();
+    DeAlias().run(md);
+    ConstantProp().run(md);
+    DeadCodeEliminate().run(md);
+  }
+  return md;
 }
 
 Module::Module(const ModuleDeclaration* psrc, Module* parent) :

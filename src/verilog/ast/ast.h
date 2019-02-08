@@ -80,6 +80,7 @@
 #include "src/verilog/ast/types/fatal_statement.h"
 #include "src/verilog/ast/types/finish_statement.h"
 #include "src/verilog/ast/types/info_statement.h"
+#include "src/verilog/ast/types/retarget_statement.h"
 #include "src/verilog/ast/types/warning_statement.h"
 #include "src/verilog/ast/types/write_statement.h"
 #include "src/verilog/ast/types/wait_statement.h"

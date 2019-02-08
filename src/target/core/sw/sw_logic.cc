@@ -469,6 +469,14 @@ void SwLogic::visit(const InfoStatement* is) {
   notify(is);
 }
 
+void SwLogic::visit(const RetargetStatement* rs) {
+  if (!silent_) {
+    interface()->retarget(rs->get_arg()->get_readable_val());
+    there_were_tasks_ = true;
+  }
+  notify(rs);
+}
+
 void SwLogic::visit(const WarningStatement* ws) {
   if (!silent_) {
     interface()->warning(Printf().format(ws->begin_args(), ws->end_args()));
