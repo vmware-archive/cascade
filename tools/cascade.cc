@@ -99,7 +99,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 __attribute__((unused)) auto& g4 = Group::create("Logging Options");
 auto& profile_interval = StrArg<int>::create("--profile_interval")
   .usage("<n>")
-  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling")
+  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_info")
   .initial(0);
 auto& batch = FlagArg::create("--batch")
   .description("Deactivate UI; use -e to provide program input");
@@ -129,8 +129,9 @@ class Profiler : public Asynchronous {
   private:
     void run_logic() override {
       while (!stop_requested()) {
-        clog << "TIME = " << time(nullptr) << endl;
-        clog << "FREQ = " << rt_->current_frequency() << endl;
+        stringstream ss;
+        ss << "time / freq = " << setw(10) << time(nullptr) << " / " << setw(7) << rt_->current_frequency();
+        rt_->info(ss.str());
         sleep_for(1000*::profile_interval.value());        
       }
     }
