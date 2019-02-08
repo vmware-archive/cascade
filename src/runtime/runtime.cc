@@ -212,13 +212,52 @@ void Runtime::retarget(const string& s) {
     if (item_evals_ > 0) {
       return retarget(s);
     }
-
-    // Try to open the march file 
+    // Give up if we can't open the march file which was requested
     incstream ifs(System::src_root());
     if (!ifs.open("data/march/" + s + ".v")) {
       return fatal(0, "Unrecognized march option '" + s + "'!");
     }
 
+    // Temporarily relocate program_ and root_ so that we can scan the contents
+    // of this file using the eval_stream() infrastructure. We'll delete the
+    // temporary data-structures when we're done.
+    auto* march = program_;
+    program_ = new Program();
+    auto* backup_root = root_;
+    root_ = nullptr;
+    eval_stream(ifs, false);
+    assert(!log_->error());
+    std::swap(march, program_);
+    std::swap(backup_root, root_);
+    item_evals_ = 0;
+
+    // Replace attribute annotations for every elaborated module (this includes the
+    // root, which is where logic inherits its annotations from).
+    for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
+      auto* std1 = i->second->get_attrs()->get<String>("__std");
+      assert(std1 != nullptr);
+
+      auto found = false;
+      for (auto j = march->elab_begin(), je = march->elab_end(); j != je; ++j) {
+        auto* std2 = j->second->get_attrs()->get<String>("__std");
+        assert(std2 != nullptr);
+       
+        if (std1->get_readable_val() == std2->get_readable_val()) {
+          i->second->replace_attrs(j->second->get_attrs()->clone());
+          found = true; 
+          break;
+        }   
+      }
+      if (!found) {
+        delete march;
+        delete backup_root;
+        return fatal(0, "New target does not support modules with standard type " + std1->get_readable_val() + "!");
+      }
+    }
+
+    // Delete temporaries and rebuild the program
+    delete march;
+    delete backup_root;
     root_->rebuild();
   });
 }
