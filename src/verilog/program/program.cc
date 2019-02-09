@@ -221,10 +221,10 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
     }
     inst_queue_.clear();
 
-    // TODO(eschkufz) Technically, we're not supposed to elaborate any new generate
-    // statements that we create here until after we've recleared the
-    // instantiation queue. In practice because don't support defparams
-    // I don't *think* it makes a difference.
+    // TODO(eschkufz) Technically, we're not supposed to elaborate any new
+    // generate statements which we create here until after we've recleared the
+    // instantiation queue. In practice because we don't support defparams I
+    // don't *think* it makes a difference.
 
     for (size_t i = 0; !log->error() && i < gen_queue_.size(); ++i) {
       auto* gc = gen_queue_[i];
