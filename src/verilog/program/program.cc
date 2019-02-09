@@ -345,15 +345,11 @@ void Program::inline_all(ModuleDeclaration* md) {
     assert(itr != elabs_.end());
     inline_all(itr->second);
   }
-  if (Inline().can_inline(md)) {
-    Inline().inline_source(md);
-  }
+  Inline().inline_source(md);
 }
 
 void Program::outline_all(ModuleDeclaration* md) {
-  if (Inline().can_inline(md)) {
-    Inline().outline_source(md);
-  }
+  Inline().outline_source(md);
   for (auto& c : ModuleInfo(md).children()) {
     const auto* fid = Resolve().get_full_id(c.first);
     auto itr = elabs_.find(fid);
