@@ -391,7 +391,7 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
-  if (disable_inlining_ && (program_->root_decl()->second == md)) {
+  if (disable_inlining_) {
     md->get_attrs()->set_or_replace("__no_inline", new String("true"));
   }
   schedule_interrupt([this, md]{
@@ -435,11 +435,8 @@ void Runtime::rebuild() {
     return;
   } 
 
-  // Instantiate and recompile whatever is new.  If something goes wrong
-  // trigger a fatal interrupt that will be handled before the next time step.
-  if (!disable_inlining_) {
-    program_->inline_all();
-  }
+  // Inline as much as we can and compile whatever is new.  
+  program_->inline_all();
   root_->synchronize(item_evals_);
   if (compiler_->error()) {
     return log_compiler_errors();

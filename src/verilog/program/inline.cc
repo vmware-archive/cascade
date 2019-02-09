@@ -60,7 +60,8 @@ void Inline::outline_source(ModuleDeclaration* md) {
 
 bool Inline::can_inline(const ModuleDeclaration* md) const {
   const auto* std = md->get_attrs()->get<String>("__std");
-  return std != nullptr && std->eq("logic");
+  const auto* no_inline = md->get_attrs()->get<String>("__no_inline");
+  return (std != nullptr) && std->eq("logic") && (no_inline == nullptr);
 }
 
 bool Inline::is_inlined(const ModuleInstantiation* mi) {

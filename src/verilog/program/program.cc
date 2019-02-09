@@ -80,9 +80,11 @@ Program& Program::typecheck(bool tc) {
 }
 
 bool Program::declare(ModuleDeclaration* md, Log* log, const Parser* p) {
-  // Propage default annotations
-  if (md->get_attrs()->empty_as() && root_decl() != decl_end()) {
-    md->replace_attrs(root_decl()->second->get_attrs()->clone());
+  // Declarations inherit defaults from the root declaration
+  if (root_decl() != decl_end()) {
+    auto* attrs = root_decl()->second->get_attrs()->clone();
+    attrs->set_or_replace(md->get_attrs());
+    md->replace_attrs(attrs);
   }
   // Elaborate
   decl_check_ = true;
@@ -206,11 +208,14 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           Navigate(mi).invalidate();
         }
 
-        if (mi->get_attrs()->empty_as()) {
-          e->get_attrs()->set_or_replace(root_inst_->get_attrs());
-        } else {
-          e->get_attrs()->set_or_replace(mi->get_attrs());
-        }
+        // Instantiations inherit attributes first from the root instantiation
+        // and then from their declarations (which in turn inherit from the
+        // root declaration)
+        auto* attrs = (root_elab() != elab_end()) ? root_elab()->second->get_attrs()->clone() : new Attributes();
+        assert(decl_find(mi->get_mid()) != decl_end());
+        attrs->set_or_replace(decl_find(mi->get_mid())->second->get_attrs());
+        attrs->set_or_replace(mi->get_attrs());
+        e->replace_attrs(attrs);
         elabs_.insert(Resolve().get_full_id(mi->get_iid()), e);
       }
     }
@@ -333,9 +338,6 @@ void Program::edit(LoopGenerateConstruct* lgc) {
 }
 
 void Program::inline_all(ModuleDeclaration* md) {
-  if (!Inline().can_inline(md)) {
-    return;
-  }
   for (auto& c : ModuleInfo(md).children()) {
     const auto* fid = Resolve().get_full_id(c.first);
     auto itr = elabs_.find(fid);
@@ -343,14 +345,15 @@ void Program::inline_all(ModuleDeclaration* md) {
     assert(itr != elabs_.end());
     inline_all(itr->second);
   }
-  Inline().inline_source(md);
+  if (Inline().can_inline(md)) {
+    Inline().inline_source(md);
+  }
 }
 
 void Program::outline_all(ModuleDeclaration* md) {
-  if (!Inline().can_inline(md)) {
-    return;
+  if (Inline().can_inline(md)) {
+    Inline().outline_source(md);
   }
-  Inline().outline_source(md);
   for (auto& c : ModuleInfo(md).children()) {
     const auto* fid = Resolve().get_full_id(c.first);
     auto itr = elabs_.find(fid);
