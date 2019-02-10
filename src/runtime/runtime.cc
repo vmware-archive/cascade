@@ -483,16 +483,18 @@ void Runtime::drain_active() {
 bool Runtime::drain_updates() {
   auto performed_update = false;
   for (auto* m : logic_) {
-    auto update = m->engine()->conditional_update();
-    performed_update = performed_update || update;
+    if (m->engine()->conditional_update()) {
+      performed_update = true;
+    }
   }
   if (!performed_update) {
     return false;
   }
   auto performed_evaluate = false;
   for (auto* m : logic_) {
-    auto evaluate = m->engine()->conditional_evaluate();
-    performed_evaluate = performed_evaluate || evaluate;
+    if (m->engine()->conditional_evaluate()) {
+      performed_evaluate = true;
+    }
   }
   return performed_evaluate;
 }
