@@ -65,7 +65,8 @@ void ConstantProp::run(ModuleDeclaration* md) {
   md->accept(this);
 
   // Go back and delete every continuous assignment which was consumed when we
-  // populated the runtime constants set.
+  // populated the runtime constants set. Well... *almost* every. We have to
+  // make sure not to touch assignments to output ports.
   for (auto i = md->begin_items(); i != md->end_items(); ) {
     if ((*i)->is(Node::Tag::continuous_assign)) {
       auto* ca = static_cast<ContinuousAssign*>(*i);
@@ -73,10 +74,12 @@ void ConstantProp::run(ModuleDeclaration* md) {
       const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
+      const auto* pp = r->get_parent()->get_parent();
+      const auto is_output = (pp != nullptr) && pp->is(Node::Tag::port_declaration) && (static_cast<const PortDeclaration*>(pp)->get_type() != PortDeclaration::Type::INPUT);
       const auto is_slice = Resolve().is_slice(lhs);
       const auto is_array = Resolve().is_array(r);
       const auto consumed = runtime_constants_.find(r) != runtime_constants_.end();
-      if (!is_slice && !is_array && consumed) {
+      if (!is_output && !is_slice && !is_array && consumed) {
         i = md->purge_items(i);
         continue;
       } 
