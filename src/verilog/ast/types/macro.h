@@ -331,11 +331,17 @@
   bool empty_##t() const { \
     return PRIVATE(t).empty(); \
   } \
+  iterator_##t find_##t(T* val) { \
+    return std::find(begin_##t(), end_##t(), val); \
+  } \
   iterator_##t begin_##t() { \
     return iterator_##t(PRIVATE(t).begin()); \
   } \
   iterator_##t end_##t() { \
     return iterator_##t(PRIVATE(t).end()); \
+  } \
+  const_iterator_##t find_##t(const T* val) const { \
+    return std::find(begin_##t(), end_##t(), val); \
   } \
   const_iterator_##t begin_##t() const { \
     return const_iterator_##t(PRIVATE(t).begin()); \
