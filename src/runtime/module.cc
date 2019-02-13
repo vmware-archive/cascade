@@ -122,7 +122,7 @@ void Module::synchronize(size_t n) {
   for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
     (*i)->accept(&inst);
   }
-  // 3. Record new gloabl ids and the modules that they reference.
+  // 3. Record new gloabl ids and the modules that they are declared in (targets).
   std::unordered_set<const ModuleDeclaration*> targets;
   for (auto* m : inst.instances_) {
     for (auto* r : ModuleInfo(m->psrc_).reads()) {
@@ -134,21 +134,21 @@ void Module::synchronize(size_t n) {
       dp_->register_id(isolate_->isolate(w));
     }
   }
-  // 4. Flag modules referenced by global ids with missing subscriptions as
-  //    needing new source.
+  // 4. Flag every module which is a target as needing a recompile if it's missing
+  //    a subscription.
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     if (targets.find((*i)->psrc_) == targets.end()) {
       continue;
     }
     for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
       const auto gid = isolate_->isolate(r);
-      if (dp_->reader_find((*i)->engine_, gid) == dp_->reader_end(gid)) {
+      if (dp_->writer_find((*i)->engine_, gid) == dp_->writer_end(gid)) {
         (*i)->source_out_of_date_ = true;
       }
     }
     for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
       const auto gid = isolate_->isolate(w);
-      if (dp_->writer_find((*i)->engine_, gid) == dp_->writer_end(gid)) {
+      if (dp_->reader_find((*i)->engine_, gid) == dp_->reader_end(gid)) {
         (*i)->source_out_of_date_ = true;
       }
     }
@@ -170,22 +170,23 @@ void Module::synchronize(size_t n) {
     if (!(*i)->engine_out_of_date_) {
       continue;
     }
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
     }
     (*i)->engine_out_of_date_ = false;
   }
-  // 7. Synchronize subscriptions with the buffer
+  // 7. Synchronize subscriptions with the dataplane
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
       const auto gid = isolate_->isolate(r);
-      dp_->register_reader((*i)->engine_, gid);
+      dp_->register_writer((*i)->engine_, gid);
     }
     for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
       const auto gid = isolate_->isolate(w);
-      dp_->register_writer((*i)->engine_, gid);
+      dp_->register_reader((*i)->engine_, gid);
     }
   }
 }
@@ -198,7 +199,8 @@ void Module::rebuild() {
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;

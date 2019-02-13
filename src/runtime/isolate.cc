@@ -240,7 +240,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
     auto* pd = new PortDeclaration(
       new Attributes(), 
-      (r && w) ? PortDeclaration::Type::INOUT : r ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
+      (r && w) ? PortDeclaration::Type::INOUT : w ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
       (info.is_local(p) && p->get_parent()->is(Node::Tag::reg_declaration)) ? 
         static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),

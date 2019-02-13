@@ -84,13 +84,13 @@ class ModuleInfo : public Visitor {
     // Returns true if variable resolves to a declaration outside of this
     // module.  Note that !is_external(x) =/= is_local(x).
     bool is_external(const Identifier* id);
-    // Returns true if this variable is read from another module, either
-    // through a module instantiation or a hierarchical dereference in a
-    // location other than the lhs of an assignment.
+    // Returns true if this variable is read by another module, either through
+    // a module instantiation or a hierarchical dereference in a location other
+    // than the lhs of an assignment. 
     bool is_read(const Identifier* id);
-    // Returns true if this variable is written from another module, either
+    // Returns true if this variable is written by another module, either
     // through a module instantiation or a hierarchical dereference on the lhs
-    // of an assignment.
+    // of an assignment. 
     bool is_write(const Identifier* id);
     // Returns true if this variable resolves to a module instantiation in this
     // module.
@@ -151,6 +151,8 @@ class ModuleInfo : public Visitor {
     void ordered_parent_conn(const ModuleInstantiation* mi, const PortDeclaration* pd, size_t idx);
     void named_child_conns(const ModuleInstantiation* mi);
     void ordered_child_conns(const ModuleInstantiation* mi);
+    void named_external_conn(const ModuleInstantiation* mi, const ArgAssign* aa, const Identifier* id);
+    void ordered_external_conn(const ModuleInstantiation* mi, const ArgAssign* aa, const Identifier* id);
     void record_local_read(const Identifier* id);
     void record_external_read(const Identifier* id);
     void record_local_write(const Identifier* id);

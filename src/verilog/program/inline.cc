@@ -60,7 +60,8 @@ void Inline::outline_source(ModuleDeclaration* md) {
 
 bool Inline::can_inline(const ModuleDeclaration* md) const {
   const auto* std = md->get_attrs()->get<String>("__std");
-  return std != nullptr && std->eq("logic");
+  const auto* no_inline = md->get_attrs()->get<String>("__no_inline");
+  return (std != nullptr) && std->eq("logic") && (no_inline == nullptr);
 }
 
 bool Inline::is_inlined(const ModuleInstantiation* mi) {
@@ -222,8 +223,10 @@ void Inline::inline_source(ModuleInstantiation* mi) {
 }
 
 void Inline::outline_source(ModuleInstantiation* mi) {
-  // TODO(eschkufz) This method hasn't been called for some time. it's almost certainly
-  // suffering from bit-rot.
+  // TODO(eschkufz) It's been a long time since this method was actually used. I'm adding
+  // an assertion here to flag the fact that it's almost certainly bit-rotted. If and when
+  // it goes back into production, we can remove this.
+  assert(false);
 
   // Nothing to do for code which has already been outlined
   if (!is_inlined(mi)) {

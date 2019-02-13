@@ -213,10 +213,10 @@ void ModuleInfo::named_parent_conn(const ModuleInstantiation* mi, const PortDecl
     // Flag this variable as either a read or a write and return
     switch (pd->get_type()) {
       case PortDeclaration::Type::INPUT:
-        record_local_read(r);
+        record_local_write(r);
         return;
       case PortDeclaration::Type::OUTPUT:
-        record_local_write(r);
+        record_local_read(r);
         return;
       default:
         record_local_read(r);
@@ -245,10 +245,10 @@ void ModuleInfo::ordered_parent_conn(const ModuleInstantiation* mi, const PortDe
   const auto* r = pd->get_decl()->get_id();
   switch (pd->get_type()) {
     case PortDeclaration::Type::INPUT:
-      record_local_read(r);
+      record_local_write(r);
       break;
     case PortDeclaration::Type::OUTPUT:
-      record_local_write(r);
+      record_local_read(r);
       break;
     default:
       record_local_read(r);
@@ -281,10 +281,10 @@ void ModuleInfo::named_child_conns(const ModuleInstantiation* mi) {
 
     switch (pd->get_type()) {
       case PortDeclaration::Type::INPUT:
-        record_external_write(r);
+        record_external_read(r);
         break;
       case PortDeclaration::Type::OUTPUT:
-        record_external_read(r);
+        record_external_write(r);
         break;
       default:
         record_external_read(r);
@@ -299,8 +299,6 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
   unordered_map<const Identifier*, const Expression*> conn;
 
   auto itr = Elaborate().get_elaboration(mi)->begin_items();
-  auto itre = Elaborate().get_elaboration(mi)->end_items();
-
   for (size_t i = 0, ie = mi->size_ports(); i < ie; ++i) {
     const auto* p = mi->get_ports(i);
     // This is an ordered connection, so explicit port should always be null.
@@ -310,13 +308,12 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     // Track to the first port declaration. It's kind of ugly to have to iterate
     // over the entire text of this module every time we refresh, but it's the price
     // we pay for not having to rely on its module info.
-    while (!(*itr)->is(Node::Tag::port_declaration) && (itr != itre)) {
+    while (!(*itr)->is(Node::Tag::port_declaration)) {
       ++itr;
+      assert(itr != Elaborate().get_elaboration(mi)->end_items());
     }
-    assert(itr != itre);
     // Anything that appears in a module's port list must be declared as
     // a port. Typechecking should enforce this.
-    assert((*itr)->is(Node::Tag::port_declaration));
     auto* pd = static_cast<const PortDeclaration*>(*itr++);
 
     // Nothing to do for an empty ordered connection
@@ -331,10 +328,10 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
 
     switch (pd->get_type()) {
       case PortDeclaration::Type::INPUT:
-        record_external_write(r);
+        record_external_read(r);
         break;
       case PortDeclaration::Type::OUTPUT:
-        record_external_read(r);
+        record_external_write(r);
         break;
       default:
         record_external_read(r);
@@ -343,6 +340,110 @@ void ModuleInfo::ordered_child_conns(const ModuleInstantiation* mi) {
     }
   }
   md_->connections_.insert(make_pair(mi->get_iid(), conn));
+}
+
+void ModuleInfo::named_external_conn(const ModuleInstantiation* mi, const ArgAssign* aa, const Identifier* id) {
+  // This method should never be called for an empty named connection
+  assert(aa->is_non_null_exp());
+
+  // Grab the declaration that this explicit port corresponds to
+  const auto* r = Resolve().get_resolution(aa->get_exp()); 
+  assert(r != nullptr);
+
+  // If this module hasn't been inlined, then we can extract the port type for
+  // this variable from its declaration
+  if (!Inline().is_inlined(mi)) {
+    assert(r->get_parent()->get_parent()->is(Node::Tag::port_declaration));
+    auto* pd = static_cast<const PortDeclaration*>(r->get_parent()->get_parent());
+
+    switch (pd->get_type()) {
+      case PortDeclaration::Type::INPUT:
+        record_local_read(id);
+        break;
+      case PortDeclaration::Type::OUTPUT:
+        record_local_write(id);
+        break;
+      default:
+        record_local_read(id);
+        record_local_write(id);
+        break;
+    }
+  } 
+  // Otherwise, we'll need to extract it from the inlining annotation we generated
+  else {
+    assert(r->get_parent()->is_subclass_of(Node::Tag::declaration));
+    auto* d = static_cast<const Declaration*>(r->get_parent());
+    const auto* inl = d->get_attrs()->get<String>("__inline");
+    assert(inl != nullptr);
+
+    if (inl->eq("input")) {
+      record_local_read(id);
+    } else if (inl->eq("output")) {
+      record_local_write(id);
+    } else {
+      record_local_read(id);
+      record_local_write(id);
+    }
+  }
+}
+
+void ModuleInfo::ordered_external_conn(const ModuleInstantiation* mi, const ArgAssign* aa, const Identifier* id) {
+  // Nothing to do for modules which haven't been elaborated yet.
+  if (!Elaborate().is_elaborated(mi)) {
+    return;
+  }
+  // If this module hasn't been inlined, we'll have to scan through its declarations one at a time
+  // to determine the type of this port connection
+  if (!Inline().is_inlined(mi)) {
+    auto itr = Elaborate().get_elaboration(mi)->begin_items();
+    for (size_t i = 0, ie = (*mi->find_ports(aa) - *mi->begin_ports()); i <= ie; ++i) {
+      while (!(*itr)->is(Node::Tag::port_declaration)) {
+        ++itr;
+        assert(itr != Elaborate().get_elaboration(mi)->end_items());
+      }
+      if (i != ie) {
+        ++itr;
+      } 
+    }
+    const auto* pd = static_cast<const PortDeclaration*>(*itr);
+    switch (pd->get_type()) {
+      case PortDeclaration::Type::INPUT:
+        record_external_read(id);
+        break;
+      case PortDeclaration::Type::OUTPUT:
+        record_external_write(id);
+        break;
+      default:
+        record_external_read(id);
+        record_external_write(id);
+        break;
+    }
+  } 
+  // Otherwise, we'll need to pick out port declarations by inspecting inlining annotations
+  else {
+    auto itr = Inline().get_source(mi)->front_clauses()->get_then()->begin_items();
+    for (size_t i = 0, ie = (*mi->find_ports(aa) - *mi->begin_ports()); i <= ie; ++i) {
+      while (!(*itr)->is_subclass_of(Node::Tag::declaration) || (static_cast<const Declaration*>(*itr)->get_attrs()->get<String>("__inline") == nullptr)) {
+        ++itr;
+        assert(itr != Inline().get_source(mi)->front_clauses()->get_then()->end_items());
+      }
+      if (i != ie) {
+        ++itr;
+      } 
+    }
+    const auto* d = static_cast<const Declaration*>(*itr);
+    const auto* inl = d->get_attrs()->get<String>("__inline");
+    assert(inl != nullptr);
+
+    if (inl->eq("input")) {
+      record_local_read(id);
+    } else if (inl->eq("output")) {
+      record_local_write(id);
+    } else {
+      record_local_read(id);
+      record_local_write(id);
+    }
+  }
 }
 
 void ModuleInfo::record_local_read(const Identifier* id) {
@@ -377,24 +478,50 @@ void ModuleInfo::record_external_write(const Identifier* id) {
 
 void ModuleInfo::record_external_use(const Identifier* id) {
   for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
-    // Is this an identifier that resolves here?
-    if ((*i)->is(Node::Tag::identifier)) {
-      auto* eid = static_cast<const Identifier*>(*i);
-      // Nothing to do if this variable appears in this module
-      if (Resolve().get_parent(eid) == md_) {
+    // Nothing to do for expressions which aren't identifiers
+    if (!(*i)->is(Node::Tag::identifier)) {
+      continue;
+    }
+    const auto* eid = static_cast<const Identifier*>(*i);
+    // Nothing to do if this variable appears in this module
+    if (Resolve().get_parent(eid) == md_) {
+      continue;
+    }
+
+    // Grab a pointer to this identifier's parent
+    const auto* p = eid->get_parent();
+    assert(p != nullptr);
+    // Identifiers in ArgAssigns can be reads, writes, or neither
+    if (p->is(Node::Tag::arg_assign)) {
+      // Nothing to do if this is an explicit port
+      const auto* aa = static_cast<const ArgAssign*>(p);
+      if (aa->get_exp() == eid) {
         continue;
       }
-      // Do nothing If this is a named variable connection
-      if ((eid->get_parent() != nullptr) && (eid->get_parent()->is(Node::Tag::arg_assign))) {
+      const auto* pp = aa->get_parent();
+      assert(pp != nullptr);
+      // Nothing to do if this ArgAssign appears in a ModuleDeclaration 
+      if (pp->is(Node::Tag::module_declaration)) {
         continue;
       }
-      // If it's on the lhs of an expression, it's a write, otherwise it's a read
-      auto* p = eid->get_parent();
-      if (p->is(Node::Tag::variable_assign) && (static_cast<const VariableAssign*>(p)->get_lhs() == eid)) {
-        record_local_read(id);
-      } else {
-        record_local_write(id);
+      if (pp->is(Node::Tag::module_instantiation)) {
+        const auto* mi = static_cast<const ModuleInstantiation*>(pp);
+        if (mi->find_params(aa) != mi->end_params()) {
+          record_local_read(id);
+        } else if (mi->uses_named_ports()) {
+          named_external_conn(mi, aa, id);
+        } else {
+          ordered_external_conn(mi, aa, id);
+        }
       }
+    }    
+    // Identifiers on the left hand side of VariableAssigns are writes
+    else if (p->is(Node::Tag::variable_assign) && static_cast<const VariableAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } 
+    // Everything else is a read
+    else {
+      record_local_read(id);
     }
   }
 }
@@ -414,9 +541,9 @@ void ModuleInfo::visit(const Identifier* i) {
   }
   // This variable must be external, record read/write
   if (lhs_) {
-    record_external_write(r);
-  } else {
     record_external_read(r);
+  } else {
+    record_external_write(r);
   }
 }
 

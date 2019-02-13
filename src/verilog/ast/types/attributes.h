@@ -115,13 +115,17 @@ inline const T* Attributes::get(const std::string& s) const {
 
 inline void Attributes::set_or_replace(const Attributes* rhs) {
   for (auto i = rhs->begin_as(), ie = rhs->end_as(); i != ie; ++i) {
+    auto found = false;
     for (auto j = begin_as(), je = end_as(); j != je; ++j) {
       if (EqId()((*j)->get_lhs(), (*i)->get_lhs())) {
         (*j)->replace_rhs((*i)->clone_rhs());
+        found = true;
         break;
       }
     }
-    push_back_as((*i)->clone());
+    if (!found) {
+      push_back_as((*i)->clone());
+    }
   }
 }
 

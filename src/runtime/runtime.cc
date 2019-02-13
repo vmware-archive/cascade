@@ -391,6 +391,9 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     log_checker_errors();
     return false;
   }
+  if (disable_inlining_) {
+    md->get_attrs()->set_or_replace("__no_inline", new String("true"));
+  }
   schedule_interrupt([this, md]{
     view_->decl(logical_time_, program_, md);
   });
@@ -432,11 +435,8 @@ void Runtime::rebuild() {
     return;
   } 
 
-  // Instantiate and recompile whatever is new.  If something goes wrong
-  // trigger a fatal interrupt that will be handled before the next time step.
-  if (!disable_inlining_) {
-    program_->inline_all();
-  }
+  // Inline as much as we can and compile whatever is new.  
+  program_->inline_all();
   root_->synchronize(item_evals_);
   if (compiler_->error()) {
     return log_compiler_errors();
@@ -483,14 +483,18 @@ void Runtime::drain_active() {
 bool Runtime::drain_updates() {
   auto performed_update = false;
   for (auto* m : logic_) {
-    performed_update = performed_update || m->engine()->conditional_update();
+    if (m->engine()->conditional_update()) {
+      performed_update = true;
+    }
   }
   if (!performed_update) {
     return false;
   }
   auto performed_evaluate = false;
   for (auto* m : logic_) {
-    performed_evaluate = performed_evaluate || m->engine()->conditional_evaluate();
+    if (m->engine()->conditional_evaluate()) {
+      performed_evaluate = true;
+    }
   }
   return performed_evaluate;
 }

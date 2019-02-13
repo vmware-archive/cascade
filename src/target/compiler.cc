@@ -40,6 +40,7 @@
 #include "src/target/interface/local/local_compiler.h"
 #include "src/target/interface/remote/remote_compiler.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
 
@@ -196,7 +197,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   return new Engine(c, i);
 }
 
-void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md) {
+void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md, const Identifier* id) {
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
   const auto* t = md->get_attrs()->get<String>("__target");
@@ -226,7 +227,9 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // then simply preserve the original message. If compilation was aborted
   // without explanation, that's an error that requires explanation.
   stringstream ss;
-  TextPrinter(ss) << "fast-pass recompilation of " <<  md->get_id() << " with attributes " << md->get_attrs();
+  auto* fid = Resolve().get_full_id(id);
+  TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
+  delete fid;
   auto* e_fast = compile(md);
   if (error()) {
     return;
@@ -245,9 +248,11 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error.
   if (jit) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2, id]{
       stringstream ss;
-      TextPrinter(ss) << "slow-pass recompilation of " <<  md2->get_id() << " with attributes " << md2->get_attrs();
+      auto* fid = Resolve().get_full_id(id);
+      TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
+      delete fid;
       const auto str = ss.str();
 
       Masker().mask(md2);
