@@ -81,9 +81,9 @@ class Engine {
     void resync();
 
     // Extended State Management Interface:
-    // TODO(eschkufz) Does this really belong here? The only place this is called is in
-    // the open loop scheduler. This could be a lot more efficient if it were
-    // only defined for clocks.
+    // TODO(eschkufz) Does this really belong here? The only place this is
+    // called is in the open loop scheduler. This could be a lot more efficient
+    // if it were only defined for clocks.
     bool get_bit(VId id);
     void set_bit(VId id, bool t);
 
@@ -177,9 +177,7 @@ inline bool Engine::conditional_evaluate() {
 }
 
 inline bool Engine::conditional_update() {
-  const auto res = core_->conditional_update();
-  there_are_reads_ = false;
-  return res;
+  return core_->conditional_update();
 }
 
 inline size_t Engine::open_loop(VId clk, bool val, size_t itr) {
