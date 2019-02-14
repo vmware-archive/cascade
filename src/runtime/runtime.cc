@@ -59,7 +59,7 @@ Runtime::Runtime(View* view) : Asynchronous() {
   log_ = new Log();
   parser_ = new Parser();
   dp_ = new DataPlane();
-  isolate_ = new Isolate(dp_);
+  isolate_ = new Isolate();
   compiler_ = new Compiler();
 
   program_ = new Program();

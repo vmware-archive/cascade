@@ -44,10 +44,6 @@ using namespace std;
 
 namespace cascade {
 
-Isolate::Isolate(const DataPlane* dp) : Builder() { 
-  dp_ = dp;
-}
-
 ModuleDeclaration* Isolate::isolate(const ModuleDeclaration* src, int ignore) {
   src_ = src; 
   ignore_ = ignore;

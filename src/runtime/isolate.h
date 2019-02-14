@@ -45,7 +45,6 @@ class DataPlane;
 class Isolate : public Builder {
   public:
     // Constructors:
-    explicit Isolate(const DataPlane* dp);
     ~Isolate() override = default;
 
     // Deterministically tranforms a program variable into a globally-unique
@@ -56,9 +55,6 @@ class Isolate : public Builder {
     ModuleDeclaration* isolate(const ModuleDeclaration* src, int ignore);
 
   private:
-    // Runtime State:
-    const DataPlane* dp_;
-
     // Compilation State:
     const ModuleDeclaration* src_;
     int ignore_;
