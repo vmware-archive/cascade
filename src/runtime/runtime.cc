@@ -73,6 +73,8 @@ Runtime::Runtime(View* view) : Asynchronous() {
   disable_warning_ = false;
   disable_error_ = false;
 
+  item_evals_ = 0;
+
   schedule_all_ = false;
   clock_ = nullptr;
   inlined_logic_ = nullptr;
@@ -208,11 +210,11 @@ void Runtime::restart(const string& path) {
 void Runtime::retarget(const string& s) {
   (void) s;
   schedule_interrupt([this, s]{
-    // An unfortunate corner case: Have some evals snuck into the interrupt
-    // queue? Remember that Module::rebuild() can only be invoked in a state
-    // where there are no unhandled evals. Fortunately, there's an easy fix:
-    // just reinvoke retarget().  This will reschedule us on the far side of
-    // Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
+    // An unfortunate corner case: Have some evals been processed by the
+    // interrupt queue? Remember that Module::rebuild() can only be invoked in
+    // a state where there are no unhandled evals. Fortunately, there's an easy
+    // fix: just reinvoke retarget().  This will reschedule us on the far side
+    // of Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
     if (item_evals_ > 0) {
       return retarget(s);
     }
@@ -443,9 +445,11 @@ void Runtime::rebuild() {
     return;
   } 
 
-  // Inline as much as we can and compile whatever is new.  
+  // Inline as much as we can and compile whatever is new. Reset the item_evals_
+  // counter as soon as we're done.
   program_->inline_all();
   root_->synchronize(item_evals_);
+  item_evals_ = 0;
   if (compiler_->error()) {
     return log_compiler_errors();
   } 
@@ -524,9 +528,9 @@ void Runtime::drain_interrupts() {
   // Fast Path: 
   // Leave immediately if there are no interrupts scheduled. This isn't thread
   // safe, but the only asynchronous events we need to consider here are jit
-  // handoffs. Since the only thing we risk is a false negative, and whether we
-  // handle the handoff now or during next timestep doesn't really matter, this
-  // is fine. 
+  // handoffs or evals. Since the only thing we risk is a false negative, and
+  // whether we handle the event now or during next timestep doesn't really
+  // matter, this is fine. 
   if (ints_.empty()) {
     return;
   }
@@ -540,7 +544,6 @@ void Runtime::drain_interrupts() {
   // a sound state (ie, jit handoff hasn't failed) and then to rebuild the
   // codebase.
   lock_guard<recursive_mutex> lg(int_lock_);
-  item_evals_ = 0;
   schedule_interrupt([this]{
     rebuild();
   });
