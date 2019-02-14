@@ -62,7 +62,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
   }
 
   // Replace constant expressions with numbers
-  md->accept(this);
+  md->accept_items(this);
 
   // Go back and delete every continuous assignment which was consumed when we
   // populated the runtime constants set. Well... *almost* every. We have to
