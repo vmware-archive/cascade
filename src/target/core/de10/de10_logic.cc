@@ -483,9 +483,15 @@ void De10Logic::handle_tasks() {
       Sync sync(this);
       is->accept_args(&sync);
       interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::restart_statement)) {
+      const auto* rs = static_cast<const RestartStatement*>(tasks_[i]);
+      interface()->restart(rs->get_arg()->get_readable_val());
     } else if (tasks_[i]->is(Node::Tag::retarget_statement)) {
       const auto* rs = static_cast<const RetargetStatement*>(tasks_[i]);
       interface()->retarget(rs->get_arg()->get_readable_val());
+    } else if (tasks_[i]->is(Node::Tag::save_statement)) {
+      const auto* ss = static_cast<const SaveStatement*>(tasks_[i]);
+      interface()->save(ss->get_arg()->get_readable_val());
     } else if (tasks_[i]->is(Node::Tag::warning_statement)) {
       const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
       Sync sync(this);

@@ -256,8 +256,12 @@ inline void ProxyCore<T>::recv_task(const SysTask& t) {
       return T::interface()->finish(t.arg_);
     case SysTask::Type::INFO:
       return T::interface()->info(t.text_);
+    case SysTask::Type::RESTART:
+      return T::interface()->restart(t.text_);
     case SysTask::Type::RETARGET:
       return T::interface()->retarget(t.text_);
+    case SysTask::Type::SAVE:
+      return T::interface()->save(t.text_);
     case SysTask::Type::WARNING:
       return T::interface()->warning(t.text_);
     case SysTask::Type::WRITE:

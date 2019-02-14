@@ -201,6 +201,10 @@ void Runtime::fatal(int arg, const string& s) {
   finish(arg);
 }
 
+void Runtime::restart(const string& path) {
+  info("RESTART FROM " + path);
+}   
+
 void Runtime::retarget(const string& s) {
   (void) s;
   schedule_interrupt([this, s]{
@@ -260,6 +264,10 @@ void Runtime::retarget(const string& s) {
     delete backup_root;
     root_->rebuild();
   });
+}
+
+void Runtime::save(const string& path) {
+  info("SAVE TO " + path);
 }
 
 void Runtime::schedule_interrupt(Interrupt int_) {

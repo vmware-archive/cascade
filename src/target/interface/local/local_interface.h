@@ -47,7 +47,9 @@ class LocalInterface : public Interface {
     void fatal(int arg, const std::string& s) override;
     void finish(int arg) override;
     void info(const std::string& s) override;
+    void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
+    void save(const std::string& s) override;
     void warning(const std::string& s) override;
     void write(const std::string& s) override;
 
@@ -82,8 +84,16 @@ inline void LocalInterface::info(const std::string& s) {
   rt_->info(s);
 }
 
+inline void LocalInterface::restart(const std::string& s) {
+  rt_->restart(s);
+}
+
 inline void LocalInterface::retarget(const std::string& s) {
   rt_->retarget(s);
+}
+
+inline void LocalInterface::save(const std::string& s) {
+  rt_->save(s);
 }
 
 inline void LocalInterface::warning(const std::string& s) {

@@ -155,7 +155,9 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
 %token SYS_INFO     "$info"
+%token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
+%token SYS_SAVE     "$save"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -1434,8 +1436,16 @@ system_task_enable
     $$ = new InfoStatement($3.begin(), $3.end()); 
     parser->set_loc($$);
   }
+  | SYS_RESTART OPAREN string_ CPAREN SCOLON {
+    $$ = new RestartStatement($3);
+    parser->set_loc($$);
+  }
   | SYS_RETARGET OPAREN string_ CPAREN SCOLON {
     $$ = new RetargetStatement($3);
+    parser->set_loc($$);
+  }
+  | SYS_SAVE OPAREN string_ CPAREN SCOLON {
+    $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 

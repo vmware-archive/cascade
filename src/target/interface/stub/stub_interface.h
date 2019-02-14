@@ -45,7 +45,9 @@ class StubInterface : public Interface {
     void fatal(int arg, const std::string& s) override;
     void finish(int arg) override;
     void info(const std::string& s) override;
+    void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
+    void save(const std::string& s) override;
     void warning(const std::string& s) override;
     void write(const std::string& s) override;
 
@@ -80,7 +82,17 @@ inline void StubInterface::info(const std::string& s) {
   (void) s;
 }
 
+inline void StubInterface::restart(const std::string& s) {
+  // Does nothing.
+  (void) s;
+}
+
 inline void StubInterface::retarget(const std::string& s) {
+  // Does nothing.
+  (void) s;
+}
+
+inline void StubInterface::save(const std::string& s) {
   // Does nothing.
   (void) s;
 }

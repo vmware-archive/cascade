@@ -540,7 +540,9 @@
   friend class FatalStatement; \
   friend class FinishStatement; \
   friend class InfoStatement; \
+  friend class RestartStatement; \
   friend class RetargetStatement; \
+  friend class SaveStatement; \
   friend class WarningStatement; \
   friend class WriteStatement; \
   friend class WaitStatement; \

@@ -469,12 +469,28 @@ void SwLogic::visit(const InfoStatement* is) {
   notify(is);
 }
 
+void SwLogic::visit(const RestartStatement* rs) {
+  if (!silent_) {
+    interface()->restart(rs->get_arg()->get_readable_val());
+    there_were_tasks_ = true;
+  }
+  notify(rs);
+}
+
 void SwLogic::visit(const RetargetStatement* rs) {
   if (!silent_) {
     interface()->retarget(rs->get_arg()->get_readable_val());
     there_were_tasks_ = true;
   }
   notify(rs);
+}
+
+void SwLogic::visit(const SaveStatement* ss) {
+  if (!silent_) {
+    interface()->save(ss->get_arg()->get_readable_val());
+    there_were_tasks_ = true;
+  }
+  notify(ss);
 }
 
 void SwLogic::visit(const WarningStatement* ws) {
