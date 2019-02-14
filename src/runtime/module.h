@@ -114,8 +114,6 @@ class Module {
     // Implementation State:
     ModuleDeclaration* src_;
     Engine* engine_;
-    bool source_out_of_date_;
-    bool engine_out_of_date_;
 
     // Hierarchical State:
     const ModuleDeclaration* psrc_;
