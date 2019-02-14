@@ -63,6 +63,14 @@ VId Isolate::isolate(const Identifier* id) {
   return itr->second;
 }
 
+MId Isolate::isolate(const ModuleInstantiation* mi) {
+  auto itr = module_table_.find(mi->get_iid());
+  if (itr == module_table_.end()) {
+    itr = module_table_.insert(make_pair(mi->get_iid(), module_table_.size())).first;
+  }
+  return itr->second;
+}
+
 Attributes* Isolate::build(const Attributes* as) {
   // Ignore attributes
   (void) as;
@@ -182,15 +190,9 @@ ModuleItem* Isolate::build(const PortDeclaration* pd) {
   return nullptr;
 }
 
-Identifier* Isolate::to_mangled_id(const Identifier* id) {
-  // Don't use isolate(.) here. We don't want to try to resolve this id.
-  auto itr = module_table_.find(id);
-  if (itr == module_table_.end()) {
-    itr = module_table_.insert(make_pair(id, module_table_.size())).first;
-  }
-
+Identifier* Isolate::to_mangled_id(const ModuleInstantiation* mi) {
   stringstream ss;
-  ss << "__M" << itr->second;
+  ss << "__M" << isolate(mi);
   return new Identifier(ss.str());
 }
 
@@ -216,7 +218,7 @@ ModuleDeclaration* Isolate::get_shell() {
   assert(src_->get_parent()->is(Node::Tag::module_instantiation));
   auto* res = new ModuleDeclaration(
     src_->get_attrs()->clone(),
-    to_mangled_id(static_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid())
+    to_mangled_id(static_cast<const ModuleInstantiation*>(src_->get_parent()))
   );
 
   unordered_set<const Identifier*> ios;

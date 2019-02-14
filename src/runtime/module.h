@@ -32,6 +32,7 @@
 #define CASCADE_SRC_RUNTIME_MODULE_H
 
 #include <forward_list>
+#include <iosfwd>
 #include <stddef.h>
 #include <vector>
 #include "src/verilog/ast/visitors/editor.h"
@@ -77,6 +78,10 @@ class Module {
     // should only be called in a state where synchronize has been invoked and
     // no further changes have been made to the text of the user's program.
     void rebuild();
+    // Dumps the state of the module hierarchy to an ostream. This method
+    // should only be called in a state where synchronize has been invoked and
+    // no further changes have been made to the text of the user's program.
+    void save(std::ostream& os);
 
     // Hierarchy Interface:
     // 

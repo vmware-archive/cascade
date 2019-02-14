@@ -34,6 +34,41 @@ using namespace std;
 
 namespace cascade {
 
+void Input::read(istream& is, size_t base) {
+  input_.clear();
+
+  size_t n = 0;
+  is >> n;
+
+  for (size_t i = 0; i < n; ++i) {
+    VId id;
+    is >> id;
+
+    size_t width = 0;
+    is >> width;
+
+    bool is_signed = false;
+    is >> is_signed; 
+
+    Bits bits;
+    bits.read(is, base);
+    bits.resize(width);
+    bits.set_signed(is_signed);
+
+    input_.insert(make_pair(id, bits));
+  }
+}
+
+void Input::write(ostream& os, size_t base) const {
+  os << input_.size() << endl;
+  for (const auto& i : input_) {
+    os << "  " << i.first << " " << i.second.size() << " " << (i.second.is_signed() ? 1 : 0) << endl;
+    os << "    ";
+    i.second.write(os, base);
+    os << endl;
+  }
+}
+
 size_t Input::deserialize(istream& is) {
   input_.clear();
 

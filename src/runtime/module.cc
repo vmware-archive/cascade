@@ -31,6 +31,7 @@
 #include "src/runtime/module.h"
 
 #include <cassert>
+#include <iostream>
 #include <unordered_set>
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
@@ -40,7 +41,6 @@
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/debug/debug_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
@@ -160,6 +160,35 @@ void Module::rebuild() {
     if (compiler_->error()) {
       return;
     }
+  }
+}
+
+void Module::save(ostream& os) {
+  // TODO(eschkufz) Can this really be the only way we have of counting the
+  // number of modules in the hierarchy? Yikes, this is lame.
+  size_t n = 0;
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    ++n;
+  }
+  os << n << endl;
+
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    auto* p = (*i)->psrc_->get_parent();
+    assert(p != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+
+    os << "MODULE:" << endl;
+    os << isolate_->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
+    
+    os << "INPUT:" << endl;
+    auto* input = (*i)->engine_->get_input();
+    input->write(os, 16);
+    delete input;
+
+    os << "STATE:" << endl;
+    auto* state = (*i)->engine_->get_state();
+    state->write(os, 16);
+    delete state;
   }
 }
 

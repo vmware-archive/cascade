@@ -50,6 +50,9 @@ class Isolate : public Builder {
     // Deterministically tranforms a program variable into a globally-unique
     // variable ID.
     VId isolate(const Identifier* id);
+    // Deterministically transforms a module instantiation into a
+    // globally-unique module ID.
+    MId isolate(const ModuleInstantiation* mi);
     // Transforms an instantiated module from a program into a stand-alone
     // declaration with equivalent semantics.
     ModuleDeclaration* isolate(const ModuleDeclaration* src, int ignore);
@@ -74,7 +77,7 @@ class Isolate : public Builder {
     ModuleItem* build(const PortDeclaration* pd) override;
 
     // Returns a mangled identifier
-    Identifier* to_mangled_id(const Identifier* id);
+    Identifier* to_mangled_id(const ModuleInstantiation* mi);
     // Returns a new locally unique identifier
     Identifier* to_local_id(const Identifier* id);
     // Returns a copy of the global identifier that corresponds to this id

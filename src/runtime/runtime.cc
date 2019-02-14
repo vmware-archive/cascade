@@ -208,7 +208,6 @@ void Runtime::restart(const string& path) {
 }   
 
 void Runtime::retarget(const string& s) {
-  (void) s;
   schedule_interrupt([this, s]{
     // An unfortunate corner case: Have some evals been processed by the
     // interrupt queue? Remember that Module::rebuild() can only be invoked in
@@ -269,7 +268,15 @@ void Runtime::retarget(const string& s) {
 }
 
 void Runtime::save(const string& path) {
-  info("SAVE TO " + path);
+  schedule_interrupt([this, path]{
+    // As with retarget(), invoking this method in a state where item_evals_ >
+    // 0 can be problematic. This condition guarantees safety.
+    if (item_evals_ > 0) {
+      return save(path);
+    }
+    ofstream ofs(path);
+    root_->save(ofs);
+  });
 }
 
 void Runtime::schedule_interrupt(Interrupt int_) {

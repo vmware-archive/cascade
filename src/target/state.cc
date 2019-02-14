@@ -34,6 +34,47 @@ using namespace std;
 
 namespace cascade {
 
+void State::read(istream& is, size_t base) {
+  state_.clear();
+
+  size_t n = 0;
+  is >> n;
+
+  for (size_t i = 0; i < n; ++i) {
+    VId id;
+    is >> id;
+
+    size_t arity = 0;
+    is >> arity;
+
+    size_t width = 0;
+    is >> width;
+
+    bool is_signed = false;
+    is >> is_signed; 
+
+    for (size_t j = 0; j < arity; ++j) {
+      Bits bits;
+      bits.read(is, base);
+      bits.resize(width);
+      bits.set_signed(is_signed);
+      state_[id].push_back(bits);
+    }
+  }  
+}
+
+void State::write(ostream& os, size_t base) const {
+  os << state_.size() << endl;
+  for (const auto& s : state_) {
+    os << "  " << s.first << " " << s.second.size() << " " << s.second[0].size() << " " << (s.second[0].is_signed() ? 1 : 0) << endl;
+    for (const auto& b : s.second) {
+      os << "    ";
+      b.write(os, base);
+      os << endl;
+    }
+  }
+}
+
 size_t State::deserialize(istream& is) {
   state_.clear();
 
