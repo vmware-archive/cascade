@@ -31,6 +31,7 @@
 #include "src/runtime/isolate.h"
 
 #include <cassert>
+#include <map>
 #include <sstream>
 #include <string>
 #include "src/base/bits/bits.h"
@@ -39,6 +40,7 @@
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/program/elaborate.h"
+#include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
 
@@ -217,46 +219,63 @@ ModuleDeclaration* Isolate::get_shell() {
     to_mangled_id(static_cast<const ModuleInstantiation*>(src_->get_parent())->get_iid())
   );
 
-  unordered_set<const Identifier*> ports;
-  ports.insert(info.reads().begin(), info.reads().end());
-  ports.insert(info.writes().begin(), info.writes().end());
-
-  for (auto* p : ports) {
+  unordered_set<const Identifier*> ios;
+  ios.insert(info.reads().begin(), info.reads().end());
+  ios.insert(info.writes().begin(), info.writes().end());
+  
+  // Sort ports lexicographically by name so that we assign VIds
+  // deterministically
+  map<string, const Identifier*> ports;
+  for (auto* i : ios) {
+    stringstream ss;
+    auto* fid = Resolve().get_full_id(i);
+    TextPrinter(ss) << fid;
+    delete fid;
+    ports.insert(make_pair(ss.str(), i));
+  }
+  // Generate port declarations
+  for (auto& p : ports) {
     res->push_back_ports(new ArgAssign(
       nullptr,
-      to_global_id(p)
+      to_global_id(p.second)
     ));
 
-    const auto r = info.is_read(p);
-    const auto w = info.is_write(p);
-    const auto width = Evaluate().get_width(p);
+    const auto r = info.is_read(p.second);
+    const auto w = info.is_write(p.second);
+    const auto width = Evaluate().get_width(p.second);
 
     // TODO(eschkufz) Is this logic correct? When should a global read/write be
-    // promoted to a register and when should it remain a net?
+    // promoted to a register and when should it remain a net? There could be a
+    // funny interaction here if a dereference of an external register is
+    // promoted to an input.
+
+    const auto is_signed = p.second->get_parent()->is(Node::Tag::reg_declaration) ?
+      static_cast<const RegDeclaration*>(p.second->get_parent())->get_signed() :
+      static_cast<const NetDeclaration*>(p.second->get_parent())->get_signed();
 
     auto* pd = new PortDeclaration(
       new Attributes(), 
       (r && w) ? PortDeclaration::Type::INOUT : w ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
-      (info.is_local(p) && p->get_parent()->is(Node::Tag::reg_declaration)) ? 
+      (info.is_local(p.second) && p.second->get_parent()->is(Node::Tag::reg_declaration)) ? 
         static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),
-          to_global_id(p),
-          static_cast<const RegDeclaration*>(p->get_parent())->get_signed(), 
+          to_global_id(p.second),
+          is_signed,
           (width == 1) ? nullptr : new RangeExpression(width),
-          static_cast<const RegDeclaration*>(p->get_parent())->clone_val()
+          static_cast<const RegDeclaration*>(p.second->get_parent())->clone_val()
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
           NetDeclaration::Type::WIRE,
           nullptr,
-          to_global_id(p),
-          static_cast<const NetDeclaration*>(p->get_parent())->get_signed(),
+          to_global_id(p.second),
+          is_signed,
           (width == 1) ? nullptr : new RangeExpression(width)
         ))
     );
     pd->get_attrs()->push_back_as(new AttrSpec(
       new Identifier("__id"), 
-      Resolve().get_full_id(p)
+      Resolve().get_full_id(p.second)
     ));
     res->push_back_items(pd);
   }
@@ -265,13 +284,24 @@ ModuleDeclaration* Isolate::get_shell() {
 }
 
 vector<ModuleItem*> Isolate::get_local_decls() {
-  vector<ModuleItem*> res;
+  // Sort variables lexicographically by name so that we assign VIds
+  // deterministically
+  map<string, const Identifier*> locals;
   for (auto* l : ModuleInfo(src_).locals()) {
     if (ModuleInfo(src_).is_read(l) || ModuleInfo(src_).is_write(l)) {
       continue;
     }
-    assert(l->get_parent()->is_subclass_of(Node::Tag::declaration));
-    auto* d = static_cast<const Declaration*>(l->get_parent())->accept(this);
+    stringstream ss;
+    auto* fid = Resolve().get_full_id(l);
+    TextPrinter(ss) << fid;
+    delete fid;
+    locals.insert(make_pair(ss.str(), l));
+  }
+
+  vector<ModuleItem*> res;
+  for (auto& l : locals) {
+    assert(l.second->get_parent()->is_subclass_of(Node::Tag::declaration));
+    auto* d = static_cast<const Declaration*>(l.second->get_parent())->accept(this);
     if (d != nullptr) {
       res.push_back(d);
     }
