@@ -79,42 +79,4 @@ bool EqId::operator()(const Identifier* id1, const Identifier* id2) const {
   return true;
 }
 
-bool LtId::operator()(const Expression* e1, const Expression* e2) const {
-  if ((e1 == nullptr) && (e2 == nullptr)) {
-    return false;
-  } else if ((e1 != nullptr) && (e2 != nullptr)) {
-    return Evaluate().get_value(e1).to_int() < Evaluate().get_value(e2).to_int();
-  } else {
-    return e1 == nullptr;
-  } 
-}
-
-bool LtId::operator()(const Id* id1, const Id* id2) const {
-  if (id1->get_sid() < id2->get_sid()) {
-    return true;
-  } 
-  if (id2->get_sid() < id1->get_sid()) {
-    return false;
-  } 
-  return this->operator()(id1->get_isel(), id2->get_isel());
-}
-
-bool LtId::operator()(const Identifier* id1, const Identifier* id2) const {
-  if (id1->size_ids() < id2->size_ids()) {
-    return true;
-  } 
-  if (id1->size_ids() > id2->size_ids()) {
-    return false;
-  }
-  for (auto i = id1->begin_ids(), j = id2->begin_ids(), ie = id1->end_ids(); i != ie; ++i, ++j) {
-    if (this->operator()(*i, *j)) {
-      return true;
-    }
-    if (this->operator()(*j, *i)) {
-      return false;
-    }
-  }
-  return false;
-}
-
 } // namespace cascade

@@ -58,17 +58,6 @@ struct EqId {
   bool operator()(const Identifier* id1, const Identifier* id2) const;
 };
 
-// A collection of methods for checking equality of identifiers based on their
-// names rather than their pointer value (eg x[i+1] =?= x[3]) These methods
-// require up-to-date resolution decorations (see resolve.h) to function
-// correctly.  These methods are undefined for identifiers whos free variables
-// are not compile-time constants.
-struct LtId {
-  bool operator()(const Expression* e1, const Expression* e2) const;
-  bool operator()(const Id* id1, const Id* id2) const;
-  bool operator()(const Identifier* id1, const Identifier* id2) const;
-};
-
 } // namespace cascade
 
 #endif
