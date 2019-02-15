@@ -54,7 +54,7 @@ class ProxyCore : public T {
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
-    void resync() override;
+    void finalize() override;
 
     bool overrides_done_step() const override;
     void done_step() override;
@@ -131,8 +131,8 @@ inline void ProxyCore<T>::set_input(const Input* i) {
 }
 
 template <typename T>
-inline void ProxyCore<T>::resync() {
-  conn_->send_rpc(Rpc(Rpc::Type::RESYNC, id_));
+inline void ProxyCore<T>::finalize() {
+  conn_->send_rpc(Rpc(Rpc::Type::FINALIZE, id_));
   conn_->recv_ack();
 }
 

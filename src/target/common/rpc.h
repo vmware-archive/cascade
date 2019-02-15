@@ -51,7 +51,7 @@ struct Rpc : Serializable {
     SET_STATE,
     GET_INPUT,
     SET_INPUT,
-    RESYNC,
+    FINALIZE,
 
     OVERRIDES_DONE_STEP,
     DONE_STEP,

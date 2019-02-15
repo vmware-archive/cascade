@@ -147,8 +147,8 @@ void RemoteRuntime::run_logic() {
         case Rpc::Type::SET_INPUT:
           set_input(conn, engines[rpc.id_]);
           break;
-        case Rpc::Type::RESYNC:
-          resync(conn, engines[rpc.id_]);
+        case Rpc::Type::FINALIZE:
+          finalize(conn, engines[rpc.id_]);
           break;
         case Rpc::Type::OVERRIDES_DONE_STEP:
           overrides_done_step(conn, engines[rpc.id_]);
@@ -257,8 +257,8 @@ void RemoteRuntime::set_input(Connection* conn, Engine* e) {
   conn->send_ack();
 }
 
-void RemoteRuntime::resync(Connection* conn, Engine* e) {
-  e->resync();
+void RemoteRuntime::finalize(Connection* conn, Engine* e) {
+  e->finalize();
   conn->send_ack();
 }
 

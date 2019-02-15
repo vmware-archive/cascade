@@ -211,7 +211,7 @@ void De10Logic::set_input(const Input* i) {
   }
 }
 
-void De10Logic::resync() {
+void De10Logic::finalize() {
   // Reset the task queue and go live
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);

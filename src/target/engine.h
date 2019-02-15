@@ -78,7 +78,7 @@ class Engine {
     void set_state(const State* s);
     Input* get_input();
     void set_input(const Input* i);
-    void resync();
+    void finalize();
 
     // Extended State Management Interface:
     // TODO(eschkufz) Does this really belong here? The only place this is
@@ -205,8 +205,8 @@ inline void Engine::set_input(const Input* i) {
   core_->set_input(i);
 }
 
-inline void Engine::resync() {
-  core_->resync();
+inline void Engine::finalize() {
+  core_->finalize();
 }
 
 inline bool Engine::get_bit(VId id) {
@@ -236,7 +236,7 @@ inline void Engine::replace_with(Engine* e) {
   e->core_->set_input(i);
   delete i;
 
-  e->core_->resync();
+  e->core_->finalize();
 
   delete core_;
   core_ = e->core_;

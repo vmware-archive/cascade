@@ -71,7 +71,7 @@ class RemoteRuntime : public Asynchronous {
     void set_state(Connection* conn, Engine* e);
     void get_input(Connection* conn, Engine* e);
     void set_input(Connection* conn, Engine* e);
-    void resync(Connection* conn, Engine* e);
+    void finalize(Connection* conn, Engine* e);
 
     void overrides_done_step(Connection* conn, Engine* e);
     void done_step(Connection* conn, Engine* e);

@@ -51,17 +51,19 @@ class Core {
     // this module. It is called at most once before this core is torn down.
     virtual State* get_state() = 0;
     // This method must update the value of any stateful elements contained in
-    // this module. It is called exactly once before resync().
+    // this module. It is called exactly once before finalize(), and may be
+    // called multiple times thereafter.
     virtual void set_state(const State* s) = 0;
     // This method must return the values of all inputs connected to this
     // module. It is called at most once before this core is torn down.
     virtual Input* get_input() = 0;
     // This method must update the value of an input connected to this module.
-    // It is called exactly once before resync().
+    // It is called exactly once before finalize(), and may be called multiple
+    // times thereafter.
     virtual void set_input(const Input* i) = 0;
     // Target-specific implementations may override this method to perform
     // last minute initialization prior to beginning execution.
-    virtual void resync();
+    virtual void finalize();
 
     // Overriding this method to return true will cause the runtime to call the
     // done_step() method at the end of each logical time step. The default
@@ -188,7 +190,7 @@ inline Core::Core(Interface* interface) {
   interface_ = interface;
 }
 
-inline void Core::resync() {
+inline void Core::finalize() {
   // Does nothing.
 }
 

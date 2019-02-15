@@ -204,7 +204,18 @@ void Runtime::fatal(int arg, const string& s) {
 }
 
 void Runtime::restart(const string& path) {
-  info("RESTART FROM " + path);
+  schedule_interrupt([this, path]{
+    // As with retarget(), invoking this method in a state where item_evals_ >
+    // 0 can be problematic. This condition guarantees safety.
+    if (item_evals_ > 0) {
+      return restart(path);
+    }
+    ifstream ifs(path);
+    if (!ifs.is_open()) {
+      return fatal(0, "Unable to open save file '" + path + "'!");
+    }
+    root_->restart(ifs);
+  });
 }   
 
 void Runtime::retarget(const string& s) {

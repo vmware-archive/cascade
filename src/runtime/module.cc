@@ -32,15 +32,19 @@
 
 #include <cassert>
 #include <iostream>
+#include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
+#include "src/runtime/runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/engine.h"
 #include "src/target/state.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
@@ -111,6 +115,101 @@ Module::~Module() {
   delete engine_;
 }
 
+void Module::restart(std::istream& is) {
+  // Read save file
+  size_t n = 0;
+  is >> n;
+  unordered_map<MId, pair<Input*, State*>> save;
+  for (size_t i = 0; i < n; ++i) {
+    string ignore;
+    MId id;
+    auto input = new Input();
+    auto state = new State();
+
+    is >> ignore >> id;
+    is >> ignore;
+    input->read(is, 16);
+    is >> ignore;
+    state->read(is, 16);
+
+    save[id] = make_pair(input, state);
+  }
+
+  // Update module hierarchy
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto* p = (*i)->psrc_->get_parent();
+    assert(p != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+    const auto id = isolate_->isolate(static_cast<const ModuleInstantiation*>(p));
+    const auto itr = save.find(id);
+
+    if (itr == save.end()) {
+      continue;
+    }
+
+    stringstream ss;
+    const auto* fid = Resolve().get_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    TextPrinter(ss) << "Updated state for " << fid;
+    delete fid;
+    rt_->info(ss.str());
+
+    (*i)->engine_->set_input(itr->second.first);
+    (*i)->engine_->set_state(itr->second.second);
+  }
+
+  // Delete contents of save file
+  for (auto& s : save) {
+    delete s.second.first;
+    delete s.second.second;
+  }
+}
+
+void Module::rebuild() {
+  // This method should only be called in a state where all modules are in sync
+  // with the user's program. However(!) we do still need to regenerate source.
+  // Recall that compilation takes over ownership of a module's source code,
+  // and in many cases, deletes or modifies it.
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto ignore = (*i)->psrc_->size_items();
+    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    (*i)->src_ = nullptr;
+    if (compiler_->error()) {
+      return;
+    }
+  }
+}
+
+void Module::save(ostream& os) {
+  // TODO(eschkufz) Can this really be the only way we have of counting the
+  // number of modules in the hierarchy? Yikes, this is lame.
+  size_t n = 0;
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    ++n;
+  }
+  os << n << endl;
+
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto* p = (*i)->psrc_->get_parent();
+    assert(p != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+
+    os << "MODULE:" << endl;
+    os << isolate_->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
+    
+    os << "INPUT:" << endl;
+    auto* input = (*i)->engine_->get_input();
+    input->write(os, 16);
+    delete input;
+
+    os << "STATE:" << endl;
+    auto* state = (*i)->engine_->get_state();
+    state->write(os, 16);
+    delete state;
+  }
+}
+
 void Module::synchronize(size_t n) {
   // Examine new code and instantiate new modules below the root 
   Instantiator inst(this);
@@ -143,52 +242,6 @@ void Module::synchronize(size_t n) {
       dp_->register_id(gid);
       dp_->register_reader((*i)->engine_, gid);
     }
-  }
-}
-
-void Module::rebuild() {
-  // This method should only be called in a state where all modules are in sync
-  // with the user's program. However(!) we do still need to regenerate source.
-  // Recall that compilation takes over ownership of a module's source code,
-  // and in many cases, deletes or modifies it.
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    const auto ignore = (*i)->psrc_->size_items();
-    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
-    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
-    (*i)->src_ = nullptr;
-    if (compiler_->error()) {
-      return;
-    }
-  }
-}
-
-void Module::save(ostream& os) {
-  // TODO(eschkufz) Can this really be the only way we have of counting the
-  // number of modules in the hierarchy? Yikes, this is lame.
-  size_t n = 0;
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    ++n;
-  }
-  os << n << endl;
-
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    auto* p = (*i)->psrc_->get_parent();
-    assert(p != nullptr);
-    assert(p->is(Node::Tag::module_instantiation));
-
-    os << "MODULE:" << endl;
-    os << isolate_->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
-    
-    os << "INPUT:" << endl;
-    auto* input = (*i)->engine_->get_input();
-    input->write(os, 16);
-    delete input;
-
-    os << "STATE:" << endl;
-    auto* state = (*i)->engine_->get_state();
-    state->write(os, 16);
-    delete state;
   }
 }
 
