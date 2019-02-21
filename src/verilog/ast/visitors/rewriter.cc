@@ -336,9 +336,19 @@ Statement* Rewriter::rewrite(InfoStatement* is) {
   return is;
 }
 
+Statement* Rewriter::rewrite(RestartStatement* rs) {
+  rs->accept_arg(this);
+  return rs;
+}
+
 Statement* Rewriter::rewrite(RetargetStatement* rs) {
   rs->accept_arg(this);
   return rs;
+}
+
+Statement* Rewriter::rewrite(SaveStatement* ss) {
+  ss->accept_arg(this);
+  return ss;
 }
 
 Statement* Rewriter::rewrite(WarningStatement* ws) {

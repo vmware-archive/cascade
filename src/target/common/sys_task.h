@@ -44,7 +44,9 @@ struct SysTask : Serializable {
     FATAL,
     FINISH,
     INFO,
+    RESTART,
     RETARGET,
+    SAVE,
     WARNING,
     WRITE
   };

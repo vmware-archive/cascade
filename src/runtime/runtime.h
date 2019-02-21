@@ -127,9 +127,13 @@ class Runtime : public Asynchronous {
 
     // Cascade-Specific System Task Interface (Cascade Only):
     //
+    // Loads the current state of the simulation from a file
+    void restart(const std::string& path);
     // Schedules a recompilation of the current program to a new march target in
     // between this and the next timestep. Returns immediately.
     void retarget(const std::string& s);
+    // Saves the current state of the simulation to a file
+    void save(const std::string& path);
 
     // Program-Logic Interface:
     //

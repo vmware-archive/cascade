@@ -56,6 +56,14 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   }
   // Initial provision for update_pool_:
   update_pool_.resize(1);
+  // Schedule always constructs and continuous assigns.
+  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
+    if ((*i)->is(Node::Tag::always_construct) || (*i)->is(Node::Tag::continuous_assign)) {
+      schedule_now(*i);
+    }
+  }
+  // By default, silent mode is off
+  silent_ = false;
 }
 
 SwLogic::~SwLogic() {
@@ -93,8 +101,10 @@ void SwLogic::set_state(const State* s) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
       Evaluate().assign_array_value(sv.second, itr->second);
+      notify(sv.second);
     }
   }
+  silent_evaluate();
 }
 
 Input* SwLogic::get_input() {
@@ -119,31 +129,13 @@ void SwLogic::set_input(const Input* i) {
     if (itr != i->end()) {
       Evaluate().assign_value(id, itr->second);
     }
+    notify(id);
   }
+  silent_evaluate();
 }
 
-void SwLogic::resync() {
-  // Schedule always constructs and continuous assigns.
-  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if ((*i)->is(Node::Tag::always_construct) || (*i)->is(Node::Tag::continuous_assign)) {
-      schedule_now(*i);
-    }
-  }
-  for (auto* l : ModuleInfo(src_).inputs()) {
-    notify(l);
-  } 
-
-  // Turn on silent mode and drain the active queue
-  silent_ = true;
-  while (!active_.empty()) {
-    auto* e = active_.back();
-    active_.pop_back();
-    const_cast<Node*>(e)->set_flag<1>(false);
-    schedule_now(e);
-  }
-  silent_ = false;
-
-  // Now that signals have been propagated, schedule initial constructs
+void SwLogic::finalize() {
+  // Schedule initial constructs
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::initial_construct)) {
       schedule_now(*i);
@@ -226,6 +218,18 @@ void SwLogic::notify(const Node* n) {
   } else if (!p->is(Node::Tag::initial_construct)) {
     schedule_active(p); 
   }
+}
+
+void SwLogic::silent_evaluate() {
+  // Turn on silent mode and drain the active queue
+  silent_ = true;
+  while (!active_.empty()) {
+    auto* e = active_.back();
+    active_.pop_back();
+    const_cast<Node*>(e)->set_flag<1>(false);
+    schedule_now(e);
+  }
+  silent_ = false;
 }
 
 uint8_t& SwLogic::get_state(const Statement* s) {
@@ -469,12 +473,28 @@ void SwLogic::visit(const InfoStatement* is) {
   notify(is);
 }
 
+void SwLogic::visit(const RestartStatement* rs) {
+  if (!silent_) {
+    interface()->restart(rs->get_arg()->get_readable_val());
+    there_were_tasks_ = true;
+  }
+  notify(rs);
+}
+
 void SwLogic::visit(const RetargetStatement* rs) {
   if (!silent_) {
     interface()->retarget(rs->get_arg()->get_readable_val());
     there_were_tasks_ = true;
   }
   notify(rs);
+}
+
+void SwLogic::visit(const SaveStatement* ss) {
+  if (!silent_) {
+    interface()->save(ss->get_arg()->get_readable_val());
+    there_were_tasks_ = true;
+  }
+  notify(ss);
 }
 
 void SwLogic::visit(const WarningStatement* ws) {

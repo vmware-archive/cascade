@@ -597,10 +597,24 @@ void Printer::visit(const InfoStatement* is) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const RestartStatement* rs) {
+  *this << Color::YELLOW << "$restart" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  rs->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const RetargetStatement* rs) {
   *this << Color::YELLOW << "$retarget" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   rs->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const SaveStatement* ss) {
+  *this << Color::YELLOW << "$save" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ss->accept_arg(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 

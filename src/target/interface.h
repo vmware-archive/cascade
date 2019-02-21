@@ -52,7 +52,9 @@ class Interface {
     virtual void fatal(int arg, const std::string& s) = 0;
     virtual void finish(int arg) = 0;
     virtual void info(const std::string& s) = 0;
+    virtual void restart(const std::string& s) = 0;
     virtual void retarget(const std::string& s) = 0;
+    virtual void save(const std::string& s) = 0;
     virtual void warning(const std::string& s) = 0;
     virtual void write(const std::string& s) = 0;
 

@@ -31,16 +31,20 @@
 #include "src/runtime/module.h"
 
 #include <cassert>
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 #include "src/runtime/data_plane.h"
 #include "src/runtime/isolate.h"
+#include "src/runtime/runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/engine.h"
 #include "src/target/state.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/debug/debug_printer.h"
+#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
@@ -96,8 +100,6 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolat
 
   src_ = nullptr;
   engine_ = new Engine();
-  source_out_of_date_ = true;
-  engine_out_of_date_ = true;
 
   psrc_ = psrc;
   parent_ = nullptr;
@@ -113,81 +115,52 @@ Module::~Module() {
   delete engine_;
 }
 
-void Module::synchronize(size_t n) {
-  // 1. Invalidate the root source no matter what
-  source_out_of_date_ = true;
-  // 2. Examine new code and instantiate new modules below the root 
-  Instantiator inst(this);
-  const auto idx = psrc_->size_items() - n;
-  for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
-    (*i)->accept(&inst);
+void Module::restart(std::istream& is) {
+  // Read save file
+  size_t n = 0;
+  is >> n;
+  unordered_map<MId, pair<Input*, State*>> save;
+  for (size_t i = 0; i < n; ++i) {
+    string ignore;
+    MId id;
+    auto input = new Input();
+    auto state = new State();
+
+    is >> ignore >> id;
+    is >> ignore;
+    input->read(is, 16);
+    is >> ignore;
+    state->read(is, 16);
+
+    save[id] = make_pair(input, state);
   }
-  // 3. Record new gloabl ids and the modules that they are declared in (targets).
-  std::unordered_set<const ModuleDeclaration*> targets;
-  for (auto* m : inst.instances_) {
-    for (auto* r : ModuleInfo(m->psrc_).reads()) {
-      targets.insert(Resolve().get_origin(r));
-      dp_->register_id(isolate_->isolate(r));
-    }
-    for (auto* w : ModuleInfo(m->psrc_).writes()) {
-      targets.insert(Resolve().get_origin(w));
-      dp_->register_id(isolate_->isolate(w));
-    }
-  }
-  // 4. Flag every module which is a target as needing a recompile if it's missing
-  //    a subscription.
+
+  // Update module hierarchy
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    if (targets.find((*i)->psrc_) == targets.end()) {
+    const auto* p = (*i)->psrc_->get_parent();
+    assert(p != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+    const auto id = isolate_->isolate(static_cast<const ModuleInstantiation*>(p));
+    const auto itr = save.find(id);
+
+    if (itr == save.end()) {
       continue;
     }
-    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
-      const auto gid = isolate_->isolate(r);
-      if (dp_->writer_find((*i)->engine_, gid) == dp_->writer_end(gid)) {
-        (*i)->source_out_of_date_ = true;
-      }
-    }
-    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
-      const auto gid = isolate_->isolate(w);
-      if (dp_->reader_find((*i)->engine_, gid) == dp_->reader_end(gid)) {
-        (*i)->source_out_of_date_ = true;
-      }
-    }
+
+    stringstream ss;
+    const auto* fid = Resolve().get_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    TextPrinter(ss) << "Updated state for " << fid;
+    delete fid;
+    rt_->info(ss.str());
+
+    (*i)->engine_->set_input(itr->second.first);
+    (*i)->engine_->set_state(itr->second.second);
   }
-  // 5. Regenerate source where necessary and invalidate engines. Modules below the
-  //    root which require new source are fresh. None of their initial blocks should
-  //    be ignored.
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    if (!(*i)->source_out_of_date_) {
-      continue;
-    }
-    const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
-    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
-    (*i)->source_out_of_date_ = false;
-    (*i)->engine_out_of_date_ = true;
-  }
-  // 6. Recompile everything with an outdated engine.
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    if (!(*i)->engine_out_of_date_) {
-      continue;
-    }
-    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
-    (*i)->src_ = nullptr;
-    if (compiler_->error()) {
-      return;
-    }
-    (*i)->engine_out_of_date_ = false;
-  }
-  // 7. Synchronize subscriptions with the dataplane
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
-      const auto gid = isolate_->isolate(r);
-      dp_->register_writer((*i)->engine_, gid);
-    }
-    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
-      const auto gid = isolate_->isolate(w);
-      dp_->register_reader((*i)->engine_, gid);
-    }
+
+  // Delete contents of save file
+  for (auto& s : save) {
+    delete s.second.first;
+    delete s.second.second;
   }
 }
 
@@ -204,6 +177,70 @@ void Module::rebuild() {
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
+    }
+  }
+}
+
+void Module::save(ostream& os) {
+  // TODO(eschkufz) Can this really be the only way we have of counting the
+  // number of modules in the hierarchy? Yikes, this is lame.
+  size_t n = 0;
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    ++n;
+  }
+  os << n << endl;
+
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto* p = (*i)->psrc_->get_parent();
+    assert(p != nullptr);
+    assert(p->is(Node::Tag::module_instantiation));
+
+    os << "MODULE:" << endl;
+    os << isolate_->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
+    
+    os << "INPUT:" << endl;
+    auto* input = (*i)->engine_->get_input();
+    input->write(os, 16);
+    delete input;
+
+    os << "STATE:" << endl;
+    auto* state = (*i)->engine_->get_state();
+    state->write(os, 16);
+    delete state;
+  }
+}
+
+void Module::synchronize(size_t n) {
+  // Examine new code and instantiate new modules below the root 
+  Instantiator inst(this);
+  const auto idx = psrc_->size_items() - n;
+  for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
+    (*i)->accept(&inst);
+  }
+  // Recompile everything 
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
+    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    (*i)->src_ = nullptr;
+    if (compiler_->error()) {
+      return;
+    }
+  }
+  // Synchronize subscriptions with the dataplane. Note that we do this *after*
+  // recompilation.  This guarantees that the variable names used by
+  // Isolate::isolate() are deterministic.
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
+      const auto gid = isolate_->isolate(r);
+      dp_->register_id(gid);
+      dp_->register_writer((*i)->engine_, gid);
+    }
+    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
+      const auto gid = isolate_->isolate(w);
+      dp_->register_id(gid);
+      dp_->register_reader((*i)->engine_, gid);
     }
   }
 }

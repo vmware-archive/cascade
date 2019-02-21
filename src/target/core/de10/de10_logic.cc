@@ -165,6 +165,8 @@ State* De10Logic::get_state() {
 }
 
 void De10Logic::set_state(const State* s) {
+  DE10_WRITE(MANGLE(addr_, live_idx()), 0);
+
   ModuleInfo info(src_);
   for (auto* v : info.stateful()) {
     const auto vid = var_map_.find(v);
@@ -177,6 +179,9 @@ void De10Logic::set_state(const State* s) {
       write_array(vinfo->second, itr->second);
     }
   }
+
+  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
+  DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -197,6 +202,8 @@ Input* De10Logic::get_input() {
 }
 
 void De10Logic::set_input(const Input* i) {
+  DE10_WRITE(MANGLE(addr_, live_idx()), 0);
+
   ModuleInfo info(src_);
   for (auto* in : info.inputs()) {
     const auto vid = var_map_.find(in);
@@ -209,10 +216,7 @@ void De10Logic::set_input(const Input* i) {
       write_scalar(vinfo->second, itr->second);
     }
   }
-}
 
-void De10Logic::resync() {
-  // Reset the task queue and go live
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
@@ -483,9 +487,15 @@ void De10Logic::handle_tasks() {
       Sync sync(this);
       is->accept_args(&sync);
       interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    } else if (tasks_[i]->is(Node::Tag::restart_statement)) {
+      const auto* rs = static_cast<const RestartStatement*>(tasks_[i]);
+      interface()->restart(rs->get_arg()->get_readable_val());
     } else if (tasks_[i]->is(Node::Tag::retarget_statement)) {
       const auto* rs = static_cast<const RetargetStatement*>(tasks_[i]);
       interface()->retarget(rs->get_arg()->get_readable_val());
+    } else if (tasks_[i]->is(Node::Tag::save_statement)) {
+      const auto* ss = static_cast<const SaveStatement*>(tasks_[i]);
+      interface()->save(ss->get_arg()->get_readable_val());
     } else if (tasks_[i]->is(Node::Tag::warning_statement)) {
       const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
       Sync sync(this);

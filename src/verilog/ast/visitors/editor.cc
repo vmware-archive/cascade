@@ -289,8 +289,16 @@ void Editor::edit(InfoStatement* is) {
   is->accept_args(this);
 }
 
+void Editor::edit(RestartStatement* rs) {
+  rs->accept_arg(this);
+}
+
 void Editor::edit(RetargetStatement* rs) {
   rs->accept_arg(this);
+}
+
+void Editor::edit(SaveStatement* ss) {
+  ss->accept_arg(this);
 }
 
 void Editor::edit(WarningStatement* ws) {

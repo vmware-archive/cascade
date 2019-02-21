@@ -57,6 +57,8 @@ class State : public Serializable {
     const_iterator begin() const;
     const_iterator end() const;
 
+    void read(std::istream& is, size_t base);
+    void write(std::ostream& os, size_t base) const;
     size_t deserialize(std::istream& is) override;
     size_t serialize(std::ostream& os) const override;
 

@@ -119,7 +119,9 @@ class TypeCheck : public Visitor {
     void visit(const ErrorStatement* es) override;
     void visit(const FatalStatement* fs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
+    void visit(const SaveStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;

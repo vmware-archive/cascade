@@ -402,9 +402,21 @@ Statement* Builder::build(const InfoStatement* is) {
   return res;
 }
 
+Statement* Builder::build(const RestartStatement* rs) {
+  return new RestartStatement(
+    rs->accept_arg(this)
+  );
+}
+
 Statement* Builder::build(const RetargetStatement* rs) {
   return new RetargetStatement(
     rs->accept_arg(this)
+  );
+}
+
+Statement* Builder::build(const SaveStatement* ss) {
+  return new SaveStatement(
+    ss->accept_arg(this)
   );
 }
 

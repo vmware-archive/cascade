@@ -94,7 +94,9 @@ struct Builder {
   virtual Statement* build(const FatalStatement* fs);
   virtual Statement* build(const FinishStatement* fs);
   virtual Statement* build(const InfoStatement* is);
+  virtual Statement* build(const RestartStatement* rs);
   virtual Statement* build(const RetargetStatement* rs);
+  virtual Statement* build(const SaveStatement* ss);
   virtual Statement* build(const WarningStatement* ws);
   virtual Statement* build(const WriteStatement* ws);
   virtual Statement* build(const WaitStatement* ws);

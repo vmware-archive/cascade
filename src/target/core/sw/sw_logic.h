@@ -58,7 +58,7 @@ class SwLogic : public Logic, public Visitor {
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
-    void resync() override; 
+    void finalize() override; 
 
     void read(VId vid, const Bits* b) override;
     void evaluate() override;
@@ -85,6 +85,9 @@ class SwLogic : public Logic, public Visitor {
     void schedule_active(const Node* n);
     void notify(const Node* n);
 
+    // Resyncing Helpers:
+    void silent_evaluate();
+
     // Control State:
     uint8_t& get_state(const Statement* s);
 
@@ -108,7 +111,9 @@ class SwLogic : public Logic, public Visitor {
     void visit(const FatalStatement* fs) override;
     void visit(const FinishStatement* fs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
+    void visit(const SaveStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;

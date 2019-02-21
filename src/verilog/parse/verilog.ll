@@ -125,7 +125,9 @@ std::string strip_path(const char* c);
 "$fatal"    YY_REC; return yyParser::make_SYS_FATAL(parser->get_loc());
 "$finish"   YY_REC; return yyParser::make_SYS_FINISH(parser->get_loc());
 "$info"     YY_REC; return yyParser::make_SYS_INFO(parser->get_loc());
+"$restart"  YY_REC; return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" YY_REC; return yyParser::make_SYS_RETARGET(parser->get_loc());
+"$save"     YY_REC; return yyParser::make_SYS_SAVE(parser->get_loc());
 "$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 

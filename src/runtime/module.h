@@ -32,6 +32,7 @@
 #define CASCADE_SRC_RUNTIME_MODULE_H
 
 #include <forward_list>
+#include <iosfwd>
 #include <stddef.h>
 #include <vector>
 #include "src/verilog/ast/visitors/editor.h"
@@ -69,14 +70,24 @@ class Module {
 
     // Runtime Interface:
     // 
-    // Synchronizes the module hierarchy with changes which have been made to
-    // the ast since the previous invocation of synchronize. n is the number of
-    // items which have been added to the top-level module in the interim.
-    void synchronize(size_t n);
+    // Reads the state of the module hierarchy from an istream. This method
+    // should only be called in a state where synchronize has been invoked and
+    // no further changes have been made to the text of the user's program.
+    // Note: This method makes no attempt to check whether the file that it
+    // reads is a good match to its internal state.
+    void restart(std::istream& is);
     // Forces a recompilation of the entire module hierarchy. This method
     // should only be called in a state where synchronize has been invoked and
     // no further changes have been made to the text of the user's program.
     void rebuild();
+    // Dumps the state of the module hierarchy to an ostream. This method
+    // should only be called in a state where synchronize has been invoked and
+    // no further changes have been made to the text of the user's program.
+    void save(std::ostream& os);
+    // Synchronizes the module hierarchy with changes which have been made to
+    // the ast since the previous invocation of synchronize. n is the number of
+    // items which have been added to the top-level module in the interim.
+    void synchronize(size_t n);
 
     // Hierarchy Interface:
     // 
@@ -114,8 +125,6 @@ class Module {
     // Implementation State:
     ModuleDeclaration* src_;
     Engine* engine_;
-    bool source_out_of_date_;
-    bool engine_out_of_date_;
 
     // Hierarchical State:
     const ModuleDeclaration* psrc_;

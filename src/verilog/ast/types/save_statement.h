@@ -28,78 +28,45 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/input.h"
+#ifndef CASCADE_SRC_VERILOG_AST_SAVE_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_SAVE_STATEMENT_H
 
-using namespace std;
+#include "src/verilog/ast/types/macro.h"
+#include "src/verilog/ast/types/string.h"
+#include "src/verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-void Input::read(istream& is, size_t base) {
-  input_.clear();
+class SaveStatement : public SystemTaskEnableStatement {
+  public:
+    // Constructors:
+    explicit SaveStatement(String* arg__);
+    ~SaveStatement() override;
 
-  size_t n = 0;
-  is >> n;
+    // Node Interface:
+    NODE(SaveStatement)
+    SaveStatement* clone() const override;
 
-  for (size_t i = 0; i < n; ++i) {
-    VId id;
-    is >> id;
+    // Get/Set:
+    PTR_GET_SET(SaveStatement, String, arg)
 
-    size_t width = 0;
-    is >> width;
+  private:
+    PTR_ATTR(String, arg);
+};
 
-    bool is_signed = false;
-    is >> is_signed; 
-
-    Bits bits;
-    bits.read(is, base);
-    bits.resize(width);
-    bits.set_signed(is_signed);
-
-    input_.insert(make_pair(id, bits));
-  }
+inline SaveStatement::SaveStatement(String* arg__) : SystemTaskEnableStatement(Node::Tag::save_statement) {
+  PTR_SETUP(arg);
+  parent_ = nullptr;
 }
 
-void Input::write(ostream& os, size_t base) const {
-  os << input_.size() << endl;
-  for (const auto& i : input_) {
-    os << "  " << i.first << " " << i.second.size() << " " << (i.second.is_signed() ? 1 : 0) << endl;
-    os << "    ";
-    i.second.write(os, base);
-    os << endl;
-  }
+inline SaveStatement::~SaveStatement() {
+  PTR_TEARDOWN(arg);
 }
 
-size_t Input::deserialize(istream& is) {
-  input_.clear();
-
-  // How many elements are in this input?
-  uint32_t n = 0;
-  is.read(reinterpret_cast<char*>(&n), 4);
-  size_t res = 4;
-
-  // Read that many id / bit pairs
-  for (size_t i = 0; i < n; ++i) {
-    VId id; 
-    Bits bits;
-    is.read(reinterpret_cast<char*>(&id), 4);
-    res += (4 + bits.deserialize(is));
-    input_.insert(make_pair(id, bits));
-  }
-  return res;
+inline SaveStatement* SaveStatement::clone() const {
+  return new SaveStatement(arg_->clone());
 }
 
-size_t Input::serialize(ostream& os) const {
-  // How many elements are in this input?
-  uint32_t n = input_.size();
-  os.write(reinterpret_cast<char*>(&n), 4);
-  size_t res = 4;
+} // namespace cascade 
 
-  // Write that many id / bit pairs
-  for (const auto& i : input_) {
-    os.write(const_cast<char*>(reinterpret_cast<const char*>(&i.first)), 4);
-    res += (4 + i.second.serialize(os));
-  }
-  return res;
-}
-
-} // namespace cascade
+#endif
