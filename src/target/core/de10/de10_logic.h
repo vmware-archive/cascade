@@ -88,7 +88,6 @@ class De10Logic : public Logic, public Visitor {
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
-    void finalize() override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;
