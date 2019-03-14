@@ -556,6 +556,72 @@ initial begin
 end
 ```
 
+Next, you'll need to tell the Cascade compiler how to invoke your backend compiler. Take a look at ```src/target/compiler.h```. You'll need to add a new private member and a public configuration method.
+```c++
+  public:
+    Compiler& set_my_backend_compiler(MyBackendCompiler* mbc);
+  private:
+    MyBackendCompiler* mbc_;
+```
+Now take a look at ```src/target/compiler.cc```. You'll need to update a few methods as shown below:
+```c++
+Compiler::Compiler() {
+  // ...
+  mbc_ = nullptr;
+  // ...
+}
+
+Compiler::~Compiler() {
+  // ...
+  if (mbc_ != nullptr) {
+    mbc_->abort();
+  }
+  // ...
+  pool_.stop_now();
+  // ...
+  if (mbc_ != nullptr) {
+    delete mbc_;
+  }
+  // ...
+}
+
+Compiler& Compiler::set_my_backend_compiler(MyBackendCompiler* mbc) {
+  assert(mbc_ == nullptr);
+  assert(mbc != nullptr);
+  mbc_ = mbc;
+  mbc_->set_compiler(this);
+  return *this;
+}
+
+Engine* Compiler::compile(ModuleDeclaration* md) {
+  // ...
+  } else if (target->eq("sw")) {
+    cc = sw_compiler_;
+  } else if (target->eq("my_backend")) {
+    cc = mbc_;
+  } else {
+  // ...
+}
+```
+Finally, you'll need to add a few lines of code to ```tools/cascade.cc```.
+```c++
+// ...
+auto* mbc = new MyBackendCompiler(...);
+// ...
+auto* c = new Compiler();
+  c->set_my_backend_compiler(mbc);
+// ...
+```
+You'll also need to add any files you've created to the top-level ```Makefile```.
+```Makefile
+# ...
+OBJ=path/to/your/source.o \
+# ...
+HDR=path/to/your/header.h \
+# ...
+```
+Type ```make```, and everything should just work... Happy debugging!
+
 FAQ
 ====
 
