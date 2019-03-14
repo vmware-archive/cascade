@@ -508,7 +508,46 @@ The target-specific hardware features exposed by an ```--march``` target, along 
 
 Adding Support for New Backends
 =====
-(Coming soon.)
+
+Adding support for a new backend begins with writing an ```--march``` file. This file will contain instantiations for the Standard Library components that your backend supports, as well as any target-specific components you wish to make available to the user. This file should also contain an ```$info()``` message which describes this support, along with anything else you'd like the user to know. Save this file as ```data/march/my_backend.v```. Once you've done so, you can run Cascade with the ```--march my_backend``` flag. An example is shown below.
+
+```verilog
+// data/march/my_backend.v
+
+// An --march file must first include the declarations in the Standard Library
+include data/stdlib/stdlib.v;
+
+// Next, an --march file must instantiate the root module. The __target annotation is 
+// used to pass information to the Cascade compiler (more on this next) about how to 
+// compile the user's code. __target is a colon-separated list of backend compilation 
+// passes to use. If only one value is provided as below, then Cascade will not run in 
+// JIT-mode. To enable JIT-mode, use the following string instead: "sw:my_backend".
+(* __target="my_backend" *)
+Root root();
+
+// At a minimum, a backend must instantiate a global Standard Library clock.
+Clock clock();
+
+// This instantiation will expose an abstract bank of four Standard Library LEDs. 
+Led#(4) led();
+
+// This instantiaton will expose a target-specific pci connection. The __std="pci" 
+// annotation is used to invoke special behavior in your compiler, and the 
+// __target="my_backend" annotation overrides the value you attached to the root.
+// This ensures that Cascade will not attempt to compile this module into software,
+// even if you configured the root to run in JIT-mode.
+(* __std="pci", __target="my_backend" *)
+Pci pci();
+
+// At this point you may have noticed that an  --march file is just Verilog code which 
+// is run before transferring control to the user. Now that your environment is set up, 
+// in addition to $info() statements, you could place any arbitrary code here as well. 
+initial begin
+  $info("My Backend");
+  $info(" Supports the following Standard Library Components: Clock, Led");
+  $info(" Supports the following Target-Specific Components: Pci");
+end
+```
 
 FAQ
 ====
