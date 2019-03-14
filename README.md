@@ -9,7 +9,7 @@ Cascade is a novel solution to this problem, the world's first just-in-time comp
 
 Much of the work which has gone into building Cascade has been documented in conference proceedings. A complete list of publications (hopefully with more to come) is below.
 
-- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://github.com/vmware/cascade/master/doc/asplos19.pdf)
+- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/doc/asplos19.pdf)
 
 Index
 =====
