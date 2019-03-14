@@ -26,8 +26,9 @@ Index
 4. [Support for Synthesizable Verilog](#support-for-synthesizable-verilog)
 5. [Support for Unsynthesizable Verilog](#support-for-unsynthesizable-verilog)
 6. [Standard Library](#standard-library)
-7. [Adding Support for New Backends](#adding-support-for-new-backends)
-8. [FAQ](#faq)
+7. [Target-Specific Components](#target-specific-components)
+8. [Adding Support for New Backends](#adding-support-for-new-backends)
+9. [FAQ](#faq)
 
 Dependencies
 =====
@@ -318,6 +319,7 @@ A complete listing of the system tasks which Cascade supports, along with a brie
 |:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
 | Printf                | $display(fmt, args...)    |  x        |             |                  |
 |                       | $write(fmt, args...)      |  x        |             |                  |
+| Debugging             | $monitor(var)             |           | x           |                  |
 | Logging               | $info(fmt, args...)       |  x        |             |                  |    
 |                       | $warning(fmt, args...)    |  x        |             |                  |
 |                       | $error(fmt, args...)      |  x        |             |                  |
@@ -496,6 +498,13 @@ When instantiating a fifo, an optional set of annotations may be provided as wel
 Fifo#(8,8) fifo(/* ... */);
 ```
 The ```__file``` annotation is similar to the one described above. If provided, Cascade will attempt to initialize the FIFO with values drawn from this file. The file format is the same. If the file contains more values than the maximum depth of the FIFO, Cascade will automatically push the next value from the file as soon as there is space (```full``` reports false). This process will continue until the end-of-file is reached, and then repeat up to ```__count``` times before no longer attempting to push values into the FIFO. Values are not written back to ```__file``` when Cascade finishes execution, and it is an error to instantiate a FIFO with an unresolvable ```__file``` annotation.
+
+Target-Specific Components
+=====
+
+Some ```--march``` targets may instantiate modules which serve as wrappers around target-specific hardware features. For example, a target might provide a ```Bram``` module to expose a particular type of storage, or a ```Pcie``` module to expose a particular type of I/O. While these wrappers will typically expose the highest levels of performance to the user, they do so at the price of portability. Writing a program which relies on a particular low-level feature makes it unlikely that Cascade will be able to execute that program on an ```--march``` target other than the one it was designed for.
+
+The target-specific hardware features exposed by an ```--march``` target, along with the standard library components it supports, can be displayed by running Cascade with the ```--enable_info``` flag.
 
 Adding Support for New Backends
 =====
