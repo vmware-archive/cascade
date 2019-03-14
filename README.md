@@ -17,18 +17,19 @@ Index
 3. [Environments](#environments)
     1. [Minimal Environment](#minimal-environment)
     2. [Software Backend](#software-backend)
-    3. [Hardware Backend](#hardware-backend)
+    3. [Hardware Backends](#hardware-backends)
     4. [JIT Backend](#jit-backend)
-4. [Verilog Support](#verilog-support)
-5. [Standard Library](#standard-library)
-6. [Adding Support for New Backends](#adding-support-for-new-backends)
-7. [FAQ](#faq)
+4. [Support for Synthesizable Verilog](#support-for-synthesizable-verilog)
+5. [Support for Unsynthesizable Verilog](#support-for-unsynthesizable-verilog)
+6. [Standard Library](#standard-library)
+7. [Adding Support for New Backends](#adding-support-for-new-backends)
+8. [FAQ](#faq)
 
 Dependencies
 =====
 Cascade should build successfully on OSX and most Linux distributions. Third-party dependencies can be retrieved from the command line using either ```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```port``` (OSX). Note that on most platforms, this will require administrator privileges.
 ```
-*NIX $ sudo (apt-get|port) install ccache cmake flex bison libncurses-dev
+*NIX $ sudo (apt-get|opkg|port) install ccache cmake flex bison libncurses-dev
 ```
 
 Building Cascade
@@ -43,9 +44,9 @@ Building Cascade
 *NIX $ cd cascade/
 *NIX $ make
 ```
-If the build didn't succeed (probably because you didn't use the ```--recursive``` flag) try starting over with a fresh clone of the repository.
+If the build fails (probably you didn't use the ```--recursive``` flag) try starting over with a fresh clone of the repository.
 
-3. Check that the build succeeded (all tests should pass)
+3. Check that your build works correctly (all tests should pass)
 ```
 *NIX $ make test
 ```
@@ -59,12 +60,12 @@ Start Cascade by typing
 ```
 *NIX $ ./bin/cascade
 ```
-This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed here is appended to the source of the (initially empty) top-level module and evaluated immediately. Try defining a wire. You'll see the text ```ITEM OK``` to indicate that a new module item was added to the top-level module.
+This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed here is appended to the source of the (initially empty) top-level (root) module and evaluated immediately. Try defining a wire. You'll see the text ```ITEM OK``` to indicate that a new module item was added to the root.
 ```verilog
 >>> wire x;
 ITEM OK
 ```
-The verilog specification requires that code inside of ```initial``` blocks is executed exactly once when a program begins execution. Because Cascade provides a dynamic environment, we generalize the specification as follows: Code inside of ```initial``` blocks is executed exactly once immediately after it is compiled. Try printing the value of the wire you just defined. 
+The Verilog specification requires that code inside of ```initial``` blocks is executed exactly once when a program begins executing. Because Cascade is a dynamic environment, we generalize that specification: code inside of ```initial``` blocks is executed exactly once immediately after it is compiled. Try printing the value of the wire you just defined. 
 ```verilog
 >>> initial $display(x);
 ITEM OK 
@@ -90,7 +91,7 @@ ITEM OK
 ITEM OK
 >>> 0
 ```
-You can declare and instantiate modules from the REPL as well. Be sure to note however, that  declarations will be type-checked in the global declaration scope. Variables which you may have declared in the top-level module will not be visible here. It isn't until a module is instantiated that it can access program state.
+You can declare and instantiate modules from the REPL as well. Note however, that  declarations will be type-checked in the global  scope. Variables which you may have declared in the root module will not be visible here. It isn't until a module is instantiated that it can access program state.
 ```verilog
 >>> module Foo(
   input wire x,
@@ -129,12 +130,12 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 ```
 
 ### Other Interfaces
-If you're absolutely fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
+If you're fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
 ```
 *NIX $ ./bin/cascade --batch -e path/to/file.v
 ```
 
-On the other hand, if you prefer a GUI, Cascade has a frontend which runs in the browser.
+On the other hand, if you prefer a GUI, Cascade has a frontend which runs in the browser. Note however that this interface is work in intermitent progress, and may suffer from bit-rot from time to time.
 ```
 *NIX $ ./bin/cascade --ui web
 >>> Running server out of /Users/you/Desktop/cascade/bin/../src/ui/web/
@@ -165,7 +166,7 @@ endmodule
 
 Clock clock;
 ```
-This module represents the global clock. Its value flips between zero and one every cycle. Try typing the following (and remember that you can type Ctrl-C to quit):
+This module represents the global clock. Its value toggles between zero and one every cycle. Try typing the following (and remember that you can type Ctrl-C to quit):
 ```verilog
 >>> always @(clock.val) $display(clock.val);
 ITEM OK
@@ -191,10 +192,10 @@ ITEM OK
 >>> BShift bs(clock.val, x);
 ITEM OK
 ```
-Compared to a traditional compiler which assumes a fixed clock rate, Cascade's clock is *virtual*: the amount of time between ticks can vary over time, and is a function of both how large your program and is and how often and how much I/O it produces. This abstraction is the key mechanism by which Cascade is able to move programs between software and hardware without involving the user.  
+Compared to a traditional compiler which assumes a fixed clock rate, Cascade's clock is *virtual*: the amount of time between ticks can vary from one cycle to the next, and is a function of both how large your program and is and how often and how much I/O it performs. This abstraction is the key mechanism by which Cascade is able to move programs between software and hardware without involving the user.  
 
 ### Software Backend
-Up until this point the code we've looked at has been entirely compute-based. However most hardware programs involve the use of I/O peripherals. Before we get into real hardware, first try running Cascade's virtual software FPGA.
+Up until this point the code we've looked at has been entirely compute-based and run in software. However most hardware programs involve the use of I/O peripherals. Before we get into real hardware, first try running Cascade's virtual software FPGA.
 ```
 *NIX $ ./bin/sw_fpga
 ```
@@ -229,7 +230,7 @@ ITEM OK
 ```
 Toggling the pads should now change the values of the leds for as long as Cascade is running.
 
-### Hardware Backend
+### Hardware Backends
 Cascade currently provides support for a single hardware backend: the [Terasic DE10 Nano SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046). When Cascade is run on the DE10's ARM core, instead of mapping compute and leds onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing onto the ARM core ([see FAQ](#faq)), building Cascade, and starting it using the ```--march de10``` flag.
 ```
 DE10 $ ./bin/cascade --march de10
@@ -261,13 +262,13 @@ You can now start Cascade's JIT server by typing the following, where the ```--u
 ```
 Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
 ```
-DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/benchmark/bitcoin -e bitcoin.v --profile_interval 10
+DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile_interval 10
 ```
 Providing the ```--profile_interval``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
 
-Verilog Support
+Support for Synthesizable Verilog
 =====
-Cascade currently supports a large --- but certainly not complete --- subset of the Verilog 2005 Standard. The following partial list should give a good impression of what Cascade is capable of.
+Cascade currently supports a large --- though certainly not complete --- subset of the Verilog 2005 Standard. The following partial list should give a good impression of what Cascade is capable of.
 
 | Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
 |:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
@@ -301,10 +302,122 @@ Cascade currently supports a large --- but certainly not complete --- subset of 
 |                       | Case Generate Constructs  |  x        |             |                  |
 |                       | If Generate Constructs    |  x        |             |                  |
 |                       | Loop Generate Constructs  |  x        |             |                  |
-| System Tasks          | Display Statements        |  x        |             |                  |
-|                       | Finish Statements         |  x        |             |                  |
-|                       | Write Statements          |  x        |             |                  |
-|                       | Monitor Statements        |           | x           |                  |
+
+Support for Unsynthesizable Verilog
+=====
+
+Cascade provides support for many of the unsynthesizable system tasks which are described in the 2005 specification, along with a few others which are unique to a just-in-time enviornment. One of the things that makes Cascade so powerful is that it supports the execution of unsynthesizable systems tasks *even when a program is running in hardware*. With Cascade, there's no reason to shy away from the use of ```$display()``` as a debugging tool. Unsynthesizable system tasks are guaranteed to run correctly on every target.
+
+A complete listing of the system tasks which Cascade supports, along with a brief description of their behavior is shown below.
+
+| Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
+|:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
+| Printf                | $display(fmt, args...)    |  x        |             |                  |
+|                       | $write(fmt, args...)      |  x        |             |                  |
+| Logging               | $info(fmt, args...)       |  x        |             |                  |    
+|                       | $warning(fmt, args...)    |  x        |             |                  |
+|                       | $error(fmt, args...)      |  x        |             |                  |
+| Simulation Control    | $finish(code)             |  x        |             |                  |
+|                       | $fatal(code, fmt, args...)|  x        |             |                  |
+| Virtualization        | $save(file)               |  x        |             |                  |
+|                       | $restart(file)            |  x        |             |                  |
+|                       | $retarget(march)          |  x        |             |                  |
+| File I/O              | $open(file)               |           | x           |                  |
+|                       | $eof(fd)                  |           | x           |                  |
+|                       | $read(fd, var)            |           | x           |                  |
+|                       | $write(fd, var)           |           | x           |                  |
+
+#### Printf Tasks
+
+The printf-of system tasks can be used to emit debugging statements to the REPL. Both use the same printf-style of argument passing. A formatting string which may be delimitted with variable placeholders (```%d, %x, etc...```) is followed by a list of program variables whose runtime values are substituted for those placeholders. Both printf-style system tasks behave identically. The only difference is that ```$display()``` automatically appends a newline character to the end of its output.
+
+#### Logging Tasks
+
+The logging-family of system tasks behave identically to the printf-family of system tasks. The only difference is that their output can be filtered based on the arguments that you provide when you run cascade. By default, ```$warning()``` and ```$error()``` messages are printed to the REPL. You can disable this behavior off by running Cascade with the ```--disable_warning``` and ```--disable_error``` flags. In contrast, ```$info()``` messages are not printed to the REPL by default. You can enable this behavior by running Cascade with the ```--enable_info``` flag.
+
+#### Simulation Control Tasks
+
+The ```$finish()``` system task can be used to shut Cascade down programmatically. Evaluating the ```$finish()``` task with an argument other than 0 will cause cascade to emit a status message before shutting down. You can think of the ```$fatal()``` system task as a combination of the ```$finish()``` and ```$error()``` system tasks. The following two programs are identical.
+
+``` verilog
+initial $fatal(1, "format string %d", 42);
+```
+``` verilog
+initial begin
+  $error("format string %d", 42);
+  $finish(1);
+end
+```
+
+#### Virtualization Tasks
+
+While Cascade was originally designed as a developer aid, its ability to break a program into pieces and move those pieces seamlessly between software and hardware turns out to be the key engineering primitive which is necessary for FPGA virtualization. The virtualization-family of system tasks expose this functionality. 
+
+The ```$save()``` and ```$restart()``` tasks can be used to save the state of a running program to a file, and then reload that state at a later tmie rather than having to run the program again from scratch. The following example shows how to configure two buttons to suspend and resume the execution of a program.
+
+```verilog
+always @(pad.val) begin
+  if (pad.val[0]) begin
+    $save("path/to/file");
+    $finish;
+  end else if (pad.val[1]) begin
+    $restart("path/to/file");
+  end
+```
+
+The ```$retarget()``` task can be used to reconfigure Cascade as though it was run with a different ```--march``` file while a program is executing. This may be valuable for transitioning a running program from one hardware target to another. The following example shows how to configure two buttons to toggle the use of JIT-compilation mid-execution.
+
+```verilog
+always @(pad.val) begin
+  if (pad.val[0]) begin
+    $retarget("de10");
+  end else bif (pad.val[1]) begin
+    $retarget("de10_jit");
+  end
+end
+```
+
+#### File I/O Tasks (coming soon)
+
+The ```$open()```, ```$read()```, and ```$write()``` tasks provide an abstract mechanism for interacting with files. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$read()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
+
+```verilog
+integer fd = $open("path/to/file");
+reg[31:0] x = 0;
+
+always @(posedge clock.val) begin
+  if ($eof(fd)) begin
+    $finish;
+  end
+  $read(fd, x);
+  $display(x);
+end
+```
+
+The following example shows how you can use both ```$read()``` and ```$write()``` tasks to stream data to and from your program, regardless of whether it is running in software or hardware.
+
+```verilog
+module Compute(
+  input wire x,
+  output wire y
+);
+  // ...
+endmodule;
+
+reg x;
+wire y;
+Compute c(x,y);
+
+integer i = $open("path/to/input");
+integer o = $open("path/to/output");
+always @(posedge clock.val) begin
+  if ($eof(i)) begin
+    $finish;
+  end  
+  $read(i, x);
+  $write(o, y);
+end
+```
 
 Standard Library
 =====
@@ -385,7 +498,7 @@ FAQ
 ====
 
 #### Flex fails during build with an error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
-This has to do with the version of flex that you're using. Some versions of port will install an older version. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
+This is related to the version of flex that you have installed; some versions of port will install an older revision. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
 
 #### How do I ssh into the DE10's ARM core using a USB cable?
 (Coming soon.)
@@ -394,7 +507,7 @@ This has to do with the version of flex that you're using. Some versions of port
 (Coming soon.)
 
 #### Cascade emits strange warnings whenever I declare a module.
-Module declarations are typechecked in their own scope, separate from the rest of the program. While this allows Cascade to catch many errors at declaration-time, there are some properties of Verilog programs which can only be verified at instantiation-time. If Cascade emits a warning, it is generally because it cannot statically prove that the module you just declared will instantiate correctly in every possible program context.  
+Module declarations are typechecked in the global scope, separate from the rest of your program. While this allows Cascade to catch many errors at declaration-time, there are some properties of Verilog programs which can only be verified at instantiation-time. If Cascade emits a warning, it is generally because it cannot statically prove that the module you declared will instantiate correctly in every possible program context.  
 
 #### Why does cascade warn that ```x``` is undeclared when I declare ```Foo```, but not when I instantiate it (Part 1)?
 ```verilog
@@ -404,7 +517,7 @@ module Foo();
 endmodule
 Foo f();
 ```
-The local parameter ```x``` was declared in the root module, and the module ```Foo``` was declared in its own scope. In general, there is no way for Cascade to guarantee that you will instantiate ```Foo``` in a context where all of its declaration-time unresolved variables will be resolvable. In this case, it is statically provable, but Cascade doesn't currently know how to do so. When ```Foo``` is instantiated, Cascade can verify that there is a variable named ```p``` which is reachable from the scope in which ```f``` appears. No further warnings or errors are necessary. Here is a more general example:
+The local parameter ```x``` was declared in the root module, and the module ```Foo``` was declared in its own scope. In general, there is no way for Cascade to guarantee that you will instantiate ```Foo``` in a context where all of its declaration-time unresolved variables will be resolvable. In this case, it is statically provable, but Cascade doesn't know how to do so. When ```Foo``` is instantiated, Cascade can verify that there is a variable named ```p``` which is reachable from the scope in which ```f``` appears. No further warnings or errors are necessary. Here is a more general example:
 ```verilog
 module Foo();
   assign x.y.z = 1;
@@ -445,7 +558,7 @@ The register ```x``` was declared in a loop generate construct with bounds deter
 More generally, Cascade will defer typechecking for code that appears inside of generate constructs until instantiation-time.
 
 #### I get it, but it seems like there's something about pretty much every module declaration that Cascade can't prove.
-The truth hurts. If you'd like to disable warnings you can type.
+The truth hurts. Remember that if you'd like to disable warnings you can type.
 ```
 $ ./bin/cascade --disable_warning
 ```
