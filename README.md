@@ -425,7 +425,8 @@ end
 
 Standard Library
 =====
-Cascade's Clock, along with the modules which are implicitly declared when cascade is run with the ```--march de10``` or ```--march sw``` flags, are part of its Standard Library. The complete set of I/O peripherals in the Standard Library, along with the ```march``` environments in which they are supported, is shown below.
+
+In addition to supporting both synthesizable and unsynthesizable Verilog, Cascade also provides a Standard Library of I/O peripherals. You can think of this library as an abstract representation of target-specific hardware. By targeting the components in Cascade's Standard Library, rather than the specific peripherals associated with a hardware target, there is a good chance that your program will run in multiple environments without modification. We've already seen examples of many of the peripherals in Cascade's Standard Library. A complete listing, along with the ```--march``` targets which support them, is shown below.
 
 | Component | minimal | sw | de10 | de10_jit |
 |:----------|:-------:|:--:|:----:|:--------:|
@@ -435,7 +436,9 @@ Cascade's Clock, along with the modules which are implicitly declared when casca
 | Reset     |         | x  |      |          |
 | GPIO      |         |    | x    | x        |
 
-Cascade's Standard Library also impliclty declares two reusable data-structures for communicating back and forth between hardware and software, a memory and a FIFO queue. In contrast to the modules described above, these modules are not implicitly instantiated. The user may instead instantiate as many as they like.
+#### Deprecated Features
+
+Cascade's Standard Library also impliclty declares two reusable data-structures for communicating back and forth between hardware and software, a memory and a FIFO queue. In contrast to the modules described above, these modules are not implicitly instantiated. The user may instead instantiate as many as they like. **These features are deprecated and should not be used. The preferred method for performing general-purpose portable file I/O is the family of file I/O system tasks described above.**
 
 Cascade memories are dual-port read, single-port write. The declaration provided by the Standard Library is shown below.
 ```verilog
