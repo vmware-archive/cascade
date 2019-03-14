@@ -525,17 +525,24 @@ include data/stdlib/stdlib.v;
 (* __target="my_backend" *)
 Root root();
 
-// At a minimum, a backend must instantiate a global Standard Library clock.
+// At a minimum, a backend must instantiate a global Standard Library clock which will 
+// never leave software. Any code which follows the instantiation of the root is placed 
+// inside of the root, and any instantiations which appear inside of root inherit its 
+// annotations. The __target="sw" annotation overrides the value you placed on the root 
+// and guarantees that this module will never leave software simulation.
+(* __target="sw" *)
 Clock clock();
 
 // This instantiation will expose an abstract bank of four Standard Library LEDs. 
+// As above, the __target="my_backend" annotation overrides the value you placed on the
+// root. This ensures that this module will be compiled directly to your backend, even
+// if you configured the root to run in JIT-mode.
+(* __target="my_backend" *)
 Led#(4) led();
 
 // This instantiaton will expose a target-specific pci connection. The __std="pci" 
-// annotation is used to invoke special behavior in your compiler, and the 
-// __target="my_backend" annotation overrides the value you attached to the root.
-// This ensures that Cascade will not attempt to compile this module into software,
-// even if you configured the root to run in JIT-mode.
+// annotation is used to invoke special behavior in your compiler, and as above, the 
+// __target="my_backend" annotation overrides the value you placed on the root.
 (* __std="pci", __target="my_backend" *)
 Pci pci();
 
