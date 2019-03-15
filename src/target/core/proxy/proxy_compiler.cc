@@ -41,7 +41,7 @@ ProxyCompiler::ProxyCompiler() : CoreCompiler(), buf_(1024) { }
 
 ProxyCompiler::~ProxyCompiler() {
   for (auto& c : conns_) {
-    c.second->send_rpc(Rpc(Rpc::Type::CONNECTION_CLOSED, 0));
+    c.second->send_rpc(Rpc(Rpc::Type::CONNECTION_TEARDOWN, 0));
     delete c.second;
   }
 }

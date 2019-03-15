@@ -48,7 +48,7 @@ template <typename T>
 class ProxyCore : public T {
   public:
     ProxyCore(Interface* interface, Rpc::Id id, Connection* conn);
-    ~ProxyCore() override = default;
+    ~ProxyCore() override;
 
     State* get_state() override;
     void set_state(const State* s) override;
@@ -86,6 +86,12 @@ template <typename T>
 inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, Connection* conn) : T(interface), in_buf_(256), out_buf_(256) {
   id_ = id;
   conn_ = conn;
+}
+
+template <typename T>
+inline ProxyCore<T>::~ProxyCore() {
+  conn_->send_rpc(Rpc(Rpc::Type::ENGINE_TEARDOWN, id_));
+  conn_->recv_ack();
 }
 
 template <typename T>

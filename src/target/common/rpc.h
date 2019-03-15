@@ -41,7 +41,6 @@ struct Rpc : Serializable {
     // Generic Return Codes:
     OKAY = 0,
     ERROR,
-    CONNECTION_CLOSED,
 
     // Compiler API:
     COMPILE,  
@@ -64,7 +63,11 @@ struct Rpc : Serializable {
     THERE_WERE_TASKS,
 
     CONDITIONAL_UPDATE,
-    OPEN_LOOP
+    OPEN_LOOP,
+
+    // Teardown Codes:
+    ENGINE_TEARDOWN,
+    CONNECTION_TEARDOWN
   };
   typedef uint32_t Id;
 

@@ -181,11 +181,17 @@ void RemoteRuntime::run_logic() {
           open_loop(conn, engines[rpc.id_]);
           break;
 
-        case Rpc::Type::CONNECTION_CLOSED:
+        case Rpc::Type::ENGINE_TEARDOWN:
+          delete engines[rpc.id_];
+          engines[rpc.id_] = nullptr;
+          conn->send_ack();
+          break;
+        case Rpc::Type::CONNECTION_TEARDOWN:
         default:
           delete conn;
           conns[i] = nullptr;
           FD_CLR(i, &master_set);
+          break;
       }
     }
   }
