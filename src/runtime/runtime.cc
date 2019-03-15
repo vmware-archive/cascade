@@ -136,7 +136,6 @@ Runtime& Runtime::disable_error(bool de) {
 void Runtime::eval(const string& s) {
   auto* ss = new stringstream(s);
   schedule_interrupt([this, ss]{
-    log_->clear();
     eval_stream(*ss, false);
     delete ss;
   });
@@ -144,7 +143,6 @@ void Runtime::eval(const string& s) {
 
 void Runtime::eval(istream& is, bool is_term) {
   schedule_interrupt([this, &is, is_term]{
-    log_->clear();
     eval_stream(is, is_term);
   });
 }
@@ -340,6 +338,8 @@ void Runtime::run_logic() {
 bool Runtime::eval_stream(istream& is, bool is_term) {
   auto res = true;
   while (res) {
+    log_->clear();
+
     parser_->parse(is, log_); 
     const auto text = parser_->get_text();
     const auto depth = parser_->get_depth();
