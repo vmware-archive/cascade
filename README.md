@@ -7,7 +7,7 @@ FPGAs can exceed the performance of general-purpose CPUs by several orders of ma
 
 Cascade is a novel solution to this problem, the world's first just-in-time compiler for Verilog. Cascade executes code immediately in a software simulator, and performs compilation in the background. When compilation is finished, the code is moved into hardware, and from the user’s perspective it simply gets faster over time. Cascade's ability to move code back and forth between software and hardware also makes it the first platform to provide generic support for the execution of unsynthesizable Verilog from hardware. The effects are substantial. Cascade encourages more frequent compilation, reduces the time required for developers to produce working hardware designs, and transforms HDL development into something which closely resembes writing JavaScript or Python. It takes the first steps towards bridging the gap between programming software and programming hardware.
 
-Much of the work which has gone into building Cascade has been documented in conference proceedings. A complete list of publications (hopefully with more to come) is below.
+Much of the work which has gone into building Cascade has been documented in conference proceedings. A complete list of publications (hopefully with more to come) is below. Note however, that Cascade is under active development. In some cases, its implementation may have already diverged what is described in these texts. The most up-to-date information on Cascade's implementation is always its source code.
 
 - [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/doc/asplos19.pdf)
 
@@ -651,7 +651,7 @@ Type ```make```, and everything should just work... Happy debugging!
 FAQ
 ====
 
-#### Flex fails during build with an error related to ```yyin.rdbuf(std::cin.rdbuf())``` on OSX.
+#### Flex fails during build with an error related to yyin.rdbuf(std::cin.rdbuf()) on OSX.
 This is related to the version of flex that you have installed; some versions of port will install an older revision. Try using the version of flex provided by XCode in ```/usr/bin/flex```.
 
 #### How do I ssh into the DE10's ARM core using a USB cable?
@@ -663,7 +663,7 @@ This is related to the version of flex that you have installed; some versions of
 #### Cascade emits strange warnings whenever I declare a module.
 Module declarations are typechecked in the global scope, separate from the rest of your program. While this allows Cascade to catch many errors at declaration-time, there are some properties of Verilog programs which can only be verified at instantiation-time. If Cascade emits a warning, it is generally because it cannot statically prove that the module you declared will instantiate correctly in every possible program context.  
 
-#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo```, but not when I instantiate it (Part 1)?
+#### Why does cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 1)?
 ```verilog
 localparam x = 0;
 module Foo();
@@ -696,7 +696,7 @@ Foo f(); // This instantiation will fail because the only variable
          // reachable from f is q.r.
 ```
 
-#### Why does cascade warn that ```x``` is undeclared when I declare ```Foo```, but not when I instantiate it (Part 2)?
+#### Why does cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 2)?
 ```verilog
 module #(parameter N) Foo();
   genvar i;
