@@ -518,16 +518,16 @@ Adding support for a new backend begins with writing an ```--march``` file. This
 include data/stdlib/stdlib.v;
 
 // Next, an --march file must instantiate the root module. The __target annotation is 
-// used to pass information to the Cascade compiler (more on this next) about how to 
-// compile the user's code. __target is a colon-separated list of backend compilation 
-// passes to use. If only one value is provided as below, then Cascade will not run in 
-// JIT-mode. To enable JIT-mode, use the following string instead: "sw:my_backend".
+// used to pass information to the Cascade compiler about how to compile the user's code. 
+// __target is a colon-separated list of backend compilation passes to use. If only one 
+// value is provided as below, then Cascade will not run in JIT-mode. To enable JIT-mode, 
+// use the following string instead: "sw:my_backend".
 (* __target="my_backend" *)
 Root root();
 
 // At a minimum, a backend must instantiate a global Standard Library clock which will 
 // never leave software. Any code which follows the instantiation of the root is placed 
-// inside of the root, and any instantiations which appear inside of root inherit its 
+// inside of the root, and any instantiations which appear inside of the root inherit its 
 // annotations. The __target="sw" annotation overrides the value you placed on the root 
 // and guarantees that this module will never leave software simulation.
 (* __target="sw" *)
@@ -540,12 +540,18 @@ Clock clock();
 (* __target="my_backend" *)
 Led#(4) led();
 
-// This instantiaton will expose a target-specific pci connection. The __std="pci" 
-// annotation is used to invoke special behavior in your compiler. As above, the 
-// __target="my_backend" annotation overrides the value you placed on the root.
+// This declaration will expose a target-specific pci connection. Target-specific 
+// declaration only need to specify their input and output pins. The actual implementation 
+// will be provided by your compiler.
 module Pci();
-  // ...
+  input wire ...
+  output wire ...
 endmodule
+
+// This instantiation will expose your target-specific module. The __std="pci" 
+// annotation will be used to distinguish this instantiation from user code. As 
+// above, the __target="my_backend" annotation overrides the value you placed on 
+// the root.
 (* __std="pci", __target="my_backend" *)
 Pci pci();
 
@@ -559,7 +565,24 @@ initial begin
 end
 ```
 
-Next, you'll need to tell the Cascade compiler how to invoke your backend compiler. Take a look at ```src/target/compiler.h```. You'll need to add a new private member and a public configuration method.
+Next, you'll need to create a compiler for your backend. Take a look at the ```CoreCompiler``` class which is defined in ```src/target/core_compiler.h```. Your compiler must be a subclass of this type, and be able to code user logic as well as instantiations of any of the Standard Library components you introduced in your ```--march``` file. For the example shown above, this means that you would need to override the following methods:
+
+```c++
+virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
+virtual Logic* compile_logic(Interface* interface, ModuleDeclaration* md);
+```
+
+Additionally, because the example contains at least one target-specific component, you would also need to override the following method:
+
+```c++
+virtual Custom* compile_custom(Interface* interface, ModuleDeclaration* md);
+```
+
+Details on implementing these methods can be found in ```src/target/core_compiler.h```. In short, the goal of this class is transform a ```ModuleDeclaration``` (Verilog source code) for an instantiated module into a ```Core``` (target-specific executable implementation of that code), of which ```Led```, ```Logic```, and ```Custom``` are sub-types, whose implementation relies on an ```Interface``` (which will be compiled for you) to communicate back and forth with the Cascade runtime as necessary.
+
+The definitions for ```Core``` and ```Interface``` can be found in ```src/target/core.h``` and ```src/target/interface.h``` respectively. Your compiler will need to return target-specific instances of these classes. Both files contain detailed information on the invariants that Cascade imposes on the implementation of a ```Core``` and the functionality provided by an ```Interface```. Briefly, a ```Core``` is responsible for implementing support for the Cascade runtime ABI. This ABI is the mechanism by which Cascade orchestrates the communication and computation necessary to satisfy the semantics of Verilog while at the same time providing support for the just-in-time features described above. 
+
+Once you've finished implementing your compiler, you'll need to tell the Cascade compiler how to invoke it. Take a look at ```src/target/compiler.h```. You'll need to add a new private member and a public configuration method.
 ```c++
   public:
     Compiler& set_my_backend_compiler(MyBackendCompiler* mbc);
