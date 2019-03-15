@@ -280,7 +280,8 @@ TEST_OBJ=\
 	test/regression/mips32.o\
 	test/regression/regex.o\
 	test/regression/nw.o\
-	test/regression/jit.o
+	test/regression/jit.o\
+	test/regression/remote.o
 
 ### Benchmark binaries
 BMARK_OBJ=\

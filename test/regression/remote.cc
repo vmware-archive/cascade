@@ -28,49 +28,26 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_TEST_HARNESS_H
-#define CASCADE_TEST_HARNESS_H
+#include "gtest/gtest.h"
+#include "test/harness.h"
 
-#include <iostream>
-#include <string>
-#include "src/ui/view.h"
+using namespace cascade;
 
-namespace cascade {
-
-// A stripped-down view; filters everything other than print messages
-class PView : public View {
-  public:
-    PView(std::ostream& os);
-    ~PView() override = default;
-
-    void print(size_t t, const std::string& s) override;
-
-  private:
-    std::ostream& os_;
-};
-
-// Another stripped-down view; filters everything other than error messages
-class EView : public View {
-  public:
-    EView();
-    ~EView() override = default;
-
-    bool error() const;
-    void error(size_t t, const std::string& s) override;
-
-  private:
-    bool error_;
-};
-
-// Harnesses for major components:
-void run_parse(const std::string& path, bool expected);
-void run_typecheck(const std::string& march, const std::string& path, bool expected);
-void run_code(const std::string& march, const std::string& path, const std::string& expected);
-void run_remote(const std::string& path, const std::string& expected);
-
-// Benchmark harnesses:
-void run_mips(const std::string& march, const std::string& path, const std::string& expected);
-
-} // namespace cascade
-
-#endif
+TEST(remote, hello_1) {
+  run_remote("data/test/regression/simple/hello_1.v", "Hello World");
+}
+TEST(remote, pipeline_1) {
+  run_remote("data/test/regression/simple/pipeline_1.v", "0123456789");
+}
+TEST(remote, pipeline_2) {
+  run_remote("data/test/regression/simple/pipeline_2.v", "0123456789");
+}
+TEST(remote, bitcoin) {
+  run_remote("data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+}
+TEST(remote, bubble) {
+  run_remote("data/test/benchmark/mips32/run_bubble_32.v", "1");
+}
+TEST(remote, regex) {
+  run_remote("data/test/benchmark/regex/run_disjunct_1.v", "424");
+}
