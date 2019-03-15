@@ -541,7 +541,7 @@ Clock clock();
 Led#(4) led();
 
 // This instantiaton will expose a target-specific pci connection. The __std="pci" 
-// annotation is used to invoke special behavior in your compiler, and as above, the 
+// annotation is used to invoke special behavior in your compiler. As above, the 
 // __target="my_backend" annotation overrides the value you placed on the root.
 module Pci();
   // ...
