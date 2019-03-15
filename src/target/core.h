@@ -122,6 +122,7 @@ class Core {
 
     // Light-weight RTTI:
     virtual bool is_clock() const;
+    virtual bool is_custom() const;
     virtual bool is_logic() const;
     virtual bool is_stub() const;
 
@@ -142,6 +143,12 @@ class Clock : public Core {
     using Core::Core;
     bool there_were_tasks() const override;
     bool is_clock() const override;
+};
+
+class Custom : public Core {
+  public:
+    using Core::Core;
+    bool is_custom() const override;
 };
 
 class Fifo : public Core { 
@@ -243,6 +250,10 @@ inline bool Core::is_clock() const {
   return false;
 }
 
+inline bool Core::is_custom() const {
+  return false;
+}
+
 inline bool Core::is_logic() const {
   return false;
 }
@@ -260,6 +271,10 @@ inline bool Clock::there_were_tasks() const {
 }
 
 inline bool Clock::is_clock() const {
+  return true;
+}
+
+inline bool Custom::is_custom() const {
   return true;
 }
 

@@ -67,8 +67,11 @@ class CoreCompiler {
     // to indicate an aborted compilation. In the event of an error, these
     // methods must call the error() method to explain what happened. The
     // default behavior is to delete md, return nullptr, and report that no
-    // implementation strategy is available. 
+    // implementation strategy is available. The compile_custom() method is
+    // invoked whenever a Compiler is presented with a user-defined __std
+    // annotation.
     virtual Clock* compile_clock(Interface* interface, ModuleDeclaration* md);
+    virtual Custom* compile_custom(Interface* interface, ModuleDeclaration* md);
     virtual Fifo* compile_fifo(Interface* interface, ModuleDeclaration* md);
     virtual Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md);
     virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
