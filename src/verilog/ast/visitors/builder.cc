@@ -92,6 +92,12 @@ Expression* Builder::build(const ConditionalExpression* ce) {
   );
 }
 
+Expression* Builder::build(const FopenExpression* fe) {
+  return new FopenExpression(
+    fe->accept_arg(this)
+  );
+}
+
 Expression* Builder::build(const Concatenation* c) {
   auto* res = new Concatenation();
   c->accept_exprs(this, res->back_inserter_exprs());

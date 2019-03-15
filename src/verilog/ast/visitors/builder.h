@@ -53,6 +53,7 @@ struct Builder {
   virtual Event* build(const Event* e);
   virtual Expression* build(const BinaryExpression* be);
   virtual Expression* build(const ConditionalExpression* ce);
+  virtual Expression* build(const FopenExpression* fe);
   virtual Expression* build(const Concatenation* c);
   virtual Expression* build(const Identifier* i);
   virtual Expression* build(const MultipleConcatenation* mc);

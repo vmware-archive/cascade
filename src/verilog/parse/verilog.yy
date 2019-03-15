@@ -790,8 +790,7 @@ reg_declaration
 /* A.2.2.1 Net and Variable Types */
 file_type
   : identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
-    $$ = new VariableAssign($1, new Number(Bits(false), Number::Format::UNBASED)); 
-    delete $5;
+    $$ = new VariableAssign($1, new FopenExpression($5)); 
     parser->set_loc($$, $1);
   }
 net_type

@@ -79,7 +79,7 @@ class ModuleInfo : public Visitor {
     // port.
     bool is_output(const Identifier* id);
     // Returns true if this a local variable which is the target of a
-    // nonblocking assign.
+    // nonblocking assign or a file descriptor.
     bool is_stateful(const Identifier* id);
     // Returns true if variable resolves to a declaration outside of this
     // module.  Note that !is_external(x) =/= is_local(x).

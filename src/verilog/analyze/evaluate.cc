@@ -309,6 +309,12 @@ void Evaluate::edit(ConditionalExpression* ce) {
   }
 }
 
+void Evaluate::edit(FopenExpression* fe) {
+  // Does nothing. Target-specific implementations are required to provide a
+  // meaningful implementation for $fopen() expressions.
+  (void) fe;
+}
+
 void Evaluate::edit(Concatenation* c) {
   auto i = c->begin_exprs();
   c->bit_val_[0].assign(get_value(*i++));
@@ -479,6 +485,12 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 }
 
+void Evaluate::Invalidate::edit(FopenExpression* fe) {
+  fe->bit_val_.clear();
+  fe->set_flag<0>(true);
+  // No need to descend on arg, which is guaranteed to be a string
+}
+
 void Evaluate::Invalidate::edit(Concatenation* c) {
   c->bit_val_.clear();
   c->set_flag<0>(true);
@@ -604,6 +616,12 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   size_t w = max(ce->get_lhs()->bit_val_[0].size(), ce->get_rhs()->bit_val_[0].size());
   ce->bit_val_.push_back(Bits(w, 0));
   ce->bit_val_[0].set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
+  // $fopen() expressions return 32-bit unsigned integer file values.
+  fe->bit_val_.push_back(Bits(32, 0));
+  fe->bit_val_[0].set_signed(false);
 }
 
 void Evaluate::SelfDetermine::edit(Concatenation* c) {
@@ -886,6 +904,11 @@ void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
 
   Editor::edit(ce);
+}
+
+void Evaluate::ContextDetermine::edit(FopenExpression* fe) {
+  // Nothing to do here. $fopen() expressions are always 32-bit unsigned values.
+  (void) fe;
 }
 
 void Evaluate::ContextDetermine::edit(Identifier* id) {

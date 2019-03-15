@@ -73,6 +73,10 @@ void Editor::edit(ConditionalExpression* ce) {
   ce->accept_rhs(this);
 }
 
+void Editor::edit(FopenExpression* fe) {
+  fe->accept_arg(this);
+}
+
 void Editor::edit(Concatenation* c) {
   c->accept_exprs(this);
 }

@@ -123,6 +123,13 @@ void Printer::visit(const ConditionalExpression* ce) {
   *this << Color::RED << ")" << Color::RESET;
 }
 
+void Printer::visit(const FopenExpression* fe) {
+  *this << Color::YELLOW << "$fopen" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  fe->accept_arg(this);
+  *this << Color::RED << ")" << Color::RESET;
+}
+
 void Printer::visit(const Concatenation* c) {
   *this << Color::RED << "{" << Color::RESET;
   int cnt = 0;

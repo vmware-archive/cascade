@@ -121,13 +121,18 @@ ModuleItem* Isolate::build(const IntegerDeclaration* id) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   // Careful: We aren't allowed to have initial values for arrays
+  // Careful: We also don't want to evaluate $fopen() expressions.
+
+  const auto is_scalar = id->get_id()->empty_dim();
+  const auto is_fopen = id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression);
+
   auto* res = new RegDeclaration(
     id->get_attrs()->accept(this),
     id->accept_id(this),
     true,
     new RangeExpression(32,0),
-    id->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(id->get_id()), Number::Format::HEX) :
+    is_fopen ? id->get_val()->clone() :
+      is_scalar ? new Number(Evaluate().get_value(id->get_id()), Number::Format::HEX) :
       nullptr
   );
   return res;

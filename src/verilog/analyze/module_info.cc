@@ -581,7 +581,10 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
 
 void ModuleInfo::visit(const IntegerDeclaration* id) {
   md_->locals_.insert(id->get_id());   
-  // Nothing external should reference this
+  record_external_use(id->get_id());
+  if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(id->get_id());
+  }
 }
 
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
@@ -604,6 +607,9 @@ void ModuleInfo::visit(const ParameterDeclaration* pd) {
 void ModuleInfo::visit(const RegDeclaration* rd) {
   md_->locals_.insert(rd->get_id());   
   record_external_use(rd->get_id());
+  if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(rd->get_id());
+  }
 }
 
 void ModuleInfo::visit(const ModuleInstantiation* mi) {

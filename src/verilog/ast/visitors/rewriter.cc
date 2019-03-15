@@ -81,6 +81,11 @@ Expression* Rewriter::rewrite(ConditionalExpression* ce) {
   return ce;
 }
 
+Expression* Rewriter::rewrite(FopenExpression* fe) {
+  fe->accept_arg(this);
+  return fe;
+}
+
 Expression* Rewriter::rewrite(Concatenation* c) {
   c->accept_exprs(this);
   return c;

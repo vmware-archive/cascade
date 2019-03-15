@@ -50,6 +50,7 @@ struct Editor {
   virtual void edit(Event* e);
   virtual void edit(BinaryExpression* be);
   virtual void edit(ConditionalExpression* ce);
+  virtual void edit(FopenExpression* fe);
   virtual void edit(Concatenation* c);
   virtual void edit(Identifier* i);
   virtual void edit(MultipleConcatenation* mc);

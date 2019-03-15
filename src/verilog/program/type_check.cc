@@ -412,7 +412,9 @@ void TypeCheck::visit(const Identifier* id) {
 
 void TypeCheck::visit(const String* s) {
   auto e = false;
-  if (s->get_parent()->is(Node::Tag::display_statement)) {
+  if (s->get_parent()->is(Node::Tag::fopen_expression)) {
+    // Nothing to do.
+  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
     auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
     if (ds->front_args() != s) {
       e = true;

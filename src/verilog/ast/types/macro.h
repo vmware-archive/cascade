@@ -497,6 +497,7 @@
   friend class Event; \
   friend class BinaryExpression; \
   friend class ConditionalExpression; \
+  friend class FopenExpression; \
   friend class Concatenation; \
   friend class Identifier; \
   friend class MultipleConcatenation; \

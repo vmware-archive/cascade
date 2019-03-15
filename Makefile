@@ -10,7 +10,7 @@ CXX_OPT=\
  	-Wno-overloaded-virtual -Wno-deprecated-register
 PERF=\
 	-march=native -fno-exceptions -fno-stack-protector \
-	-O3 -DNDEBUG
+	-g #O3 -DNDEBUG
 INC=-I. -I./ext/cl
 LIB=-lncurses -lpthread
 
