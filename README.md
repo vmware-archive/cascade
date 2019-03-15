@@ -388,14 +388,14 @@ end
 The ```$open()```, ```$read()```, and ```$write()``` tasks provide an abstract mechanism for interacting with files. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$read()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
 
 ```verilog
-integer fd = $open("path/to/file");
+file f = $fopen("path/to/file");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
-  if ($eof(fd)) begin
+  if ($eof(f)) begin
     $finish;
   end
-  $read(fd, x);
+  $fread(f, x);
   $display(x);
 end
 ```
@@ -414,14 +414,14 @@ reg x;
 wire y;
 Compute c(x,y);
 
-integer i = $open("path/to/input");
-integer o = $open("path/to/output");
+file i = $fopen("path/to/input");
+file o = $fopen("path/to/output");
 always @(posedge clock.val) begin
   if ($eof(i)) begin
     $finish;
   end  
-  $read(i, x);
-  $write(o, y);
+  $fread(i, x);
+  $fwrite(o, y);
 end
 ```
 
@@ -517,47 +517,51 @@ Adding support for a new backend begins with writing an ```--march``` file. This
 // An --march file must first include the declarations in the Standard Library
 include data/stdlib/stdlib.v;
 
-// Next, an --march file must instantiate the root module. The __target annotation is 
-// used to pass information to the Cascade compiler about how to compile the user's code. 
-// __target is a colon-separated list of backend compilation passes to use. If only one 
-// value is provided as below, then Cascade will not run in JIT-mode. To enable JIT-mode, 
-// use the following string instead: "sw:my_backend".
-(* __target="my_backend" *)
+// Next, an --march file must instantiate the root module. The __target
+// annotation is used to pass information to the Cascade compiler about how to
+// compile the user's code.  __target is a colon-separated list of backend
+// compilation passes to use. Placing the name of your backend second will
+// cause your compiler to run in the background while Cascade runs the user's
+// code in software simulation.
+(* __target="sw:my_backend" *)
 Root root();
 
-// At a minimum, a backend must instantiate a global Standard Library clock which will 
-// never leave software. Any code which follows the instantiation of the root is placed 
-// inside of the root, and any instantiations which appear inside of the root inherit its 
-// annotations. The __target="sw" annotation overrides the value you placed on the root 
-// and guarantees that this module will never leave software simulation.
+// At a minimum, a backend must instantiate a global Standard Library clock
+// which will never leave software. Any code which follows the instantiation of
+// the root is placed inside of the root, and any instantiations which appear
+// inside of the root inherit its annotations. The __target="sw" annotation
+// overrides the value you placed on the root and guarantees that this module
+// will never leave software simulation.
 (* __target="sw" *)
 Clock clock();
 
-// This instantiation will expose an abstract bank of four Standard Library LEDs. 
-// As above, the __target="my_backend" annotation overrides the value you placed on the
-// root. This ensures that this module will be compiled directly to your backend, even
-// if you configured the root to run in JIT-mode.
+// This instantiation will expose an abstract bank of four Standard Library
+// LEDs.  As above, the __target="my_backend" annotation overrides the value
+// you placed on the root. This ensures that this module will be compiled
+// directly to your backend rather than beginning execution in software
+// simulation.
 (* __target="my_backend" *)
 Led#(4) led();
 
-// This declaration will expose a target-specific pci connection. Target-specific 
-// declaration only need to specify their input and output pins. The actual implementation 
-// will be provided by your compiler.
+// This declaration will expose a target-specific pci connection.
+// Target-specific declaration only need to specify their input and output
+// pins. The actual implementation will be provided by your compiler.
 module Pci();
   input wire ...
   output wire ...
 endmodule
 
-// This instantiation will expose your target-specific module. The __std="pci" 
-// annotation will be used to distinguish this instantiation from user code. As 
-// above, the __target="my_backend" annotation overrides the value you placed on 
-// the root.
+// This instantiation will expose your target-specific module. The __std="pci"
+// annotation will be used to distinguish this instantiation from user code. As
+// above, the __target="my_backend" annotation overrides the value you placed
+// on the root.
 (* __std="pci", __target="my_backend" *)
 Pci pci();
 
-// At this point you may have noticed that an  --march file is just Verilog code which 
-// is run before transferring control to the user. Now that your environment is set up, 
-// in addition to $info() statements, you could place any arbitrary code here as well. 
+// At this point you may have noticed that an  --march file is just Verilog
+// code which is run before transferring control to the user. Now that your
+// environment is set up, in addition to $info() statements, you could place
+// any arbitrary code here as well. 
 initial begin
   $info("My Backend");
   $info(" Supports the following Standard Library Components: Clock, Led");

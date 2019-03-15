@@ -123,6 +123,7 @@ bool is_null(const cascade::Expression* e) {
 %token ENDCASE     "endcase"
 %token ENDGENERATE "endgenerate"
 %token ENDMODULE   "endmodule"
+%token FILE        "file"
 %token FOR         "for"
 %token FORK        "fork"
 %token FOREVER     "forever"
@@ -151,9 +152,13 @@ bool is_null(const cascade::Expression* e) {
 
 /* System Task Identifiers */
 %token SYS_DISPLAY  "$display"
+%token SYS_EOF      "$eof"
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
+%token SYS_FOPEN    "$fopen"
+%token SYS_FREAD    "$fread"
+%token SYS_FWRITE   "$fwrite"
 %token SYS_INFO     "$info"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
@@ -225,11 +230,13 @@ bool is_null(const cascade::Expression* e) {
 %type <std::vector<ModuleItem*>> output_declaration
 
 /* A.2.1.3 Type Declarations */
+%type <std::vector<ModuleItem*>> file_declaration
 %type <std::vector<ModuleItem*>> integer_declaration
 %type <std::vector<ModuleItem*>> net_declaration
 %type <std::vector<ModuleItem*>> reg_declaration
 
 /* A.2.2.1 Net and Variable Types */
+%type <VariableAssign*> file_type
 %type <NetDeclaration::Type> net_type
 %type <VariableAssign*> variable_type
 
@@ -238,6 +245,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> delay_value
 
 /* A.2.3 Declaration Lists */
+%type <std::vector<VariableAssign*>> list_of_file_identifiers
 %type <std::vector<VariableAssign*>> list_of_net_decl_assignments
 %type <std::vector<Identifier*>> list_of_net_identifiers
 %type <std::vector<VariableAssign*>> list_of_param_assignments
@@ -383,6 +391,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> eq_ce_Q
 %type <std::vector<Expression*>> expression_P
 %type <Expression*> expression_Q
+%type <size_t> file_L
 %type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
 %type <std::vector<ModuleItem*>> list_of_port_declarations_Q
@@ -571,6 +580,7 @@ module_or_generate_item
 module_or_generate_item_declaration
   : net_declaration { $$ = $1; }
   | reg_declaration { $$ = $1; }
+  | file_declaration { $$ = $1; }
   | integer_declaration { $$ = $1; }
   /* TODO | real_declaration */
   /* TODO | time_declaration */
@@ -701,6 +711,17 @@ output_declaration
   ;
 
 /* A.2.1.3 Type Declarations */
+file_declaration
+  : attribute_instance_S file_L list_of_file_identifiers SCOLON {
+    for (auto va : $3) {
+      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      delete va;
+      parser->set_loc(id, $2);
+      parser->set_loc(id->get_id(), $2);
+      $$.push_back(id);
+    }
+    delete $1;
+  }
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
@@ -767,6 +788,12 @@ reg_declaration
   ;
 
 /* A.2.2.1 Net and Variable Types */
+file_type
+  : identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
+    $$ = new VariableAssign($1, new Number(Bits(false), Number::Format::UNBASED)); 
+    delete $5;
+    parser->set_loc($$, $1);
+  }
 net_type
   /* TODO : SUPPLY0 */
   /* TODO | SUPPLY1 */
@@ -808,6 +835,15 @@ delay_value
   ;
 
 /* A.2.3 Declaration Lists */
+list_of_file_identifiers
+  : file_type { 
+    $$.push_back($1); 
+  }
+  | list_of_file_identifiers COMMA file_type {
+    $$ = $1;
+    $$.push_back($3);
+  }
+  ;
 list_of_net_decl_assignments
   : net_decl_assignment { 
     $$.push_back($1); 
@@ -1801,6 +1837,9 @@ expression_P
 expression_Q
   : %empty { $$ = nullptr; }
   | expression { $$ = $1; }
+  ;
+file_L
+  : FILE { $$ = parser->get_loc().begin.line; }
   ;
 generate_block_id_Q
   : %empty { $$ = nullptr; }
