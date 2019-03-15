@@ -28,11 +28,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // The top-level module. Evaluated module items are inserted here.
-(*__std="logic"*)
+(*__std="logic", __loc="runtime", __target="sw"*)
 module Root(); 
 endmodule
 
-// The top-level virtual clock
+// The top-level virtual clock.
 (*__std="clock"*)
 module Clock(
   output wire val
@@ -109,6 +109,8 @@ endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
 // Reusable Data-Structures:
+// These abstracts are deprecated and should no longer be used!  The preferred
+// method for performing file i/o is the file i/o family of system tasks.
 ///////////////////////////////////////////////////////////////////////////////
 
 // An dual-port-read single-port-write memory with arbitrary size and byte

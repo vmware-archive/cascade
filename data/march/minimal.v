@@ -4,8 +4,6 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw", __loc="runtime"*)
 Root root();
 
-(*__target="sw", __loc="runtime"*)                    
 Clock clock();

@@ -2,17 +2,16 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw:de10", __loc="runtime"*)
+(*__target="sw:de10"*)
 Root root();
 
-(*__target="sw", __loc="runtime"*)                    
 Clock clock();
 
-(*__target="de10", __loc="runtime"*)
+(*__target="de10"*)
 Pad#(4) pad();
 
-(*__target="de10", __loc="runtime"*)
+(*__target="de10"*)
 Led#(8) led();
 
-(*__target="de10", __loc="runtime"*)
+(*__target="de10"*)
 Gpio#(8) gpio();

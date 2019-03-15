@@ -59,6 +59,8 @@ Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
     return compile_gpio(interface, md);
   } else if (std->eq("led")) {
     return compile_led(interface, md);
+  } else if (std->eq("logic")) {
+    return compile_logic(interface, md);
   } else if (std->eq("memory")) {
     return compile_memory(interface, md);
   } else if (std->eq("pad")) {
@@ -66,7 +68,7 @@ Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
   } else if (std->eq("reset")) {
     return compile_reset(interface, md);
   } else {
-    return compile_logic(interface, md);
+    return compile_custom(interface, md);
   }
 }
 
@@ -74,6 +76,17 @@ Clock* CoreCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) 
   (void) interface;
   delete md;
   error("No compiler support available for modules of type clock");
+  return nullptr;
+}
+
+Custom* CoreCompiler::compile_custom(Interface* interface, ModuleDeclaration* md) {
+  (void) interface;
+
+  const auto* std = md->get_attrs()->get<String>("__std");
+  assert(std != nullptr);
+  error("No compiler support available for custom modules of type " + std->get_readable_val());
+
+  delete md;
   return nullptr;
 }
 
