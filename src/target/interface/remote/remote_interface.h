@@ -45,7 +45,6 @@ class RemoteInterface : public Interface {
 
     void display(const std::string& s) override;
     void error(const std::string& s) override;
-    void fatal(int arg, const std::string& s) override;
     void finish(int arg) override;
     void info(const std::string& s) override;
     void restart(const std::string& s) override;
@@ -74,11 +73,6 @@ inline void RemoteInterface::display(const std::string& s) {
 inline void RemoteInterface::error(const std::string& s) {
   write_flag(false);
   SysTask(SysTask::Type::ERROR, s).serialize(*buf_);
-}
-
-inline void RemoteInterface::fatal(int arg, const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::FATAL, s, arg).serialize(*buf_);
 }
 
 inline void RemoteInterface::finish(int arg) {

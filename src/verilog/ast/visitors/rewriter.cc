@@ -320,12 +320,6 @@ Statement* Rewriter::rewrite(ErrorStatement* es) {
   return es;
 }
 
-Statement* Rewriter::rewrite(FatalStatement* fs) {
-  fs->accept_arg(this);
-  fs->accept_args(this);
-  return fs;
-}
-
 Statement* Rewriter::rewrite(FinishStatement* fs) {
   fs->accept_arg(this);
   return fs;

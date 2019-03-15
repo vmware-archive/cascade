@@ -95,7 +95,6 @@ class Node;
     class SystemTaskEnableStatement;
       class DisplayStatement;
       class ErrorStatement;
-      class FatalStatement;
       class FinishStatement;
       class InfoStatement;
       class RestartStatement;

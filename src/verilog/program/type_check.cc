@@ -422,11 +422,6 @@ void TypeCheck::visit(const String* s) {
     if (es->front_args() != s) {
       e = true;
     }
-  } else if (s->get_parent()->is(Node::Tag::fatal_statement)) {
-    auto* fs = static_cast<const FatalStatement*>(s->get_parent());
-    if (fs->front_args() != s) {
-      e = true;
-    }
   } else if (s->get_parent()->is(Node::Tag::info_statement)) {
     auto* is = static_cast<const InfoStatement*>(s->get_parent());
     if (is->front_args() != s) {
@@ -745,12 +740,6 @@ void TypeCheck::visit(const DisplayStatement* ds) {
 void TypeCheck::visit(const ErrorStatement* es) {
   es->accept_args(this);
   check_printf(es->size_args(), es->begin_args(), es->end_args());
-}
-
-void TypeCheck::visit(const FatalStatement* fs) {
-  fs->accept_arg(this);
-  fs->accept_args(this);
-  check_printf(fs->size_args(), fs->begin_args(), fs->end_args());
 }
 
 void TypeCheck::visit(const InfoStatement* is) {

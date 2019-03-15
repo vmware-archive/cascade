@@ -49,7 +49,6 @@ class Interface {
     // cause the corresponding system task calls to be invoked in the runtime.
     virtual void display(const std::string& s) = 0;
     virtual void error(const std::string& s) = 0;
-    virtual void fatal(int arg, const std::string& s) = 0;
     virtual void finish(int arg) = 0;
     virtual void info(const std::string& s) = 0;
     virtual void restart(const std::string& s) = 0;

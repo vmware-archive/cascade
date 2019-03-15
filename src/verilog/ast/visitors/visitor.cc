@@ -276,11 +276,6 @@ void Visitor::visit(const ErrorStatement* es) {
   es->accept_args(this);
 }
 
-void Visitor::visit(const FatalStatement* fs) {
-  fs->accept_arg(this);
-  fs->accept_args(this);
-}
-
 void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
