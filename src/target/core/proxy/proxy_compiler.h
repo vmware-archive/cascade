@@ -81,7 +81,7 @@ template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
   auto* conn = get_conn(md);
   if (conn == nullptr) {
-    error("Unable to establish connection with remote runtime");
+    error("Unable to establish connection with slave runtime");
     delete md;
     return nullptr;
   }
@@ -99,8 +99,8 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
   conn->recv_rpc(res);
 
   if (res.type_ == Rpc::Type::ERROR) {
-    // TODO(eschkufz) Forward error messages from remote runtime to here
-    error("An unhandled error occured during compilation in the remote runtime");
+    // TODO(eschkufz) Forward error messages from slave runtime to here
+    error("An unhandled error occured during compilation in the slave runtime");
     return nullptr;
   }
   return new ProxyCore<T>(interface, res.id_, conn);

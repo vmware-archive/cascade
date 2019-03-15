@@ -292,7 +292,6 @@ BMARK_OBJ=\
 BIN=\
 	bin/cascade\
 	bin/quartus_server\
-	bin/remote_runtime\
 	bin/sw_fpga
 
 ### Top-level commands

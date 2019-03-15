@@ -135,12 +135,7 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 ```
 
 ### Other Interfaces
-If you're fixated on performance at all costs, you can deactivate the REPL by running Cascade in batch mode.
-```
-*NIX $ ./bin/cascade --batch -e path/to/file.v
-```
-
-On the other hand, if you prefer a GUI, Cascade has a frontend which runs in the browser. Note however that this interface is work in intermitent progress, and may suffer from bit-rot from time to time.
+If you prefer a GUI, Cascade has a frontend which runs in the browser. Note however that this interface is work in intermitent progress, and may suffer from bit-rot from time to time.
 ```
 *NIX $ ./bin/cascade --ui web
 >>> Running server out of /Users/you/Desktop/cascade/bin/../src/ui/web/
@@ -267,9 +262,9 @@ You can now start Cascade's JIT server by typing the following, where the ```--u
 ```
 Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
 ```
-DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile_interval 10
+DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile 10
 ```
-Providing the ```--profile_interval``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
+Providing the ```--profile``` flag will cause cascade to periodically (every 10s) print the current time and Cascade's virtual clock frequency. Over time as the JIT compilation runs to completion, and the program transitions from software to hardware, you should see this value transition from O(10 KHz) to O(10 MHz). If at any point you modify a program which is mid-compilation, that compilation will be aborted. Modifying a program which has already transitioned to hardware will cause its execution to transition back to software while the new compilation runs to completion.
 
 Support for Synthesizable Verilog
 =====

@@ -38,6 +38,7 @@
 #include "src/base/system/system.h"
 #include "src/base/thread/asynchronous.h"
 #include "src/runtime/runtime.h"
+#include "src/target/common/remote_runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/de10/de10_compiler.h"
 #include "src/target/core/proxy/proxy_compiler.h"
@@ -58,21 +59,21 @@ using namespace std;
 namespace {
 
 __attribute__((unused)) auto& g1 = Group::create("Cascade Runtime Options");
-auto& input_path = StrArg<string>::create("-e")
-  .usage("path/to/file.v")
-  .description("Read input from file");
 auto& march = StrArg<string>::create("--march")
   .usage("minimal|minimal_jit|sw|de10|de10_jit")
   .description("Target architecture")
   .initial("minimal");
-auto& ui = StrArg<string>::create("--ui")
-  .usage("term|web")
-  .description("UI interface")
-  .initial("console");
 auto& inc_dirs = StrArg<string>::create("-I")
   .usage("<path1>:<path2>:...:<pathn>")
   .description("Paths to search for files on")
   .initial("");
+auto& input_path = StrArg<string>::create("-e")
+  .usage("path/to/file.v")
+  .description("Read input from file");
+auto& ui = StrArg<string>::create("--ui")
+  .usage("term|web")
+  .description("UI interface")
+  .initial("console");
 
 __attribute__((unused)) auto& g2 = Group::create("Web UI Options"); 
 auto& web_ui_port = StrArg<string>::create("--web_ui_port")
@@ -86,7 +87,7 @@ auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
 auto& web_ui_debug = FlagArg::create("--web_ui_debug")
   .description("Print debug information to web ui");
 
-__attribute__((unused)) auto& g3 = Group::create("Quartus Options");
+__attribute__((unused)) auto& g3 = Group::create("Quartus Server Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
@@ -97,14 +98,18 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .initial(9900);
 
 __attribute__((unused)) auto& g4 = Group::create("Logging Options");
-auto& profile_interval = StrArg<int>::create("--profile_interval")
+auto& profile = StrArg<int>::create("--profile")
   .usage("<n>")
   .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_info")
   .initial(0);
-auto& batch = FlagArg::create("--batch")
-  .description("Deactivate UI; use -e to provide program input");
+auto& enable_info = FlagArg::create("--enable_info")
+  .description("Turn on info messages");
+auto& disable_warning = FlagArg::create("--disable_warning")
+  .description("Turn off warning messages");
+auto& disable_error = FlagArg::create("--disable_error")
+  .description("Turn off error messages");
 auto& enable_logging = FlagArg::create("--enable_logging")
-  .description("Turns on UI logging");
+  .description("Copies cascade output to log file");
 
 __attribute__((unused)) auto& g5 = Group::create("Optimization Options");
 auto& disable_inlining = FlagArg::create("--disable_inlining")
@@ -114,13 +119,17 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
-__attribute__((unused)) auto& g6 = Group::create("Elaboration Tasks");
-auto& enable_info = FlagArg::create("--enable_info")
-  .description("Turn on info messages");
-auto& disable_warning = FlagArg::create("--disable_warning")
-  .description("Turn off warning messages");
-auto& disable_error = FlagArg::create("--disable_error")
-  .description("Turn off error messages");
+__attribute__((unused)) auto& g6 = Group::create("Slave Runtime Options");
+auto& slave = FlagArg::create("--slave")
+  .description("Runs Cascade in slave mode");
+auto& slave_port = StrArg<size_t>::create("--slave_port")
+  .usage("<int>")
+  .description("Port to listen for slave connections on")
+  .initial(8800);
+auto& slave_path = StrArg<string>::create("--slave_path")
+  .usage("<path/to/socket>")
+  .description("Path to listen for slave_connections on")
+  .initial("/tmp/fpga_socket");
 
 class Profiler : public Asynchronous {
   public:
@@ -134,24 +143,30 @@ class Profiler : public Asynchronous {
         stringstream ss;
         ss << "time / freq = " << setw(10) << time(nullptr) << " / " << setw(7) << rt_->current_frequency();
         rt_->info(ss.str());
-        sleep_for(1000*::profile_interval.value());        
+        sleep_for(1000*::profile.value());        
       }
     }
     Runtime* rt_;
 };
 
-// Cascade Components:
+// Master-Mode Components:
 ManyView* view = nullptr;
 Runtime* runtime = nullptr;
 Controller* controller = nullptr;
+// Slave-Mode Components:
+RemoteRuntime* remote_runtime = nullptr;
 // Logging Components:
 ofstream* logfile = nullptr;
 Profiler* profiler = nullptr;
 
 void int_handler(int sig) {
   (void) sig;
-  ::runtime->error("User Interrupt:\n  > Caught Ctrl-C.");
-  ::runtime->finish(0);
+  if (::runtime != nullptr) {
+    ::runtime->error("User Interrupt:\n  > Caught Ctrl-C.");
+    ::runtime->finish(0);
+  } else if (::remote_runtime != nullptr) {
+    ::remote_runtime->request_stop();
+  }
 }
 
 void segv_handler(int sig) {
@@ -178,27 +193,6 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
-  // Setup Global MVC State
-  ::view = new ManyView();
-  ::runtime = new Runtime(::view);
-  if (::enable_logging) {
-    ::logfile = new ofstream("cascade.log", ofstream::app);
-    ::view->attach(new LogView(*::logfile));
-  }
-  if (::ui.value() == "web") {
-    auto* mv = new MaybeView();
-    auto* wui = new WebUi(::runtime);
-    wui->set_port(::web_ui_port.value());
-    wui->set_buffer(::web_ui_buffer.value());
-    wui->set_debug(::web_ui_debug.value());
-    ::controller = wui;
-    mv->attach(dynamic_cast<View*>(wui));
-    ::view->attach(mv);
-  } else {
-    ::view->attach(new TermView());
-    ::controller = new TermController(::runtime);
-  }
-
   // Setup Compiler State
   auto* dc = new De10Compiler();
     dc->set_host(::quartus_host.value());
@@ -206,66 +200,105 @@ int main(int argc, char** argv) {
   auto* pc = new ProxyCompiler();
   auto* sc = new SwCompiler();
     sc->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-  auto* lc = new LocalCompiler();
-    lc->set_runtime(::runtime);
   auto* c = new Compiler();
     c->set_de10_compiler(dc);
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
-    c->set_local_compiler(lc);
 
-  // Start the runtime
-  ::runtime->set_compiler(c);
-    ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-    ::runtime->set_open_loop_target(::open_loop_target.value());
-    ::runtime->disable_inlining(::disable_inlining.value());
-    ::runtime->enable_info(::enable_info.value());
-    ::runtime->disable_warning(::disable_warning.value());
-    ::runtime->disable_error(::disable_error.value());
-  ::runtime->run();
-
-  // Parse march configuration
-  incstream mis(System::src_root());
-  stringstream ss1;
-  if (mis.open("data/march/" + march.value() + ".v")) {
-    ss1 << "include data/march/" + march.value() + ".v;";
-    StreamController(::runtime, ss1).run_to_completion();
-  } else {
-    ::runtime->error("Unrecognized march option '" + ::march.value() + "'!");
-    ::runtime->finish(0);
+  // Setup Global MVC State if running in Master-Mode
+  if (!::slave.value()) {
+    ::view = new ManyView();
+    ::runtime = new Runtime(::view);
+    if (::enable_logging) {
+      ::logfile = new ofstream("cascade.log", ofstream::app);
+      ::view->attach(new LogView(*::logfile));
+    }
+    if (::ui.value() == "web") {
+      auto* mv = new MaybeView();
+      auto* wui = new WebUi(::runtime);
+      wui->set_port(::web_ui_port.value());
+      wui->set_buffer(::web_ui_buffer.value());
+      wui->set_debug(::web_ui_debug.value());
+      ::controller = wui;
+      mv->attach(dynamic_cast<View*>(wui));
+      ::view->attach(mv);
+    } else {
+      ::view->attach(new TermView());
+      ::controller = new TermController(::runtime);
+    }
   }
-  // Translate -e to include statement if it was provided
-  stringstream ss2;
-  if (::input_path.value() != "") {
-    ss2 << "include " << ::input_path.value() << ";";
-    StreamController(::runtime, ss2).run_to_completion();
+  // Otherwise setup slave state
+  else {
+    ::remote_runtime = new RemoteRuntime();
   }
 
-  // Switch over to a live console (unless the --batch flag has been provided)
-  // and turn on profiling (if the --profile flag was provided)
-  if (!::batch.value()) {
+  // Additional compiler configuration if running in Master-Mode
+  if (!::slave.value()) {
+    auto* lc = new LocalCompiler();
+      lc->set_runtime(::runtime);
+      c->set_local_compiler(lc);
+  }
+
+  // Master mode execution path
+  if (!::slave.value()) {
+    // Start the runtime
+    ::runtime->set_compiler(c);
+      ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+      ::runtime->set_open_loop_target(::open_loop_target.value());
+      ::runtime->disable_inlining(::disable_inlining.value());
+      ::runtime->enable_info(::enable_info.value());
+      ::runtime->disable_warning(::disable_warning.value());
+      ::runtime->disable_error(::disable_error.value());
+    ::runtime->run();
+
+    // Parse march configuration
+    incstream mis(System::src_root());
+    stringstream ss1;
+    if (mis.open("data/march/" + march.value() + ".v")) {
+      ss1 << "include data/march/" + march.value() + ".v;";
+      StreamController(::runtime, ss1).run_to_completion();
+    } else {
+      ::runtime->error("Unrecognized march option '" + ::march.value() + "'!");
+      ::runtime->finish(0);
+    }
+    // Translate -e to include statement if it was provided
+    stringstream ss2;
+    if (::input_path.value() != "") {
+      ss2 << "include " << ::input_path.value() << ";";
+      StreamController(::runtime, ss2).run_to_completion();
+    }
+
     ::controller->run();
-  }
-  ::profiler = new Profiler(::runtime);
-  if (::profile_interval.value() > 0) {
-    ::profiler->run();
-  }
+    ::profiler = new Profiler(::runtime);
+    if (::profile.value() > 0) {
+      ::profiler->run();
+    }
 
-  // Wait for the runtime to stop and then shutdown remaining threads
-  ::runtime->wait_for_stop();
-  ::controller->stop_now();
-  ::profiler->stop_now();
+    // Wait for the runtime to stop and then shutdown remaining threads
+    ::runtime->wait_for_stop();
+    ::controller->stop_now();
+    ::profiler->stop_now();
 
-  // Tear down global state
-  delete ::runtime;
-  if (::ui.value() == "web") {
-    delete ::controller;
-  } else {
-    delete ::view;
-    delete ::controller;
+    // Tear down global state
+    delete ::runtime;
+    if (::ui.value() == "web") {
+      delete ::controller;
+    } else {
+      delete ::view;
+      delete ::controller;
+    }
+    delete ::logfile;
+    delete ::profiler;
   }
-  delete ::logfile;
-  delete ::profiler;
+  // Slave mode exaecution path
+  else {
+    ::remote_runtime->set_compiler(c);
+    ::remote_runtime->set_path(::slave_path.value());
+    ::remote_runtime->set_port(::slave_port.value());
+    ::remote_runtime->run();
+    ::remote_runtime->wait_for_stop();
+    delete remote_runtime;
+  }
 
   cout << "Goodbye!" << endl;
   return 0;
