@@ -41,7 +41,6 @@ struct SysTask : Serializable {
   enum class Type : uint8_t {
     DISPLAY = 0,
     ERROR,
-    FATAL,
     FINISH,
     INFO,
     RESTART,
@@ -63,7 +62,7 @@ struct SysTask : Serializable {
   uint8_t arg_;
 };
 
-inline SysTask::SysTask() : SysTask(Type::FATAL, "", 0) { }
+inline SysTask::SysTask() : SysTask(Type::FINISH, "", 0) { }
 
 inline SysTask::SysTask(Type type, const std::string& text, uint8_t arg) : Serializable() {
   type_ = type;

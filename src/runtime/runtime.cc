@@ -196,11 +196,6 @@ void Runtime::info(const string& s) {
   }
 }
 
-void Runtime::fatal(int arg, const string& s) {
-  error(s);
-  finish(arg);
-}
-
 void Runtime::restart(const string& path) {
   schedule_interrupt([this, path]{
     // As with retarget(), invoking this method in a state where item_evals_ >
@@ -210,7 +205,9 @@ void Runtime::restart(const string& path) {
     }
     ifstream ifs(path);
     if (!ifs.is_open()) {
-      return fatal(0, "Unable to open save file '" + path + "'!");
+      error("Unable to open save file '" + path + "'!");
+      finish(0);
+      return;
     }
     root_->restart(ifs);
   });
@@ -229,7 +226,9 @@ void Runtime::retarget(const string& s) {
     // Give up if we can't open the march file which was requested
     incstream ifs(System::src_root());
     if (!ifs.open("data/march/" + s + ".v")) {
-      return fatal(0, "Unrecognized march option '" + s + "'!");
+      error("Unrecognized march option '" + s + "'!");
+      finish(0);
+      return;
     }
 
     // Temporarily relocate program_ and root_ so that we can scan the contents
@@ -265,7 +264,9 @@ void Runtime::retarget(const string& s) {
       if (!found) {
         delete march;
         delete backup_root;
-        return fatal(0, "New target does not support modules with standard type " + std1->get_readable_val() + "!");
+        error("New target does not support modules with standard type " + std1->get_readable_val() + "!");
+        finish(0);
+        return;
       }
     }
 
@@ -662,11 +663,13 @@ void Runtime::log_checker_errors() {
 }
 
 void Runtime::log_compiler_errors() {
-  fatal(0, "Internal Compiler Error:\n  > " + compiler_->what());
+  error("Internal Compiler Error:\n  > " + compiler_->what());
+  finish(0);
 }
 
 void Runtime::log_ctrl_d() {
-  fatal(0, "User Interrupt:\n  > Caught Ctrl-D.");
+  error("User Interrupt:\n  > Caught Ctrl-D.");
+  finish(0);
 }
 
 string Runtime::format_freq(uint64_t f) const {

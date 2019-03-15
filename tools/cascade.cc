@@ -150,7 +150,8 @@ Profiler* profiler = nullptr;
 
 void int_handler(int sig) {
   (void) sig;
-  ::runtime->fatal(0, "User Interrupt:\n  > Caught Ctrl-C.");
+  ::runtime->error("User Interrupt:\n  > Caught Ctrl-C.");
+  ::runtime->finish(0);
 }
 
 void segv_handler(int sig) {
@@ -230,7 +231,8 @@ int main(int argc, char** argv) {
     ss1 << "include data/march/" + march.value() + ".v;";
     StreamController(::runtime, ss1).run_to_completion();
   } else {
-    ::runtime->fatal(0, "Unrecognized march option '" + ::march.value() + "'!");
+    ::runtime->error("Unrecognized march option '" + ::march.value() + "'!");
+    ::runtime->finish(0);
   }
   // Translate -e to include statement if it was provided
   stringstream ss2;

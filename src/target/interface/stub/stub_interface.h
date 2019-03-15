@@ -42,7 +42,6 @@ class StubInterface : public Interface {
 
     void display(const std::string& s) override;
     void error(const std::string& s) override;
-    void fatal(int arg, const std::string& s) override;
     void finish(int arg) override;
     void info(const std::string& s) override;
     void restart(const std::string& s) override;
@@ -63,12 +62,6 @@ inline void StubInterface::display(const std::string& s) {
 
 inline void StubInterface::error(const std::string& s) {
   // Does nothing.
-  (void) s;
-}
-
-inline void StubInterface::fatal(int arg, const std::string& s) {
-  // Does nothing.
-  (void) arg;
   (void) s;
 }
 
