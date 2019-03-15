@@ -140,8 +140,7 @@ void SwLogic::finalize() {
     if ((*i)->is(Node::Tag::reg_declaration)) {
       auto rd = static_cast<RegDeclaration*>(*i);
       const auto is_fopen = rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression);
-      const auto is_eof = Evaluate().get_value(rd->get_id()).to_int() == 0;
-      if (is_fopen && is_eof) {
+      if (is_fopen && (Evaluate().get_value(rd->get_id()).to_int() == 0)) {
         static int TEMP = 1;
         rd->get_id()->bit_val_[0].assign(Bits(32, TEMP++));
       }

@@ -118,6 +118,9 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 }
 
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
+  // TODO(eschkufz) Why are we solving for rhs here? Isn't that best
+  // left up to constant propagation?
+
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   // Careful: We aren't allowed to have initial values for arrays
@@ -174,6 +177,9 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
 }
 
 ModuleItem* Isolate::build(const RegDeclaration* rd) {
+  // TODO(eschkufz) Why are we solving for rhs here? Isn't that best
+  // left up to constant propagation?
+
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   // Careful: We aren't allowed to have initial values for arrays
