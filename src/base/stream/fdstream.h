@@ -209,8 +209,8 @@ inline std::streamsize fdbuf::xsgetn(char_type* s, std::streamsize count) {
 }
 
 inline std::streamsize fdbuf::xsputn(const char_type* s, std::streamsize count) {
-  const auto n = pptr()-pbase();
-  const auto req = n+count;
+  const size_t n = pptr()-pbase();
+  const size_t req = n+count;
   if (req > put_.size()) {
     put_.resize(req);
   }

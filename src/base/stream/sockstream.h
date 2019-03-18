@@ -51,8 +51,10 @@ class sockstream : public fdstream {
     sockstream(int fd);
     sockstream(const char* path);
     sockstream(const char* host, uint32_t port);
-    sockstream(sockstream&& rhs);
     ~sockstream() override;
+
+    bool error() const;
+    int descriptor() const;
 
   private:
     int unix_sock(const char* path);
@@ -72,20 +74,27 @@ class sockserver {
     sockserver(const char* path, size_t backlog);  
     ~sockserver();
 
-    sockstream accept();
+    sockstream* accept();
+
+    bool error() const;
+    int descriptor() const;
 
   private:
     int fd_; 
 };
 
-inline sockstream::sockstream(sockstream&& rhs) : fdstream(rhs.fd_) {
-  rhs.fd_ = -1;
-}
-
 inline sockstream::~sockstream() {
   if (fd_ != -1) {
     ::close(fd_);
   }
+}
+
+inline bool sockstream::error() const {
+  return fd_ == -1;
+}
+
+inline int sockstream::descriptor() const {
+  return fd_;
 }
 
 inline int sockstream::unix_sock(const char* path) {
@@ -155,8 +164,16 @@ inline sockserver::~sockserver() {
   }
 }
 
-inline sockstream sockserver::accept() {
-  return fd_ == -1 ? sockstream(-1) : sockstream(::accept(fd_, nullptr, nullptr));
+inline sockstream* sockserver::accept() {
+  return fd_ == -1 ? new sockstream(-1) : new sockstream(::accept(fd_, nullptr, nullptr));
+}
+
+inline bool sockserver::error() const {
+  return fd_ == -1;
+}
+
+inline int sockserver::descriptor() const {
+  return fd_;
 }
 
 } // namespace cascade

@@ -31,14 +31,14 @@
 #include "src/target/core/de10/quartus_server.h"
 
 #include <fstream>
-#include "src/base/socket/socket.h"
+#include "src/base/stream/sockstream.h"
 #include "src/base/system/system.h"
 
 using namespace std;
 
 namespace cascade {
 
-QuartusServer::QuartusServer() : Asynchronous(), buf_(256), worker_(this) { 
+QuartusServer::QuartusServer() : Asynchronous(), worker_(this) { 
   path("");
   usb("");
   port(9900);
@@ -81,15 +81,14 @@ bool QuartusServer::check() const {
 }
 
 void QuartusServer::run_logic() {
-  Socket sock;
-  sock.listen(port_, 8);
-  if (sock.error()) {
+  sockserver server(port_, 8);
+  if (server.error()) {
     return;
   }
 
   fd_set master_set;
   FD_ZERO(&master_set);
-  FD_SET(sock.descriptor(), &master_set);
+  FD_SET(server.descriptor(), &master_set);
 
   fd_set read_set;
   FD_ZERO(&read_set);
@@ -98,8 +97,8 @@ void QuartusServer::run_logic() {
 
   while (!stop_requested()) {
     read_set = master_set;
-    select(sock.descriptor()+1, &read_set, nullptr, nullptr, &timeout);
-    if (!FD_ISSET(sock.descriptor(), &read_set)) {
+    select(server.descriptor()+1, &read_set, nullptr, nullptr, &timeout);
+    if (!FD_ISSET(server.descriptor(), &read_set)) {
       continue;
     }
 
@@ -116,11 +115,10 @@ void QuartusServer::run_logic() {
     // Note that we're not waiting for finish here. Best case, it 
     // finishes, worst case, we kill it the next time through this
     // loop in response to the next incoming request.
-    const auto fd = ::accept(sock.descriptor(), nullptr, nullptr);
     if (sock_ != nullptr) {
       delete sock_;
     }
-    sock_ = new Socket(fd);
+    sock_ = server.accept();
     worker_.run();
   }
 }
@@ -130,40 +128,38 @@ QuartusServer::Worker::Worker(QuartusServer* qs) {
 }
 
 void QuartusServer::Worker::run_logic() {
-  uint32_t size = 0;
-  qs_->sock_->recv(size);
-  qs_->buf_.reserve(size);
-  qs_->buf_.resize(0);
-  qs_->sock_->recv(qs_->buf_.data(), size);
-
+  string text;
+  getline(*qs_->sock_, text, '\0');
 
   ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-  ofs.write(qs_->buf_.data(), size);
-  ofs << endl;
+  ofs << text << endl;
   ofs.close();
 
   // A message of length 1 signals that no compilation is necessary.
-  if (size == 1) {
-    return qs_->sock_->send(true);
+  if (text.length() == 1) {
+    qs_->sock_->put(0);
   }
-
   // Compile everything.
-  if (stop_requested() || System::execute(qs_->path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-    return qs_->sock_->send(false);
+  else if (stop_requested() || System::execute(qs_->path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+    qs_->sock_->put(0);
   } 
-  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-    return qs_->sock_->send(false);
+  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    qs_->sock_->put(0);
   } 
-  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-    return qs_->sock_->send(false);
+  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    qs_->sock_->put(0);
   } 
-  if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-    return qs_->sock_->send(false);
+  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+    qs_->sock_->put(0);
   } 
-  if (System::execute(qs_->path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
-    return qs_->sock_->send(false);
+  else if (System::execute(qs_->path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
+    qs_->sock_->put(0);
   }
-  qs_->sock_->send(true);
+  // Everything succeeded
+  else {
+    qs_->sock_->put(1);
+  }
+  qs_->sock_->flush();
 }
 
 } // namespace cascade
