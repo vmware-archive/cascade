@@ -62,12 +62,6 @@ class sockstream : public fdstream {
     int fd_;
 };
 
-inline sockstream::sockstream(int fd) : fdstream(fd) { }
-
-inline sockstream::sockstream(const char* path) : fdstream(unix_sock(path)) { }
-
-inline sockstream::sockstream(const char* host, uint32_t port) : fdstream(inet_sock(host, port)) { }
-
 class sockserver {
   public:
     sockserver(uint32_t port, size_t backlog);
@@ -82,6 +76,12 @@ class sockserver {
   private:
     int fd_; 
 };
+
+inline sockstream::sockstream(int fd) : fdstream(fd) { }
+
+inline sockstream::sockstream(const char* path) : fdstream(unix_sock(path)) { }
+
+inline sockstream::sockstream(const char* host, uint32_t port) : fdstream(inet_sock(host, port)) { }
 
 inline sockstream::~sockstream() {
   if (fd_ != -1) {
