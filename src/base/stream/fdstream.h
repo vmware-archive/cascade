@@ -199,12 +199,14 @@ inline fdbuf::int_type fdbuf::uflow() {
 
 inline std::streamsize fdbuf::xsgetn(char_type* s, std::streamsize count) {
   std::streamsize total = 0;
+  std::streamsize chunk = 0;
   do {
-    const auto chunk = std::min(egptr()-gptr(), count);
+    chunk = std::min(egptr()-gptr(), count);
     std::copy(gptr(), gptr()+chunk, s+total);
     total += chunk;
   } 
-  while (total < count && underflow() != -1);
+  while ((total < count) && (underflow() != -1));
+  setg(eback(), gptr()+chunk, egptr());
   return total;
 }
 
