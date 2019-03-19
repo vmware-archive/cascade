@@ -31,12 +31,10 @@
 #ifndef CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
 #define CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
 
+#include <string>
 #include "src/base/bits/bits.h"
-#include "src/base/stream/bufstream.h"
-#include "src/target/common/connection.h"
+#include "src/base/stream/sockstream.h"
 #include "src/target/common/rpc.h"
-#include "src/target/common/sys_task.h"
-#include "src/target/common/value.h"
 #include "src/target/core.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
@@ -47,7 +45,7 @@ namespace cascade {
 template <typename T>
 class ProxyCore : public T {
   public:
-    ProxyCore(Interface* interface, Rpc::Id id, Connection* conn);
+    ProxyCore(Interface* interface, Rpc::Id id, sockstream* sock);
     ~ProxyCore() override;
 
     State* get_state() override;
@@ -72,208 +70,207 @@ class ProxyCore : public T {
 
   private:
     Rpc::Id id_;
-    Connection* conn_;
+    sockstream* sock_;
 
-    Bits bits_;
-    bufstream in_buf_;
-    bufstream out_buf_;
-
-    void recv_response();
-    void recv_task(const SysTask& t);
+    void recv();
 }; 
 
 template <typename T>
-inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, Connection* conn) : T(interface), in_buf_(256), out_buf_(256) {
+inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, sockstream* sock) : T(interface) {
   id_ = id;
-  conn_ = conn;
+  sock_ = sock;
 }
 
 template <typename T>
 inline ProxyCore<T>::~ProxyCore() {
-  conn_->send_rpc(Rpc(Rpc::Type::ENGINE_TEARDOWN, id_));
-  conn_->recv_ack();
+  Rpc(Rpc::Type::ENGINE_TEARDOWN, id_).serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline State* ProxyCore<T>::get_state() {
-  conn_->send_rpc(Rpc(Rpc::Type::GET_STATE, id_));
-  conn_->recv_str(in_buf_);
+  Rpc(Rpc::Type::GET_STATE, id_).serialize(*sock_);
+  sock_->flush();
 
   auto* s = new State();
-  s->deserialize(in_buf_);
-  in_buf_.clear();
-
+  s->deserialize(*sock_);
   return s;
 }
 
 template <typename T>
 inline void ProxyCore<T>::set_state(const State* s) {
-  conn_->send_rpc(Rpc(Rpc::Type::SET_STATE, id_));
-  s->serialize(out_buf_);
-  conn_->send_str(out_buf_);
-  conn_->recv_ack();
-  out_buf_.resize(0);
+  Rpc(Rpc::Type::SET_STATE, id_).serialize(*sock_);
+  s->serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline Input* ProxyCore<T>::get_input() {
-  conn_->send_rpc(Rpc(Rpc::Type::GET_INPUT, id_));
-  conn_->recv_str(in_buf_);
+  Rpc(Rpc::Type::GET_INPUT, id_).serialize(*sock_);
+  sock_->flush();
 
   auto* i = new Input();
-  i->deserialize(in_buf_);
-  in_buf_.clear();
-
+  i->deserialize(*sock_);
   return i;
 }
 
 template <typename T>
 inline void ProxyCore<T>::set_input(const Input* i) {
-  conn_->send_rpc(Rpc(Rpc::Type::SET_INPUT, id_));
-  i->serialize(out_buf_);
-  conn_->send_str(out_buf_);
-  conn_->recv_ack();
-  out_buf_.resize(0);
+  Rpc(Rpc::Type::SET_INPUT, id_).serialize(*sock_);
+  i->serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline void ProxyCore<T>::finalize() {
-  conn_->send_rpc(Rpc(Rpc::Type::FINALIZE, id_));
-  conn_->recv_ack();
+  Rpc(Rpc::Type::FINALIZE, id_).serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_step() const {
-  conn_->send_rpc(Rpc(Rpc::Type::OVERRIDES_DONE_STEP, id_));
-  auto res = false;
-  conn_->recv_bool(res);
-  return res;
+  Rpc(Rpc::Type::OVERRIDES_DONE_STEP, id_).serialize(*sock_);
+  sock_->flush();
+  return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::done_step() {
-  conn_->send_rpc(Rpc(Rpc::Type::DONE_STEP, id_));
-  conn_->recv_ack();
+  Rpc(Rpc::Type::DONE_STEP, id_).serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_simulation() const {
-  conn_->send_rpc(Rpc(Rpc::Type::OVERRIDES_DONE_SIMULATION, id_));
-  auto res = false;
-  conn_->recv_bool(res);
-  return res;
+  Rpc(Rpc::Type::OVERRIDES_DONE_SIMULATION, id_).serialize(*sock_);
+  sock_->flush();
+  return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::done_simulation() {
-  conn_->send_rpc(Rpc(Rpc::Type::DONE_SIMULATION, id_));
-  conn_->recv_ack();
+  Rpc(Rpc::Type::DONE_SIMULATION, id_).serialize(*sock_);
+  sock_->flush();
 }
 
 template <typename T>
 inline void ProxyCore<T>::read(VId id, const Bits* b) {
-  Value(id, const_cast<Bits*>(b)).serialize(out_buf_);
+  Rpc(Rpc::Type::READ, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), 4);
+  b->serialize(*sock_);
+
+  // Don't flush. The only time these actually need to go out is before calling
+  // evaluate(), update(), conditional_update(), or open_loop()
 }
 
 template <typename T>
 inline void ProxyCore<T>::evaluate() {
-  conn_->send_rpc(Rpc(Rpc::Type::EVALUATE, id_));
-  conn_->send_str(out_buf_);
-  out_buf_.resize(0);
-  recv_response();
+  Rpc(Rpc::Type::EVALUATE, id_).serialize(*sock_);
+  // This call to flush dumps any reads which have been enqueued
+  sock_->flush();
+  recv();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::there_are_updates() const {
-  conn_->send_rpc(Rpc(Rpc::Type::THERE_ARE_UPDATES, id_));
-  auto res = false;
-  conn_->recv_bool(res);
-  return res;
+  Rpc(Rpc::Type::THERE_ARE_UPDATES, id_).serialize(*sock_);
+  sock_->flush();
+  return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::update() {
-  conn_->send_rpc(Rpc(Rpc::Type::UPDATE, id_));
-  conn_->send_str(out_buf_);
-  out_buf_.resize(0);
-  recv_response();
+  Rpc(Rpc::Type::UPDATE, id_).serialize(*sock_);
+  // This call to flush dumps any reads which have been enqueued
+  sock_->flush();
+  recv();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::there_were_tasks() const {
-  conn_->send_rpc(Rpc(Rpc::Type::THERE_WERE_TASKS, id_));
-  auto res = false;
-  conn_->recv_bool(res);
-  return res;
+  Rpc(Rpc::Type::THERE_WERE_TASKS, id_).serialize(*sock_);
+  sock_->flush();
+  return (sock_->get() == 1);
 }
 
 template <typename T>
 inline bool ProxyCore<T>::conditional_update() {
-  conn_->send_rpc(Rpc(Rpc::Type::CONDITIONAL_UPDATE, id_));
-  conn_->send_str(out_buf_);
-  out_buf_.resize(0);
-
-  auto res = false;
-  conn_->recv_bool(res);
-  recv_response();
-  return res;
+  Rpc(Rpc::Type::CONDITIONAL_UPDATE, id_).serialize(*sock_);
+  // This call to flush dumps any reads which have been enqueued
+  sock_->flush();
+  recv();
+  return (sock_->get() == 1);
 }
 
 template <typename T>
 inline size_t ProxyCore<T>::open_loop(VId clk, bool val, size_t itr) {
-  conn_->send_rpc(Rpc(Rpc::Type::OPEN_LOOP, id_));
-  conn_->send_double(static_cast<uint32_t>(clk));
-  conn_->send_bool(val);
-  conn_->send_double(static_cast<uint32_t>(itr));
+  Rpc(Rpc::Type::OPEN_LOOP, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&clk), 4);
+  sock_->put(val ? 1 : 0);
+  sock_->write(reinterpret_cast<const char*>(&itr), 4);
+  // This call to flush dumps any reads which have been enqueued
+  sock_->flush();
+  recv();
   uint32_t res = 0;
-  conn_->recv_double(res);
-  recv_response();
+  sock_->read(reinterpret_cast<char*>(&res), 4);
   return res;
 }
 
 template <typename T>
-inline void ProxyCore<T>::recv_response() {
-  conn_->recv_str(in_buf_);
-  auto type = false;
-  for (in_buf_.read(reinterpret_cast<char*>(&type), sizeof(type)); !in_buf_.eof(); in_buf_.read(reinterpret_cast<char*>(&type), sizeof(type))) {
-    if (type) {
-      Value temp(0, &bits_);
-      temp.deserialize(in_buf_);
-      T::interface()->write(temp.id_, temp.val_);
-    } else {
-      SysTask temp;
-      temp.deserialize(in_buf_);
-      recv_task(temp);
-    }
-  }
-  in_buf_.clear();
-}
+inline void ProxyCore<T>::recv() {
+  std::string msg = "";
+  uint32_t code = 0;
+  VId id = 0;
+  Bits bits;
 
-template <typename T>
-inline void ProxyCore<T>::recv_task(const SysTask& t) {
-  switch (t.type_) {
-    case SysTask::Type::DISPLAY:
-      return T::interface()->display(t.text_);
-    case SysTask::Type::ERROR:
-      return T::interface()->error(t.text_);
-    case SysTask::Type::FINISH:
-      return T::interface()->finish(t.arg_);
-    case SysTask::Type::INFO:
-      return T::interface()->info(t.text_);
-    case SysTask::Type::RESTART:
-      return T::interface()->restart(t.text_);
-    case SysTask::Type::RETARGET:
-      return T::interface()->retarget(t.text_);
-    case SysTask::Type::SAVE:
-      return T::interface()->save(t.text_);
-    case SysTask::Type::WARNING:
-      return T::interface()->warning(t.text_);
-    case SysTask::Type::WRITE:
-      return T::interface()->write(t.text_);
-    default:
-      T::interface()->error("Unrecognized sys task rpc!");
-      T::interface()->finish(0);
-      return;
+  Rpc rpc;
+  while (rpc.deserialize(*sock_)) {
+    switch(rpc.type_) {
+      case Rpc::Type::DISPLAY:
+        getline(*sock_, msg, '\0');
+        T::interface()->display(msg);
+        break;
+      case Rpc::Type::ERROR:
+        getline(*sock_, msg, '\0');
+        T::interface()->error(msg);
+        break;
+      case Rpc::Type::FINISH:
+        sock_->read(reinterpret_cast<char*>(&code), 4);
+        T::interface()->finish(code);
+        break;
+      case Rpc::Type::INFO:
+        getline(*sock_, msg, '\0');
+        T::interface()->info(msg);
+        break;
+      case Rpc::Type::RESTART:
+        getline(*sock_, msg, '\0');
+        T::interface()->restart(msg);
+        break;
+      case Rpc::Type::RETARGET:
+        getline(*sock_, msg, '\0');
+        T::interface()->retarget(msg);
+        break;
+      case Rpc::Type::SAVE:
+        getline(*sock_, msg, '\0');
+        T::interface()->save(msg);
+        break;
+      case Rpc::Type::WARNING:
+        getline(*sock_, msg, '\0');
+        T::interface()->warning(msg);
+        break;
+      case Rpc::Type::WRITE:
+        getline(*sock_, msg, '\0');
+        T::interface()->write(msg);
+        break;
+      case Rpc::Type::WRITE_BITS:
+        sock_->read(reinterpret_cast<char*>(&id), 4);
+        bits.deserialize(*sock_);
+        T::interface()->write(id, &bits);
+        break;
+      case Rpc::Type::OKAY:
+      default:
+        break;
+    }
   }
 }
 

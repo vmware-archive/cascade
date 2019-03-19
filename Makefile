@@ -97,7 +97,6 @@ HDR=\
 	src/base/container/vector.h\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
-	src/base/socket/socket.h\
 	src/base/stream/bufstream.h\
 	src/base/stream/fdstream.h\
 	src/base/stream/incstream.h\
@@ -128,11 +127,8 @@ HDR=\
 	src/target/interface.h\
 	src/target/interface_compiler.h\
 	src/target/state.h\
-	src/target/common/connection.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
-	src/target/common/sys_task.h\
-	src/target/common/value.h\
 	src/target/core/de10/de10_compiler.h\
 	src/target/core/de10/de10_gpio.h\
 	src/target/core/de10/de10_led.h\

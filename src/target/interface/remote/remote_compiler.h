@@ -31,43 +31,50 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
 #define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
 
+#include "src/target/common/rpc.h"
 #include "src/target/interface/remote/remote_interface.h"
 #include "src/target/interface_compiler.h"
 
 namespace cascade {
-
-class Connection;
 
 class RemoteCompiler : public InterfaceCompiler {
   public:
     RemoteCompiler();
     ~RemoteCompiler() override = default;
 
-    RemoteCompiler& set_buffer(bufstream* buf);
+    RemoteCompiler& set_sock(sockstream* sock);
+    RemoteCompiler& set_id(Rpc::Id id);
 
     RemoteInterface* compile(ModuleDeclaration* md) override;
     void abort() override;  
 
   private:
-    bufstream* buf_;
+    sockstream* sock_;
+    Rpc::Id id_;
 };
 
 inline RemoteCompiler::RemoteCompiler() {
-  set_buffer(nullptr);
+  set_sock(nullptr);
+  set_id(0);
 }
 
-inline RemoteCompiler& RemoteCompiler::set_buffer(bufstream* buf) {
-  buf_ = buf;
+inline RemoteCompiler& RemoteCompiler::set_sock(sockstream* sock) {
+  sock_ = sock;
+  return *this;
+}
+
+inline RemoteCompiler& RemoteCompiler::set_id(Rpc::Id id) {
+  id_ = id;
   return *this;
 }
 
 inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
   (void) md;
-  if (buf_ == nullptr) {
+  if (sock_ == nullptr) {
     error("Unable to compile a remote interface without a reference to a memory buffer");
     return nullptr;
   }
-  return new RemoteInterface(buf_);
+  return new RemoteInterface(sock_, id_);
 }
 
 inline void RemoteCompiler::abort() {
