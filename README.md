@@ -115,7 +115,7 @@ If you don't want to type your entire program into the REPL you can use the incl
 ```verilog
 >>> include path/to/file.v;
 ```
-If you'd like to use additional search paths, you can start Cascade using the ```-I``` flag and provide a list of colon-separated alternatives. Cascade will try each of these paths as a prefix, in order, until it finds a match.
+If you'd like to use additional search paths, you can start Cascade using the ```-I``` flag and provide a list of semicolon-separated alternatives. Cascade will try each of these paths as a prefix, in order, until it finds a match.
 ```
 *NIX $ ./bin/cascade -I path/to/dir1:path/to/dir2
 ```
@@ -514,9 +514,9 @@ include data/stdlib/stdlib.v;
 
 // Next, an --march file must instantiate the root module. The __target annotation is 
 // used to pass information to the Cascade compiler about how to compile the user's code. 
-// __target is a colon-separated list of backend compilation passes to use. If only one 
+// __target is a semicolon-separated list of backend compilation passes to use. If only one 
 // value is provided as below, then Cascade will not run in JIT-mode. To enable JIT-mode, 
-// use the following string instead: "sw:my_backend".
+// use the following string instead: "sw;my_backend".
 (* __target="my_backend" *)
 Root root();
 

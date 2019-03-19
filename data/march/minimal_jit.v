@@ -4,7 +4,7 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw:sw"*)
+(*__target="sw;sw"*)
 Root root();
 
 Clock clock();
