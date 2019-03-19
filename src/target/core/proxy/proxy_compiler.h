@@ -87,7 +87,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, Module
   // Change __loc attribute to "remote" and send compile rpc
   md->get_attrs()->set_or_replace("__loc", new String("remote"));
   Rpc(Rpc::Type::COMPILE, 0).serialize(*sock);
-  TextPrinter(*sock) << md;
+  TextPrinter(*sock) << md << "\n";
   delete md;
   sock->flush();
 

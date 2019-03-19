@@ -125,6 +125,7 @@ template <typename T>
 inline void ProxyCore<T>::finalize() {
   Rpc(Rpc::Type::FINALIZE, id_).serialize(*sock_);
   sock_->flush();
+  recv();
 }
 
 template <typename T>

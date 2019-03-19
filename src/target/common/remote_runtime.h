@@ -67,7 +67,7 @@ class RemoteRuntime : public Asynchronous {
     void set_state(sockstream* sock, Engine* e);
     void get_input(sockstream* sock, Engine* e);
     void set_input(sockstream* sock, Engine* e);
-    void finalize(sockstream* sock, Engine* e);
+    void finalize(sockstream* sock, Rpc::Id id, Engine* e);
 
     void overrides_done_step(sockstream* sock, Engine* e);
     void done_step(sockstream* sock, Engine* e);

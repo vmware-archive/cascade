@@ -148,7 +148,7 @@ void RemoteRuntime::run_logic() {
           set_input(sock, engines[rpc.id_]);
           break;
         case Rpc::Type::FINALIZE:
-          finalize(sock, engines[rpc.id_]);
+          finalize(sock, rpc.id_, engines[rpc.id_]);
           break;
         case Rpc::Type::OVERRIDES_DONE_STEP:
           overrides_done_step(sock, engines[rpc.id_]);
@@ -248,9 +248,12 @@ void RemoteRuntime::set_input(sockstream* sock, Engine* e) {
   delete i;
 }
 
-void RemoteRuntime::finalize(sockstream* sock, Engine* e) {
-  (void) sock;
+void RemoteRuntime::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
   e->finalize();
+  // This call to finalize will have primed the socket with tasks and writes
+  // Appending an OKAY rpc indicates that everything has been sent
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->flush();
 }
 
 void RemoteRuntime::overrides_done_step(sockstream* sock, Engine* e) {
