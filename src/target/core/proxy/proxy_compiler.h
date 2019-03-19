@@ -76,20 +76,21 @@ class ProxyCompiler : public CoreCompiler {
 
 template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
-  // Change __loc attribute to "remote"
-  md->get_attrs()->set_or_replace("__loc", new String("remote"));
-
+  // Create socket connection based on __loc annotation
   auto* sock = get_sock(md);
   if (sock == nullptr) {
     error("Unable to establish connection with slave runtime");
     delete md;
     return nullptr;
   }
+
+  // Change __loc attribute to "remote" and send compile rpc
+  md->get_attrs()->set_or_replace("__loc", new String("remote"));
   Rpc(Rpc::Type::COMPILE, 0).serialize(*sock);
   TextPrinter(*sock) << md;
   delete md;
-
   sock->flush();
+
   Rpc res;
   res.deserialize(*sock);
   if (res.type_ == Rpc::Type::FAIL) {

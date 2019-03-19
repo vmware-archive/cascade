@@ -105,7 +105,7 @@ void RemoteRuntime::run_logic() {
         continue;
       }
       // Listener
-      if (i == tl.descriptor() || i == ul.descriptor()) {
+      if ((i == tl.descriptor()) || (i == ul.descriptor())) {
         auto* sock = (i == tl.descriptor()) ? tl.accept() : ul.accept();
         const auto fd = sock->descriptor();
         FD_SET(fd, &master_set);
