@@ -57,6 +57,7 @@ class sockstream : public fdstream {
     int descriptor() const;
 
   private:
+    int raw_fd(int fd);
     int unix_sock(const char* path);
     int inet_sock(const char* host, uint32_t port);
     int fd_;
@@ -77,7 +78,7 @@ class sockserver {
     int fd_; 
 };
 
-inline sockstream::sockstream(int fd) : fdstream(fd) { }
+inline sockstream::sockstream(int fd) : fdstream(raw_fd(fd)) { }
 
 inline sockstream::sockstream(const char* path) : fdstream(unix_sock(path)) { }
 
@@ -94,6 +95,11 @@ inline bool sockstream::error() const {
 }
 
 inline int sockstream::descriptor() const {
+  return fd_;
+}
+
+inline int sockstream::raw_fd(int fd) {
+  fd_ = fd;
   return fd_;
 }
 

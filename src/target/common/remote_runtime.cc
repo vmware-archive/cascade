@@ -90,7 +90,7 @@ void RemoteRuntime::run_logic() {
   fd_set read_set;
   FD_ZERO(&read_set);
 
-  struct timeval timeout = {0, 100};
+  struct timeval timeout = {0, 1000};
   auto max_fd = max(tl.descriptor(), ul.descriptor());
 
   vector<sockstream*> socks;
