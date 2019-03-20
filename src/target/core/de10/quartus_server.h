@@ -33,11 +33,10 @@
 
 #include <string>
 #include "src/base/thread/asynchronous.h"
-#include "src/base/stream/bufstream.h"
 
 namespace cascade {
 
-class Socket;
+class sockstream;
 
 class QuartusServer : public Asynchronous {
   public:
@@ -64,8 +63,7 @@ class QuartusServer : public Asynchronous {
     std::string usb_;
     uint32_t port_;
 
-    Socket* sock_;
-    bufstream buf_;
+    sockstream* sock_;
     Worker worker_;
 
     void run_logic() override;

@@ -31,18 +31,18 @@
 #include "src/target/core/proxy/proxy_compiler.h"
 
 #include <sstream>
-#include "src/base/socket/socket.h"
 
 using namespace std;
 
 namespace cascade {
 
-ProxyCompiler::ProxyCompiler() : CoreCompiler(), buf_(1024) { }
+ProxyCompiler::ProxyCompiler() : CoreCompiler() { }
 
 ProxyCompiler::~ProxyCompiler() {
-  for (auto& c : conns_) {
-    c.second->send_rpc(Rpc(Rpc::Type::CONNECTION_CLOSED, 0));
-    delete c.second;
+  for (auto& s : socks_) {
+    Rpc(Rpc::Type::CONNECTION_TEARDOWN, 0).serialize(*s.second);
+    s.second->flush();
+    delete s.second;
   }
 }
 
@@ -52,6 +52,10 @@ void ProxyCompiler::abort() {
 
 Clock* ProxyCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
   return generic_compile<Clock>(interface, md);
+}
+
+Custom* ProxyCompiler::compile_custom(Interface* interface, ModuleDeclaration* md) {
+  return generic_compile<Custom>(interface, md);
 }
 
 Fifo* ProxyCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
@@ -82,24 +86,24 @@ Logic* ProxyCompiler::compile_logic(Interface* interface, ModuleDeclaration* md)
   return generic_compile<Logic>(interface, md);
 }
 
-Connection* ProxyCompiler::get_conn(const ModuleDeclaration* md) {
+sockstream* ProxyCompiler::get_sock(const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
-  const auto itr = conns_.find(loc);
-  if (itr != conns_.end()) {
+  const auto itr = socks_.find(loc);
+  if (itr != socks_.end()) {
     return itr->second;
   }
 
-  auto* conn = (loc.find(':') != string::npos) ? get_tcp_conn(md) : get_unix_conn(md);
-  if (conn->error()) {
-    delete conn;
+  auto* sock = (loc.find(':') != string::npos) ? get_tcp_sock(md) : get_unix_sock(md);
+  if (sock->error()) {
+    delete sock;
     return nullptr; 
   }
 
-  conns_.insert(make_pair(loc, conn));
-  return conn;
+  socks_.insert(make_pair(loc, sock));
+  return sock;
 }
 
-Connection* ProxyCompiler::get_tcp_conn(const ModuleDeclaration* md) {
+sockstream* ProxyCompiler::get_tcp_sock(const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   stringstream ss(loc);
 
@@ -108,17 +112,12 @@ Connection* ProxyCompiler::get_tcp_conn(const ModuleDeclaration* md) {
   getline(ss, host, ':');
   ss >> port;
 
-  auto* sock = new Socket();
-  sock->connect(host, port);
-  return new Connection(sock);
+  return new sockstream(host.c_str(), port);
 }
 
-Connection* ProxyCompiler::get_unix_conn(const ModuleDeclaration* md) {
+sockstream* ProxyCompiler::get_unix_sock(const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
-
-  auto* sock = new Socket();
-  sock->connect(loc);
-  return new Connection(sock); 
+  return new sockstream(loc.c_str()); 
 }
 
 } // namespace cascade

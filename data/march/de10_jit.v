@@ -2,7 +2,7 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw:de10"*)
+(*__target="sw;de10"*)
 Root root();
 
 Clock clock();

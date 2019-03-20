@@ -89,7 +89,6 @@ struct Visitor {
   virtual void visit(const TimingControlStatement* rcs);
   virtual void visit(const DisplayStatement* ds);
   virtual void visit(const ErrorStatement* es);
-  virtual void visit(const FatalStatement* fs);
   virtual void visit(const FinishStatement* fs);
   virtual void visit(const InfoStatement* is);
   virtual void visit(const RestartStatement* rs);

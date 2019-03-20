@@ -92,7 +92,6 @@ struct Builder {
   virtual Statement* build(const TimingControlStatement* rcs);
   virtual Statement* build(const DisplayStatement* ds);
   virtual Statement* build(const ErrorStatement* es);
-  virtual Statement* build(const FatalStatement* fs);
   virtual Statement* build(const FinishStatement* fs);
   virtual Statement* build(const InfoStatement* is);
   virtual Statement* build(const RestartStatement* rs);

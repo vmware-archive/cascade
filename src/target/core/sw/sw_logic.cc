@@ -460,14 +460,6 @@ void SwLogic::visit(const ErrorStatement* es) {
   notify(es);
 }
 
-void SwLogic::visit(const FatalStatement* fs) {
-  if (!silent_) {
-    interface()->fatal(Evaluate().get_value(fs->get_arg()).to_int(), Printf().format(fs->begin_args(), fs->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(fs);
-}
-
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
     interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());

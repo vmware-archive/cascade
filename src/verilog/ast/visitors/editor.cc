@@ -280,11 +280,6 @@ void Editor::edit(ErrorStatement* es) {
   es->accept_args(this);
 }
 
-void Editor::edit(FatalStatement* fs) {
-  fs->accept_arg(this);
-  fs->accept_args(this);
-}
-
 void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }

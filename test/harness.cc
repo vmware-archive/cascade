@@ -35,6 +35,7 @@
 #include "gtest/gtest.h"
 #include "src/base/system/system.h"
 #include "src/runtime/runtime.h"
+#include "src/target/common/remote_runtime.h"
 #include "src/target/compiler.h"
 #include "src/target/core/proxy/proxy_compiler.h"
 #include "src/target/core/sw/sw_compiler.h"
@@ -137,34 +138,14 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(ss.str(), expected);
 }
 
-void run_mips(const string& march, const string& path, const string& expected) {
-  System().execute("data/test/regression/mips32/asm/asm " + path + " > data/test/regression/mips32/sc/imem.mem");
-
-  stringstream ss;
-  PView view(ss);
-  Runtime runtime(&view);
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-  auto lc = new LocalCompiler();
-    lc->set_runtime(&runtime);
+void run_remote(const string& path, const string& expected) {
+  RemoteRuntime rr;
   auto c = new Compiler();
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-    c->set_local_compiler(lc);
-  runtime.set_include_dirs("data/test/regression/mips32/sc/");
-  runtime.set_compiler(c);
-  runtime.run();
-
-  ifstream mf("data/march/" + march + ".v");
-  ASSERT_TRUE(mf.is_open());
-  StreamController(&runtime, mf).run_to_completion();
-
-  ifstream ifs("data/test/regression/mips32/sc/cpu.v");
-  ASSERT_TRUE(ifs.is_open());
-  StreamController(&runtime, ifs).run_to_completion();
-
-  runtime.wait_for_stop();
-  EXPECT_EQ(ss.str(), expected);
+    c->set_sw_compiler(new SwCompiler());
+  rr.set_compiler(c);
+  rr.run();
+  run_code("minimal_remote", path, expected);
+  rr.stop_now();
 }
 
 } // namespace cascade

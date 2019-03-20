@@ -581,14 +581,6 @@ void Printer::visit(const ErrorStatement* es) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
-void Printer::visit(const FatalStatement* fs) {
-  *this << Color::YELLOW << "$fatal" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  fs->accept_arg(this);
-  fs->accept_args(this, [this]{*this << Color::RED << "," << Color::RESET;}, []{});
-  *this << Color::RED << ");" << Color::RESET;
-}
-
 void Printer::visit(const FinishStatement* fs) {
   *this << Color::YELLOW << "$finish" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;

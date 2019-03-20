@@ -141,7 +141,6 @@ class De10Logic : public Logic, public Visitor {
     // Visitor Interface:
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
-    void visit(const FatalStatement* fs) override;
     void visit(const FinishStatement* fs) override;
     void visit(const InfoStatement* is) override;
     void visit(const RetargetStatement* rs) override;

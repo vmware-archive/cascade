@@ -28,43 +28,27 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_COMMON_VALUE_H
-#define CASCADE_SRC_TARGET_COMMON_VALUE_H
+#include "gtest/gtest.h"
+#include "test/harness.h"
 
-#include <iostream>
-#include "src/base/bits/bits.h"
-#include "src/base/serial/serializable.h"
+using namespace cascade;
 
-namespace cascade {
-
-struct Value : Serializable {
-  Value(VId id, Bits* val);
-  ~Value() override = default;
-
-  size_t deserialize(std::istream& is) override;
-  size_t serialize(std::ostream& os) const override;
-
-  VId id_;
-  Bits* val_;
-};
-
-inline Value::Value(VId id, Bits* val) : Serializable() {
-  id_ = id;
-  val_ = val;
-} 
-
-inline size_t Value::deserialize(std::istream& is) {
-  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
-  const auto len = val_->deserialize(is);
-  return sizeof(id_) + len;
+TEST(remote, hello_1) {
+  run_remote("data/test/regression/simple/hello_1.v", "Hello World");
 }
-
-inline size_t Value::serialize(std::ostream& os) const {
-  os.write(const_cast<char*>(reinterpret_cast<const char*>(&id_)), sizeof(id_));
-  const auto len = val_->serialize(os);
-  return sizeof(id_) + len;
+TEST(remote, pipeline_1) {
+  run_remote("data/test/regression/simple/pipeline_1.v", "0123456789");
 }
-
-} // namespace cascade
-
-#endif
+TEST(remote, pipeline_2) {
+  run_remote("data/test/regression/simple/pipeline_2.v", "0123456789");
+}
+TEST(remote, bitcoin) {
+  run_remote("data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+}
+TEST(remote, bubble) {
+  run_remote("data/test/benchmark/mips32/run_bubble_32.v", "1");
+}
+// TODO(eschkufz) This is *really* slow. Reenable this test when file i/o works
+//TEST(remote, regex) {
+//  run_remote("data/test/benchmark/regex/run_disjunct_1.v", "424");
+//}

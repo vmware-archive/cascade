@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "src/base/socket/socket.h"
+#include "src/base/stream/sockstream.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
@@ -87,15 +87,15 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
 }
 
 void De10Compiler::abort() {
-  Socket sock;
-  sock.connect(host_, port_);
+  sockstream sock(host_.c_str(), port_);;
 
   // Set the current sequence number to zero to indicate it's time to shutdown 
   { lock_guard<mutex> lg(lock_);
     curr_seq_ = 0;
     if (!sock.error()) {
-      sock.send(1);
-      sock.send("0", 1);
+      sock.put(1);
+      sock.put('\0');
+      sock.flush();
     }
   }
   // Notify any outstanding threads to force their shutdown.
@@ -206,8 +206,7 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   }
 
   // Connect to quartus server
-  Socket sock;
-  sock.connect(host_, port_);
+  sockstream sock(host_.c_str(), port_);
   if (sock.error()) {
     error("Unable to connect to quartus compilation server");
     delete de;
@@ -225,17 +224,16 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     }
     // The push succeeded, start a new compilation.
     const auto psrc = pbox_.get();
-    uint32_t len = psrc.length();
-    sock.send(len);
-    sock.send(psrc.c_str(), len);
+    sock.write(psrc.c_str(), psrc.length());
+    sock.put('\0');
+    sock.flush();
     // Record which sequence number this module is waiting on
     my_seq = next_seq_++;
     wait_table_[mid] = my_seq;
   }
 
   // Block on result
-  bool result = false;
-  sock.recv(result);
+  const auto result = (sock.get() == 1);
 
   // Critical Section #2
   { unique_lock<mutex> ul(lock_);

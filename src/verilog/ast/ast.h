@@ -78,7 +78,6 @@
 #include "src/verilog/ast/types/timing_control_statement.h"
 #include "src/verilog/ast/types/display_statement.h"
 #include "src/verilog/ast/types/error_statement.h"
-#include "src/verilog/ast/types/fatal_statement.h"
 #include "src/verilog/ast/types/finish_statement.h"
 #include "src/verilog/ast/types/info_statement.h"
 #include "src/verilog/ast/types/restart_statement.h"

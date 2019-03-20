@@ -33,9 +33,7 @@
 #include <cassert>
 #include <vector>
 #include "src/base/log/log.h"
-#include "src/base/socket/socket.h"
-#include "src/target/common/connection.h"
-#include "src/target/common/rpc.h"
+#include "src/base/stream/sockstream.h"
 #include "src/target/compiler.h"
 #include "src/target/engine.h"
 #include "src/target/interface/remote/remote_compiler.h"
@@ -48,7 +46,7 @@ using namespace std;
 
 namespace cascade {
 
-RemoteRuntime::RemoteRuntime() : Asynchronous(), in_buf_(1024), out_buf_(1024) {
+RemoteRuntime::RemoteRuntime() : Asynchronous() {
   compiler_ = new Compiler();
   set_path("/tmp/fpga_socket");
   set_port(8800);
@@ -76,14 +74,10 @@ RemoteRuntime& RemoteRuntime::set_port(uint32_t p) {
 
 void RemoteRuntime::run_logic() {
   auto* rc = new RemoteCompiler();
-  rc->set_buffer(&out_buf_);
   compiler_->set_remote_compiler(rc);
 
-  Socket tl;
-  tl.listen(port_, 8);
-  Socket ul;
-  ul.listen(path_, 8);
-
+  sockserver tl(port_, 8);
+  sockserver ul(path_.c_str(), 8);
   if (tl.error() || ul.error()) {
     return;
   }
@@ -96,10 +90,10 @@ void RemoteRuntime::run_logic() {
   fd_set read_set;
   FD_ZERO(&read_set);
 
-  struct timeval timeout = {0, 100};
+  struct timeval timeout = {0, 1000};
   auto max_fd = max(tl.descriptor(), ul.descriptor());
 
-  vector<Connection*> conns;
+  vector<sockstream*> socks;
   vector<Engine*> engines;
 
   while (!stop_requested()) {
@@ -111,88 +105,106 @@ void RemoteRuntime::run_logic() {
         continue;
       }
       // Listener
-      if (i == tl.descriptor() || i == ul.descriptor()) {
-        const auto fd = ::accept(i, nullptr, nullptr);
+      if ((i == tl.descriptor()) || (i == ul.descriptor())) {
+        auto* sock = (i == tl.descriptor()) ? tl.accept() : ul.accept();
+        const auto fd = sock->descriptor();
         FD_SET(fd, &master_set);
         if (fd > max_fd) {
           max_fd = fd;
-          conns.resize(max_fd+1, nullptr);
+          socks.resize(max_fd+1, nullptr);
         }
-        conns[fd] = new Connection(new Socket(fd));
+        socks[fd] = sock;
         continue;
       }
       // Client
-      auto* conn = conns[i];
-      Rpc rpc;
-      conn->recv_rpc(rpc);
-      switch (rpc.type_) {
-        case Rpc::Type::COMPILE: {
-          if (auto* e = compile(conn)) {
-            engines.push_back(e);
-            conn->send_rpc(Rpc(Rpc::Type::OKAY, engines.size()-1));
-          } else {
-            conn->send_rpc(Rpc(Rpc::Type::ERROR, 0));
+      auto* sock = socks[i];
+      do {
+        Rpc rpc;
+        rpc.deserialize(*sock);
+        switch (rpc.type_) {
+          case Rpc::Type::COMPILE: {
+            const Rpc::Id id = engines.size();
+            rc->set_sock(sock);
+            rc->set_id(id);
+            if (auto* e = compile(sock)) {
+              engines.push_back(e);
+              Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+              sock->flush();
+            } else {
+              Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
+              sock->flush();
+            }
+            break;
           }
-          break;
-        }
-        case Rpc::Type::GET_STATE:
-          get_state(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::SET_STATE:
-          set_state(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::GET_INPUT:
-          get_input(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::SET_INPUT:
-          set_input(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::FINALIZE:
-          finalize(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OVERRIDES_DONE_STEP:
-          overrides_done_step(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::DONE_STEP:
-          done_step(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OVERRIDES_DONE_SIMULATION:
-          overrides_done_simulation(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::DONE_SIMULATION:
-          done_simulation(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::EVALUATE:
-          evaluate(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::THERE_ARE_UPDATES:
-          there_are_updates(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::UPDATE:
-          update(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::THERE_WERE_TASKS:
-          there_were_tasks(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::CONDITIONAL_UPDATE:
-          conditional_update(conn, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OPEN_LOOP:
-          open_loop(conn, engines[rpc.id_]);
-          break;
+          case Rpc::Type::GET_STATE:
+            get_state(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::SET_STATE:
+            set_state(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::GET_INPUT:
+            get_input(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::SET_INPUT:
+            set_input(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::FINALIZE:
+            finalize(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OVERRIDES_DONE_STEP:
+            overrides_done_step(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::DONE_STEP:
+            done_step(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OVERRIDES_DONE_SIMULATION:
+            overrides_done_simulation(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::DONE_SIMULATION:
+            done_simulation(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::READ:
+            read(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::EVALUATE:
+            evaluate(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::THERE_ARE_UPDATES:
+            there_are_updates(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::UPDATE:
+            update(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::THERE_WERE_TASKS:
+            there_were_tasks(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::CONDITIONAL_UPDATE:
+            conditional_update(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OPEN_LOOP:
+            open_loop(sock, rpc.id_, engines[rpc.id_]);
+            break;
 
-        case Rpc::Type::CONNECTION_CLOSED:
-        default:
-          delete conn;
-          conns[i] = nullptr;
-          FD_CLR(i, &master_set);
-      }
+          case Rpc::Type::ENGINE_TEARDOWN:
+            delete engines[rpc.id_];
+            engines[rpc.id_] = nullptr;
+            sock->flush();
+            break;
+          case Rpc::Type::CONNECTION_TEARDOWN:
+          default:
+            delete sock;
+            sock = nullptr;
+            socks[i] = nullptr;
+            FD_CLR(i, &master_set);
+            break;
+        }
+      } while ((sock != nullptr) && (sock->rdbuf()->in_avail() > 0));
     }
   }
 
-  for (auto* c : conns) {
-    if (c != nullptr) {
-      delete c;
+  for (auto* s : socks) {
+    if (s != nullptr) {
+      delete s;
     }
   }
   for (auto* e : engines) {
@@ -200,143 +212,127 @@ void RemoteRuntime::run_logic() {
   }
 }
 
-Engine* RemoteRuntime::compile(Connection* conn) {
-  conn->recv_str(in_buf_);
-
+Engine* RemoteRuntime::compile(sockstream* sock) {
   Parser p;
   Log log;
-  p.parse(in_buf_, &log);
+  p.parse(*sock, &log);
   assert(p.success());
   assert((*p.begin())->is(Node::Tag::module_declaration));
+
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-
-  in_buf_.clear();
-  if (log.error() || md == nullptr) {
-    return nullptr;
-  }
-  return compiler_->compile(md);
+  return (log.error() || (md == nullptr)) ? nullptr : compiler_->compile(md);
 }
 
-void RemoteRuntime::get_state(Connection* conn, Engine* e) {
+void RemoteRuntime::get_state(sockstream* sock, Engine* e) {
   auto* s = e->get_state();
-  s->serialize(out_buf_);
+  s->serialize(*sock);
   delete s;
-
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+  sock->flush();
 }
 
-void RemoteRuntime::set_state(Connection* conn, Engine* e) {
-  conn->recv_str(in_buf_);
+void RemoteRuntime::set_state(sockstream* sock, Engine* e) {
   auto* s = new State();
-  s->deserialize(in_buf_);
+  s->deserialize(*sock);
   e->set_state(s);
   delete s;
-  in_buf_.clear();
-
-  conn->send_ack();
 }
 
-void RemoteRuntime::get_input(Connection* conn, Engine* e) {
+void RemoteRuntime::get_input(sockstream* sock, Engine* e) {
   auto* i = e->get_input();
-  i->serialize(out_buf_);
+  i->serialize(*sock);
   delete i;
-
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+  sock->flush();
 }
 
-void RemoteRuntime::set_input(Connection* conn, Engine* e) {
-  conn->recv_str(in_buf_);
+void RemoteRuntime::set_input(sockstream* sock, Engine* e) {
   auto* i = new Input();
-  i->deserialize(in_buf_);
+  i->deserialize(*sock);
   e->set_input(i);
   delete i;
-  in_buf_.clear();
-
-  conn->send_ack();
 }
 
-void RemoteRuntime::finalize(Connection* conn, Engine* e) {
+void RemoteRuntime::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
   e->finalize();
-  conn->send_ack();
+  // This call to finalize will have primed the socket with tasks and writes
+  // Appending an OKAY rpc indicates that everything has been sent
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->flush();
 }
 
-void RemoteRuntime::overrides_done_step(Connection* conn, Engine* e) {
-  conn->send_bool(e->overrides_done_step());
+void RemoteRuntime::overrides_done_step(sockstream* sock, Engine* e) {
+  sock->put(e->overrides_done_step() ? 1 : 0);
+  sock->flush();
 }
 
-void RemoteRuntime::done_step(Connection* conn, Engine* e) {
+void RemoteRuntime::done_step(sockstream* sock, Engine* e) {
+  (void) sock;
   e->done_step();
-  conn->send_ack();
 }
 
-void RemoteRuntime::overrides_done_simulation(Connection* conn, Engine* e) {
-  conn->send_bool(e->overrides_done_simulation());
+void RemoteRuntime::overrides_done_simulation(sockstream* sock, Engine* e) {
+  sock->put(e->overrides_done_simulation() ? 1 : 0);
+  sock->flush();
 }
 
-void RemoteRuntime::done_simulation(Connection* conn, Engine* e) {
+void RemoteRuntime::done_simulation(sockstream* sock, Engine* e) {
+  (void) sock;
   e->done_simulation();
-  conn->send_ack();
 }
 
-void RemoteRuntime::evaluate(Connection* conn, Engine* e) {
-  conn->recv_str(in_buf_);
-  Value temp(0, &bits_);
-  for (temp.deserialize(in_buf_); !in_buf_.eof(); temp.deserialize(in_buf_)) {
-    e->read(temp.id_, temp.val_);
-  }
-  in_buf_.clear();
+void RemoteRuntime::read(sockstream* sock, Engine* e) {
+  VId id = 0;
+  sock->read(reinterpret_cast<char*>(&id), 4); 
+  Bits bits;
+  bits.deserialize(*sock);
+  e->read(id, &bits);
+}
 
+void RemoteRuntime::evaluate(sockstream* sock, Rpc::Id id, Engine* e) {
   e->evaluate();
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+  // This call to evaluate will have primed the socket with tasks and writes
+  // Appending an OKAY rpc, indicates that everything has been sent.
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->flush();
 }
 
-void RemoteRuntime::there_are_updates(Connection* conn, Engine* e) {
-  conn->send_bool(e->there_are_updates());
+void RemoteRuntime::there_are_updates(sockstream* sock, Engine* e) {
+  sock->put(e->there_are_updates() ? 1 : 0);
 }
 
-void RemoteRuntime::update(Connection* conn, Engine* e) {
-  conn->recv_str(in_buf_);
-  Value temp(0, &bits_);
-  for (temp.deserialize(in_buf_); !in_buf_.eof(); temp.deserialize(in_buf_)) {
-    e->read(temp.id_, temp.val_);
-  }
-  in_buf_.clear();
-
+void RemoteRuntime::update(sockstream* sock, Rpc::Id id, Engine* e) {
   e->update();
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+  // This call to update will have primed the socket with tasks and writes
+  // Appending an OKAY rpc, indicates that everything has been sent.
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->flush();
 }
 
-void RemoteRuntime::there_were_tasks(Connection* conn, Engine* e) {
-  conn->send_bool(e->there_were_tasks());
+void RemoteRuntime::there_were_tasks(sockstream* sock, Engine* e) {
+  sock->put(e->there_were_tasks() ? 1 : 0);
 }
 
-void RemoteRuntime::conditional_update(Connection* conn, Engine* e) {
-  conn->recv_str(in_buf_);
-  Value temp(0, &bits_);
-  for (temp.deserialize(in_buf_); !in_buf_.eof(); temp.deserialize(in_buf_)) {
-    e->read(temp.id_, temp.val_);
-  }
-  in_buf_.clear();
-
-  conn->send_bool(e->conditional_update());
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+void RemoteRuntime::conditional_update(sockstream* sock, Rpc::Id id, Engine* e) {
+  const auto res = e->conditional_update();
+  // This call to conditional_update will have primed the socket with tasks and
+  // writes Appending an OKAY rpc, indicates that everything has been sent.
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->put(res ? 1 : 0);
+  sock->flush();
 }
 
-void RemoteRuntime::open_loop(Connection* conn, Engine* e) {
+void RemoteRuntime::open_loop(sockstream* sock, Rpc::Id id, Engine* e) {
   uint32_t clk = 0;
-  conn->recv_double(clk);
-  bool val = false;
-  conn->recv_bool(val);
+  sock->read(reinterpret_cast<char*>(&clk), 4);
+  bool val = (sock->get() == 1);
   uint32_t itr = 0;
-  conn->recv_double(itr);
-  conn->send_double(e->open_loop(clk, val, itr));
-  conn->send_str(out_buf_);
-  out_buf_.resize(0);
+  sock->read(reinterpret_cast<char*>(&itr), 4);
+
+  const uint32_t res = e->open_loop(clk, val, itr);
+  // This call to open_loop  will have primed the socket with tasks and
+  // writes Appending an OKAY rpc, indicates that everything has been sent.
+  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  sock->write(reinterpret_cast<const char*>(&res), 4);
+  sock->flush();
 }
 
 } // namespace cascade

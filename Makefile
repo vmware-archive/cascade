@@ -97,7 +97,6 @@ HDR=\
 	src/base/container/vector.h\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
-	src/base/socket/socket.h\
 	src/base/stream/bufstream.h\
 	src/base/stream/fdstream.h\
 	src/base/stream/incstream.h\
@@ -128,11 +127,8 @@ HDR=\
 	src/target/interface.h\
 	src/target/interface_compiler.h\
 	src/target/state.h\
-	src/target/common/connection.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
-	src/target/common/sys_task.h\
-	src/target/common/value.h\
 	src/target/core/de10/de10_compiler.h\
 	src/target/core/de10/de10_gpio.h\
 	src/target/core/de10/de10_led.h\
@@ -280,7 +276,8 @@ TEST_OBJ=\
 	test/regression/mips32.o\
 	test/regression/regex.o\
 	test/regression/nw.o\
-	test/regression/jit.o
+	test/regression/jit.o\
+	test/regression/remote.o
 
 ### Benchmark binaries
 BMARK_OBJ=\
@@ -291,7 +288,6 @@ BMARK_OBJ=\
 BIN=\
 	bin/cascade\
 	bin/quartus_server\
-	bin/remote_runtime\
 	bin/sw_fpga
 
 ### Top-level commands

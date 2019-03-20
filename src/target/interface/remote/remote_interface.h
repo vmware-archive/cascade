@@ -32,20 +32,19 @@
 #define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_INTERFACE_H
 
 #include <cassert>
-#include "src/target/common/sys_task.h"
-#include "src/target/common/value.h"
+#include "src/base/stream/sockstream.h"
+#include "src/target/common/rpc.h"
 #include "src/target/interface.h"
 
 namespace cascade {
 
 class RemoteInterface : public Interface {
   public:
-    explicit RemoteInterface(bufstream* buf);
+    explicit RemoteInterface(sockstream* sock, Rpc::Id id);
     ~RemoteInterface() override = default;
 
     void display(const std::string& s) override;
     void error(const std::string& s) override;
-    void fatal(int arg, const std::string& s) override;
     void finish(int arg) override;
     void info(const std::string& s) override;
     void restart(const std::string& s) override;
@@ -57,72 +56,73 @@ class RemoteInterface : public Interface {
     void write(VId id, const Bits* b) override;
       
   private:
-    bufstream* buf_;
-
-    void write_flag(bool flag);
+    sockstream* sock_;
+    Rpc::Id id_;
 }; 
 
-inline RemoteInterface::RemoteInterface(bufstream* buf) : Interface() {
-  buf_ = buf;
+inline RemoteInterface::RemoteInterface(sockstream* sock, Rpc::Id id) : Interface() {
+  sock_ = sock;
+  id_ = id;
 }
 
 inline void RemoteInterface::display(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::DISPLAY, s).serialize(*buf_);
+  Rpc(Rpc::Type::DISPLAY, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::error(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::ERROR, s).serialize(*buf_);
-}
-
-inline void RemoteInterface::fatal(int arg, const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::FATAL, s, arg).serialize(*buf_);
+  Rpc(Rpc::Type::ERROR, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::finish(int arg) {
-  write_flag(false);
-  SysTask(SysTask::Type::FINISH, "", arg).serialize(*buf_);
+  Rpc(Rpc::Type::FINISH, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&arg), 4);
+  sock_->flush();
 }
 
 inline void RemoteInterface::info(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::INFO, s).serialize(*buf_);
+  Rpc(Rpc::Type::INFO, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::restart(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::RESTART, s).serialize(*buf_);
+  Rpc(Rpc::Type::RESTART, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::retarget(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::RETARGET, s).serialize(*buf_);
+  Rpc(Rpc::Type::RETARGET, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::save(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::SAVE, s).serialize(*buf_);
+  Rpc(Rpc::Type::SAVE, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::warning(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::WARNING, s).serialize(*buf_);
+  Rpc(Rpc::Type::WARNING, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::write(const std::string& s) {
-  write_flag(false);
-  SysTask(SysTask::Type::WRITE, s).serialize(*buf_);
+  Rpc(Rpc::Type::WRITE, id_).serialize(*sock_);
+  sock_->write(s.c_str(), s.length());
+  sock_->put('\0');
 }
 
 inline void RemoteInterface::write(VId id, const Bits* b) {
-  write_flag(true);
-  Value(id, const_cast<Bits*>(b)).serialize(*buf_);
-}
-
-inline void RemoteInterface::write_flag(bool flag) {
-  buf_->write(reinterpret_cast<char*>(&flag), sizeof(flag));
+  Rpc(Rpc::Type::WRITE_BITS, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), 4);
+  b->serialize(*sock_);
 }
 
 } // namespace cascade

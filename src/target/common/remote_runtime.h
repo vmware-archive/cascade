@@ -33,15 +33,14 @@
 
 #include <string>
 #include "src/base/bits/bits.h"
-#include "src/base/stream/bufstream.h"
 #include "src/base/thread/asynchronous.h"
+#include "src/target/common/rpc.h"
 
 namespace cascade {
 
 class Compiler;
-class Connection;
 class Engine;
-class ServerEngine;
+class sockstream;
 
 class RemoteRuntime : public Asynchronous {
   public:
@@ -57,34 +56,32 @@ class RemoteRuntime : public Asynchronous {
     std::string path_;
     uint32_t port_;
 
-    Bits bits_;
-    bufstream in_buf_;
-    bufstream out_buf_;
-
+    // Asynchronous Interface:
     void run_logic() override;
 
     // Compiler Interface:
-    Engine* compile(Connection* conn);
+    Engine* compile(sockstream* sock);
     
     // Core Interface:
-    void get_state(Connection* conn, Engine* e);
-    void set_state(Connection* conn, Engine* e);
-    void get_input(Connection* conn, Engine* e);
-    void set_input(Connection* conn, Engine* e);
-    void finalize(Connection* conn, Engine* e);
+    void get_state(sockstream* sock, Engine* e);
+    void set_state(sockstream* sock, Engine* e);
+    void get_input(sockstream* sock, Engine* e);
+    void set_input(sockstream* sock, Engine* e);
+    void finalize(sockstream* sock, Rpc::Id id, Engine* e);
 
-    void overrides_done_step(Connection* conn, Engine* e);
-    void done_step(Connection* conn, Engine* e);
-    void overrides_done_simulation(Connection* conn, Engine* e);
-    void done_simulation(Connection* conn, Engine* e);
+    void overrides_done_step(sockstream* sock, Engine* e);
+    void done_step(sockstream* sock, Engine* e);
+    void overrides_done_simulation(sockstream* sock, Engine* e);
+    void done_simulation(sockstream* sock, Engine* e);
 
-    void evaluate(Connection* conn, Engine* e);
-    void there_are_updates(Connection* conn, Engine* e);
-    void update(Connection* conn, Engine* e);
-    void there_were_tasks(Connection* conn, Engine* e);
+    void read(sockstream* sock, Engine* e);
+    void evaluate(sockstream* sock, Rpc::Id id, Engine* e);
+    void there_are_updates(sockstream* sock, Engine* e);
+    void update(sockstream* sock, Rpc::Id id, Engine* e);
+    void there_were_tasks(sockstream* sock, Engine* e);
 
-    void conditional_update(Connection* conn, Engine* e);
-    void open_loop(Connection* conn, Engine* e);
+    void conditional_update(sockstream* sock, Rpc::Id id, Engine* e);
+    void open_loop(sockstream* sock, Rpc::Id id, Engine* e);
 };
 
 } // namespace cascade

@@ -117,7 +117,6 @@ class TypeCheck : public Visitor {
     void visit(const WhileStatement* ws) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
-    void visit(const FatalStatement* fs) override;
     void visit(const InfoStatement* is) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;

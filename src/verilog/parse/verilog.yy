@@ -335,7 +335,7 @@ bool is_null(const cascade::Expression* e) {
 %type <LoopStatement*> loop_statement
 
 /* A.6.9 Task Enable Statements */
-%type <SystemTaskEnableStatement*> system_task_enable
+%type <Statement*> system_task_enable
 
 /* A.8.1 Concatenations */
 %type <Concatenation*> concatenation
@@ -1431,20 +1431,22 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FATAL SCOLON { 
-    $$ = new FatalStatement(new Number(Bits(false), Number::Format::UNBASED)); 
+    $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
     parser->set_loc($$);
   }
   | SYS_FATAL OPAREN CPAREN SCOLON { 
-    $$ = new FatalStatement(new Number(Bits(false), Number::Format::UNBASED)); 
+    $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
     parser->set_loc($$);
   }
-  | SYS_FATAL OPAREN expression_P CPAREN SCOLON { 
-    const auto begin = $3.begin() + 1;
-    if (begin == $3.end()) {
-      $$ = new FatalStatement(*$3.begin());
-    } else {
-      $$ = new FatalStatement(*$3.begin(), begin, $3.end()); 
-    }
+  | SYS_FATAL OPAREN number CPAREN SCOLON { 
+    $$ = new FinishStatement($3); 
+    parser->set_loc($$);
+  }
+  | SYS_FATAL OPAREN number COMMA expression_P CPAREN SCOLON { 
+    auto sb = new SeqBlock();
+    sb->push_back_stmts(new ErrorStatement($5.begin(), $5.end()));
+    sb->push_back_stmts(new FinishStatement($3));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_FINISH SCOLON { 

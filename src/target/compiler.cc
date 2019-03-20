@@ -204,8 +204,8 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   const auto* l = md->get_attrs()->get<String>("__loc");
 
   // Check: Is this a stub, an std module, was jit compilation requested?  
-  const auto tsep = t->get_readable_val().find_first_of(':');
-  const auto lsep = l->get_readable_val().find_first_of(':');
+  const auto tsep = t->get_readable_val().find_first_of(';');
+  const auto lsep = l->get_readable_val().find_first_of(';');
   const auto jit = std->eq("logic") && !StubCheck().check(md) && ((tsep != string::npos) || (lsep != string::npos));
 
   // If we're jit compiling, we'll need a second copy of the source and we'll

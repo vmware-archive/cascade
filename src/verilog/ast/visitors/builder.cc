@@ -390,12 +390,6 @@ Statement* Builder::build(const ErrorStatement* es) {
   return res;
 }
 
-Statement* Builder::build(const FatalStatement* fs) {
-  auto* res = new FatalStatement(fs->accept_arg(this));
-  fs->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
 Statement* Builder::build(const FinishStatement* fs) {
   return new FinishStatement(
     fs->accept_arg(this)

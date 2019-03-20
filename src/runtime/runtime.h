@@ -110,7 +110,7 @@ class Runtime : public Asynchronous {
     // this and the next timestep. Returns immediately.
     void finish(int arg);
 
-    // Elaboration System Task Interface (System Verilog):
+    // Logging System Task Interface (System Verilog):
     //
     // Prints an error message between this and the next timestep. Returns
     // immediately.
@@ -121,9 +121,6 @@ class Runtime : public Asynchronous {
     // Prints an info message between this and the next timestep. Returns
     // immediately.
     void info(const std::string& s);
-    // Prints a fatal error message and invokes $finish between this and the
-    // next timestep. Returns immediately.
-    void fatal(int arg, const std::string& s);
 
     // Cascade-Specific System Task Interface (Cascade Only):
     //

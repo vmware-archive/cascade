@@ -66,6 +66,7 @@ class EView : public View {
 void run_parse(const std::string& path, bool expected);
 void run_typecheck(const std::string& march, const std::string& path, bool expected);
 void run_code(const std::string& march, const std::string& path, const std::string& expected);
+void run_remote(const std::string& path, const std::string& expected);
 
 // Benchmark harnesses:
 void run_mips(const std::string& march, const std::string& path, const std::string& expected);
