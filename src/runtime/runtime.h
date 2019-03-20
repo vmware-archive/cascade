@@ -110,7 +110,7 @@ class Runtime : public Asynchronous {
     // this and the next timestep. Returns immediately.
     void finish(int arg);
 
-    // Elaboration System Task Interface (System Verilog):
+    // Logging System Task Interface (System Verilog):
     //
     // Prints an error message between this and the next timestep. Returns
     // immediately.

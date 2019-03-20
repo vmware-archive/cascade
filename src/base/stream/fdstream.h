@@ -164,7 +164,7 @@ inline int fdbuf::sync() {
 }
 
 inline std::streamsize fdbuf::showmanyc() {
-  return 0;
+  return egptr() - gptr();
 }
 
 inline fdbuf::int_type fdbuf::underflow() {
@@ -199,18 +199,20 @@ inline fdbuf::int_type fdbuf::uflow() {
 
 inline std::streamsize fdbuf::xsgetn(char_type* s, std::streamsize count) {
   std::streamsize total = 0;
+  std::streamsize chunk = 0;
   do {
-    const auto chunk = std::min(egptr()-gptr(), count);
+    chunk = std::min(egptr()-gptr(), count);
     std::copy(gptr(), gptr()+chunk, s+total);
     total += chunk;
   } 
-  while (total < count && underflow() != -1);
+  while ((total < count) && (underflow() != -1));
+  setg(eback(), gptr()+chunk, egptr());
   return total;
 }
 
 inline std::streamsize fdbuf::xsputn(const char_type* s, std::streamsize count) {
-  const auto n = pptr()-pbase();
-  const auto req = n+count;
+  const size_t n = pptr()-pbase();
+  const size_t req = n+count;
   if (req > put_.size()) {
     put_.resize(req);
   }

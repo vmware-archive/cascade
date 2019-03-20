@@ -40,8 +40,7 @@ struct Rpc : Serializable {
   enum class Type : uint8_t {
     // Generic Return Codes:
     OKAY = 0,
-    ERROR,
-    CONNECTION_CLOSED,
+    FAIL,
 
     // Compiler API:
     COMPILE,  
@@ -58,13 +57,30 @@ struct Rpc : Serializable {
     OVERRIDES_DONE_SIMULATION,
     DONE_SIMULATION,
 
+    READ,
     EVALUATE,
     THERE_ARE_UPDATES,
     UPDATE,
     THERE_WERE_TASKS,
 
     CONDITIONAL_UPDATE,
-    OPEN_LOOP
+    OPEN_LOOP,
+
+    // Interface API:
+    DISPLAY,
+    ERROR,
+    FINISH,
+    INFO,
+    RESTART,
+    RETARGET,
+    SAVE,
+    WARNING,
+    WRITE,
+    WRITE_BITS,
+
+    // Teardown Codes:
+    ENGINE_TEARDOWN,
+    CONNECTION_TEARDOWN
   };
   typedef uint32_t Id;
 
@@ -79,7 +95,7 @@ struct Rpc : Serializable {
   Id id_;
 };
 
-inline Rpc::Rpc() : Rpc(Type::ERROR, 0) { }
+inline Rpc::Rpc() : Rpc(Type::FAIL, 0) { }
 
 inline Rpc::Rpc(Type type, Id id) : Serializable() {
   type_ = type;
