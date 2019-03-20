@@ -270,7 +270,7 @@ inline void ProxyCore<T>::recv() {
         break;
       case Rpc::Type::OKAY:
       default:
-        break;
+        return;
     }
   }
 }
