@@ -118,84 +118,87 @@ void RemoteRuntime::run_logic() {
       }
       // Client
       auto* sock = socks[i];
-      Rpc rpc;
-      rpc.deserialize(*sock);
-      switch (rpc.type_) {
-        case Rpc::Type::COMPILE: {
-          const Rpc::Id id = engines.size();
-          rc->set_sock(sock);
-          rc->set_id(id);
-          if (auto* e = compile(sock)) {
-            engines.push_back(e);
-            Rpc(Rpc::Type::OKAY, id).serialize(*sock);
-            sock->flush();
-          } else {
-            Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
-            sock->flush();
+      do {
+        Rpc rpc;
+        rpc.deserialize(*sock);
+        switch (rpc.type_) {
+          case Rpc::Type::COMPILE: {
+            const Rpc::Id id = engines.size();
+            rc->set_sock(sock);
+            rc->set_id(id);
+            if (auto* e = compile(sock)) {
+              engines.push_back(e);
+              Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+              sock->flush();
+            } else {
+              Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
+              sock->flush();
+            }
+            break;
           }
-          break;
-        }
-        case Rpc::Type::GET_STATE:
-          get_state(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::SET_STATE:
-          set_state(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::GET_INPUT:
-          get_input(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::SET_INPUT:
-          set_input(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::FINALIZE:
-          finalize(sock, rpc.id_, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OVERRIDES_DONE_STEP:
-          overrides_done_step(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::DONE_STEP:
-          done_step(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OVERRIDES_DONE_SIMULATION:
-          overrides_done_simulation(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::DONE_SIMULATION:
-          done_simulation(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::READ:
-          read(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::EVALUATE:
-          evaluate(sock, rpc.id_, engines[rpc.id_]);
-          break;
-        case Rpc::Type::THERE_ARE_UPDATES:
-          there_are_updates(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::UPDATE:
-          update(sock, rpc.id_, engines[rpc.id_]);
-          break;
-        case Rpc::Type::THERE_WERE_TASKS:
-          there_were_tasks(sock, engines[rpc.id_]);
-          break;
-        case Rpc::Type::CONDITIONAL_UPDATE:
-          conditional_update(sock, rpc.id_, engines[rpc.id_]);
-          break;
-        case Rpc::Type::OPEN_LOOP:
-          open_loop(sock, rpc.id_, engines[rpc.id_]);
-          break;
+          case Rpc::Type::GET_STATE:
+            get_state(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::SET_STATE:
+            set_state(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::GET_INPUT:
+            get_input(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::SET_INPUT:
+            set_input(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::FINALIZE:
+            finalize(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OVERRIDES_DONE_STEP:
+            overrides_done_step(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::DONE_STEP:
+            done_step(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OVERRIDES_DONE_SIMULATION:
+            overrides_done_simulation(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::DONE_SIMULATION:
+            done_simulation(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::READ:
+            read(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::EVALUATE:
+            evaluate(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::THERE_ARE_UPDATES:
+            there_are_updates(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::UPDATE:
+            update(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::THERE_WERE_TASKS:
+            there_were_tasks(sock, engines[rpc.id_]);
+            break;
+          case Rpc::Type::CONDITIONAL_UPDATE:
+            conditional_update(sock, rpc.id_, engines[rpc.id_]);
+            break;
+          case Rpc::Type::OPEN_LOOP:
+            open_loop(sock, rpc.id_, engines[rpc.id_]);
+            break;
 
-        case Rpc::Type::ENGINE_TEARDOWN:
-          delete engines[rpc.id_];
-          engines[rpc.id_] = nullptr;
-          sock->flush();
-          break;
-        case Rpc::Type::CONNECTION_TEARDOWN:
-        default:
-          delete sock;
-          socks[i] = nullptr;
-          FD_CLR(i, &master_set);
-          break;
-      }
+          case Rpc::Type::ENGINE_TEARDOWN:
+            delete engines[rpc.id_];
+            engines[rpc.id_] = nullptr;
+            sock->flush();
+            break;
+          case Rpc::Type::CONNECTION_TEARDOWN:
+          default:
+            delete sock;
+            sock = nullptr;
+            socks[i] = nullptr;
+            FD_CLR(i, &master_set);
+            break;
+        }
+      } while ((sock != nullptr) && (sock->rdbuf()->in_avail() > 0));
     }
   }
 

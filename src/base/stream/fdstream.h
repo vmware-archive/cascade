@@ -164,7 +164,7 @@ inline int fdbuf::sync() {
 }
 
 inline std::streamsize fdbuf::showmanyc() {
-  return 0;
+  return egptr() - gptr();
 }
 
 inline fdbuf::int_type fdbuf::underflow() {
