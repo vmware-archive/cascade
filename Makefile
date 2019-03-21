@@ -129,6 +129,7 @@ HDR=\
 	src/target/state.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
+	src/target/core/common/printf.h\
 	src/target/core/de10/de10_compiler.h\
 	src/target/core/de10/de10_gpio.h\
 	src/target/core/de10/de10_led.h\
@@ -166,7 +167,6 @@ HDR=\
 	src/verilog/analyze/indices.h\
 	src/verilog/analyze/module_info.h\
 	src/verilog/analyze/navigate.h\
-	src/verilog/analyze/printf.h\
 	src/verilog/analyze/read_set.h\
 	src/verilog/analyze/resolve.h\
 	src/verilog/ast/ast.h\

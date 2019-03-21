@@ -31,6 +31,7 @@
 #include "src/target/core/de10/de10_logic.h"
 
 #include <cassert>
+#include "src/target/core/common/printf.h"
 #include "src/target/core/de10/io.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
@@ -38,7 +39,6 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/printf.h"
 #include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
