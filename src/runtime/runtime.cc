@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <cctype>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -82,6 +83,9 @@ Runtime::Runtime(View* view) : Asynchronous() {
   begin_time_ = ::time(nullptr);
   last_time_ = ::time(nullptr);
   logical_time_ = 0;
+
+  // begin allocating stream ids from 1
+  stream_table_.push_back(nullptr);
 }
 
 Runtime::~Runtime() {
@@ -95,6 +99,12 @@ Runtime::~Runtime() {
   delete dp_;
   delete isolate_;
   delete compiler_;
+
+  for (auto s : stream_table_) {
+    if (s != nullptr) {
+      delete s;
+    }
+  }
 }
 
 Runtime& Runtime::set_compiler(Compiler* c) {
@@ -303,49 +313,51 @@ void Runtime::write(VId id, bool b) {
 }
 
 SId Runtime::fopen(const std::string& path) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) path;
-  return 0;
+  // Create a file if it doesn't already exist
+  ofstream temp(path, ios_base::app);
+  temp.close();
+
+  auto* fb = new filebuf();
+  fb->open(path.c_str(), (ios_base::in | ios_base::out));
+  stream_table_.push_back(fb);
+
+  return (stream_table_.size()-1);;
 }
 
 void Runtime::close(SId id) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
+  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
+    return;
+  }
+  delete stream_table_[id];
+  stream_table_[id] = nullptr;
 }
 
 void Runtime::seekoff(SId id, int n, bool r) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
-  (void) n;
-  (void) r;
+  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
+    return;
+  }
+  stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
 size_t Runtime::sgetn(SId id, char* c, size_t n) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
-  (void) c;
-  (void) n;
-  return 0;
+  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
+    return 0;
+  }
+  return stream_table_[id]->sgetn(c, n);
 }
 
 void Runtime::sputn(SId id, const char* c, size_t n) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
-  (void) c;
-  (void) n;
-
+  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
+    return;
+  }
+  stream_table_[id]->sputn(c, n);
 }
 
 size_t Runtime::in_avail(SId id) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
-  return false;
+  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
+    return -1;
+  }
+  return stream_table_[id]->in_avail();
 }
 
 uint64_t Runtime::time() const {

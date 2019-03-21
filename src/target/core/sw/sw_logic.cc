@@ -141,8 +141,9 @@ void SwLogic::finalize() {
       auto rd = static_cast<RegDeclaration*>(*i);
       const auto is_fopen = rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression);
       if (is_fopen && (Evaluate().get_value(rd->get_id()).to_int() == 0)) {
-        static int TEMP = 1;
-        rd->get_id()->bit_val_[0].assign(Bits(32, TEMP++));
+        const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
+        const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
+        rd->get_id()->bit_val_[0].assign(Bits(32, id));
       }
     }
   }

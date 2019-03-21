@@ -323,10 +323,10 @@ A complete listing of the system tasks which Cascade supports, along with a brie
 | Virtualization        | $save(file)               |  x        |             |                  |
 |                       | $restart(file)            |  x        |             |                  |
 |                       | $retarget(march)          |  x        |             |                  |
-| File I/O              | $open(file)               |           | x           |                  |
-|                       | $eof(fd)                  |           | x           |                  |
-|                       | $read(fd, var)            |           | x           |                  |
-|                       | $write(fd, var)           |           | x           |                  |
+| Stream I/O            | $fopen(file)              |           | x           |                  |
+|                       | $eof(s)                   |           | x           |                  |
+|                       | $read(s, var)             |           | x           |                  |
+|                       | $write(s, var)            |           | x           |                  |
 
 #### Printf Tasks
 
@@ -378,19 +378,19 @@ always @(pad.val) begin
 end
 ```
 
-#### File I/O Tasks (coming soon)
+#### Stream I/O Tasks (coming soon)
 
-The ```$open()```, ```$read()```, and ```$write()``` tasks provide an abstract mechanism for interacting with files. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$read()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
+The ```$fopen()```, ```$read()```, and ```$write()``` tasks provide an abstract mechanism for interacting with file streams. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$read()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
 
 ```verilog
-file f = $fopen("path/to/file");
+stream s = $fopen("path/to/file");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
-  if ($eof(f)) begin
+  if ($eof(s)) begin
     $finish;
   end
-  $fread(f, x);
+  $fread(s, x);
   $display(x);
 end
 ```
@@ -409,8 +409,8 @@ reg x;
 wire y;
 Compute c(x,y);
 
-file i = $fopen("path/to/input");
-file o = $fopen("path/to/output");
+stream i = $fopen("path/to/input");
+stream o = $fopen("path/to/output");
 always @(posedge clock.val) begin
   if ($eof(i)) begin
     $finish;
@@ -435,7 +435,7 @@ In addition to supporting both synthesizable and unsynthesizable Verilog, Cascad
 
 #### Deprecated Features
 
-Cascade's Standard Library also impliclty declares two reusable data-structures for communicating back and forth between hardware and software, a memory and a FIFO queue. In contrast to the modules described above, these modules are not implicitly instantiated. The user may instead instantiate as many as they like. **These features are deprecated and should not be used. The preferred method for performing general-purpose portable file I/O is the family of file I/O system tasks described above.**
+Cascade's Standard Library also impliclty declares two reusable data-structures for communicating back and forth between hardware and software, a memory and a FIFO queue. In contrast to the modules described above, these modules are not implicitly instantiated. The user may instead instantiate as many as they like. **These features are deprecated and should not be used. The preferred method for performing general-purpose portable file I/O is the family of stream I/O system tasks described above.**
 
 Cascade memories are dual-port read, single-port write. The declaration provided by the Standard Library is shown below.
 ```verilog

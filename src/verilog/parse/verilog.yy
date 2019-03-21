@@ -123,7 +123,6 @@ bool is_null(const cascade::Expression* e) {
 %token ENDCASE     "endcase"
 %token ENDGENERATE "endgenerate"
 %token ENDMODULE   "endmodule"
-%token FILE        "file"
 %token FOR         "for"
 %token FORK        "fork"
 %token FOREVER     "forever"
@@ -146,6 +145,7 @@ bool is_null(const cascade::Expression* e) {
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
+%token STREAM      "stream"
 %token WAIT        "wait"
 %token WHILE       "while"
 %token WIRE        "wire"
@@ -391,7 +391,7 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> eq_ce_Q
 %type <std::vector<Expression*>> expression_P
 %type <Expression*> expression_Q
-%type <size_t> file_L
+%type <size_t> stream_L
 %type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
 %type <std::vector<ModuleItem*>> list_of_port_declarations_Q
@@ -712,7 +712,7 @@ output_declaration
 
 /* A.2.1.3 Type Declarations */
 file_declaration
-  : attribute_instance_S file_L list_of_file_identifiers SCOLON {
+  : attribute_instance_S stream_L list_of_file_identifiers SCOLON {
     for (auto va : $3) {
       auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
@@ -1839,8 +1839,8 @@ expression_Q
   : %empty { $$ = nullptr; }
   | expression { $$ = $1; }
   ;
-file_L
-  : FILE { $$ = parser->get_loc().begin.line; }
+stream_L
+  : STREAM { $$ = parser->get_loc().begin.line; }
   ;
 generate_block_id_Q
   : %empty { $$ = nullptr; }

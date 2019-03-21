@@ -227,6 +227,9 @@ class Runtime : public Asynchronous {
     uint64_t last_logical_time_;
     uint64_t logical_time_;
 
+    // Stream Table:
+    std::vector<std::streambuf*> stream_table_;
+
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.
     void run_logic() override;
