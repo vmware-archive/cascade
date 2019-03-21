@@ -588,11 +588,29 @@ void Printer::visit(const FinishStatement* fs) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const GetStatement* gs) {
+  *this << Color::YELLOW << "$get" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  gs->accept_id(this);
+  *this << Color::RED << "," << Color::RESET;
+  gs->accept_var(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const InfoStatement* is) {
   *this << Color::YELLOW << "$info" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
   is->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const PutStatement* ps) {
+  *this << Color::YELLOW << "$put" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ps->accept_id(this);
+  *this << Color::RED << "," << Color::RESET;
+  ps->accept_var(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 

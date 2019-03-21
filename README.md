@@ -325,8 +325,8 @@ A complete listing of the system tasks which Cascade supports, along with a brie
 |                       | $retarget(march)          |  x        |             |                  |
 | Stream I/O            | $fopen(file)              |           | x           |                  |
 |                       | $eof(s)                   |           | x           |                  |
-|                       | $read(s, var)             |           | x           |                  |
-|                       | $write(s, var)            |           | x           |                  |
+|                       | $get(s, var)              |           | x           |                  |
+|                       | $put(s, var)              |           | x           |                  |
 
 #### Printf Tasks
 
@@ -380,7 +380,7 @@ end
 
 #### Stream I/O Tasks (coming soon)
 
-The ```$fopen()```, ```$read()```, and ```$write()``` tasks provide an abstract mechanism for interacting with file streams. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$read()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
+The ```$fopen()```, ```$get()```, and ```$put()``` tasks provide an abstract mechanism for interacting with file streams. The following example shows how to read the contents of a file, one cycle at a time. Note that ```$get()``` is sensitive to the size of its second argument and will read as many bytes as necessary to produce a value for that variable.
 
 ```verilog
 stream s = $fopen("path/to/file");
@@ -390,12 +390,12 @@ always @(posedge clock.val) begin
   if ($eof(s)) begin
     $finish;
   end
-  $fread(s, x);
+  $get(s, x);
   $display(x);
 end
 ```
 
-The following example shows how you can use both ```$read()``` and ```$write()``` tasks to stream data to and from your program, regardless of whether it is running in software or hardware.
+The following example shows how you can use both ```$get()``` and ```$put()``` tasks to stream data to and from your program, regardless of whether it is running in software or hardware.
 
 ```verilog
 module Compute(
@@ -415,8 +415,8 @@ always @(posedge clock.val) begin
   if ($eof(i)) begin
     $finish;
   end  
-  $fread(i, x);
-  $fwrite(o, y);
+  $get(i, x);
+  $put(o, y);
 end
 ```
 

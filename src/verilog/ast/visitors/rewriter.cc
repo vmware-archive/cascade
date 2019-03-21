@@ -330,9 +330,21 @@ Statement* Rewriter::rewrite(FinishStatement* fs) {
   return fs;
 }
 
+Statement* Rewriter::rewrite(GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+  return gs;
+}
+
 Statement* Rewriter::rewrite(InfoStatement* is) {
   is->accept_args(this);
   return is;
+}
+
+Statement* Rewriter::rewrite(PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
+  return ps;
 }
 
 Statement* Rewriter::rewrite(RestartStatement* rs) {

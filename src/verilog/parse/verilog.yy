@@ -157,9 +157,9 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
-%token SYS_FREAD    "$fread"
-%token SYS_FWRITE   "$fwrite"
+%token SYS_GET      "$get"
 %token SYS_INFO     "$info"
+%token SYS_PUT      "$put"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_SAVE     "$save"
@@ -1461,6 +1461,10 @@ system_task_enable
     $$ = new FinishStatement($3); 
     parser->set_loc($$);
   }
+  | SYS_GET OPAREN identifier COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, $5); 
+    parser->set_loc($$);
+  }
   | SYS_INFO SCOLON { 
     $$ = new InfoStatement(); 
     parser->set_loc($$);
@@ -1471,6 +1475,10 @@ system_task_enable
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
     $$ = new InfoStatement($3.begin(), $3.end()); 
+    parser->set_loc($$);
+  }
+  | SYS_PUT OPAREN identifier COMMA identifier CPAREN SCOLON {
+    $$ = new PutStatement($3, $5); 
     parser->set_loc($$);
   }
   | SYS_RESTART OPAREN string_ CPAREN SCOLON {

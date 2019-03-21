@@ -284,8 +284,18 @@ void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Visitor::visit(const GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+}
+
 void Visitor::visit(const InfoStatement* is) {
   is->accept_args(this);
+}
+
+void Visitor::visit(const PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
 }
 
 void Visitor::visit(const RestartStatement* rs) {

@@ -539,7 +539,9 @@
   friend class DisplayStatement; \
   friend class ErrorStatement; \
   friend class FinishStatement; \
+  friend class GetStatement; \
   friend class InfoStatement; \
+  friend class PutStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \

@@ -115,19 +115,20 @@ class Node {
       while_statement                = 45 | loop_statement, 
       timing_control_statement       = 46 | statement, 
       display_statement              = 47 | system_task_enable_statement, 
-      finish_statement               = 48 | system_task_enable_statement, 
-      write_statement                = 49 | system_task_enable_statement, 
-      info_statement                 = 50 | system_task_enable_statement, 
-      restart_statement              = 51 | system_task_enable_statement, 
-      retarget_statement             = 52 | system_task_enable_statement, 
-      save_statement                 = 53 | system_task_enable_statement, 
-      warning_statement              = 54 | system_task_enable_statement, 
-      error_statement                = 55 | system_task_enable_statement, 
-      fatal_statement                = 56 | system_task_enable_statement, 
-      wait_statement                 = 57 | statement, 
-      delay_control                  = 58 | timing_control,
-      event_control                  = 59 | timing_control,
-      variable_assign                = 60 | node
+      error_statement                = 48 | system_task_enable_statement, 
+      finish_statement               = 49 | system_task_enable_statement, 
+      get_statement                  = 50 | system_task_enable_statement, 
+      info_statement                 = 51 | system_task_enable_statement, 
+      put_statement                  = 52 | system_task_enable_statement, 
+      restart_statement              = 53 | system_task_enable_statement, 
+      retarget_statement             = 54 | system_task_enable_statement, 
+      save_statement                 = 55 | system_task_enable_statement, 
+      warning_statement              = 56 | system_task_enable_statement, 
+      write_statement                = 57 | system_task_enable_statement, 
+      wait_statement                 = 58 | statement, 
+      delay_control                  = 59 | timing_control,
+      event_control                  = 60 | timing_control,
+      variable_assign                = 61 | node
     };
 
     // Constructors:

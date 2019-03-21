@@ -192,12 +192,14 @@ HDR=\
 	src/verilog/ast/types/declaration.h\
 	src/verilog/ast/types/delay_control.h\
 	src/verilog/ast/types/display_statement.h\
+	src/verilog/ast/types/error_statement.h\
 	src/verilog/ast/types/event.h\
 	src/verilog/ast/types/event_control.h\
 	src/verilog/ast/types/expression.h\
 	src/verilog/ast/types/finish_statement.h\
 	src/verilog/ast/types/for_statement.h\
 	src/verilog/ast/types/forever_statement.h\
+	src/verilog/ast/types/get_statement.h\
 	src/verilog/ast/types/generate_block.h\
 	src/verilog/ast/types/generate_construct.h\
 	src/verilog/ast/types/generate_region.h\
@@ -206,6 +208,7 @@ HDR=\
 	src/verilog/ast/types/identifier.h\
 	src/verilog/ast/types/if_generate_clause.h\
 	src/verilog/ast/types/if_generate_construct.h\
+	src/verilog/ast/types/info_statement.h\
 	src/verilog/ast/types/initial_construct.h\
 	src/verilog/ast/types/instantiation.h\
 	src/verilog/ast/types/integer_declaration.h\
@@ -223,11 +226,15 @@ HDR=\
 	src/verilog/ast/types/number.h\
 	src/verilog/ast/types/par_block.h\
 	src/verilog/ast/types/parameter_declaration.h\
+	src/verilog/ast/types/put_statement.h\
 	src/verilog/ast/types/port_declaration.h\
 	src/verilog/ast/types/primary.h\
 	src/verilog/ast/types/range_expression.h\
 	src/verilog/ast/types/reg_declaration.h\
 	src/verilog/ast/types/repeat_statement.h\
+	src/verilog/ast/types/restart_statement.h\
+	src/verilog/ast/types/retarget_statement.h\
+	src/verilog/ast/types/save_statement.h\
 	src/verilog/ast/types/scope.h\
 	src/verilog/ast/types/seq_block.h\
 	src/verilog/ast/types/statement.h\
@@ -238,6 +245,7 @@ HDR=\
 	src/verilog/ast/types/unary_expression.h\
 	src/verilog/ast/types/variable_assign.h\
 	src/verilog/ast/types/wait_statement.h\
+	src/verilog/ast/types/warning_statement.h\
 	src/verilog/ast/types/while_statement.h\
 	src/verilog/ast/types/write_statement.h\
 	\

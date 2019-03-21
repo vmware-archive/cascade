@@ -284,8 +284,18 @@ void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Editor::edit(GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+}
+
 void Editor::edit(InfoStatement* is) {
   is->accept_args(this);
+}
+
+void Editor::edit(PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
 }
 
 void Editor::edit(RestartStatement* rs) {

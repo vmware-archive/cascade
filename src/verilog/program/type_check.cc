@@ -744,9 +744,53 @@ void TypeCheck::visit(const ErrorStatement* es) {
   check_printf(es->size_args(), es->begin_args(), es->end_args());
 }
 
+void TypeCheck::visit(const GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+  
+  // Can't continue checking if pointers are unresolvable
+  const auto* id = Resolve().get_resolution(gs->get_id());
+  const auto* var = Resolve().get_resolution(gs->get_var());
+  if ((id == nullptr) || (var == nullptr)) {
+    return;
+  }
+  const auto* src = Resolve().get_parent(id);
+
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of a $get() statement must be a stream id", gs);
+  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
+    error("The second argument of a $get() statement must either be a variable of type reg or integer", gs);
+  } else if (info.is_stream(var)) {
+    error("The second argument of a $get() statement must not be a stream id", gs);
+  }
+}
+
 void TypeCheck::visit(const InfoStatement* is) {
   is->accept_args(this);
   check_printf(is->size_args(), is->begin_args(), is->end_args());
+}
+
+void TypeCheck::visit(const PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
+  
+  // Can't continue checking if pointers are unresolvable
+  const auto* id = Resolve().get_resolution(ps->get_id());
+  const auto* var = Resolve().get_resolution(ps->get_var());
+  if ((id == nullptr) || (var == nullptr)) {
+    return;
+  }
+  const auto* src = Resolve().get_parent(id);
+
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of a $put() statement must be a stream id", ps);
+  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
+    error("The second argument of a $put() statement must either be a variable of type reg or integer", ps);
+  } else if (info.is_stream(var)) {
+    error("The second argument of a $put() statement must not be a stream id", ps);
+  }
 }
 
 void TypeCheck::visit(const RestartStatement* rs) {

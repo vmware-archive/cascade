@@ -90,7 +90,9 @@ struct Visitor {
   virtual void visit(const DisplayStatement* ds);
   virtual void visit(const ErrorStatement* es);
   virtual void visit(const FinishStatement* fs);
+  virtual void visit(const GetStatement* gs);
   virtual void visit(const InfoStatement* is);
+  virtual void visit(const PutStatement* ps);
   virtual void visit(const RestartStatement* rs);
   virtual void visit(const RetargetStatement* rs);
   virtual void visit(const SaveStatement* ss);

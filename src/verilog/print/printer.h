@@ -93,7 +93,9 @@ class Printer : public Visitor {
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;

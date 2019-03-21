@@ -396,10 +396,24 @@ Statement* Builder::build(const FinishStatement* fs) {
   );
 }
 
+Statement* Builder::build(const GetStatement* gs) {
+  return new GetStatement(
+    gs->accept_id(this),
+    gs->accept_var(this)
+  );
+}
+
 Statement* Builder::build(const InfoStatement* is) {
   auto* res = new InfoStatement();
   is->accept_args(this, res->back_inserter_args());
   return res;
+}
+
+Statement* Builder::build(const PutStatement* ps) {
+  return new PutStatement(
+    ps->accept_id(this),
+    ps->accept_var(this)
+  );
 }
 
 Statement* Builder::build(const RestartStatement* rs) {
