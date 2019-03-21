@@ -52,6 +52,7 @@ class SwLogic : public Logic, public Visitor {
     SwLogic& set_read(const Identifier* id, VId vid);
     SwLogic& set_write(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
+    SwLogic& set_stream(const Identifier* id, VId vid);
 
     // Core Interface:
     State* get_state() override;
@@ -72,6 +73,7 @@ class SwLogic : public Logic, public Visitor {
     std::vector<const Identifier*> reads_;
     std::vector<std::pair<const Identifier*, VId>> writes_;
     std::unordered_map<VId, const Identifier*> state_;
+    std::vector<std::pair<const Identifier*, VId>> streams_;
 
     // Control State:
     bool silent_;

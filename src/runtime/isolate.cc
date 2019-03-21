@@ -118,27 +118,13 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 }
 
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
-  // TODO(eschkufz) Why are we solving for rhs here? Isn't that best
-  // left up to constant propagation?
-
-  // Careful: We don't want what's on the rhs of the assignment, we want the
-  // value of the identifier, which may have different sign/size.
-  // Careful: We aren't allowed to have initial values for arrays
-  // Careful: We also don't want to evaluate $fopen() expressions.
-
-  const auto is_scalar = id->get_id()->empty_dim();
-  const auto is_fopen = id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression);
-
-  auto* res = new RegDeclaration(
+  return new RegDeclaration(
     id->get_attrs()->accept(this),
     id->accept_id(this),
     true,
-    new RangeExpression(32,0),
-    is_fopen ? id->get_val()->clone() :
-      is_scalar ? new Number(Evaluate().get_value(id->get_id()), Number::Format::HEX) :
-      nullptr
+    new RangeExpression(32, 0),
+    id->accept_val(this)
   );
-  return res;
 }
 
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
@@ -173,25 +159,6 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
     new Identifier("__id"),
     Resolve().get_full_id(pd->get_id())
   ));
-  return res;
-}
-
-ModuleItem* Isolate::build(const RegDeclaration* rd) {
-  // TODO(eschkufz) Why are we solving for rhs here? Isn't that best
-  // left up to constant propagation?
-
-  // Careful: We don't want what's on the rhs of the assignment, we want the
-  // value of the identifier, which may have different sign/size.
-  // Careful: We aren't allowed to have initial values for arrays
-  auto* res = new RegDeclaration(
-    rd->get_attrs()->accept(this),
-    rd->accept_id(this),
-    rd->get_signed(),
-    rd->accept_dim(this),
-    rd->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(rd->get_id()), Number::Format::HEX) :
-      nullptr
-  );
   return res;
 }
 

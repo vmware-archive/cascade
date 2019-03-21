@@ -88,6 +88,11 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
   return *this;
 }
 
+SwLogic& SwLogic::set_stream(const Identifier* id, VId vid) {
+  streams_.push_back(make_pair(id, vid));
+  return *this;
+}
+
 State* SwLogic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
@@ -136,15 +141,16 @@ void SwLogic::set_input(const Input* i) {
 
 void SwLogic::finalize() {
   // Handle invocations of $fopen() which haven't been encountered yet.
-  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if ((*i)->is(Node::Tag::reg_declaration)) {
-      auto rd = static_cast<RegDeclaration*>(*i);
-      const auto is_fopen = rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression);
-      if (is_fopen && (Evaluate().get_value(rd->get_id()).to_int() == 0)) {
-        const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
-        const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
-        rd->get_id()->bit_val_[0].assign(Bits(32, id));
-      }
+  for (auto& s : streams_) {
+    if (Evaluate().get_value(s.first).to_int() == 0) {
+      assert(s.first->get_parent()->is(Node::Tag::reg_declaration));
+      const auto* rd = static_cast<const RegDeclaration*>(s.first->get_parent());
+
+      assert(rd->non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression));
+      const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
+
+      const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
+      Evaluate().assign_value(s.first, Bits(32, id));
     }
   }
   // Schedule initial constructs
