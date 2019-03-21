@@ -51,6 +51,13 @@ class StubInterface : public Interface {
     void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
+
+    SId fopen(const std::string& path) override;
+    void close(SId id) override;
+    void seekoff(SId id, int n, bool r) override;
+    size_t sgetn(SId id, char* c, size_t n) override;
+    void sputn(SId id, const char* c, size_t n) override;
+    size_t in_avail(SId id) override;
 };
 
 inline StubInterface::StubInterface() : Interface() { }
@@ -104,6 +111,45 @@ inline void StubInterface::write(VId id, const Bits* b) {
   // Does nothing.
   (void) id;
   (void) b;
+}
+
+inline SId StubInterface::fopen(const std::string& path) {
+  // Does nothing
+  (void) path;
+  return 0;
+}
+
+inline void StubInterface::close(SId id) {
+  // Does nothing
+  (void) id;
+}
+
+inline void StubInterface::seekoff(SId id, int n, bool r) {
+  // Does nothing
+  (void) id;
+  (void) n;
+  (void) r;
+}
+
+inline size_t StubInterface::sgetn(SId id, char* c, size_t n) {
+  // Does nothing
+  (void) id;
+  (void) c;
+  (void) n;
+  return 0;
+}
+
+inline void StubInterface::sputn(SId id, const char* c, size_t n) {
+  // Does nothing
+  (void) id;
+  (void) c;
+  (void) n;
+}
+
+inline size_t StubInterface::in_avail(SId id) {
+  // Does nothing
+  (void) id;
+  return 0;
 }
 
 } // namespace cascade

@@ -55,6 +55,13 @@ class LocalInterface : public Interface {
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
 
+    SId fopen(const std::string& path) override;
+    void close(SId id) override;
+    void seekoff(SId id, int n, bool r) override;
+    size_t sgetn(SId id, char* c, size_t n) override;
+    void sputn(SId id, const char* c, size_t n) override;
+    size_t in_avail(SId id) override;
+
   private:
     Runtime* rt_;
 }; 
@@ -105,6 +112,30 @@ inline void LocalInterface::write(VId id, const Bits* b) {
 
 inline void LocalInterface::write(VId id, bool b) {
   rt_->write(id, b);
+}
+
+inline SId LocalInterface::fopen(const std::string& path) {
+  return rt_->fopen(path);
+}
+
+inline void LocalInterface::close(SId id) {
+  rt_->close(id);
+}
+
+inline void LocalInterface::seekoff(SId id, int n, bool r) {
+  rt_->seekoff(id, n, r);
+}
+
+inline size_t LocalInterface::sgetn(SId id, char* c, size_t n) {
+  return rt_->sgetn(id, c, n);
+}
+
+inline void LocalInterface::sputn(SId id, const char* c, size_t n) {
+  rt_->sputn(id, c, n);
+}
+
+inline size_t LocalInterface::in_avail(SId id) {
+  return rt_->in_avail(id);
 }
 
 } // namespace cascade

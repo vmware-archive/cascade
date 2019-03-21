@@ -95,7 +95,7 @@ class Runtime : public Asynchronous {
     template <typename InputItr>
     void eval(InputItr begin, InputItr end);
 
-    // Display System Task Interface (Verilog 2005):
+    // System Task Interface:
     //
     // Print a newline-teriminated string to the view between this and the next
     // timestep. Returns immediately.
@@ -103,15 +103,9 @@ class Runtime : public Asynchronous {
     // Print a string to the view between this and the next timestep. Returns
     // immediately.
     void write(const std::string& s);
-
-    // Simulation Control System Task Interface (Verilog 2005):
-    //
     // Shutdown the runtime and print statistics if arg is non-zero between
     // this and the next timestep. Returns immediately.
     void finish(int arg);
-
-    // Logging System Task Interface (System Verilog):
-    //
     // Prints an error message between this and the next timestep. Returns
     // immediately.
     void error(const std::string& s);
@@ -121,9 +115,6 @@ class Runtime : public Asynchronous {
     // Prints an info message between this and the next timestep. Returns
     // immediately.
     void info(const std::string& s);
-
-    // Cascade-Specific System Task Interface (Cascade Only):
-    //
     // Loads the current state of the simulation from a file
     void restart(const std::string& path);
     // Schedules a recompilation of the current program to a new march target in
@@ -146,6 +137,38 @@ class Runtime : public Asynchronous {
     // general, the use of this method is probably best left to modules which
     // are going about their normal execution.
     void write(VId id, bool b);
+
+    // Stream I/O Interface:
+    //
+    // In contrast to the system task and program logic interfaces, these
+    // methods are scheduled immediately, regardless of the execution state of
+    // the simulation. From a design point of view, this interface is a thin
+    // wrapper around streambufs.
+    // 
+    // Establishes an entry in the stream table and returns a unique id
+    // associated with that entry. If no file named path exists, it is created
+    // in the current working directory. The stream is opened in read/append
+    // mode and the read/write pointers are set to the 0'th byte in the file.
+    SId fopen(const std::string& path);
+    // Removes an entry from the stream table. Does nothing if there is no
+    // stream associated with id.
+    void close(SId id);
+    // Updates the read/write pointer (r == true/false) in the stream
+    // associated with id. Does nothing if there is no stream associated with
+    // id.  Seeks past the beginning or end of a stream are clamped.
+    void seekoff(SId id, int n, bool r);
+    // Copies up to m bytes beginning from the read pointer in the stream
+    // associated with id and advances the pointer by m bytes. m may be less
+    // than n if the end of file is encountered first.
+    size_t sgetn(SId id, char* c, size_t n);
+    // Copies n characters from c starting from the write pointer in the stream
+    // associated with id. Does nothing if there is no stream associated with
+    // id.
+    void sputn(SId id, const char* c, size_t n);
+    // Returns an estimate of the number of characters remanining between the
+    // read pointer and the end of the stream. Postiive result: at least this
+    // many characters. -1: end of file. 0: No information available.
+    size_t in_avail(SId id);
 
     // Profiling Interface:
     //

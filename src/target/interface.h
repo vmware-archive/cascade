@@ -42,7 +42,6 @@ namespace cascade {
 
 class Interface {
   public:
-    Interface();
     virtual ~Interface() = default;
 
     // These methods must perform whatever target-specific logic is necessary to
@@ -57,24 +56,28 @@ class Interface {
     virtual void warning(const std::string& s) = 0;
     virtual void write(const std::string& s) = 0;
 
-    // These method must perform whatever target-specific logic is necessary to
+    // These methods must perform whatever target-specific logic is necessary to
     // communicate changes in the value of logic elements back to the runtime.
     virtual void write(VId id, const Bits* b) = 0;
-
     // Target-specific implementations may override this method if there is a
     // performance-specific advantage to doing so. This method may be invoked
     // whenever a write of a single-bit variable is required.
     virtual void write(VId id, bool b);
 
-  private:
-    Bits temp_;
+    // These methods must perform whatever target-specific logic is necessary
+    // to cause the corresponding API calls to be invoked by the runtime.
+    virtual SId fopen(const std::string& path) = 0;
+    virtual void close(SId id) = 0;
+    virtual void seekoff(SId id, int n, bool r) = 0;
+    virtual size_t sgetn(SId id, char* c, size_t n) = 0;
+    virtual void sputn(SId id, const char* c, size_t n) = 0;
+    virtual size_t in_avail(SId id) = 0;
 };
 
-inline Interface::Interface() : temp_(1,0) { }
-
 inline void Interface::write(VId id, bool b) {
-  temp_.set(0, b ? 1 : 0);
-  write(id, &temp_);
+  Bits temp;
+  temp.set(0, b ? 1 : 0);
+  write(id, &temp);
 }
 
 } // namespace cascade

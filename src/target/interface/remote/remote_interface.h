@@ -54,6 +54,13 @@ class RemoteInterface : public Interface {
     void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
+
+    SId fopen(const std::string& path) override;
+    void close(SId id) override;
+    void seekoff(SId id, int n, bool r) override;
+    size_t sgetn(SId id, char* c, size_t n) override;
+    void sputn(SId id, const char* c, size_t n) override;
+    size_t in_avail(SId id) override;
       
   private:
     sockstream* sock_;
@@ -123,6 +130,51 @@ inline void RemoteInterface::write(VId id, const Bits* b) {
   Rpc(Rpc::Type::WRITE_BITS, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), 4);
   b->serialize(*sock_);
+}
+
+inline SId RemoteInterface::fopen(const std::string& path) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) path;
+  return 0;
+}
+
+inline void RemoteInterface::close(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+}
+
+inline void RemoteInterface::seekoff(SId id, int n, bool r) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) n;
+  (void) r;
+}
+
+inline size_t RemoteInterface::sgetn(SId id, char* c, size_t n) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) c;
+  (void) n;
+  return 0;
+}
+
+inline void RemoteInterface::sputn(SId id, const char* c, size_t n) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) c;
+  (void) n;
+}
+
+inline size_t RemoteInterface::in_avail(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  return 0;
 }
 
 } // namespace cascade

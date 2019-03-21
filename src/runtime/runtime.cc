@@ -302,6 +302,52 @@ void Runtime::write(VId id, bool b) {
   dp_->write(id, b);
 }
 
+SId Runtime::fopen(const std::string& path) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) path;
+  return 0;
+}
+
+void Runtime::close(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+}
+
+void Runtime::seekoff(SId id, int n, bool r) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) n;
+  (void) r;
+}
+
+size_t Runtime::sgetn(SId id, char* c, size_t n) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) c;
+  (void) n;
+  return 0;
+}
+
+void Runtime::sputn(SId id, const char* c, size_t n) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) c;
+  (void) n;
+
+}
+
+size_t Runtime::in_avail(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  return false;
+}
+
 uint64_t Runtime::time() const {
   return logical_time_;
 }
