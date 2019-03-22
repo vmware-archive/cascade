@@ -71,7 +71,7 @@ class Interface {
     virtual void seekoff(SId id, int n, bool r) = 0;
     virtual size_t sgetn(SId id, char* c, size_t n) = 0;
     virtual void sputn(SId id, const char* c, size_t n) = 0;
-    virtual size_t in_avail(SId id) = 0;
+    virtual int in_avail(SId id) = 0;
 };
 
 inline void Interface::write(VId id, bool b) {

@@ -57,7 +57,7 @@ class StubInterface : public Interface {
     void seekoff(SId id, int n, bool r) override;
     size_t sgetn(SId id, char* c, size_t n) override;
     void sputn(SId id, const char* c, size_t n) override;
-    size_t in_avail(SId id) override;
+    int in_avail(SId id) override;
 };
 
 inline StubInterface::StubInterface() : Interface() { }
@@ -146,7 +146,7 @@ inline void StubInterface::sputn(SId id, const char* c, size_t n) {
   (void) n;
 }
 
-inline size_t StubInterface::in_avail(SId id) {
+inline int StubInterface::in_avail(SId id) {
   // Does nothing
   (void) id;
   return 0;

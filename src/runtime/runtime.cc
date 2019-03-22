@@ -325,38 +325,38 @@ SId Runtime::fopen(const std::string& path) {
 }
 
 void Runtime::close(SId id) {
-  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
-    return;
-  }
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
   delete stream_table_[id];
   stream_table_[id] = nullptr;
 }
 
 void Runtime::seekoff(SId id, int n, bool r) {
-  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
-    return;
-  }
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
   stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
 size_t Runtime::sgetn(SId id, char* c, size_t n) {
-  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
-    return 0;
-  }
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
   return stream_table_[id]->sgetn(c, n);
 }
 
 void Runtime::sputn(SId id, const char* c, size_t n) {
-  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
-    return;
-  }
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
   stream_table_[id]->sputn(c, n);
 }
 
-size_t Runtime::in_avail(SId id) {
-  if ((id >= stream_table_.size()) || (stream_table_[id] == nullptr)) {
-    return -1;
-  }
+int Runtime::in_avail(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
   return stream_table_[id]->in_avail();
 }
 

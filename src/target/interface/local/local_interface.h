@@ -60,7 +60,7 @@ class LocalInterface : public Interface {
     void seekoff(SId id, int n, bool r) override;
     size_t sgetn(SId id, char* c, size_t n) override;
     void sputn(SId id, const char* c, size_t n) override;
-    size_t in_avail(SId id) override;
+    int in_avail(SId id) override;
 
   private:
     Runtime* rt_;
@@ -134,7 +134,7 @@ inline void LocalInterface::sputn(SId id, const char* c, size_t n) {
   rt_->sputn(id, c, n);
 }
 
-inline size_t LocalInterface::in_avail(SId id) {
+inline int LocalInterface::in_avail(SId id) {
   return rt_->in_avail(id);
 }
 
