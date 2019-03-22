@@ -151,9 +151,12 @@ class Runtime : public Asynchronous {
     // Removes an entry from the stream table. 
     void close(SId id);
     // streambuf operators
-    void seekoff(SId id, int n, bool r);
+    size_t seekoff(SId id, int n, bool r);
+    int sgetc(SId id);
+    int sbumpc(SId id);
     size_t sgetn(SId id, char* c, size_t n);
-    void sputn(SId id, const char* c, size_t n);
+    int sputc(SId id, char c);
+    size_t sputn(SId id, const char* c, size_t n);
     int in_avail(SId id);
 
     // Profiling Interface:

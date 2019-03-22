@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include "src/target/core/common/interfacestream.h"
 #include "src/target/core/common/printf.h"
 #include "src/target/core/sw/monitor.h"
 #include "src/target/input.h"
@@ -146,7 +147,7 @@ void SwLogic::finalize() {
       assert(s.first->get_parent()->is(Node::Tag::reg_declaration));
       const auto* rd = static_cast<const RegDeclaration*>(s.first->get_parent());
 
-      assert(rd->non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression));
+      assert(rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression));
       const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
 
       const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
@@ -475,12 +476,34 @@ void SwLogic::visit(const FinishStatement* fs) {
   notify(fs);
 }
 
+void SwLogic::visit(const GetStatement* gs) {
+  if (!silent_) {
+    const auto id = Evaluate().get_value(gs->get_id()).to_int();
+    Bits val;
+    interfacestream is(interface(), id);
+    val.read(is, 16);
+    Evaluate().assign_value(gs->get_var(), val);
+  }
+  notify(gs);
+}
+
 void SwLogic::visit(const InfoStatement* is) {
   if (!silent_) {
     interface()->info(Printf().format(is->begin_args(), is->end_args()));
     there_were_tasks_ = true;
   }
   notify(is);
+}
+
+void SwLogic::visit(const PutStatement* ps) {
+  if (!silent_) {
+    const auto id = Evaluate().get_value(ps->get_id()).to_int();
+    const auto& val = Evaluate().get_value(ps->get_var());
+    interfacestream is(interface(), id);
+    val.write(is, 16);
+    is.put(' ');
+  }
+  notify(ps);
 }
 
 void SwLogic::visit(const RestartStatement* rs) {

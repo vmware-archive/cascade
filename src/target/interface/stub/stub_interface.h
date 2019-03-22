@@ -54,9 +54,12 @@ class StubInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    void seekoff(SId id, int n, bool r) override;
+    size_t seekoff(SId id, int n, bool r) override;
+    int sbumpc(SId id) override;
+    int sgetc(SId id) override;
     size_t sgetn(SId id, char* c, size_t n) override;
-    void sputn(SId id, const char* c, size_t n) override;
+    int sputc(SId id, char c) override;
+    size_t sputn(SId id, const char* c, size_t n) override;
     int in_avail(SId id) override;
 };
 
@@ -124,11 +127,24 @@ inline void StubInterface::close(SId id) {
   (void) id;
 }
 
-inline void StubInterface::seekoff(SId id, int n, bool r) {
+inline size_t StubInterface::seekoff(SId id, int n, bool r) {
   // Does nothing
   (void) id;
   (void) n;
   (void) r;
+  return 0;
+}
+
+inline int StubInterface::sbumpc(SId id) {
+  // Does nothing.
+  (void) id;
+  return 0;
+}
+
+inline int StubInterface::sgetc(SId id) {
+  // Does nothing.
+  (void) id;
+  return 0;
 }
 
 inline size_t StubInterface::sgetn(SId id, char* c, size_t n) {
@@ -139,11 +155,19 @@ inline size_t StubInterface::sgetn(SId id, char* c, size_t n) {
   return 0;
 }
 
-inline void StubInterface::sputn(SId id, const char* c, size_t n) {
+inline int StubInterface::sputc(SId id, char c) {
+  // Does nothing.
+  (void) id;
+  (void) c;
+  return 0;
+}
+
+inline size_t StubInterface::sputn(SId id, const char* c, size_t n) {
   // Does nothing
   (void) id;
   (void) c;
   (void) n;
+  return 0;
 }
 
 inline int StubInterface::in_avail(SId id) {

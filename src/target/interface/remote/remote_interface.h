@@ -57,9 +57,12 @@ class RemoteInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    void seekoff(SId id, int n, bool r) override;
+    size_t seekoff(SId id, int n, bool r) override;
+    int sbumpc(SId id) override;
+    int sgetc(SId id) override;
     size_t sgetn(SId id, char* c, size_t n) override;
-    void sputn(SId id, const char* c, size_t n) override;
+    int sputc(SId id, char c) override;
+    size_t sputn(SId id, const char* c, size_t n) override;
     int in_avail(SId id) override;
       
   private:
@@ -145,12 +148,27 @@ inline void RemoteInterface::close(SId id) {
   (void) id;
 }
 
-inline void RemoteInterface::seekoff(SId id, int n, bool r) {
+inline size_t RemoteInterface::seekoff(SId id, int n, bool r) {
   // TODO(eschkufz) IMPLEMENT THIS!!!
   assert(false);
   (void) id;
   (void) n;
   (void) r;
+  return 0;
+}
+
+inline int RemoteInterface::sbumpc(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  return 0;
+}
+
+inline int RemoteInterface::sgetc(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  return 0;
 }
 
 inline size_t RemoteInterface::sgetn(SId id, char* c, size_t n) {
@@ -162,12 +180,21 @@ inline size_t RemoteInterface::sgetn(SId id, char* c, size_t n) {
   return 0;
 }
 
-inline void RemoteInterface::sputn(SId id, const char* c, size_t n) {
+inline int RemoteInterface::sputc(SId id, char c) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) c;
+  return 0;
+}
+
+inline size_t RemoteInterface::sputn(SId id, const char* c, size_t n) {
   // TODO(eschkufz) IMPLEMENT THIS!!!
   assert(false);
   (void) id;
   (void) c;
   (void) n;
+  return 0;
 }
 
 inline int RemoteInterface::in_avail(SId id) {

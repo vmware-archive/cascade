@@ -68,9 +68,12 @@ class Interface {
     // to cause the corresponding API calls to be invoked by the runtime.
     virtual SId fopen(const std::string& path) = 0;
     virtual void close(SId id) = 0;
-    virtual void seekoff(SId id, int n, bool r) = 0;
+    virtual size_t seekoff(SId id, int n, bool r) = 0;
+    virtual int sbumpc(SId id) = 0;
+    virtual int sgetc(SId id) = 0;
     virtual size_t sgetn(SId id, char* c, size_t n) = 0;
-    virtual void sputn(SId id, const char* c, size_t n) = 0;
+    virtual int sputc(SId id, char c) = 0;
+    virtual size_t sputn(SId id, const char* c, size_t n) = 0;
     virtual int in_avail(SId id) = 0;
 };
 

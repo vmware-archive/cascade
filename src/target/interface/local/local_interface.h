@@ -57,9 +57,12 @@ class LocalInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    void seekoff(SId id, int n, bool r) override;
+    size_t seekoff(SId id, int n, bool r) override;
+    int sbumpc(SId id) override;
+    int sgetc(SId id) override;
     size_t sgetn(SId id, char* c, size_t n) override;
-    void sputn(SId id, const char* c, size_t n) override;
+    int sputc(SId id, char c) override;
+    size_t sputn(SId id, const char* c, size_t n) override;
     int in_avail(SId id) override;
 
   private:
@@ -122,16 +125,28 @@ inline void LocalInterface::close(SId id) {
   rt_->close(id);
 }
 
-inline void LocalInterface::seekoff(SId id, int n, bool r) {
-  rt_->seekoff(id, n, r);
+inline size_t LocalInterface::seekoff(SId id, int n, bool r) {
+  return rt_->seekoff(id, n, r);
+}
+
+inline int LocalInterface::sbumpc(SId id) {
+  return rt_->sbumpc(id);
+}
+
+inline int LocalInterface::sgetc(SId id) {
+  return rt_->sgetc(id);
 }
 
 inline size_t LocalInterface::sgetn(SId id, char* c, size_t n) {
   return rt_->sgetn(id, c, n);
 }
 
-inline void LocalInterface::sputn(SId id, const char* c, size_t n) {
-  rt_->sputn(id, c, n);
+inline int LocalInterface::sputc(SId id, char c) {
+  return rt_->sputc(id, c);
+}
+
+inline size_t LocalInterface::sputn(SId id, const char* c, size_t n) {
+  return rt_->sputn(id, c, n);
 }
 
 inline int LocalInterface::in_avail(SId id) {

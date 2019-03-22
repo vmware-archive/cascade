@@ -129,6 +129,7 @@ HDR=\
 	src/target/state.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
+	src/target/core/common/interfacestream.h\
 	src/target/core/common/printf.h\
 	src/target/core/de10/de10_compiler.h\
 	src/target/core/de10/de10_gpio.h\
