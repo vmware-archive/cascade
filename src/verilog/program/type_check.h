@@ -91,6 +91,7 @@ class TypeCheck : public Visitor {
     void multiple_def(const Node* n);
 
     // Visitor Interface:
+    void visit(const EofExpression* ee) override;
     void visit(const Identifier* id) override;
     void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;

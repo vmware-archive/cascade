@@ -52,6 +52,7 @@ struct Rewriter {
   virtual Event* rewrite(Event* e);
   virtual Expression* rewrite(BinaryExpression* be);
   virtual Expression* rewrite(ConditionalExpression* ce);
+  virtual Expression* rewrite(EofExpression* ee);
   virtual Expression* rewrite(FopenExpression* fe);
   virtual Expression* rewrite(Concatenation* c);
   virtual Expression* rewrite(Identifier* i);

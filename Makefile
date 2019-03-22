@@ -193,10 +193,12 @@ HDR=\
 	src/verilog/ast/types/declaration.h\
 	src/verilog/ast/types/delay_control.h\
 	src/verilog/ast/types/display_statement.h\
+	src/verilog/ast/types/eof_expression.h\
 	src/verilog/ast/types/error_statement.h\
 	src/verilog/ast/types/event.h\
 	src/verilog/ast/types/event_control.h\
 	src/verilog/ast/types/expression.h\
+	src/verilog/ast/types/fopen_expression.h\
 	src/verilog/ast/types/finish_statement.h\
 	src/verilog/ast/types/for_statement.h\
 	src/verilog/ast/types/forever_statement.h\

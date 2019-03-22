@@ -73,6 +73,10 @@ void Visitor::visit(const ConditionalExpression* ce) {
   ce->accept_rhs(this);
 }
 
+void Visitor::visit(const EofExpression* ee) {
+  ee->accept_arg(this);
+}
+
 void Visitor::visit(const FopenExpression* fe) {
   fe->accept_arg(this);
 }

@@ -343,6 +343,7 @@ bool is_null(const cascade::Expression* e) {
 
 /* A.8.3 Expressions */
 %type <ConditionalExpression*> conditional_expression
+%type <EofExpression*> eof_expression
 %type <Expression*> expression
 %type <Expression*> mintypmax_expression
 %type <Expression*> range_expression
@@ -1533,6 +1534,11 @@ conditional_expression
     $$ = new ConditionalExpression($1, $3, $5);
   }
   ;
+eof_expression
+  : SYS_EOF OPAREN identifier CPAREN {
+    $$ = new EofExpression($3);
+    parser->set_loc($$);
+  }
 expression
   : primary { 
     $$ = $1; 
@@ -1613,6 +1619,7 @@ expression
     $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
+  | eof_expression { $$ = $1; }
   ;
 mintypmax_expression
   : expression { $$ = $1; }

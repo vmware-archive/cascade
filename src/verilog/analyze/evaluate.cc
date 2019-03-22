@@ -309,6 +309,12 @@ void Evaluate::edit(ConditionalExpression* ce) {
   }
 }
 
+void Evaluate::edit(EofExpression* ee) {
+  // Does nothing. Target-specific implementations are required to provide a
+  // meaningful implementation for $eof() expressions.
+  (void) ee;
+}
+
 void Evaluate::edit(FopenExpression* fe) {
   // Does nothing. Target-specific implementations are required to provide a
   // meaningful implementation for $fopen() expressions.
@@ -485,6 +491,12 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 }
 
+void Evaluate::Invalidate::edit(EofExpression* ee) {
+  ee->bit_val_.clear();
+  ee->set_flag<0>(true);
+  Editor::edit(ee);
+}
+
 void Evaluate::Invalidate::edit(FopenExpression* fe) {
   fe->bit_val_.clear();
   fe->set_flag<0>(true);
@@ -616,6 +628,14 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   size_t w = max(ce->get_lhs()->bit_val_[0].size(), ce->get_rhs()->bit_val_[0].size());
   ce->bit_val_.push_back(Bits(w, 0));
   ce->bit_val_[0].set_signed(s);
+}
+
+void Evaluate::SelfDetermine::edit(EofExpression* ee) {
+  Editor::edit(ee);
+
+  // $eof() expressions return 1-bit unsigned flags
+  ee->bit_val_.push_back(Bits(1, 0));
+  ee->bit_val_[0].set_signed(false);
 }
 
 void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
@@ -904,6 +924,11 @@ void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
 
   Editor::edit(ce);
+}
+
+void Evaluate::ContextDetermine::edit(EofExpression* ee) {
+  Editor::edit(ee);
+  // Nothing to do here. $eof() expressions are always 1-bit unsigned values.
 }
 
 void Evaluate::ContextDetermine::edit(FopenExpression* fe) {

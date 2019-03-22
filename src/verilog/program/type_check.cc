@@ -327,6 +327,23 @@ void TypeCheck::multiple_def(const Node* n) {
   error("A variable with this name already appears in this scope", n);
 }
 
+void TypeCheck::visit(const EofExpression* ee) {
+  // RECURSE: arg
+  ee->accept_arg(this);
+
+  // EXIT: Can't continue checking if arg can't be resolved
+  const auto* r = Resolve().get_resolution(ee->get_arg());
+  if (r == nullptr) {
+    return;
+  }
+
+  // CHECK: Arg is a stream variable
+  ModuleInfo info(Resolve().get_parent(r));
+  if (!info.is_stream(r)) {
+    error("The argument of an $eof() expression must be a stream id", ee);
+  }
+}
+
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i = id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
@@ -754,8 +771,9 @@ void TypeCheck::visit(const GetStatement* gs) {
   if ((id == nullptr) || (var == nullptr)) {
     return;
   }
+  
+  // CHECK: First arg is stream id, second arg is stateful variable
   const auto* src = Resolve().get_parent(id);
-
   ModuleInfo info(src);
   if (!info.is_stream(id)) {
     error("The first argument of a $get() statement must be a stream id", gs);
@@ -781,8 +799,9 @@ void TypeCheck::visit(const PutStatement* ps) {
   if ((id == nullptr) || (var == nullptr)) {
     return;
   }
-  const auto* src = Resolve().get_parent(id);
 
+  // CHECK: First arg is stream id, second arg is stateful variable
+  const auto* src = Resolve().get_parent(id);
   ModuleInfo info(src);
   if (!info.is_stream(id)) {
     error("The first argument of a $put() statement must be a stream id", ps);
