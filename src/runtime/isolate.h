@@ -42,6 +42,16 @@ namespace cascade {
 
 class DataPlane;
 
+// This class is responsible for transforming an instantiated module into a
+// stand-alone piece of code. Additionally, this class enforces useful
+// invariants on the form of that code for down-stream passes:
+//
+// 1. Integer declarations are desugared to 32-bit register declarations.
+// 2. Generate regions are flattened into their enclosing scope.
+// 3. Generate constructs are flattened into their enclosing scope.
+// 4. Attribute annotations which appear inside the module are removed.
+// 5. Ignore annotations are attached to initial blocks.
+
 class Isolate : public Builder {
   public:
     // Constructors:
