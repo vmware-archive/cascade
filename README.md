@@ -387,10 +387,10 @@ stream s = $fopen("path/to/file");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
+  $get(s, x);
   if ($eof(s)) begin
     $finish;
   end
-  $get(s, x);
   $display(x);
 end
 ```
@@ -399,23 +399,23 @@ The following example shows how you can use both ```$get()``` and ```$put()``` t
 
 ```verilog
 module Compute(
-  input wire x,
-  output wire y
+  input  wire[31:0] x,
+  output wire[31:0] y
 );
-  // ...
+  assign y = 2 * x;
 endmodule;
 
-reg x;
-wire y;
+reg[31:0]  x;
+wire[31:0] y;
 Compute c(x,y);
 
 stream i = $fopen("path/to/input");
 stream o = $fopen("path/to/output");
 always @(posedge clock.val) begin
+  $get(i, x);
   if ($eof(i)) begin
     $finish;
   end  
-  $get(i, x);
   $put(o, y);
 end
 ```

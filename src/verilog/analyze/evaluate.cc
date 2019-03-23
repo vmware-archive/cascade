@@ -34,6 +34,21 @@ using namespace std;
 
 namespace cascade {
 
+Evaluate::Evaluate() {
+  eof_ = nullptr;
+  fopen_ = nullptr;
+}
+
+Evaluate& Evaluate::set_eof_handler(EofHandler h) {
+  eof_ = h;
+  return *this;
+}
+
+Evaluate& Evaluate::set_fopen_handler(FopenHandler h) {
+  fopen_ = h;
+  return *this;
+}
+
 vector<size_t> Evaluate::get_arity(const Identifier* id) {
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
@@ -216,6 +231,13 @@ void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, 
   }
 }
 
+void Evaluate::flag_changed(const Identifier* id) {
+  for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
+    const_cast<Expression*>(*i)->set_flag<0>(true);
+  }
+  const_cast<Identifier*>(id)->set_flag<0>(false);
+}
+
 void Evaluate::invalidate(const Expression* e) {
   const auto* root = get_root(e);
   Invalidate i;
@@ -310,15 +332,17 @@ void Evaluate::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::edit(EofExpression* ee) {
-  // Does nothing. Target-specific implementations are required to provide a
-  // meaningful implementation for $eof() expressions.
-  (void) ee;
+  // Relies on target-specific logic:
+  if (eof_ != nullptr) {
+    ee->bit_val_[0].set(0, eof_(this, ee));
+  }
 }
 
 void Evaluate::edit(FopenExpression* fe) {
-  // Does nothing. Target-specific implementations are required to provide a
-  // meaningful implementation for $fopen() expressions.
-  (void) fe;
+  // Relies on target-specific logic:
+  if (fopen_ != nullptr) {
+    fe->bit_val_[0].assign(Bits(32, fopen_(this, fe)));
+  }
 }
 
 void Evaluate::edit(Concatenation* c) {
@@ -465,18 +489,11 @@ void Evaluate::init(Expression* e) {
   // Find the root of this subtree
   const auto* root = get_root(e);
   // Use rules of self-determination to allocate bits, sizes, and signs
-  SelfDetermine sd;
+  SelfDetermine sd(this);
   const_cast<Node*>(root)->accept(&sd);
   // Use the rules of context-determination to update sizes in some cases
-  ContextDetermine cd;
+  ContextDetermine cd(this);
   const_cast<Node*>(root)->accept(&cd);
-}
-
-void Evaluate::flag_changed(const Identifier* id) {
-  for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
-    const_cast<Expression*>(*i)->set_flag<0>(true);
-  }
-  const_cast<Identifier*>(id)->set_flag<0>(false);
 }
 
 void Evaluate::Invalidate::edit(BinaryExpression* be) {
@@ -492,15 +509,17 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::Invalidate::edit(EofExpression* ee) {
+  // eof expressions are evaluated using target-specific handlers.  No need to
+  // descend beyond here.
   ee->bit_val_.clear();
   ee->set_flag<0>(true);
-  Editor::edit(ee);
 }
 
 void Evaluate::Invalidate::edit(FopenExpression* fe) {
+  // fopen expressions are evaluated using target-specific handlers.  No need
+  // to descend beyond here.
   fe->bit_val_.clear();
   fe->set_flag<0>(true);
-  // No need to descend on arg, which is guaranteed to be a string
 }
 
 void Evaluate::Invalidate::edit(Concatenation* c) {
@@ -562,6 +581,10 @@ void Evaluate::Invalidate::edit(RegDeclaration* rd) {
   rd->accept_id(this);
   // Ignore dim: Don't descend into a different subtree
   rd->accept_val(this);
+}
+
+Evaluate::SelfDetermine::SelfDetermine(Evaluate* eval) {
+  eval_ = eval;
 }
 
 void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
@@ -631,8 +654,6 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::SelfDetermine::edit(EofExpression* ee) {
-  Editor::edit(ee);
-
   // $eof() expressions return 1-bit unsigned flags
   ee->bit_val_.push_back(Bits(1, 0));
   ee->bit_val_[0].set_signed(false);
@@ -663,13 +684,13 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
   size_t w = 0;
   bool s = false;
   if (id->size_dim() == r->size_dim()) {
-    w = Evaluate().get_width(r);
-    s = Evaluate().get_signed(r);
+    w = eval_->get_width(r);
+    s = eval_->get_signed(r);
   } else if (id->back_dim()->is(Node::Tag::range_expression)) {
     auto* re = static_cast<RangeExpression*>(id->back_dim());
-    const auto lower = Evaluate().get_value(re->get_lower()).to_int();
+    const auto lower = eval_->get_value(re->get_lower()).to_int();
     if (re->get_type() == RangeExpression::Type::CONSTANT) {
-      const auto upper = Evaluate().get_value(re->get_upper()).to_int();
+      const auto upper = eval_->get_value(re->get_upper()).to_int();
       w = (upper-lower)+1;
     } else {
       w = lower;
@@ -687,7 +708,7 @@ void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
   // Don't descend on expr, this is a separate expression tree.
   mc->accept_concat(this);
 
-  size_t w = Evaluate().get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
+  size_t w = eval_->get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
   mc->bit_val_.push_back(Bits(w, 0));
   mc->bit_val_[0].set_signed(false);
 }
@@ -753,7 +774,7 @@ void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
   // Calculate arity
   size_t arity = 1;
   for (auto i = id->get_id()->begin_dim(), ie = id->get_id()->end_dim(); i != ie; ++i) {
-    const auto rng = Evaluate().get_range(*i);
+    const auto rng = eval_->get_range(*i);
     arity *= ((rng.first-rng.second)+1);
   }
   // Allocate bits: Integers must be a minimum of 32 bits and are always signed
@@ -777,7 +798,7 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   // Parameter declaration may override size and sign
   ld->get_id()->bit_val_[0].set_signed(ld->get_signed());
   if (ld->is_non_null_dim()) {
-    const auto rng = Evaluate().get_range(ld->get_dim());
+    const auto rng = eval_->get_range(ld->get_dim());
     ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
   } 
 
@@ -793,13 +814,13 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   // Calculate arity
   size_t arity = 1;
   for (auto i = nd->get_id()->begin_dim(), ie = nd->get_id()->end_dim(); i != ie; ++i) {
-    const auto rng = Evaluate().get_range(*i);
+    const auto rng = eval_->get_range(*i);
     arity *= ((rng.first-rng.second)+1);
   }
   // Calculate width
   size_t w = 1;
   if (nd->is_non_null_dim()) {
-    const auto rng = Evaluate().get_range(nd->get_dim());
+    const auto rng = eval_->get_range(nd->get_dim());
     w = (rng.first-rng.second)+1;
   }
   // Allocate bits
@@ -823,7 +844,7 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   // Parameter declaration may override size and sign
   pd->get_id()->bit_val_[0].set_signed(pd->get_signed());
   if (pd->is_non_null_dim()) {
-    const auto rng = Evaluate().get_range(pd->get_dim());
+    const auto rng = eval_->get_range(pd->get_dim());
     pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
   }
 
@@ -839,13 +860,13 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   // Calculate arity
   size_t arity = 1;
   for (auto i = rd->get_id()->begin_dim(), ie = rd->get_id()->end_dim(); i != ie; ++i) {
-    const auto rng = Evaluate().get_range(*i);
+    const auto rng = eval_->get_range(*i);
     arity *= ((rng.first-rng.second)+1);
   }
   // Calculate width
   size_t w = 1;
   if (rd->is_non_null_dim()) {
-    const auto rng = Evaluate().get_range(rd->get_dim());
+    const auto rng = eval_->get_range(rd->get_dim());
     w = (rng.first-rng.second)+1;
   }
   // Allocate bits:
@@ -858,6 +879,10 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   // Hold off on initial assignment here. We may be doing some size extending
   // in context-determination. We'll want to wait until then to compute the
   // value of this variable.
+}
+
+Evaluate::ContextDetermine::ContextDetermine(Evaluate* eval) {
+  eval_ = eval;
 }
 
 void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
@@ -889,8 +914,8 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::LEQ:
       // Operands are sort-of context dependent. They affect each other
       // independently of what's going on here.
-      w = max(Evaluate().get_width(be->get_lhs()), Evaluate().get_width(be->get_rhs()));
-      s = Evaluate().get_signed(be->get_lhs()) && Evaluate().get_signed(be->get_rhs());
+      w = max(eval_->get_width(be->get_lhs()), eval_->get_width(be->get_rhs()));
+      s = eval_->get_signed(be->get_lhs()) && eval_->get_signed(be->get_rhs());
       be->get_lhs()->bit_val_[0].set_signed(s);
       be->get_lhs()->bit_val_[0].resize(w);
       be->get_rhs()->bit_val_[0].set_signed(s);
@@ -927,12 +952,14 @@ void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::ContextDetermine::edit(EofExpression* ee) {
-  Editor::edit(ee);
-  // Nothing to do here. $eof() expressions are always 1-bit unsigned values.
+  // Nothing to do here. Nothing below this point will ever be evaluated by
+  // this class.
+  (void) ee;
 }
 
 void Evaluate::ContextDetermine::edit(FopenExpression* fe) {
-  // Nothing to do here. $fopen() expressions are always 32-bit unsigned values.
+  // Nothing to do here. Nothing below this point will ever be evaluated by
+  // this class.
   (void) fe;
 }
 
@@ -1002,7 +1029,7 @@ void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) {
   id->accept_val(this);
 
   // Now that we're context determined, we can perform initial assignment
-  id->get_id()->bit_val_[0].assign(Evaluate().get_value(id->get_val()));
+  id->get_id()->bit_val_[0].assign(eval_->get_value(id->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
@@ -1017,7 +1044,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   }
 
   // Now that we're context determined, we can perform initial assignment
-  ld->get_id()->bit_val_[0].assign(Evaluate().get_value(ld->get_val()));
+  ld->get_id()->bit_val_[0].assign(eval_->get_value(ld->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(NetDeclaration* nd) { 
@@ -1037,7 +1064,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   }
 
   // Now that we're context determined, we can perform initial assignment
-  pd->get_id()->bit_val_[0].assign(Evaluate().get_value(pd->get_val()));
+  pd->get_id()->bit_val_[0].assign(eval_->get_value(pd->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
@@ -1056,7 +1083,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   rd->accept_val(this);
 
   // Now that we're context determined, we can perform initial assignment
-  rd->get_id()->bit_val_[0].assign(Evaluate().get_value(rd->get_val()));
+  rd->get_id()->bit_val_[0].assign(eval_->get_value(rd->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(VariableAssign* va) {

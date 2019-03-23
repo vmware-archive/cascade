@@ -805,10 +805,6 @@ void TypeCheck::visit(const PutStatement* ps) {
   ModuleInfo info(src);
   if (!info.is_stream(id)) {
     error("The first argument of a $put() statement must be a stream id", ps);
-  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("The second argument of a $put() statement must either be a variable of type reg or integer", ps);
-  } else if (info.is_stream(var)) {
-    error("The second argument of a $put() statement must not be a stream id", ps);
   }
 }
 

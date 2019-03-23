@@ -454,16 +454,17 @@ void De10Logic::handle_tasks() {
     if ((task_queue & 0x1) == 0) {
       continue;
     }
+    Evaluate eval;
     if (tasks_[i]->is(Node::Tag::display_statement)) {
       const auto* ds = static_cast<const DisplayStatement*>(tasks_[i]);
       Sync sync(this);
       ds->accept_args(&sync);
-      interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
+      interface()->display(Printf(&eval).format(ds->begin_args(), ds->end_args()));
     } else if (tasks_[i]->is(Node::Tag::error_statement)) {
       const auto* es = static_cast<const ErrorStatement*>(tasks_[i]);
       Sync sync(this);
       es->accept_args(&sync);
-      interface()->error(Printf().format(es->begin_args(), es->end_args()));
+      interface()->error(Printf(&eval).format(es->begin_args(), es->end_args()));
     } else if (tasks_[i]->is(Node::Tag::finish_statement)) {
       const auto* fs = static_cast<const FinishStatement*>(tasks_[i]);
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
@@ -471,7 +472,7 @@ void De10Logic::handle_tasks() {
       const auto* is = static_cast<const InfoStatement*>(tasks_[i]);
       Sync sync(this);
       is->accept_args(&sync);
-      interface()->info(Printf().format(is->begin_args(), is->end_args()));
+      interface()->info(Printf(&eval).format(is->begin_args(), is->end_args()));
     } else if (tasks_[i]->is(Node::Tag::restart_statement)) {
       const auto* rs = static_cast<const RestartStatement*>(tasks_[i]);
       interface()->restart(rs->get_arg()->get_readable_val());
@@ -485,12 +486,12 @@ void De10Logic::handle_tasks() {
       const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
       Sync sync(this);
       ws->accept_args(&sync);
-      interface()->warning(Printf().format(ws->begin_args(), ws->end_args()));
+      interface()->warning(Printf(&eval).format(ws->begin_args(), ws->end_args()));
     } else if (tasks_[i]->is(Node::Tag::write_statement)) {
       const auto* ws = static_cast<const WriteStatement*>(tasks_[i]);
       Sync sync(this);
       ws->accept_args(&sync);
-      interface()->write(Printf().format(ws->begin_args(), ws->end_args()));
+      interface()->write(Printf(&eval).format(ws->begin_args(), ws->end_args()));
     } else {
       assert(false);
     }

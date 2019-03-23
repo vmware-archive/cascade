@@ -39,10 +39,20 @@
 
 namespace cascade {
 
-struct Printf {
-  template <typename InputItr>
-  std::string format(InputItr begin, InputItr end);
+class Printf {
+  public:
+    Printf(Evaluate* eval);
+
+    template <typename InputItr>
+    std::string format(InputItr begin, InputItr end);
+
+  private:
+    Evaluate* eval_;
 };
+
+inline Printf::Printf(Evaluate* eval) {
+  eval_ = eval;
+}
 
 template <typename InputItr>
 inline std::string Printf::format(InputItr begin, InputItr end) {
@@ -54,7 +64,7 @@ inline std::string Printf::format(InputItr begin, InputItr end) {
   auto a = begin;
 
   if (!(*a)->is(Node::Tag::string)) {
-    Evaluate().get_value(*a).write(ss, 10);
+    eval_->get_value(*a).write(ss, 10);
     return ss.str();
   } 
   auto* s = static_cast<const String*>(*a);
@@ -71,19 +81,19 @@ inline std::string Printf::format(InputItr begin, InputItr end) {
     switch (s->get_readable_val()[j+1]) {
       case 'b':
       case 'B': 
-        Evaluate().get_value(*a).write(ss, 2);
+        eval_->get_value(*a).write(ss, 2);
         break;
       case 'd':
       case 'D':
-        Evaluate().get_value(*a).write(ss, 10);
+        eval_->get_value(*a).write(ss, 10);
         break;
       case 'h':
       case 'H': 
-        Evaluate().get_value(*a).write(ss, 16);
+        eval_->get_value(*a).write(ss, 16);
         break;
       case 'o':
       case 'O': 
-        Evaluate().get_value(*a).write(ss, 8);
+        eval_->get_value(*a).write(ss, 8);
         break;
       default: 
         assert(false);

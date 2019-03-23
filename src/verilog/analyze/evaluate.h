@@ -32,6 +32,7 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_EVALUATE_H
 
 #include <cassert>
+#include <functional>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -61,7 +62,17 @@ namespace cascade {
 
 class Evaluate : public Editor {
   public:
+    // Typedefs:
+    typedef std::function<bool(Evaluate*, const EofExpression*)> EofHandler;
+    typedef std::function<uint32_t(Evaluate*, const FopenExpression*)> FopenHandler;
+
+    // Constructors:
+    Evaluate();
     ~Evaluate() override = default;
+
+    // Configuration Interface:
+    Evaluate& set_eof_handler(EofHandler h);
+    Evaluate& set_fopen_handler(FopenHandler h);
 
     // Returns the arity of an expression: an empty vector for scalars, one 
     // value for the length of each dimension for arrays.
@@ -107,11 +118,18 @@ class Evaluate : public Editor {
     template <typename B>
     void assign_word(const Identifier* id, size_t idx, size_t n, B b);
 
+    // Forced a recomputation for the next evaluation of any expression that
+    // depends on this variable.
+    void flag_changed(const Identifier* id);
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
     void invalidate(const Expression* e);
 
   private:
+    // Target-specific handlers:
+    EofHandler eof_;
+    FopenHandler fopen_;
+
     // Editor Interface:
     void edit(BinaryExpression* be) override;
     void edit(ConditionalExpression* ce) override;
@@ -132,8 +150,6 @@ class Evaluate : public Editor {
     // Initializes the bit value associated with an identifier using the rules
     // of self- and context- determination to determine bit-width and sign.
     void init(Expression* e);
-    // Updates the needs_update_ flag for this identifier and its dependencies.
-    void flag_changed(const Identifier* id);
 
     // Invalidates bit, size, and type info for the expressions in this subtree
     struct Invalidate : Editor {
@@ -155,6 +171,7 @@ class Evaluate : public Editor {
     };
     // Uses self-determination to allocate bits, sizes, and types.
     struct SelfDetermine : Editor {
+      SelfDetermine(Evaluate* eval);
       ~SelfDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
@@ -172,9 +189,11 @@ class Evaluate : public Editor {
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
+      Evaluate* eval_;
     };
     // Propagates bit-width for context determined operators.
     struct ContextDetermine : Editor {
+      ContextDetermine(Evaluate* eval);
       ~ContextDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
@@ -192,6 +211,7 @@ class Evaluate : public Editor {
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
       void edit(VariableAssign* va) override;
+      Evaluate* eval_;
     };
 };
 

@@ -38,7 +38,6 @@
 #include "src/target/core/sw/monitor.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
-#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -97,7 +96,7 @@ SwLogic& SwLogic::set_stream(const Identifier* id, VId vid) {
 State* SwLogic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
-    s->insert(sv.first, Evaluate().get_array_value(sv.second));
+    s->insert(sv.first, eval_.get_array_value(sv.second));
   }
   return s;
 }
@@ -106,7 +105,7 @@ void SwLogic::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      Evaluate().assign_array_value(sv.second, itr->second);
+      eval_.assign_array_value(sv.second, itr->second);
       notify(sv.second);
     }
   }
@@ -120,7 +119,7 @@ Input* SwLogic::get_input() {
     if (id == nullptr) {
       continue;
     }
-    i->insert(v, Evaluate().get_value(id));
+    i->insert(v, eval_.get_value(id));
   }
   return i;
 }
@@ -133,7 +132,7 @@ void SwLogic::set_input(const Input* i) {
     }
     const auto itr = i->find(v);
     if (itr != i->end()) {
-      Evaluate().assign_value(id, itr->second);
+      eval_.assign_value(id, itr->second);
     }
     notify(id);
   }
@@ -141,19 +140,30 @@ void SwLogic::set_input(const Input* i) {
 }
 
 void SwLogic::finalize() {
-  // Handle invocations of $fopen() which haven't been encountered yet.
+  // Attach eof handler
+  eval_.set_eof_handler([this](Evaluate* eval, const EofExpression* ee) {
+    const auto* r = Resolve().get_resolution(ee->get_arg());
+    const auto id = eval->get_value(r).to_int();
+    return (this->interface()->sgetc(id) == char_traits<char>::eof());
+  });
+
+  // Generate values for any calls to fopen which haven't been handled yet
   for (auto& s : streams_) {
-    if (Evaluate().get_value(s.first).to_int() == 0) {
-      assert(s.first->get_parent()->is(Node::Tag::reg_declaration));
+    if (eval_.get_value(s.first).to_int() == 0) {
+      // Invoke fopen on runtime
       const auto* rd = static_cast<const RegDeclaration*>(s.first->get_parent());
-
-      assert(rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression));
       const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
-
       const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
       Evaluate().assign_value(s.first, Bits(32, id));
+      // Notify change in stream state
+      eval_.flag_changed(const_cast<Identifier*>(s.first));
+      notify(s.first);
+      // Call one last silent evaluate (just in case this triggered a
+      // continuous assign or an always block)
+      silent_evaluate();
     }
   }
+
   // Schedule initial constructs
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::initial_construct)) {
@@ -164,7 +174,7 @@ void SwLogic::finalize() {
 
 void SwLogic::read(VId vid, const Bits* b) {
   const auto* id = reads_[vid];
-  Evaluate().assign_value(id, *b);
+  eval_.assign_value(id, *b);
   notify(id);
 }
 
@@ -178,7 +188,7 @@ void SwLogic::evaluate() {
     schedule_now(e);
   }
   for (auto& o : writes_) {
-    interface()->write(o.second, &Evaluate().get_value(o.first));
+    interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
 
@@ -190,7 +200,7 @@ void SwLogic::update() {
   // This is a for loop. Updates happen simultaneously
   for (size_t i = 0, ie = updates_.size(); i < ie; ++i) {
     const auto& val = update_pool_[i];
-    Evaluate().assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val);
+    eval_.assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val);
     notify(get<0>(updates_[i]));
   }
   updates_.clear();
@@ -205,7 +215,7 @@ void SwLogic::update() {
   }
 
   for (auto& o : writes_) {
-    interface()->write(o.second, &Evaluate().get_value(o.first));
+    interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
 
@@ -261,9 +271,9 @@ void SwLogic::visit(const Event* e) {
   const auto* id = static_cast<const Identifier*>(e->get_expr());
   const auto* r = Resolve().get_resolution(id);
 
-  if (e->get_type() != Event::Type::NEGEDGE && Evaluate().get_value(r).to_bool()) {
+  if (e->get_type() != Event::Type::NEGEDGE && eval_.get_value(r).to_bool()) {
     notify(e);
-  } else if (e->get_type() != Event::Type::POSEDGE && !Evaluate().get_value(r).to_bool()) {
+  } else if (e->get_type() != Event::Type::POSEDGE && !eval_.get_value(r).to_bool()) {
     notify(e);
   }
 }
@@ -300,8 +310,8 @@ void SwLogic::visit(const NonblockingAssign* na) {
   if (!silent_) {
     const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
     assert(r != nullptr);
-    const auto target = Evaluate().dereference(r, na->get_assign()->get_lhs());
-    const auto& res = Evaluate().get_value(na->get_assign()->get_rhs());
+    const auto target = eval_.dereference(r, na->get_assign()->get_lhs());
+    const auto& res = eval_.get_value(na->get_assign()->get_rhs());
 
     const auto idx = updates_.size();
     if (idx >= update_pool_.size()) {
@@ -348,10 +358,10 @@ void SwLogic::visit(const CaseStatement* cs) {
   auto& state = get_state(cs);
   if (state == 0) {
     state = 1;
-    const auto s = Evaluate().get_value(cs->get_cond()).to_int();
+    const auto s = eval_.get_value(cs->get_cond()).to_int();
     for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) { 
       for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
-        const auto c = Evaluate().get_value(*j).to_int();
+        const auto c = eval_.get_value(*j).to_int();
         if (s == c) {
           schedule_now((*i)->get_stmt());
           return;
@@ -374,7 +384,7 @@ void SwLogic::visit(const ConditionalStatement* cs) {
   auto& state = get_state(cs);
   if (state == 0) {
     state = 1;
-    if (Evaluate().get_value(cs->get_if()).to_bool()) {
+    if (eval_.get_value(cs->get_if()).to_bool()) {
       schedule_now(cs->get_then());
     } else {
       schedule_now(cs->get_else());
@@ -393,7 +403,7 @@ void SwLogic::visit(const ForStatement* fs) {
       schedule_now(fs->get_init());
       // Fallthrough
     case 1:
-      if (!Evaluate().get_value(fs->get_cond()).to_bool()) {
+      if (!eval_.get_value(fs->get_cond()).to_bool()) {
         state = 0;
         notify(fs);
         return;
@@ -413,7 +423,7 @@ void SwLogic::visit(const RepeatStatement* rs) {
   auto& state = get_state(rs);
   switch (state) {
     case 0:
-      state = Evaluate().get_value(rs->get_cond()).to_int() + 1;
+      state = eval_.get_value(rs->get_cond()).to_int() + 1;
       // Fallthrough ...
     default: 
       if (--state == 0) {
@@ -426,7 +436,7 @@ void SwLogic::visit(const RepeatStatement* rs) {
 }
 
 void SwLogic::visit(const WhileStatement* ws) {
-  if (!Evaluate().get_value(ws->get_cond()).to_bool()) {
+  if (!eval_.get_value(ws->get_cond()).to_bool()) {
     notify(ws);
     return;
   }
@@ -454,7 +464,7 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
 
 void SwLogic::visit(const DisplayStatement* ds) {
   if (!silent_) {
-    interface()->display(Printf().format(ds->begin_args(), ds->end_args()));
+    interface()->display(Printf(&eval_).format(ds->begin_args(), ds->end_args()));
     there_were_tasks_ = true;
   }
   notify(ds);
@@ -462,7 +472,7 @@ void SwLogic::visit(const DisplayStatement* ds) {
 
 void SwLogic::visit(const ErrorStatement* es) {
   if (!silent_) {
-    interface()->error(Printf().format(es->begin_args(), es->end_args()));
+    interface()->error(Printf(&eval_).format(es->begin_args(), es->end_args()));
     there_were_tasks_ = true;
   }
   notify(es);
@@ -470,7 +480,7 @@ void SwLogic::visit(const ErrorStatement* es) {
 
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
-    interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
+    interface()->finish(eval_.get_value(fs->get_arg()).to_int());
     there_were_tasks_ = true;
   }
   notify(fs);
@@ -478,18 +488,27 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
-    const auto id = Evaluate().get_value(gs->get_id()).to_int();
+    const auto* rid = Resolve().get_resolution(gs->get_id());
+    const auto id = eval_.get_value(rid).to_int();
     Bits val;
+
     interfacestream is(interface(), id);
     val.read(is, 16);
-    Evaluate().assign_value(gs->get_var(), val);
+    const auto* rvar = Resolve().get_resolution(gs->get_var());
+    eval_.assign_value(rvar, val);
+
+    // Notify change in stream state and variable
+    eval_.flag_changed(rid);
+    eval_.flag_changed(rvar);
+    notify(rid);
+    notify(rvar);
   }
   notify(gs);
 }
 
 void SwLogic::visit(const InfoStatement* is) {
   if (!silent_) {
-    interface()->info(Printf().format(is->begin_args(), is->end_args()));
+    interface()->info(Printf(&eval_).format(is->begin_args(), is->end_args()));
     there_were_tasks_ = true;
   }
   notify(is);
@@ -497,11 +516,19 @@ void SwLogic::visit(const InfoStatement* is) {
 
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
-    const auto id = Evaluate().get_value(ps->get_id()).to_int();
-    const auto& val = Evaluate().get_value(ps->get_var());
+    const auto* r = Resolve().get_resolution(ps->get_id());
+    const auto id = eval_.get_value(r).to_int();
+    const auto& val = eval_.get_value(ps->get_var());
+
     interfacestream is(interface(), id);
     val.write(is, 16);
     is.put(' ');
+
+    // Notify change in stream state (note that isn't guaranteed to do anything
+    // as interface has some implementation leeway for put). The only way to
+    // force a change is to invoke flush()
+    eval_.flag_changed(r);
+    notify(r);
   }
   notify(ps);
 }
@@ -532,7 +559,7 @@ void SwLogic::visit(const SaveStatement* ss) {
 
 void SwLogic::visit(const WarningStatement* ws) {
   if (!silent_) {
-    interface()->warning(Printf().format(ws->begin_args(), ws->end_args()));
+    interface()->warning(Printf(&eval_).format(ws->begin_args(), ws->end_args()));
     there_were_tasks_ = true;
   }
   notify(ws);
@@ -540,7 +567,7 @@ void SwLogic::visit(const WarningStatement* ws) {
 
 void SwLogic::visit(const WriteStatement* ws) {
   if (!silent_) {
-    interface()->write(Printf().format(ws->begin_args(), ws->end_args()));
+    interface()->write(Printf(&eval_).format(ws->begin_args(), ws->end_args()));
     there_were_tasks_ = true;
   }
   notify(ws);
@@ -549,7 +576,7 @@ void SwLogic::visit(const WriteStatement* ws) {
 void SwLogic::visit(const WaitStatement* ws) {
   auto& state = get_state(ws);
   if (state == 0) {
-    if (!Evaluate().get_value(ws->get_cond()).to_bool()) {
+    if (!eval_.get_value(ws->get_cond()).to_bool()) {
       return;
     }
     state = 1;
@@ -571,8 +598,8 @@ void SwLogic::visit(const EventControl* ec) {
 }
 
 void SwLogic::visit(const VariableAssign* va) {
-  const auto& res = Evaluate().get_value(va->get_rhs());
-  Evaluate().assign_value(va->get_lhs(), res);
+  const auto& res = eval_.get_value(va->get_rhs());
+  eval_.assign_value(va->get_lhs(), res);
   notify(Resolve().get_resolution(va->get_lhs()));
 }
 
