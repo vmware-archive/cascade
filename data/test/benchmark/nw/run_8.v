@@ -1,19 +1,13 @@
 include data/test/benchmark/nw/constants_8.v;
 include data/test/benchmark/nw/nw.v;
 
-// Instantiate input fifo; we'll read input pairs one line at a time:
+// Read input pairs one line at a time. This is an artifact from when we used
+// to stream values with a cascade Fifo. This input structuring is no longer
+// necessary.
 localparam DATA_WIDTH = 2*LENGTH*CWIDTH;
-wire [DATA_WIDTH-1:0] rdata;
-wire empty;
-(*__target="sw", __file="data/test/benchmark/nw/constants_8.hex"*)
-Fifo#(1, DATA_WIDTH) in (
-  .clock(clock.val),
-  .rreq(!empty),
-  .rdata(rdata),
-  .empty(empty)
-);
 
 // Instantiate compute grid:
+reg [DATA_WIDTH-1:0] rdata;
 wire [LENGTH*CWIDTH-1:0] s1 = rdata[2*LENGTH*CWIDTH-1:1*LENGTH*CWIDTH];
 wire [LENGTH*CWIDTH-1:0] s2 = rdata[1*LENGTH*CWIDTH-1:0*LENGTH*CWIDTH];
 wire signed[SWIDTH-1:0] score;
@@ -30,22 +24,28 @@ Grid#(
   .score(score)
 );
 
-// While there are still inputs coming out of the fifo, print the results:
-reg signed[31:0] COUNT = -1;
+// Read values from the fifo on the clock
+reg done = 0;
+reg once = 0;
+stream s = $fopen("data/test/benchmark/nw/constants_8.hex");
+always @(posedge clock.val) begin
+  once <= 1;
+  $get(s, rdata);
+  if ($eof(s)) begin
+    done <= 1;
+  end
+end
+
+// While there are still inputs coming out of the fifo, sum the results
 reg signed[31:0] CHECKSUM = 0;
 always @(posedge clock.val) begin
-  // Base case: Ignore the first cycle where we get zeros out of the fifo
-  if (COUNT == -1) begin
-    COUNT <= COUNT + 1;
-  end 
-  // Exit case: Is the fifo finally empty?
-  else if (empty) begin
+  // Exit case: print the checksum
+  if (done) begin
     $write(CHECKSUM);
     $finish(0);
   end
-  // Common case: increment count and add to the checksum
-  else begin
-    COUNT <= COUNT + 1;
+  // Common case: Add score to the checksum
+  else if (once) begin
     CHECKSUM <= CHECKSUM + score;
   end
 end

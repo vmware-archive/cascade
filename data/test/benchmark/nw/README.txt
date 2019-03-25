@@ -10,7 +10,7 @@ pipelined.  Depending on input size, this code will return different values:
 
 INPUT SIZE : CHECKSUM
 ---------------------
-         2 : -720
-         4 : -1125
-         8 : -1437
+         2 : -722
+         4 : -1126
+         8 : -1440
         16 : 

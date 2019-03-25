@@ -34,8 +34,8 @@
 using namespace cascade;
 
 TEST(nw, run_2) {
-  run_code("minimal", "data/test/benchmark/nw/run_2.v", "-720");
+  run_code("minimal", "data/test/benchmark/nw/run_2.v", "-722");
 }
 TEST(nw, run_4) {
-  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1125");
+  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1126");
 }
