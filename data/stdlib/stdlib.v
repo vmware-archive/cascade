@@ -109,8 +109,10 @@ endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
 // Reusable Data-Structures:
+//
 // These abstracts are deprecated and should no longer be used!  The preferred
 // method for performing file i/o is the file i/o family of system tasks.
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 // An dual-port-read single-port-write memory with arbitrary size and byte
@@ -133,28 +135,6 @@ module Memory#(
   input  wire[ADDR_SIZE-1:0] waddr,
   input  wire[BYTE_SIZE-1:0] wdata
 );
-
-  // Possible Implementation:
-  //
-  // input wire clock;
-  // input wire wen;
-  // input wire[2**ADDR_SIZE-1:0] raddr1;
-  // input wire[2**ADDR_SIZE-1:0] raddr2;
-  // input wire[2**ADDR_SIZE-1:0] waddr;
-  // input wire[BYTE_SIZE-1:0] wdata;
-  //
-  // output wire[BYTE_SIZE-1:0] rdata1;
-  // output wire[BYTE_SIZE-1:0] rdata2;
-
-  // reg[BYTE_SIZE-1:0] mem[2**ADDR_SIZE-1:0];
-  // assign rdata1 = mem[raddr1];
-  // assign rdata2 = mem[raddr2];
-  // always @(posedge clock) begin
-  //   if (wen) begin 
-  //     mem[waddr] <= wdata;
-  //   end
-  // end
-
 endmodule
 
 // A bounded-depth read/write fifo. Supports additional annotations below.
@@ -182,35 +162,4 @@ module Fifo#(
   output wire empty,
   output wire full
 );
-
-  // Possible Implementation:
-  //
-  // input wire rreq;
-  // input wire wreq;
-  // input wire[BYTE_SIZE-1:0] wdata;
-  //
-  // reg[BYTE_SIZE-1:0] fifo[log(DEPTH)-1:0];
-  // reg[log(DEPTH)-1:0] head = 0;
-  // reg[log(DEPTH)-1:0] tail = 1;
-  //
-  // output wire[BYTE_SIZE-1:0] rdata = fifo[head];
-  // output wire empty = (head+1 == tail) & <file empty>;
-  // output wire full = (head == tail) | !<file empty>;
-  //
-  // initial <fill from file until full or file empty>;
-  //
-  // always @(posedge clock) begin
-  //   if (rreq) begin
-  //     head <= head+1;
-  //   end
-  //   if (wreq) begin 
-  //     fifo[tail] <= wdata;
-  //     tail <= tail+1;
-  //   end
-  //   if (!<file empty>) begin
-  //     fifo[tail] <= <next file data>;
-  //     tail <= tail+1;  
-  //   end
-  // end
-
 endmodule

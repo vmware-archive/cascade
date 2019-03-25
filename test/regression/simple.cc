@@ -129,18 +129,6 @@ TEST(simple, cond_1) {
 TEST(simple, fifo_1) {
   run_code("minimal","data/test/regression/simple/fifo_1.v", "1000000001100200300410");
 }
-TEST(simple, fifo_2) {
-  run_code("minimal","data/test/regression/simple/fifo_2.v", "1001110");
-}
-TEST(simple, fifo_3) {
-  run_code("minimal","data/test/regression/simple/fifo_3.v", "1001101201301410");
-}
-TEST(simple, fifo_4) {
-  run_code("minimal","data/test/regression/simple/fifo_4.v", "45");
-}
-TEST(simple, fifo_5) {
-  run_code("minimal","data/test/regression/simple/fifo_5.v", "90");
-}
 TEST(simple, finish_1) {
   run_code("minimal","data/test/regression/simple/finish_1.v", "Hello World");
 }
