@@ -2,25 +2,24 @@ reg[31:0] count = 0;
 reg[31:0] state = 0;
 reg[31:0] i = 0;
 reg[31:0] ie = 0;
-
-stream s = $fopen("data/test/benchmark/regex/iliad.hex");
-integer itr = 1;
 reg[7:0] char;
+
+integer itr = 1;
+stream s = $fopen("data/test/benchmark/regex/iliad.hex");
 
 always @(posedge clock.val) begin
   $get(s, char);
   if ($eof(s)) begin
     if (itr == 8) begin
       $write(count);
-      $finish;
+      $finish(0);
     end else begin
       itr <= itr + 1;
       $seek(s, 0);
+      $get(s, char);
     end
   end
-end
 
-always @(posedge clock.val) begin
   if (state > 0) begin
     ie <= ie + 1;
   end
