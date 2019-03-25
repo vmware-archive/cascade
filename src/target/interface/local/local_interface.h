@@ -57,13 +57,15 @@ class LocalInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    size_t seekoff(SId id, int n, bool r) override;
+    int in_avail(SId id) override;
+    size_t pubseekoff(SId id, int n, bool r) override;
+    size_t pubseekpos(SId id, int n, bool r) override;
+    int pubsync(SId id) override;
     int sbumpc(SId id) override;
     int sgetc(SId id) override;
     size_t sgetn(SId id, char* c, size_t n) override;
     int sputc(SId id, char c) override;
     size_t sputn(SId id, const char* c, size_t n) override;
-    int in_avail(SId id) override;
 
   private:
     Runtime* rt_;
@@ -125,8 +127,20 @@ inline void LocalInterface::close(SId id) {
   rt_->close(id);
 }
 
-inline size_t LocalInterface::seekoff(SId id, int n, bool r) {
-  return rt_->seekoff(id, n, r);
+inline int LocalInterface::in_avail(SId id) {
+  return rt_->in_avail(id);
+}
+
+inline size_t LocalInterface::pubseekoff(SId id, int n, bool r) {
+  return rt_->pubseekoff(id, n, r);
+}
+
+inline size_t LocalInterface::pubseekpos(SId id, int n, bool r) {
+  return rt_->pubseekpos(id, n, r);
+}
+
+inline int LocalInterface::pubsync(SId id) {
+  return rt_->pubsync(id);
 }
 
 inline int LocalInterface::sbumpc(SId id) {
@@ -147,10 +161,6 @@ inline int LocalInterface::sputc(SId id, char c) {
 
 inline size_t LocalInterface::sputn(SId id, const char* c, size_t n) {
   return rt_->sputn(id, c, n);
-}
-
-inline int LocalInterface::in_avail(SId id) {
-  return rt_->in_avail(id);
 }
 
 } // namespace cascade

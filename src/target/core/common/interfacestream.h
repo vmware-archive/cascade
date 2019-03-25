@@ -56,6 +56,7 @@ class interfacebuf : public std::streambuf {
     // Positioning:
     pos_type seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
     std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
+    int sync() override;
 
     // Get Area:
     std::streamsize showmanyc() override;
@@ -87,19 +88,20 @@ interfacebuf::interfacebuf(Interface* interface, SId id) {
 }
 
 inline std::streambuf::pos_type interfacebuf::seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which) {
-  // TODO(eschkufz) No support for this method until it comes up that we need it.
-  assert(false);
-  (void) pos;
-  (void) which;
-  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(-1));
+  const auto res = interface_->pubseekpos(id_, pos, (which == std::ios_base::in));
+  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(res));
 }
 
 inline std::streampos interfacebuf::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) {
   // TODO(eschkufz) Limited support for usage until it comes up that we need it
   assert(way == std::ios_base::cur);
   (void) way;
-  const auto res = interface_->seekoff(id_, off, (which == std::ios_base::in));
+  const auto res = interface_->pubseekoff(id_, off, (which == std::ios_base::in));
   return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(res));
+}
+
+inline int interfacebuf::sync() {
+  return interface_->pubsync(id_);
 }
 
 inline std::streamsize interfacebuf::showmanyc() {

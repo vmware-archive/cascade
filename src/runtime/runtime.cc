@@ -332,18 +332,32 @@ void Runtime::close(SId id) {
   stream_table_[id] = nullptr;
 }
 
-size_t Runtime::seekoff(SId id, int n, bool r) {
+int Runtime::in_avail(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->in_avail();
+}
+
+size_t Runtime::pubseekoff(SId id, int n, bool r) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
-int Runtime::sgetc(SId id) {
+size_t Runtime::pubseekpos(SId id, int n, bool r) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
-  return stream_table_[id]->sgetc();
+  return stream_table_[id]->pubseekpos(n, r ? ios::in : ios::out);
+}
+
+int Runtime::pubsync(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->pubsync();
 }
 
 int Runtime::sbumpc(SId id) {
@@ -351,6 +365,13 @@ int Runtime::sbumpc(SId id) {
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sbumpc();
+}
+
+int Runtime::sgetc(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sgetc();
 }
 
 size_t Runtime::sgetn(SId id, char* c, size_t n) {
@@ -372,13 +393,6 @@ size_t Runtime::sputn(SId id, const char* c, size_t n) {
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sputn(c, n);
-}
-
-int Runtime::in_avail(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->in_avail();
 }
 
 uint64_t Runtime::time() const {

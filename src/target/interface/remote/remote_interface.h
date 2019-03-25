@@ -57,13 +57,15 @@ class RemoteInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    size_t seekoff(SId id, int n, bool r) override;
+    int in_avail(SId id) override;
+    size_t pubseekoff(SId id, int n, bool r) override;
+    size_t pubseekpos(SId id, int n, bool r) override;
+    int pubsync(SId id) override;
     int sbumpc(SId id) override;
     int sgetc(SId id) override;
     size_t sgetn(SId id, char* c, size_t n) override;
     int sputc(SId id, char c) override;
     size_t sputn(SId id, const char* c, size_t n) override;
-    int in_avail(SId id) override;
       
   private:
     sockstream* sock_;
@@ -148,12 +150,35 @@ inline void RemoteInterface::close(SId id) {
   (void) id;
 }
 
-inline size_t RemoteInterface::seekoff(SId id, int n, bool r) {
+inline int RemoteInterface::in_avail(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  return 0;
+}
+
+inline size_t RemoteInterface::pubseekoff(SId id, int n, bool r) {
   // TODO(eschkufz) IMPLEMENT THIS!!!
   assert(false);
   (void) id;
   (void) n;
   (void) r;
+  return 0;
+}
+
+inline size_t RemoteInterface::pubseekpos(SId id, int n, bool r) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
+  (void) n;
+  (void) r;
+  return 0;
+}
+
+inline int RemoteInterface::pubsync(SId id) {
+  // TODO(eschkufz) IMPLEMENT THIS!!!
+  assert(false);
+  (void) id;
   return 0;
 }
 
@@ -194,13 +219,6 @@ inline size_t RemoteInterface::sputn(SId id, const char* c, size_t n) {
   (void) id;
   (void) c;
   (void) n;
-  return 0;
-}
-
-inline int RemoteInterface::in_avail(SId id) {
-  // TODO(eschkufz) IMPLEMENT THIS!!!
-  assert(false);
-  (void) id;
   return 0;
 }
 

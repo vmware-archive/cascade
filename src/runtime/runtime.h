@@ -150,14 +150,18 @@ class Runtime : public Asynchronous {
     SId fopen(const std::string& path);
     // Removes an entry from the stream table. 
     void close(SId id);
-    // streambuf operators
-    size_t seekoff(SId id, int n, bool r);
-    int sgetc(SId id);
+    // streambuf operators: The boolean argument to pubseekoff/pos is used to
+    // select between read/write (true/false) pointers. pubseekoff assumes
+    // std::cur as its locator.
+    int in_avail(SId id);
+    size_t pubseekoff(SId id, int n, bool r);
+    size_t pubseekpos(SId id, int n, bool r);
+    int pubsync(SId id);
     int sbumpc(SId id);
+    int sgetc(SId id);
     size_t sgetn(SId id, char* c, size_t n);
     int sputc(SId id, char c);
     size_t sputn(SId id, const char* c, size_t n);
-    int in_avail(SId id);
 
     // Profiling Interface:
     //

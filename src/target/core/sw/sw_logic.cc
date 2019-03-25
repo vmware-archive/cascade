@@ -486,6 +486,21 @@ void SwLogic::visit(const FinishStatement* fs) {
   notify(fs);
 }
 
+void SwLogic::visit(const FlushStatement* fs) {
+  if (!silent_) {
+    const auto* r = Resolve().get_resolution(fs->get_arg());
+    const auto id = eval_.get_value(r).to_int();
+
+    interfacestream is(interface(), id);
+    is.flush();
+
+    // Notify changes in stream state
+    eval_.flag_changed(r);
+    notify(r);
+  }
+  notify(fs);
+}
+
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
     const auto* rid = Resolve().get_resolution(gs->get_id());
@@ -553,6 +568,22 @@ void SwLogic::visit(const SaveStatement* ss) {
   if (!silent_) {
     interface()->save(ss->get_arg()->get_readable_val());
     there_were_tasks_ = true;
+  }
+  notify(ss);
+}
+
+void SwLogic::visit(const SeekStatement* ss) {
+  if (!silent_) {
+    const auto* r = Resolve().get_resolution(ss->get_arg());
+    const auto id = eval_.get_value(r).to_int();
+    const auto& pos = eval_.get_value(ss->get_pos()).to_int();
+
+    interfacestream is(interface(), id);
+    is.seekg(pos);
+
+    // Notify changes in stream state
+    eval_.flag_changed(r);
+    notify(r);
   }
   notify(ss);
 }
