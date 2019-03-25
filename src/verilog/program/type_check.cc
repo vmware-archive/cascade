@@ -735,20 +735,8 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   }
 }
 
-void TypeCheck::visit(const ForStatement* fs) {
-  error("Cascade does not currently support the use of for statements", fs);
-}
-
 void TypeCheck::visit(const ForeverStatement* fs) {
   error("Cascade does not currently support the use of forever statements", fs);
-}
-
-void TypeCheck::visit(const RepeatStatement* rs) {
-  error("Cascade does not currently support the use of repeat statements", rs);
-}
-
-void TypeCheck::visit(const WhileStatement* ws) {
-  error("Cascade does not currently support the use of while statements", ws);
 }
 
 void TypeCheck::visit(const DisplayStatement* ds) {

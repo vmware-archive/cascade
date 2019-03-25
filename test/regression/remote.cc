@@ -45,10 +45,10 @@ TEST(remote, pipeline_2) {
 TEST(remote, bitcoin) {
   run_remote("data/test/benchmark/bitcoin/run_4.v", "f 93\n");
 }
-TEST(remote, bubble) {
-  run_remote("data/test/benchmark/mips32/run_bubble_32.v", "1");
-}
-// TODO(eschkufz) This is *really* slow. Reenable this test when file i/o works
+// TODO(eschkufz) Reenable this test when file i/o works with the remote interface
+//TEST(remote, bubble) {
+//  run_remote("data/test/benchmark/mips32/run_bubble_32.v", "1");
+//}
 //TEST(remote, regex) {
 //  run_remote("data/test/benchmark/regex/run_disjunct_1.v", "424");
 //}
