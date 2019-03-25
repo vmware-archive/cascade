@@ -94,12 +94,14 @@ struct Builder {
   virtual Statement* build(const DisplayStatement* ds);
   virtual Statement* build(const ErrorStatement* es);
   virtual Statement* build(const FinishStatement* fs);
+  virtual Statement* build(const FlushStatement* fs);
   virtual Statement* build(const GetStatement* gs);
   virtual Statement* build(const InfoStatement* is);
   virtual Statement* build(const PutStatement* ps);
   virtual Statement* build(const RestartStatement* rs);
   virtual Statement* build(const RetargetStatement* rs);
   virtual Statement* build(const SaveStatement* ss);
+  virtual Statement* build(const SeekStatement* ss);
   virtual Statement* build(const WarningStatement* ws);
   virtual Statement* build(const WriteStatement* ws);
   virtual Statement* build(const WaitStatement* ws);

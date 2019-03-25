@@ -126,6 +126,7 @@ std::string strip_path(const char* c);
 "$error"    YY_REC; return yyParser::make_SYS_ERROR(parser->get_loc());
 "$fatal"    YY_REC; return yyParser::make_SYS_FATAL(parser->get_loc());
 "$finish"   YY_REC; return yyParser::make_SYS_FINISH(parser->get_loc());
+"$flush"    YY_REC; return yyParser::make_SYS_FLUSH(parser->get_loc());
 "$fopen"    YY_REC; return yyParser::make_SYS_FOPEN(parser->get_loc());
 "$get"      YY_REC; return yyParser::make_SYS_GET(parser->get_loc());
 "$info"     YY_REC; return yyParser::make_SYS_INFO(parser->get_loc());
@@ -133,6 +134,7 @@ std::string strip_path(const char* c);
 "$restart"  YY_REC; return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" YY_REC; return yyParser::make_SYS_RETARGET(parser->get_loc());
 "$save"     YY_REC; return yyParser::make_SYS_SAVE(parser->get_loc());
+"$seek"     YY_REC; return yyParser::make_SYS_SEEK(parser->get_loc());
 "$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 

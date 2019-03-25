@@ -595,6 +595,13 @@ void Printer::visit(const FinishStatement* fs) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const FlushStatement* fs) {
+  *this << Color::YELLOW << "$flush" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  fs->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const GetStatement* gs) {
   *this << Color::YELLOW << "$get" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
@@ -639,6 +646,15 @@ void Printer::visit(const SaveStatement* ss) {
   *this << Color::YELLOW << "$save" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   ss->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const SeekStatement* ss) {
+  *this << Color::YELLOW << "$seek" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ss->accept_arg(this);
+  *this << Color::RED << "," << Color::RESET;
+  ss->accept_pos(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 

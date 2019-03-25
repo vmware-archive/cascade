@@ -288,6 +288,10 @@ void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Visitor::visit(const FlushStatement* fs) {
+  fs->accept_arg(this);
+}
+
 void Visitor::visit(const GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
@@ -312,6 +316,11 @@ void Visitor::visit(const RetargetStatement* rs) {
 
 void Visitor::visit(const SaveStatement* ss) {
   ss->accept_arg(this);
+}
+
+void Visitor::visit(const SeekStatement* ss) {
+  ss->accept_arg(this);
+  ss->accept_pos(this);
 }
 
 void Visitor::visit(const WarningStatement* ws) {

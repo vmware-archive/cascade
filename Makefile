@@ -200,6 +200,7 @@ HDR=\
 	src/verilog/ast/types/expression.h\
 	src/verilog/ast/types/fopen_expression.h\
 	src/verilog/ast/types/finish_statement.h\
+	src/verilog/ast/types/flush_statement.h\
 	src/verilog/ast/types/for_statement.h\
 	src/verilog/ast/types/forever_statement.h\
 	src/verilog/ast/types/get_statement.h\
@@ -239,6 +240,7 @@ HDR=\
 	src/verilog/ast/types/retarget_statement.h\
 	src/verilog/ast/types/save_statement.h\
 	src/verilog/ast/types/scope.h\
+	src/verilog/ast/types/seek_statement.h\
 	src/verilog/ast/types/seq_block.h\
 	src/verilog/ast/types/statement.h\
 	src/verilog/ast/types/string.h\

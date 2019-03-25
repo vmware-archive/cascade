@@ -156,6 +156,7 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
+%token SYS_FLUSH    "$flush"
 %token SYS_FOPEN    "$fopen"
 %token SYS_GET      "$get"
 %token SYS_INFO     "$info"
@@ -163,6 +164,7 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_SAVE     "$save"
+%token SYS_SEEK     "$seek"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -1450,6 +1452,10 @@ system_task_enable
     $$ = sb;
     parser->set_loc($$);
   }
+  | SYS_FLUSH OPAREN identifier CPAREN SCOLON {
+    $$ = new FlushStatement($3);
+    parser->set_loc($$);
+  }
   | SYS_FINISH SCOLON { 
     $$ = new FinishStatement(new Number(Bits(false), Number::Format::UNBASED)); 
     parser->set_loc($$);
@@ -1492,6 +1498,10 @@ system_task_enable
   }
   | SYS_SAVE OPAREN string_ CPAREN SCOLON {
     $$ = new SaveStatement($3);
+    parser->set_loc($$);
+  }
+  | SYS_SEEK OPAREN identifier COMMA expression CPAREN SCOLON {
+    $$ = new SeekStatement($3, $5);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
