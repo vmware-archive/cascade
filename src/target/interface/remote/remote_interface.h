@@ -56,7 +56,6 @@ class RemoteInterface : public Interface {
     void write(VId id, const Bits* b) override;
 
     SId fopen(const std::string& path) override;
-    void close(SId id) override;
     int32_t in_avail(SId id) override;
     uint32_t pubseekoff(SId id, int32_t n, bool r) override;
     uint32_t pubseekpos(SId id, int32_t n, bool r) override;
@@ -145,11 +144,6 @@ inline SId RemoteInterface::fopen(const std::string& path) {
   SId res;
   sock_->read(reinterpret_cast<char*>(&res), sizeof(SId));
   return res;
-}
-
-inline void RemoteInterface::close(SId id) {
-  Rpc(Rpc::Type::CLOSE, id_).serialize(*sock_);
-  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
 }
 
 inline int32_t RemoteInterface::in_avail(SId id) {

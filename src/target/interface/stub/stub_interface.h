@@ -53,7 +53,6 @@ class StubInterface : public Interface {
     void write(VId id, const Bits* b) override;
 
     SId fopen(const std::string& path) override;
-    void close(SId id) override;
     int32_t in_avail(SId id) override;
     uint32_t pubseekoff(SId id, int32_t n, bool r) override;
     uint32_t pubseekpos(SId id, int32_t n, bool r) override;
@@ -122,11 +121,6 @@ inline SId StubInterface::fopen(const std::string& path) {
   // Does nothing
   (void) path;
   return 0;
-}
-
-inline void StubInterface::close(SId id) {
-  // Does nothing
-  (void) id;
 }
 
 inline int32_t StubInterface::in_avail(SId id) {

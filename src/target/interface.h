@@ -67,7 +67,6 @@ class Interface {
     // These methods must perform whatever target-specific logic is necessary
     // to cause the corresponding API calls to be invoked by the runtime.
     virtual SId fopen(const std::string& path) = 0;
-    virtual void close(SId id) = 0;
     virtual int32_t in_avail(SId id) = 0;
     virtual uint32_t pubseekoff(SId id, int32_t n, bool r) = 0;
     virtual uint32_t pubseekpos(SId id, int32_t n, bool r) = 0;

@@ -232,13 +232,11 @@ bool is_null(const cascade::Expression* e) {
 %type <std::vector<ModuleItem*>> output_declaration
 
 /* A.2.1.3 Type Declarations */
-%type <std::vector<ModuleItem*>> file_declaration
 %type <std::vector<ModuleItem*>> integer_declaration
 %type <std::vector<ModuleItem*>> net_declaration
 %type <std::vector<ModuleItem*>> reg_declaration
 
 /* A.2.2.1 Net and Variable Types */
-%type <VariableAssign*> file_type
 %type <NetDeclaration::Type> net_type
 %type <VariableAssign*> variable_type
 
@@ -247,7 +245,6 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> delay_value
 
 /* A.2.3 Declaration Lists */
-%type <std::vector<VariableAssign*>> list_of_file_identifiers
 %type <std::vector<VariableAssign*>> list_of_net_decl_assignments
 %type <std::vector<Identifier*>> list_of_net_identifiers
 %type <std::vector<VariableAssign*>> list_of_param_assignments
@@ -394,7 +391,6 @@ bool is_null(const cascade::Expression* e) {
 %type <Expression*> eq_ce_Q
 %type <std::vector<Expression*>> expression_P
 %type <Expression*> expression_Q
-%type <size_t> stream_L
 %type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
 %type <std::vector<ModuleItem*>> list_of_port_declarations_Q
@@ -583,7 +579,6 @@ module_or_generate_item
 module_or_generate_item_declaration
   : net_declaration { $$ = $1; }
   | reg_declaration { $$ = $1; }
-  | file_declaration { $$ = $1; }
   | integer_declaration { $$ = $1; }
   /* TODO | real_declaration */
   /* TODO | time_declaration */
@@ -661,7 +656,7 @@ parameter_declaration
   }
   ;
 parameter_type
-  : INTEGER 
+  : integer_L 
   ;
 /* A.2.1.2 Port Declarations */
 inout_declaration
@@ -714,17 +709,6 @@ output_declaration
   ;
 
 /* A.2.1.3 Type Declarations */
-file_declaration
-  : attribute_instance_S stream_L list_of_file_identifiers SCOLON {
-    for (auto va : $3) {
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
-      delete va;
-      parser->set_loc(id, $2);
-      parser->set_loc(id->get_id(), $2);
-      $$.push_back(id);
-    }
-    delete $1;
-  }
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
@@ -791,11 +775,6 @@ reg_declaration
   ;
 
 /* A.2.2.1 Net and Variable Types */
-file_type
-  : identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
-    $$ = new VariableAssign($1, new FopenExpression($5)); 
-    parser->set_loc($$, $1);
-  }
 net_type
   /* TODO : SUPPLY0 */
   /* TODO | SUPPLY1 */
@@ -820,6 +799,10 @@ variable_type
     $$ = new VariableAssign($1, $3); 
     parser->set_loc($$, $1);
   }
+  | identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5)); 
+    parser->set_loc($$, $1);
+  }
   ;
 
 /* A.2.2.3 Delays */
@@ -837,15 +820,6 @@ delay_value
   ;
 
 /* A.2.3 Declaration Lists */
-list_of_file_identifiers
-  : file_type { 
-    $$.push_back($1); 
-  }
-  | list_of_file_identifiers COMMA file_type {
-    $$ = $1;
-    $$.push_back($3);
-  }
-  ;
 list_of_net_decl_assignments
   : net_decl_assignment { 
     $$.push_back($1); 
@@ -937,7 +911,7 @@ block_item_declaration
       delete $4;
     }
   }
-  | attribute_instance_S INTEGER list_of_block_variable_identifiers SCOLON { 
+  | attribute_instance_S integer_L list_of_block_variable_identifiers SCOLON { 
     for (auto id : $3) {
       $$.push_back(new IntegerDeclaration($1->clone(), id, nullptr));
     }
@@ -1864,15 +1838,13 @@ expression_Q
   : %empty { $$ = nullptr; }
   | expression { $$ = $1; }
   ;
-stream_L
-  : STREAM { $$ = parser->get_loc().begin.line; }
-  ;
 generate_block_id_Q
   : %empty { $$ = nullptr; }
   | COLON identifier { $$ = $2; }
   ;
 integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }
+  | STREAM { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
   : %empty { }

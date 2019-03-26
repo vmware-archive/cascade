@@ -324,14 +324,6 @@ SId Runtime::fopen(const std::string& path) {
   return (stream_table_.size()-1);;
 }
 
-void Runtime::close(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  delete stream_table_[id];
-  stream_table_[id] = nullptr;
-}
-
 int32_t Runtime::in_avail(SId id) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);

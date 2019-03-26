@@ -80,7 +80,6 @@ struct Rpc : Serializable {
     WRITE_BITS,
 
     FOPEN,
-    CLOSE,
     IN_AVAIL,
     PUBSEEKOFF,
     PUBSEEKPOS,

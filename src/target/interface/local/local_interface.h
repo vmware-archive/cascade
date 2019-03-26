@@ -56,7 +56,6 @@ class LocalInterface : public Interface {
     void write(VId id, bool b) override;
 
     SId fopen(const std::string& path) override;
-    void close(SId id) override;
     int32_t in_avail(SId id) override;
     uint32_t pubseekoff(SId id, int32_t n, bool r) override;
     uint32_t pubseekpos(SId id, int32_t n, bool r) override;
@@ -121,10 +120,6 @@ inline void LocalInterface::write(VId id, bool b) {
 
 inline SId LocalInterface::fopen(const std::string& path) {
   return rt_->fopen(path);
-}
-
-inline void LocalInterface::close(SId id) {
-  rt_->close(id);
 }
 
 inline int32_t LocalInterface::in_avail(SId id) {

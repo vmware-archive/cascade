@@ -148,8 +148,6 @@ class Runtime : public Asynchronous {
     // 
     // Creates an entry in the stream table by calling new filebuf(path, in|out).
     SId fopen(const std::string& path);
-    // Removes an entry from the stream table. 
-    void close(SId id);
     // streambuf operators: The boolean argument to pubseekoff/pos is used to
     // select between read/write (true/false) pointers. pubseekoff assumes
     // std::cur as its locator.
