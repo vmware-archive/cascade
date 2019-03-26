@@ -169,7 +169,7 @@ void Runtime::write(const string& s) {
   });
 }
 
-void Runtime::finish(int arg) {
+void Runtime::finish(uint32_t arg) {
   schedule_interrupt([this, arg]{
     if (arg > 0) {
       stringstream ss;
@@ -332,63 +332,63 @@ void Runtime::close(SId id) {
   stream_table_[id] = nullptr;
 }
 
-int Runtime::in_avail(SId id) {
+int32_t Runtime::in_avail(SId id) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->in_avail();
 }
 
-size_t Runtime::pubseekoff(SId id, int n, bool r) {
+uint32_t Runtime::pubseekoff(SId id, int32_t n, bool r) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
-size_t Runtime::pubseekpos(SId id, int n, bool r) {
+uint32_t Runtime::pubseekpos(SId id, int32_t n, bool r) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->pubseekpos(n, r ? ios::in : ios::out);
 }
 
-int Runtime::pubsync(SId id) {
+int32_t Runtime::pubsync(SId id) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->pubsync();
 }
 
-int Runtime::sbumpc(SId id) {
+int32_t Runtime::sbumpc(SId id) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sbumpc();
 }
 
-int Runtime::sgetc(SId id) {
+int32_t Runtime::sgetc(SId id) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sgetc();
 }
 
-size_t Runtime::sgetn(SId id, char* c, size_t n) {
+uint32_t Runtime::sgetn(SId id, char* c, uint32_t n) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sgetn(c, n);
 }
 
-int Runtime::sputc(SId id, char c) {
+int32_t Runtime::sputc(SId id, char c) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 
   return stream_table_[id]->sputc(c);
 }
 
-size_t Runtime::sputn(SId id, const char* c, size_t n) {
+uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
   assert(id < stream_table_.size());
   assert(stream_table_[id] != nullptr);
 

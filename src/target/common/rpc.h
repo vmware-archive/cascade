@@ -76,7 +76,20 @@ struct Rpc : Serializable {
     SAVE,
     WARNING,
     WRITE,
+
     WRITE_BITS,
+
+    FOPEN,
+    CLOSE,
+    IN_AVAIL,
+    PUBSEEKOFF,
+    PUBSEEKPOS,
+    PUBSYNC,
+    SBUMPC,
+    SGETC,
+    SGETN,
+    SPUTC,
+    SPUTN,
 
     // Teardown Codes:
     ENGINE_TEARDOWN,

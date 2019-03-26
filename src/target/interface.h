@@ -48,7 +48,7 @@ class Interface {
     // cause the corresponding system task calls to be invoked in the runtime.
     virtual void display(const std::string& s) = 0;
     virtual void error(const std::string& s) = 0;
-    virtual void finish(int arg) = 0;
+    virtual void finish(uint32_t arg) = 0;
     virtual void info(const std::string& s) = 0;
     virtual void restart(const std::string& s) = 0;
     virtual void retarget(const std::string& s) = 0;
@@ -68,15 +68,15 @@ class Interface {
     // to cause the corresponding API calls to be invoked by the runtime.
     virtual SId fopen(const std::string& path) = 0;
     virtual void close(SId id) = 0;
-    virtual int in_avail(SId id) = 0;
-    virtual int pubsync(SId id) = 0;
-    virtual size_t pubseekoff(SId id, int n, bool r) = 0;
-    virtual size_t pubseekpos(SId id, int n, bool r) = 0;
-    virtual int sbumpc(SId id) = 0;
-    virtual int sgetc(SId id) = 0;
-    virtual size_t sgetn(SId id, char* c, size_t n) = 0;
-    virtual int sputc(SId id, char c) = 0;
-    virtual size_t sputn(SId id, const char* c, size_t n) = 0;
+    virtual int32_t in_avail(SId id) = 0;
+    virtual uint32_t pubseekoff(SId id, int32_t n, bool r) = 0;
+    virtual uint32_t pubseekpos(SId id, int32_t n, bool r) = 0;
+    virtual int32_t pubsync(SId id) = 0;
+    virtual int32_t sbumpc(SId id) = 0;
+    virtual int32_t sgetc(SId id) = 0;
+    virtual uint32_t sgetn(SId id, char* c, uint32_t n) = 0;
+    virtual int32_t sputc(SId id, char c) = 0;
+    virtual uint32_t sputn(SId id, const char* c, uint32_t n) = 0;
 };
 
 inline void Interface::write(VId id, bool b) {

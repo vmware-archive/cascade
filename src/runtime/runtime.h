@@ -105,7 +105,7 @@ class Runtime : public Asynchronous {
     void write(const std::string& s);
     // Shutdown the runtime and print statistics if arg is non-zero between
     // this and the next timestep. Returns immediately.
-    void finish(int arg);
+    void finish(uint32_t arg);
     // Prints an error message between this and the next timestep. Returns
     // immediately.
     void error(const std::string& s);
@@ -153,15 +153,15 @@ class Runtime : public Asynchronous {
     // streambuf operators: The boolean argument to pubseekoff/pos is used to
     // select between read/write (true/false) pointers. pubseekoff assumes
     // std::cur as its locator.
-    int in_avail(SId id);
-    size_t pubseekoff(SId id, int n, bool r);
-    size_t pubseekpos(SId id, int n, bool r);
-    int pubsync(SId id);
-    int sbumpc(SId id);
-    int sgetc(SId id);
-    size_t sgetn(SId id, char* c, size_t n);
-    int sputc(SId id, char c);
-    size_t sputn(SId id, const char* c, size_t n);
+    int32_t in_avail(SId id);
+    uint32_t pubseekoff(SId id, int32_t n, bool r);
+    uint32_t pubseekpos(SId id, int32_t n, bool r);
+    int32_t pubsync(SId id);
+    int32_t sbumpc(SId id);
+    int32_t sgetc(SId id);
+    uint32_t sgetn(SId id, char* c, uint32_t n);
+    int32_t sputc(SId id, char c);
+    uint32_t sputn(SId id, const char* c, uint32_t n);
 
     // Profiling Interface:
     //

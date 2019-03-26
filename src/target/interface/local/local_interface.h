@@ -44,7 +44,7 @@ class LocalInterface : public Interface {
 
     void display(const std::string& s) override;
     void error(const std::string& s) override;
-    void finish(int arg) override;
+    void finish(uint32_t arg) override;
     void info(const std::string& s) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
@@ -57,15 +57,15 @@ class LocalInterface : public Interface {
 
     SId fopen(const std::string& path) override;
     void close(SId id) override;
-    int in_avail(SId id) override;
-    size_t pubseekoff(SId id, int n, bool r) override;
-    size_t pubseekpos(SId id, int n, bool r) override;
-    int pubsync(SId id) override;
-    int sbumpc(SId id) override;
-    int sgetc(SId id) override;
-    size_t sgetn(SId id, char* c, size_t n) override;
-    int sputc(SId id, char c) override;
-    size_t sputn(SId id, const char* c, size_t n) override;
+    int32_t in_avail(SId id) override;
+    uint32_t pubseekoff(SId id, int32_t n, bool r) override;
+    uint32_t pubseekpos(SId id, int32_t n, bool r) override;
+    int32_t pubsync(SId id) override;
+    int32_t sbumpc(SId id) override;
+    int32_t sgetc(SId id) override;
+    uint32_t sgetn(SId id, char* c, uint32_t n) override;
+    int32_t sputc(SId id, char c) override;
+    uint32_t sputn(SId id, const char* c, uint32_t n) override;
 
   private:
     Runtime* rt_;
@@ -83,7 +83,7 @@ inline void LocalInterface::error(const std::string& s) {
   rt_->error(s);
 }
 
-inline void LocalInterface::finish(int arg) {
+inline void LocalInterface::finish(uint32_t arg) {
   rt_->finish(arg);
 }
 
@@ -127,39 +127,39 @@ inline void LocalInterface::close(SId id) {
   rt_->close(id);
 }
 
-inline int LocalInterface::in_avail(SId id) {
+inline int32_t LocalInterface::in_avail(SId id) {
   return rt_->in_avail(id);
 }
 
-inline size_t LocalInterface::pubseekoff(SId id, int n, bool r) {
+inline uint32_t LocalInterface::pubseekoff(SId id, int32_t n, bool r) {
   return rt_->pubseekoff(id, n, r);
 }
 
-inline size_t LocalInterface::pubseekpos(SId id, int n, bool r) {
+inline uint32_t LocalInterface::pubseekpos(SId id, int32_t n, bool r) {
   return rt_->pubseekpos(id, n, r);
 }
 
-inline int LocalInterface::pubsync(SId id) {
+inline int32_t LocalInterface::pubsync(SId id) {
   return rt_->pubsync(id);
 }
 
-inline int LocalInterface::sbumpc(SId id) {
+inline int32_t LocalInterface::sbumpc(SId id) {
   return rt_->sbumpc(id);
 }
 
-inline int LocalInterface::sgetc(SId id) {
+inline int32_t LocalInterface::sgetc(SId id) {
   return rt_->sgetc(id);
 }
 
-inline size_t LocalInterface::sgetn(SId id, char* c, size_t n) {
+inline uint32_t LocalInterface::sgetn(SId id, char* c, uint32_t n) {
   return rt_->sgetn(id, c, n);
 }
 
-inline int LocalInterface::sputc(SId id, char c) {
+inline int32_t LocalInterface::sputc(SId id, char c) {
   return rt_->sputc(id, c);
 }
 
-inline size_t LocalInterface::sputn(SId id, const char* c, size_t n) {
+inline uint32_t LocalInterface::sputn(SId id, const char* c, uint32_t n) {
   return rt_->sputn(id, c, n);
 }
 
