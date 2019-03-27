@@ -202,13 +202,13 @@ void RemoteRuntime::run_logic() {
     }
   }
 
+  for (auto* e : engines) {
+    delete e;
+  }
   for (auto* s : socks) {
     if (s != nullptr) {
       delete s;
     }
-  }
-  for (auto* e : engines) {
-    delete e;
   }
 }
 
