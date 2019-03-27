@@ -85,6 +85,7 @@ template <typename T>
 inline ProxyCore<T>::~ProxyCore() {
   Rpc(Rpc::Type::ENGINE_TEARDOWN, id_).serialize(*sock_);
   sock_->flush();
+  recv();
 }
 
 template <typename T>

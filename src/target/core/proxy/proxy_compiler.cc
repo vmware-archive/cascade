@@ -42,6 +42,9 @@ ProxyCompiler::~ProxyCompiler() {
   for (auto& s : socks_) {
     Rpc(Rpc::Type::CONNECTION_TEARDOWN, 0).serialize(*s.second);
     s.second->flush();
+    Rpc rpc;
+    rpc.deserialize(*s.second);
+    assert(rpc.type_ == Rpc::Type::OKAY);
     delete s.second;
   }
 }

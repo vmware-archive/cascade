@@ -86,6 +86,7 @@ inline sockstream::sockstream(const char* host, uint32_t port) : fdstream(inet_s
 
 inline sockstream::~sockstream() {
   if (fd_ != -1) {
+    flush();
     ::close(fd_);
   }
 }
