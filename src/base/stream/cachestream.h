@@ -66,7 +66,7 @@ class cachebuf : public std::streambuf {
     void imbue(const std::locale& loc) override;
 
     // Positioning:
-    cachebuf* setbuf(char_type* s, std::streamsize n) override;
+    std::streambuf* setbuf(char_type* s, std::streamsize n) override;
     pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
     pos_type seekpos(pos_type pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
     int sync() override;
@@ -96,56 +96,48 @@ inline cachebuf::cachebuf(std::streambuf* backend, size_t n) : get_(n), put_(n) 
 }
 
 inline cachebuf::~cachebuf() {
-  flush_get();
-  flush_put();
+  sync();
 }
 
 inline void cachebuf::imbue(const std::locale& loc) {
-  // Does nothing.
-  (void) loc;
+  flush_get();
+  flush_put();
+  backend_->pubimbue(loc);
 }
 
-inline cachebuf* cachebuf::setbuf(char_type* s, std::streamsize n) {
-  // Does nothing.
-  (void) s;
-  (void) n;
-  return this;
+inline std::streambuf* cachebuf::setbuf(char_type* s, std::streamsize n) {
+  flush_get();
+  flush_put();
+  return backend_->pubsetbuf(s, n);
 }
 
 inline cachebuf::pos_type cachebuf::seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which) {
-  // Synchronize whichever areas we're about to change the position of
   if (which == std::ios_base::in) {
     flush_get();
   } 
   if (which == std::ios_base::out) {
     flush_put();
   }
-  // Now delegate the request to the backend
   return backend_->pubseekoff(off, dir, which);
 }
 
 inline cachebuf::pos_type cachebuf::seekpos(pos_type pos, std::ios_base::openmode which) {
-  // Synchronize whichever areas we're about to change the position of
   if (which == std::ios_base::in) {
     flush_get();
   } 
   if (which == std::ios_base::out) {
     flush_put();
   }
-  // Now delegate the request to the backend
   return backend_->pubseekpos(pos, which);
 }
 
 inline int cachebuf::sync() {
-  // Flush the buffers and sync the backend
   flush_get();
   flush_put();
   return backend_->pubsync();
 }
 
 inline std::streamsize cachebuf::showmanyc() {
-  // If there are bytes in the get area, we can return at least that many.
-  // Otherwise, it's up to the backend to produce an estimate.
   return (egptr() > gptr()) ? (egptr() - gptr()) : backend_->in_avail();
 }
 
@@ -210,12 +202,8 @@ inline std::streamsize cachebuf::xsputn(const char_type* s, std::streamsize coun
 }
 
 inline cachebuf::int_type cachebuf::overflow(int_type c) {
-  // We're full. Flush the put area.
   flush_put();
-
-  // Add the character to the put area and update the put pointer.
   put_[0] = c;
-  setp(put_.data(), put_.data()+put_.size());
   pbump(1);
 
   return traits_type::to_int_type(c);
@@ -237,7 +225,7 @@ inline void cachebuf::flush_get() {
   if (egptr() == gptr()) {
     return;
   }
-  backend_->pubseekoff(-(gptr()-eback()), std::ios_base::cur, std::ios_base::in);
+  backend_->pubseekoff(-(egptr()-gptr()), std::ios_base::cur, std::ios_base::in);
   setg(get_.data(), get_.data()+get_.size(), get_.data()+get_.size());
 }
 
