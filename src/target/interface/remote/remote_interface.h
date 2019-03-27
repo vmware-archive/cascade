@@ -213,7 +213,7 @@ inline int32_t RemoteInterface::sgetc(SId id) {
 inline uint32_t RemoteInterface::sgetn(SId id, char* c, uint32_t n) {
   Rpc(Rpc::Type::SGETN, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
-  sock_->write(reinterpret_cast<const char*>(&id), sizeof(n));
+  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
   sock_->flush();
 
   uint32_t res;
