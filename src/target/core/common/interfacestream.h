@@ -34,6 +34,7 @@
 #include <cassert>
 #include <iostream>
 #include <streambuf>
+#include "src/base/stream/cachestream.h"
 #include "src/runtime/runtime.h"
 #include "src/target/interface.h"
 
@@ -79,6 +80,7 @@ class interfacestream : public std::iostream {
     ~interfacestream() override = default;
 
   private:
+    cachebuf cache_;
     interfacebuf buf_;
 };
 
@@ -128,7 +130,7 @@ inline std::streambuf::int_type interfacebuf::overflow(int_type c) {
   return interface_->sputc(id_, c);
 }
 
-inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(&buf_), buf_(interface, id) { }
+inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(&cache_), cache_(&buf_, 1024), buf_(interface, id) { }
 
 } // namespace cascade
 

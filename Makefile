@@ -98,6 +98,7 @@ HDR=\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
 	src/base/stream/bufstream.h\
+	src/base/stream/cachestream.h\
 	src/base/stream/fdstream.h\
 	src/base/stream/incstream.h\
 	src/base/stream/indstream.h\
@@ -126,6 +127,7 @@ HDR=\
 	src/target/input.h\
 	src/target/interface.h\
 	src/target/interface_compiler.h\
+	src/target/interface/remote/remote_interface.h\
 	src/target/state.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
