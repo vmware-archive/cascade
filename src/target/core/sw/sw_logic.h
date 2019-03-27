@@ -44,6 +44,8 @@
 
 namespace cascade {
 
+class interfacestream;
+
 class SwLogic : public Logic, public Visitor {
   public:
     SwLogic(Interface* interface, ModuleDeclaration* md);
@@ -74,7 +76,7 @@ class SwLogic : public Logic, public Visitor {
     std::vector<const Identifier*> reads_;
     std::vector<std::pair<const Identifier*, VId>> writes_;
     std::unordered_map<VId, const Identifier*> state_;
-    std::vector<std::pair<const Identifier*, VId>> streams_;
+    std::unordered_map<const Identifier*, interfacestream*> streams_;
 
     // Control State:
     Evaluate eval_;

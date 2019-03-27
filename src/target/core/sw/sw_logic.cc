@@ -68,6 +68,11 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
 
 SwLogic::~SwLogic() {
   delete src_;
+  for (auto& s : streams_) {
+    if (s.second != nullptr) {
+      delete s.second;
+    }
+  }
 }
 
 SwLogic& SwLogic::set_read(const Identifier* id, VId vid) {
@@ -89,7 +94,8 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
 }
 
 SwLogic& SwLogic::set_stream(const Identifier* id, VId vid) {
-  streams_.push_back(make_pair(id, vid));
+  (void) vid;
+  streams_.insert(make_pair(id, nullptr));
   return *this;
 }
 
@@ -154,7 +160,8 @@ void SwLogic::finalize() {
       const auto* rd = static_cast<const RegDeclaration*>(s.first->get_parent());
       const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
       const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
-      Evaluate().assign_value(s.first, Bits(32, id));
+      // Write the value of this variable so this condition isn't invoked again
+      eval_.assign_value(s.first, Bits(32, id));
       // Notify change in stream state
       eval_.flag_changed(const_cast<Identifier*>(s.first));
       notify(s.first);
@@ -162,6 +169,9 @@ void SwLogic::finalize() {
       // continuous assign or an always block)
       silent_evaluate();
     }
+    // Regardless of which time through this is, create an interfacestream for
+    // this variable.
+    s.second = new interfacestream(interface(), eval_.get_value(s.first).to_int());
   }
 
   // Schedule initial constructs
@@ -489,10 +499,10 @@ void SwLogic::visit(const FinishStatement* fs) {
 void SwLogic::visit(const FlushStatement* fs) {
   if (!silent_) {
     const auto* r = Resolve().get_resolution(fs->get_arg());
-    const auto id = eval_.get_value(r).to_int();
+    const auto itr = streams_.find(r);
+    assert(itr != streams_.end());
 
-    interfacestream is(interface(), id);
-    is.flush();
+    itr->second->flush();
 
     // Notify changes in stream state
     eval_.flag_changed(r);
@@ -504,11 +514,11 @@ void SwLogic::visit(const FlushStatement* fs) {
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
     const auto* rid = Resolve().get_resolution(gs->get_id());
-    const auto id = eval_.get_value(rid).to_int();
-    Bits val;
+    const auto itr = streams_.find(rid);
+    assert(itr != streams_.end());
 
-    interfacestream is(interface(), id);
-    val.read(is, 16);
+    Bits val;
+    val.read(*itr->second, 16);
     const auto* rvar = Resolve().get_resolution(gs->get_var());
     eval_.assign_value(rvar, val);
 
@@ -532,12 +542,12 @@ void SwLogic::visit(const InfoStatement* is) {
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
     const auto* r = Resolve().get_resolution(ps->get_id());
-    const auto id = eval_.get_value(r).to_int();
-    const auto& val = eval_.get_value(ps->get_var());
+    const auto itr = streams_.find(r);
+    assert(itr != streams_.end());
 
-    interfacestream is(interface(), id);
-    val.write(is, 16);
-    is.put(' ');
+    const auto& val = eval_.get_value(ps->get_var());
+    val.write(*itr->second, 16);
+    itr->second->put(' ');
 
     // Notify change in stream state (note that isn't guaranteed to do anything
     // as interface has some implementation leeway for put). The only way to
@@ -575,11 +585,11 @@ void SwLogic::visit(const SaveStatement* ss) {
 void SwLogic::visit(const SeekStatement* ss) {
   if (!silent_) {
     const auto* r = Resolve().get_resolution(ss->get_arg());
-    const auto id = eval_.get_value(r).to_int();
-    const auto& pos = eval_.get_value(ss->get_pos()).to_int();
+    const auto itr = streams_.find(r);
+    assert(itr != streams_.end());
 
-    interfacestream is(interface(), id);
-    is.seekg(pos);
+    const auto& pos = eval_.get_value(ss->get_pos()).to_int();
+    itr->second->seekg(pos);
 
     // Notify changes in stream state
     eval_.flag_changed(r);
