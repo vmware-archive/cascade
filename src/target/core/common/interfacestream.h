@@ -37,6 +37,7 @@
 #include "src/base/stream/cachestream.h"
 #include "src/runtime/runtime.h"
 #include "src/target/interface.h"
+#include "src/target/interface/remote/remote_interface.h"
 
 namespace cascade {
 
@@ -80,8 +81,10 @@ class interfacestream : public std::iostream {
     ~interfacestream() override = default;
 
   private:
-    cachebuf cache_;
     interfacebuf buf_;
+    cachebuf cache_;
+
+    std::streambuf* get_buf(Interface* interface);
 };
 
 interfacebuf::interfacebuf(Interface* interface, SId id) {
@@ -130,7 +133,11 @@ inline std::streambuf::int_type interfacebuf::overflow(int_type c) {
   return interface_->sputc(id_, c);
 }
 
-inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(&cache_), cache_(&buf_, 1024), buf_(interface, id) { }
+inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(get_buf(interface)), buf_(interface, id), cache_(&buf_, 1024) { }
+
+inline std::streambuf* interfacestream::get_buf(Interface* interface) {
+  return (dynamic_cast<RemoteInterface*>(interface) != nullptr) ? static_cast<std::streambuf*>(&cache_) : static_cast<std::streambuf*>(&buf_);
+}
 
 } // namespace cascade
 
