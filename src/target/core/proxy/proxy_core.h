@@ -291,7 +291,7 @@ inline void ProxyCore<T>::recv() {
         std::string path = "";
         getline(*sock_, path, '\0');
 
-        auto res = T::interface()->fopen(path);
+        SId res = T::interface()->fopen(path);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -300,7 +300,7 @@ inline void ProxyCore<T>::recv() {
         SId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
-        auto res = T::interface()->in_avail(id);
+        int32_t res = T::interface()->in_avail(id);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -312,7 +312,7 @@ inline void ProxyCore<T>::recv() {
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
         const auto r = (sock_->get() == 1);
 
-        auto res = T::interface()->pubseekoff(id, n, r);
+        uint32_t res = T::interface()->pubseekoff(id, n, r);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -324,7 +324,7 @@ inline void ProxyCore<T>::recv() {
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
         const auto r = (sock_->get() == 1);
 
-        auto res = T::interface()->pubseekpos(id, n, r);
+        uint32_t res = T::interface()->pubseekpos(id, n, r);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -333,7 +333,7 @@ inline void ProxyCore<T>::recv() {
         SId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
-        auto res = T::interface()->pubsync(id);
+        int32_t res = T::interface()->pubsync(id);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -342,7 +342,7 @@ inline void ProxyCore<T>::recv() {
         SId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
-        auto res = T::interface()->sbumpc(id);
+        int32_t res = T::interface()->sbumpc(id);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
@@ -351,19 +351,19 @@ inline void ProxyCore<T>::recv() {
         SId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
-        auto res = T::interface()->sgetc(id);
+        int32_t res = T::interface()->sgetc(id);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::SGETN: {
         SId id = 0;
-        int32_t n = 0;
+        uint32_t n = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
 
         auto* c = new char[n];
-        auto res = T::interface()->sgetn(id, c, n);
+        uint32_t res = T::interface()->sgetn(id, c, n);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->write(c, n);
         sock_->flush();
@@ -375,20 +375,20 @@ inline void ProxyCore<T>::recv() {
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         auto c = sock_->get();
 
-        auto res = T::interface()->sputc(id, c);
+        int32_t res = T::interface()->sputc(id, c);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::SPUTN: {
         SId id = 0;
-        int32_t n = 0;
+        uint32_t n = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
         auto* c = new char[n];
         sock_->read(c, n);
 
-        auto res = T::interface()->sputn(id, c, n);
+        uint32_t res = T::interface()->sputn(id, c, n);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         delete[] c;
