@@ -162,6 +162,9 @@ TEST(simple, inst_2) {
 TEST(simple, inst_3) {
   run_code("minimal","data/test/regression/simple/inst_3.v", "1");
 }
+TEST(simple, io_1) {
+  run_code("minimal","data/test/regression/simple/io_1.v", "1234512345");
+}
 TEST(simple, issue_20a) {
   run_code("minimal","data/test/regression/simple/issue_20a.v", "");
 }
