@@ -590,6 +590,7 @@ void SwLogic::visit(const SeekStatement* ss) {
     assert(itr != streams_.end());
 
     const auto& pos = eval_.get_value(ss->get_pos()).to_int();
+    itr->second->clear();
     itr->second->seekg(pos);
 
     // Notify changes in stream state
