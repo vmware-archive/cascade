@@ -148,9 +148,10 @@ void SwLogic::set_input(const Input* i) {
 void SwLogic::finalize() {
   // Attach eof handler
   eval_.set_eof_handler([this](Evaluate* eval, const EofExpression* ee) {
+    (void) eval;
     const auto* r = Resolve().get_resolution(ee->get_arg());
-    const auto id = eval->get_value(r).to_int();
-    return (this->interface()->sgetc(id) == char_traits<char>::eof());
+    const auto itr = streams_.find(r);
+    return (itr == streams_.end()) || itr->second->eof();
   });
 
   // Generate values for any calls to fopen which haven't been handled yet
