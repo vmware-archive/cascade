@@ -34,6 +34,8 @@ BISON_SRC=src/verilog/parse/verilog.tab.cc
 OBJ=\
 	ext/mongoose/mongoose.o\
 	\
+	lib/cascade.o\
+	\
 	src/runtime/data_plane.o\
 	src/runtime/isolate.o\
 	src/runtime/module.o\
@@ -55,7 +57,6 @@ OBJ=\
 	src/target/state.o\
 	\
 	src/ui/log/log_view.o\
-	src/ui/stream/stream_controller.o\
 	src/ui/term/term_controller.o\
 	src/ui/term/term_view.o\
 	src/ui/web/web_ui.o\
@@ -156,7 +157,6 @@ HDR=\
 	src/ui/combinator/many_view.h\
 	src/ui/combinator/maybe_view.h\
 	src/ui/log/log_view.h\
-	src/ui/stream/stream_controller.h\
 	src/ui/term/term_controller.h\
 	src/ui/term/term_view.h\
 	src/ui/web/web_ui.h\

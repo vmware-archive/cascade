@@ -73,9 +73,6 @@ class View {
     virtual void decl(size_t t, const Program* p, const ModuleDeclaration* md);
     // A module item was successfully eval'ed.
     virtual void item(size_t t, const Program* p, const ModuleDeclaration* md);
-
-    // The program crashed --- everything has gone up in flames
-    virtual void crash();
 };
 
 inline void View::startup(size_t t) {
@@ -127,10 +124,6 @@ inline void View::item(size_t t, const Program* p, const ModuleDeclaration* md) 
   (void) t;
   (void) p;
   (void) md;
-}
-
-inline void View::crash() {
-  // Does nothing.
 }
 
 } // namespace cascade

@@ -56,8 +56,6 @@ class ManyView : public View {
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
-    void crash() override;
-
   private:
     std::vector<View*> views_;
 };
@@ -133,12 +131,6 @@ inline void ManyView::item(size_t t, const Program* p, const ModuleDeclaration* 
     v->item(t, p, md);
   }
 }
-
-inline void ManyView::crash() {
-  for (auto* v : views_) {
-    v->crash();
-  }
-} 
 
 } // namespace cascade
 

@@ -28,29 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
 #include <signal.h>
-#include <string>
 #include "ext/cl/include/cl.h"
-#include "src/base/stream/incstream.h"
 #include "src/base/system/system.h"
-#include "src/base/thread/asynchronous.h"
-#include "src/runtime/runtime.h"
-#include "src/target/common/remote_runtime.h"
-#include "src/target/compiler.h"
-#include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/proxy/proxy_compiler.h"
-#include "src/target/core/sw/sw_compiler.h"
-#include "src/target/interface/local/local_compiler.h"
-#include "src/ui/combinator/many_view.h"
-#include "src/ui/combinator/maybe_view.h"
-#include "src/ui/log/log_view.h"
-#include "src/ui/stream/stream_controller.h"
-#include "src/ui/term/term_controller.h"
-#include "src/ui/term/term_view.h"
-#include "src/ui/web/web_ui.h"
+#include "lib/cascade.h"
 
 using namespace cl;
 using namespace cascade;
@@ -71,15 +52,15 @@ auto& input_path = StrArg<string>::create("-e")
   .usage("path/to/file.v")
   .description("Read input from file");
 auto& ui = StrArg<string>::create("--ui")
-  .usage("term|web")
+  .usage("term|web|batch")
   .description("UI interface")
-  .initial("console");
+  .initial("term");
 
 __attribute__((unused)) auto& g2 = Group::create("Web UI Options"); 
-auto& web_ui_port = StrArg<string>::create("--web_ui_port")
+auto& web_ui_port = StrArg<size_t>::create("--web_ui_port")
   .usage("<int>")
   .description("Port to run web ui on")
-  .initial("11111");
+  .initial(11111);
 auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
   .usage("<int>")
   .description("Maximum number of log messages to buffer per refresh")
@@ -131,47 +112,22 @@ auto& slave_path = StrArg<string>::create("--slave_path")
   .description("Path to listen for slave_connections on")
   .initial("/tmp/fpga_socket");
 
-class Profiler : public Asynchronous {
-  public:
-    explicit Profiler(Runtime* rt) : Asynchronous() { 
-      rt_ = rt;
-    }
-    ~Profiler() override = default;
-  private:
-    void run_logic() override {
-      while (!stop_requested()) {
-        stringstream ss;
-        ss << "time / freq = " << setw(10) << time(nullptr) << " / " << setw(7) << rt_->current_frequency();
-        rt_->info(ss.str());
-        sleep_for(1000*::profile.value());        
-      }
-    }
-    Runtime* rt_;
-};
-
-// Master-Mode Components:
-ManyView* view = nullptr;
-Runtime* runtime = nullptr;
-Controller* controller = nullptr;
-// Slave-Mode Components:
-RemoteRuntime* remote_runtime = nullptr;
-// Logging Components:
-ofstream* logfile = nullptr;
-Profiler* profiler = nullptr;
+Cascade* cascade_ = nullptr;
 
 void int_handler(int sig) {
   (void) sig;
-  if (::runtime != nullptr) {
-    ::runtime->error("User Interrupt:\n  > Caught Ctrl-C.");
-    ::runtime->finish(0);
-  } else if (::remote_runtime != nullptr) {
-    ::remote_runtime->request_stop();
+  if (!::slave.value()) {
+    ::cascade_->error("User Interrupt:\n  > Caught Ctrl-C.");
+    ::cascade_->finish(0);
+  } else {
+    ::cascade_->request_stop();
   }
 }
 
 void segv_handler(int sig) {
   (void) sig;
-  ::view->crash();
+  cout << "CASCADE SHUTDOWN UNEXPECTEDLY" << endl;
+  cout << "Please rerun with --enable_logging and forward log file to developers" << endl;
   exit(1);
 }
 
@@ -193,112 +149,48 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
-  // Setup Compiler State
-  auto* dc = new De10Compiler();
-    dc->set_host(::quartus_host.value());
-    dc->set_port(::quartus_port.value());
-  auto* pc = new ProxyCompiler();
-  auto* sc = new SwCompiler();
-    sc->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-  auto* c = new Compiler();
-    c->set_de10_compiler(dc);
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
+  cascade_ = new Cascade();
 
-  // Setup Global MVC State if running in Master-Mode
-  if (!::slave.value()) {
-    ::view = new ManyView();
-    ::runtime = new Runtime(::view);
-    if (::enable_logging) {
-      ::logfile = new ofstream("cascade.log", ofstream::app);
-      ::view->attach(new LogView(*::logfile));
-    }
-    if (::ui.value() == "web") {
-      auto* mv = new MaybeView();
-      auto* wui = new WebUi(::runtime);
-      wui->set_port(::web_ui_port.value());
-      wui->set_buffer(::web_ui_buffer.value());
-      wui->set_debug(::web_ui_debug.value());
-      ::controller = wui;
-      mv->attach(dynamic_cast<View*>(wui));
-      ::view->attach(mv);
-    } else {
-      ::view->attach(new TermView());
-      ::controller = new TermController(::runtime);
-    }
+  cascade_->set_include_path(::inc_dirs.value() + ":" + System::src_root());
+
+  if (::ui.value() == "term") {
+    cascade_->attach_term_ui();
+  } 
+  else if (::ui.value() == "web") {
+    cascade_->attach_web_ui();
+    cascade_->set_web_ui_port(::web_ui_port.value());
+    cascade_->set_web_ui_buffer(::web_ui_buffer.value());
+    cascade_->set_web_ui_debug(::web_ui_debug.value());
   }
-  // Otherwise setup slave state
-  else {
-    ::remote_runtime = new RemoteRuntime();
+  if (::enable_logging.value()) {
+    cascade_->attach_logfile();
   }
 
-  // Additional compiler configuration if running in Master-Mode
-  if (!::slave.value()) {
-    auto* lc = new LocalCompiler();
-      lc->set_runtime(::runtime);
-      c->set_local_compiler(lc);
+  cascade_->enable_profile(::profile.value());
+  cascade_->enable_info(::enable_info.value());
+  cascade_->enable_warning(!::disable_warning.value());
+  cascade_->enable_error(!::disable_error.value());
+
+  cascade_->enable_inlining(!::disable_inlining.value());
+  cascade_->set_open_loop_target(::open_loop_target.value());
+
+  cascade_->set_quartus_host(::quartus_host.value());
+  cascade_->set_quartus_port(::quartus_port.value());
+
+  if (::slave.value()) {
+    cascade_->set_slave_mode(::slave.value());
+    cascade_->set_slave_port(::slave_port.value());
+    cascade_->set_slave_path(::slave_path.value());
   }
 
-  // Master mode execution path
+  cascade_->run();
   if (!::slave.value()) {
-    // Start the runtime
-    ::runtime->set_compiler(c);
-      ::runtime->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-      ::runtime->set_open_loop_target(::open_loop_target.value());
-      ::runtime->disable_inlining(::disable_inlining.value());
-      ::runtime->enable_info(::enable_info.value());
-      ::runtime->disable_warning(::disable_warning.value());
-      ::runtime->disable_error(::disable_error.value());
-    ::runtime->run();
-
-    // Parse march configuration
-    incstream mis(System::src_root());
-    stringstream ss1;
-    if (mis.open("data/march/" + march.value() + ".v")) {
-      ss1 << "include data/march/" + march.value() + ".v;";
-      StreamController(::runtime, ss1).run_to_completion();
-    } else {
-      ::runtime->error("Unrecognized march option '" + ::march.value() + "'!");
-      ::runtime->finish(0);
-    }
-    // Translate -e to include statement if it was provided
-    stringstream ss2;
+    cascade_->eval("include data/march/" + ::march.value() + ".v;");
     if (::input_path.value() != "") {
-      ss2 << "include " << ::input_path.value() << ";";
-      StreamController(::runtime, ss2).run_to_completion();
+      cascade_->eval("include " + ::input_path.value() + ";");
     }
-
-    ::controller->run();
-    ::profiler = new Profiler(::runtime);
-    if (::profile.value() > 0) {
-      ::profiler->run();
-    }
-
-    // Wait for the runtime to stop and then shutdown remaining threads
-    ::runtime->wait_for_stop();
-    ::controller->stop_now();
-    ::profiler->stop_now();
-
-    // Tear down global state
-    delete ::runtime;
-    if (::ui.value() == "web") {
-      delete ::controller;
-    } else {
-      delete ::view;
-      delete ::controller;
-    }
-    delete ::logfile;
-    delete ::profiler;
   }
-  // Slave mode exaecution path
-  else {
-    ::remote_runtime->set_compiler(c);
-    ::remote_runtime->set_path(::slave_path.value());
-    ::remote_runtime->set_port(::slave_port.value());
-    ::remote_runtime->run();
-    ::remote_runtime->wait_for_stop();
-    delete remote_runtime;
-  }
+  cascade_->wait_for_stop();
 
   cout << "Goodbye!" << endl;
   return 0;

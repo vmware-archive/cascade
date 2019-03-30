@@ -55,8 +55,6 @@ class MaybeView : public View {
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
-    void crash() override;
-
   private:
     View* view_;
 };
@@ -135,12 +133,6 @@ inline void MaybeView::decl(size_t t, const Program* p, const ModuleDeclaration*
 inline void MaybeView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   if (view_ != nullptr) {
     view_->item(t, p, md);
-  }
-}
-
-inline void MaybeView::crash() {
-  if (view_ != nullptr) {
-    view_->crash();
   }
 }
 
