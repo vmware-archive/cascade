@@ -30,6 +30,7 @@
 
 #include "test/harness.h"
 
+#include "ext/cl/include/cl.h"
 #include "gtest/gtest.h"
 #include "lib/cascade.h"
 #include "src/base/system/system.h"
@@ -37,7 +38,19 @@
 #include "src/verilog/parse/parser.h"
 
 using namespace cascade;
+using namespace cl;
 using namespace std;
+
+namespace {
+
+auto& march = StrArg<string>::create("--march")
+  .initial("minimal");
+auto& quartus_host = StrArg<string>::create("--quartus_host")
+  .initial("localhost");
+auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
+  .initial(9900);
+
+} // namespace
 
 namespace cascade {
 
@@ -106,6 +119,23 @@ void run_remote(const string& path, const string& expected) {
   slave.run();
   run_code("minimal_remote", path, expected);
   slave.stop_now();
+}
+
+void run_benchmark(const string& path, const string& expected) {
+  stringstream ss;
+
+  Cascade c;
+  c.set_include_path(System::src_root());
+  c.attach_view(new PView(ss));
+  c.set_quartus_host(::quartus_host.value());
+  c.set_quartus_port(::quartus_port.value());
+  c.run();
+
+  c.eval("include data/march/" + ::march.value() + ".v;");
+  c.eval("include " + path + ";");
+
+  c.wait_for_stop();
+  EXPECT_EQ(ss.str(), expected);
 }
 
 } // namespace cascade

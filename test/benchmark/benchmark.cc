@@ -37,9 +37,6 @@ using namespace cascade;
 using namespace cl;
 using namespace std;
 
-auto& march = StrArg<string>::create("--march")
-  .initial("minimal");
-
 int main(int argc, char** argv) {
   Simple::read(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
@@ -47,17 +44,17 @@ int main(int argc, char** argv) {
 }
 
 TEST(benchmark, array) {
-  run_code(march.value(), "data/test/benchmark/array/run_7.v", "268435457\n");
+  run_benchmark("data/test/benchmark/array/run_7.v", "268435457\n");
 }
 TEST(benchmark, bitcoin) {
-  run_code(march.value(), "data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
+  run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
 }
 TEST(benchmark, mips32) {
-  run_code(march.value(), "data/test/benchmark/mips32/run_bubble_2048.v", "1");
+  run_benchmark("data/test/benchmark/mips32/run_bubble_2048.v", "1");
 }
-TEST(benchmark, nw) {
-  run_code(march.value(), "data/test/benchmark/nw/run_16.v", "TODO...");
-}
+//TEST(benchmark, nw) {
+//  run_benchmark("data/test/benchmark/nw/run_16.v", "TODO...");
+//}
 TEST(benchmark, regex) {
-  run_code(march.value(), "data/test/benchmark/regex/run_disjunct_16.v", "6784");
+  run_benchmark("data/test/benchmark/regex/run_disjunct_16.v", "6784");
 }

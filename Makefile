@@ -295,9 +295,6 @@ all: ${BIN}
 test: ${TEST_TARGET}
 	${TEST_TARGET}
 benchmark: ${BMARK_TARGET}
-	${BMARK_TARGET}
-benchmark_de10: ${BMARK_TARGET}
-	${BMARK_TARGET} --march de10_jit
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
 	${RM} -rf ${GTEST_BUILD_DIR} ${TEST_TARGET} ${BMARK_TARGET} ${TEST_OBJ} 

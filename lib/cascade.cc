@@ -71,10 +71,10 @@ Cascade::Cascade() {
 
   enable_profile(0);
   enable_info(false);
-  enable_warning(false);
-  enable_error(false);
+  enable_warning(true);
+  enable_error(true);
 
-  enable_inlining(false);
+  enable_inlining(true);
   set_open_loop_target(1);
 
   set_quartus_host("localhost");
@@ -82,7 +82,7 @@ Cascade::Cascade() {
 
   set_slave_mode(false);
   set_slave_port(8800);
-  set_slave_path("./sock");
+  set_slave_path("./cascade_sock");
 }
 
 Cascade::~Cascade() {
@@ -253,8 +253,8 @@ Cascade& Cascade::run() {
       runtime_->set_open_loop_target(open_loop_target_);
       runtime_->disable_inlining(!enable_inlining_);
       runtime_->enable_info(enable_info_);
-      runtime_->disable_warning(enable_warning_);
-      runtime_->disable_error(enable_error_);
+      runtime_->disable_warning(!enable_warning_);
+      runtime_->disable_error(!enable_error_);
     runtime_->run();
 
     if (controller_ != nullptr) {
