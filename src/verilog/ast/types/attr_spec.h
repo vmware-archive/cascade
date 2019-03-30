@@ -41,6 +41,7 @@ namespace cascade {
 class AttrSpec : public Node {
   public:
     // Constructors:
+    AttrSpec(Identifier* lhs__);
     AttrSpec(Identifier* lhs__, Expression* rhs__);
     ~AttrSpec() override;
 
@@ -57,10 +58,14 @@ class AttrSpec : public Node {
     MAYBE_ATTR(Expression, rhs);
 };
 
-inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : Node(Node::Tag::attr_spec) { 
+inline AttrSpec::AttrSpec(Identifier* lhs__) : Node(Node::Tag::attr_spec) { 
   PTR_SETUP(lhs);
-  MAYBE_SETUP(rhs);
+  MAYBE_DEFAULT_SETUP(rhs);
   parent_ = nullptr;
+}
+
+inline AttrSpec::AttrSpec(Identifier* lhs__, Expression* rhs__) : AttrSpec(lhs__) { 
+  MAYBE_SETUP(rhs);
 }
 
 inline AttrSpec::~AttrSpec() {
@@ -69,7 +74,9 @@ inline AttrSpec::~AttrSpec() {
 }
 
 inline AttrSpec* AttrSpec::clone() const {
-  return new AttrSpec(lhs_->clone(), rhs_->clone());
+  auto* res = new AttrSpec(lhs_->clone());
+  MAYBE_CLONE(rhs);
+  return res;
 }
 
 } // namespace cascade
