@@ -30,18 +30,10 @@
 
 #include "test/harness.h"
 
-#include <fstream>
-#include <sstream>
 #include "gtest/gtest.h"
+#include "lib/cascade.h"
 #include "src/base/system/system.h"
-#include "src/runtime/runtime.h"
-#include "src/target/common/remote_runtime.h"
-#include "src/target/compiler.h"
-#include "src/target/core/proxy/proxy_compiler.h"
-#include "src/target/core/sw/sw_compiler.h"
-#include "src/target/interface/local/local_compiler.h"
 #include "src/ui/view.h"
-#include "src/ui/stream/stream_controller.h"
 #include "src/verilog/parse/parser.h"
 
 using namespace cascade;
@@ -56,18 +48,12 @@ void PView::print(size_t t, const string& s) {
   os_ << s;
 }
 
-EView::EView() : View() {
-  error_ = false;
-}
-
-bool EView::error() const {
-  return error_;
+EView::EView(ostream& os) : View(), os_(os) {
 }
 
 void EView::error(size_t t, const string& s) {
   (void) t;
-  (void) s;
-  error_ = true;
+  os_ << s;
 } 
 
 void run_parse(const string& path, bool expected) {
@@ -81,71 +67,45 @@ void run_parse(const string& path, bool expected) {
 }
 
 void run_typecheck(const string& march, const string& path, bool expected) {
-  EView view;
-  Runtime runtime(&view);
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-  auto lc = new LocalCompiler();
-    lc->set_runtime(&runtime);
-  auto c = new Compiler();
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-    c->set_local_compiler(lc);
-  runtime.set_compiler(c);
-  runtime.run();
+  stringstream ss;
 
-  ifstream mf("data/march/" + march + ".v");
-  ASSERT_TRUE(mf.is_open());
-  StreamController(&runtime, mf).run_to_completion();
+  Cascade c;
+  c.set_include_path(System::src_root());
+  c.attach_view(new EView(ss));
+  c.run();
 
-  ifstream ifs(path);
-  ASSERT_TRUE(ifs.is_open());
-  StreamController(&runtime, ifs).run_to_completion();
-
-  stringstream ss("initial $finish;");
+  c.eval("include data/march/" + march + ".v;");
+  c.eval("include " + path + ";");
   if (expected) {
-    StreamController(&runtime, ss).run_to_completion();
+    c.eval("initial $finish;");
   }
 
-  runtime.wait_for_stop();
-  EXPECT_EQ(view.error(), expected);
+  c.wait_for_stop();
+  EXPECT_EQ((ss.str() != ""), expected);
 }
 
 void run_code(const string& march, const string& path, const string& expected) {
   stringstream ss;
-  PView view(ss);
-  Runtime runtime(&view);
-  auto pc = new ProxyCompiler();
-  auto sc = new SwCompiler();
-  auto lc = new LocalCompiler();
-    lc->set_runtime(&runtime);
-  auto c = new Compiler();
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-    c->set_local_compiler(lc);
-  runtime.set_compiler(c);
-  runtime.run();
 
-  ifstream mf("data/march/" + march + ".v");
-  ASSERT_TRUE(mf.is_open());
-  StreamController(&runtime, mf).run_to_completion();
+  Cascade c;
+  c.set_include_path(System::src_root());
+  c.attach_view(new PView(ss));
+  c.run();
 
-  ifstream ifs(path);
-  ASSERT_TRUE(ifs.is_open());
-  StreamController(&runtime, ifs).run_to_completion();
+  c.eval("include data/march/" + march + ".v;");
+  c.eval("include " + path + ";");
 
-  runtime.wait_for_stop();
+  c.wait_for_stop();
   EXPECT_EQ(ss.str(), expected);
 }
 
 void run_remote(const string& path, const string& expected) {
-  RemoteRuntime rr;
-  auto c = new Compiler();
-    c->set_sw_compiler(new SwCompiler());
-  rr.set_compiler(c);
-  rr.run();
+  Cascade slave;
+  slave.set_slave_mode(true);
+  slave.set_slave_path("/tmp/fpga_socket");
+  slave.run();
   run_code("minimal_remote", path, expected);
-  rr.stop_now();
+  slave.stop_now();
 }
 
 } // namespace cascade

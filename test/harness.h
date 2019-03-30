@@ -52,14 +52,13 @@ class PView : public View {
 // Another stripped-down view; filters everything other than error messages
 class EView : public View {
   public:
-    EView();
+    EView(std::ostream& os);
     ~EView() override = default;
 
-    bool error() const;
     void error(size_t t, const std::string& s) override;
 
   private:
-    bool error_;
+    std::ostream& os_;
 };
 
 // Harnesses for major components:

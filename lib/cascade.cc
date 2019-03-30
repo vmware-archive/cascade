@@ -233,6 +233,9 @@ Cascade& Cascade::run() {
       logfile_ = new ofstream("cascade.log", ofstream::app);
       view_->attach(new LogView(*logfile_));
     }
+    if (user_view_ != nullptr) {
+      view_->attach(user_view_);
+    }
     auto* lc = new LocalCompiler();
       lc->set_runtime(runtime_);
       c->set_local_compiler(lc);
@@ -276,7 +279,7 @@ Cascade& Cascade::run() {
 Cascade& Cascade::request_stop() {
   if (runtime_ != nullptr) {
     runtime_->request_stop();
-  } else {
+  } else if (remote_runtime_ != nullptr) {
     remote_runtime_->request_stop();
   }
   return *this;
@@ -306,7 +309,7 @@ Cascade& Cascade::wait_for_stop() {
     remote_runtime_ = nullptr;
     logfile_ = nullptr;
     profiler_ = nullptr;
-  } else {
+  } else if (remote_runtime_ != nullptr) {
     remote_runtime_->wait_for_stop();
     delete remote_runtime_;
     remote_runtime_ = nullptr;
