@@ -198,6 +198,9 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md, const Identifier* id) {
+  // Record human readable name for this module
+  const auto* fid = Resolve().get_full_id(id);
+
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
   const auto* t = md->get_attrs()->get<String>("__target");
@@ -209,7 +212,8 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   const auto jit = std->eq("logic") && !StubCheck().check(md) && ((tsep != string::npos) || (lsep != string::npos));
 
   // If we're jit compiling, we'll need a second copy of the source and we'll
-  // need to adjust the annotations.
+  // need to adjust the annotations. Otherwise just allocate a dummy module.
+  // Having a non-null module as an invariant simplifies the code path below.
   ModuleDeclaration* md2 = nullptr;
   if (jit) {
     md2 = md->clone();
@@ -221,52 +225,54 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
       md2->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(lsep+1)));
       md->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(0, lsep)));
     }
+  } else {
+    md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
 
   // Fast Path. Compile and replace the original engine.  If an error occurred,
   // then simply preserve the original message. If compilation was aborted
   // without explanation, that's an error that requires explanation.
   stringstream ss;
-  auto* fid = Resolve().get_full_id(id);
   TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
-  delete fid;
   auto* e_fast = compile(md);
-  if (error()) {
-    return;
-  } else if (e_fast == nullptr) {
-    return error("An unhandled error occurred during module compilation");
-  }
-  e->replace_with(e_fast);
-  if (e->is_stub()) {
-    rt->info("Deferring " + ss.str());
+  if (e_fast == nullptr) {
+    if (!error()) {
+      error("An unhandled error occurred during module compilation");
+    }
   } else {
-    rt->info("Finished " + ss.str());
+    e->replace_with(e_fast);
+    if (e->is_stub()) {
+      rt->info("Deferring " + ss.str());
+    } else {
+      rt->info("Finished " + ss.str());
+    }
   }
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. Note that we schedule an
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error.
-  if (jit) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, id]{
+  if (jit && (e_fast != nullptr)) {
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid]{
       stringstream ss;
-      auto* fid = Resolve().get_full_id(id);
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
-      delete fid;
       const auto str = ss.str();
+      delete fid;
 
       Masker().mask(md2);
       auto* e_slow = compile(md2);
       rt->schedule_interrupt([this, e, e_slow, rt, str]{
-        // Nothing to do if compilation failed or was aborted
-        if (error() || (e_slow == nullptr)) {
+        if (e_slow == nullptr) {
           rt->info("Aborted " + str);
-          return;
-        } 
-        e->replace_with(e_slow);
+        } else {
+          e->replace_with(e_slow);
+          rt->info("Finished " + str);
+        }
       });
-      rt->info("Finished " + str);
     }));
+  } else {
+    delete fid;
+    delete md2;
   }
 }
 
