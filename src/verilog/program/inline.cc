@@ -31,6 +31,8 @@
 #include "src/verilog/program/inline.h"
 
 #include <cassert>
+#include <map>
+#include <string>
 #include <vector>
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/navigate.h"
@@ -137,10 +139,18 @@ void Inline::inline_source(ModuleInstantiation* mi) {
 
   // Generate connections for this instantiation. We need to do this now before
   // we start modifying the instantiation. Calling ModuleInfo later might
-  // result in a refresh against undefined state.
-  assert(info_->connections().find(mi->get_iid()) != info_->connections().end());
+  // result in a refresh against undefined state. But first sort connections
+  // lexicographically by name. This is important for guaranteeing
+  // deterministic code generation in isolation.
+  const auto itr = info_->connections().find(mi->get_iid());
+  assert(itr != info_->connections().end());
+  map<string, pair<const Identifier*, const Expression*>> sorted_conns;
+  for (auto& c : itr->second) {
+    sorted_conns.insert(make_pair(Resolve().get_readable_full_id(c.first), c));
+  }
   vector<ModuleItem*> conns;
-  for (auto& c : info_->connections().find(mi->get_iid())->second) {
+  for (const auto& sc : sorted_conns) {
+    const auto& c = sc.second;
     auto* lhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_id(c.first) : 
       Qualify().qualify_id(static_cast<const Identifier*>(c.second));

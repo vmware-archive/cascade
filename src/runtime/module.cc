@@ -44,7 +44,6 @@
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
@@ -148,9 +147,8 @@ void Module::restart(std::istream& is) {
     }
 
     stringstream ss;
-    const auto* fid = Resolve().get_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
-    TextPrinter(ss) << "Updated state for " << fid;
-    delete fid;
+    const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    ss << "Updated state for " << fid;
     rt_->info(ss.str());
 
     (*i)->engine_->set_input(itr->second.first);

@@ -39,7 +39,6 @@
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/print/debug/debug_printer.h"
 #include "src/verilog/print/html/html_printer.h"
-#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/program.h"
 
 using namespace std;
@@ -156,9 +155,7 @@ void WebUi::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   for (auto i = p->elab_begin(), ie = p->elab_end(); i != ie; ++i) {
     stringstream ss;
     ss << "{\"text\":\"[elab] ";
-    const auto* fid = Resolve().get_full_id(ModuleInfo(i->second).id());
-    TextPrinter(ss) << fid;
-    delete fid;
+    ss << Resolve().get_readable_full_id(ModuleInfo(i->second).id());
     ss << "\",\"value\":\"";
     if (debug_) {
       DebugHtmlPrinter(ss, true) << i->second;
