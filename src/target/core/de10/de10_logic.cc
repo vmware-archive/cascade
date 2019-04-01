@@ -429,6 +429,7 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
     for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
       const volatile auto word = bs[i].read_word<uint32_t>(j);
       DE10_WRITE(MANGLE(addr_, idx), word);
+      ++idx;
     }
   }
 }
