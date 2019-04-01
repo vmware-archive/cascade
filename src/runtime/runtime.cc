@@ -134,10 +134,9 @@ Runtime& Runtime::disable_error(bool de) {
 }
 
 void Runtime::eval(const string& s) {
-  auto* ss = new stringstream(s);
-  schedule_interrupt([this, ss]{
-    eval_stream(*ss, false);
-    delete ss;
+  schedule_interrupt([this, s]{
+    stringstream ss(s);
+    eval_stream(ss, false);
   });
 }
 

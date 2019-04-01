@@ -46,7 +46,7 @@ class WebUi : public Controller, public View {
     explicit WebUi(Runtime* rt);
     ~WebUi() override = default;
 
-    WebUi& set_port(const std::string& port);
+    WebUi& set_port(size_t port);
     WebUi& set_buffer(size_t buffer);
     WebUi& set_debug(bool debug);
 
@@ -57,8 +57,6 @@ class WebUi : public Controller, public View {
 
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void crash() override;
 
     void send_index(struct mg_connection* nc, struct http_message* msg);
     void send_freq();
