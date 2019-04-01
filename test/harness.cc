@@ -112,15 +112,6 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(ss.str(), expected);
 }
 
-void run_remote(const string& path, const string& expected) {
-  Cascade slave;
-  slave.set_slave_mode(true);
-  slave.set_slave_path("/tmp/fpga_socket");
-  slave.run();
-  run_code("minimal_remote", path, expected);
-  slave.stop_now();
-}
-
 void run_benchmark(const string& path, const string& expected) {
   stringstream ss;
 
