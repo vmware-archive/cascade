@@ -355,7 +355,8 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
   // elements in the variable table without modification. Sort these declarations
   // lexicographically to ensure deterministic code.
 
-  vector<string> views;
+  vector<string> decls;
+  vector<string> inits;
   for (auto v = de_->map_begin(), ve = de_->map_end(); v != ve; ++v) {
     const auto titr = de_->table_find(v->first);
     assert(titr != de_->table_end());
@@ -365,17 +366,21 @@ void ModuleBoxer::emit_view_variables(indstream& os) {
 
     stringstream decl;
     emit_view_decl(decl, titr->second);
-    views.push_back(decl.str());
+    decls.push_back(decl.str());
 
     stringstream init;
     emit_view_init(init, titr->second);
-    views.push_back(init.str());
+    inits.push_back(init.str());
   }
-  sort(views.begin(), views.end());
+  sort(decls.begin(), decls.end());
+  sort(inits.begin(), inits.end());
 
   os << "// View Variables:" << endl;
-  for (const auto& v : views) {
-    os << v << endl;
+  for (const auto& d : decls) {
+    os << d << endl;
+  }
+  for (const auto& i : inits) {
+    os << i;
   }
   os << endl;
 }
@@ -416,7 +421,7 @@ void ModuleBoxer::emit_view_init(ostream& os, const De10Logic::VarInfo& vinfo) {
       }
       os << "__var[" << (vinfo.index() + (i+1)*je-j-1) << "]";
     }
-    os << "};";
+    os << "};" << endl;
   }
 }
 
@@ -539,12 +544,12 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
         TextPrinter(ss) << t->first->front_ids();
         emit_subscript(ss, i, ie, arity);
         emit_slice(ss, w, j);
-        ss  << ";";
+        ss  << ";" << endl;
 
-        logic.push_back(ss.str());
         ++idx;
       }
     }
+    logic.push_back(ss.str());
   }
   sort(logic.begin(), logic.end());
 
@@ -578,8 +583,8 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
 
   vector<string> logic;
   for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
-    stringstream ss;
     if (!t->second.materialized()) {
+      stringstream ss;
       assert(t->second.elements() == 1);
       const auto w = t->second.bit_size();
       for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
@@ -587,8 +592,8 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
         emit_slice(ss, w, i); 
         ss << ";";
       }
+      logic.push_back(ss.str());
     }
-    logic.push_back(ss.str());
   }
   sort(logic.begin(), logic.end());
 
