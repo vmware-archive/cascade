@@ -87,6 +87,74 @@ bool QuartusServer::check() const {
   return true;
 }
 
+QuartusServer::Worker::Worker(QuartusServer* qs) { 
+  qs_ = qs;
+}
+
+void QuartusServer::Worker::run_logic() {
+  string text;
+  getline(*qs_->sock_, text, '\0');
+
+  // A message of length 1 signals that no compilation is necessary.
+  if (text.length() == 1) {
+    qs_->sock_->put(0);
+    qs_->sock_->flush();
+    return;
+  }
+
+  // Check whether this program is in the cache
+  auto itr = qs_->cache_.find(text);
+
+  // If it isn't, we need to compile it
+  if (itr == qs_->cache_.end()) {
+    ofstream ofs;
+    
+    ofs.open(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+    ofs << text << endl;
+    ofs.close();
+
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    }
+
+    stringstream ss;
+    ss << "bitstream_" << qs_->cache_.size() << ".sof";
+    const auto file = ss.str();
+    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + qs_->cache_path_ + "/" + file);
+
+    itr = qs_->cache_.insert(make_pair(text, file)).first;
+
+    ofs.open(qs_->cache_path_ + "/index.txt", ios::app);
+    ofs << text << '\0' << file << '\0';
+    ofs.close();
+  } 
+
+  // Now that it's definitely in the cache, use this bitstream to program the device
+  if (System::execute(qs_->quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + qs_->cache_path_ + "/" + itr->second + "@2\"") != 0) {
+    qs_->sock_->put(0);
+  } else {
+    qs_->sock_->put(1);
+  }
+  qs_->sock_->flush();
+}
+
 void QuartusServer::init_cache() {
   // Create the cache if it doesn't already exist
   System::execute("mkdir -p " + cache_path_);
@@ -150,68 +218,6 @@ void QuartusServer::run_logic() {
     sock_ = server.accept();
     worker_.run();
   }
-}
-
-QuartusServer::Worker::Worker(QuartusServer* qs) { 
-  qs_ = qs;
-}
-
-void QuartusServer::Worker::run_logic() {
-  string text;
-  getline(*qs_->sock_, text, '\0');
-
-  // A message of length 1 signals that no compilation is necessary.
-  if (text.length() == 1) {
-    qs_->sock_->put(0);
-    qs_->sock_->flush();
-    return;
-  }
-
-  // Check whether this program is in the cache
-  auto itr = qs_->cache_.find(text);
-
-  // If it isn't, we need to compile it
-  if (itr == qs_->cache_.end()) {
-    ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-    ofs << text << endl;
-    ofs.close();
-
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    }
-
-    stringstream ss;
-    ss << "bitstream_" << qs_->cache_.size() << ".sof";
-    const auto path = ss.str();
-
-    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + qs_->cache_path_ + "/" + path);
-    itr = qs_->cache_.insert(make_pair(text, path)).first;
-  } 
-
-  // Now that it's definitely in the cache, use this bitstream to program the device
-  if (System::execute(qs_->quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + itr->second + "@2\"") != 0) {
-    qs_->sock_->put(0);
-  } else {
-    qs_->sock_->put(1);
-  }
-  qs_->sock_->flush();
 }
 
 void QuartusServer::stop_logic() {
