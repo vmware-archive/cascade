@@ -31,6 +31,7 @@
 #include "src/target/core/de10/quartus_server.h"
 
 #include <fstream>
+#include <sstream>
 #include "src/base/stream/sockstream.h"
 #include "src/base/system/system.h"
 
@@ -39,48 +40,76 @@ using namespace std;
 namespace cascade {
 
 QuartusServer::QuartusServer() : Asynchronous(), worker_(this) { 
-  path("");
-  usb("");
-  port(9900);
+  set_cache("/tmp/quartus_cache/");
+  set_path("");
+  set_port(9900);
+  set_usb("");
   sock_ = nullptr;
 }
 
-QuartusServer& QuartusServer::path(const string& path) {
-  path_ = path;
+QuartusServer& QuartusServer::set_cache(const string& path) {
+  cache_path_ = path;
   return *this;
 }
 
-QuartusServer& QuartusServer::usb(const string& usb) {
-  usb_ = usb;
+QuartusServer& QuartusServer::set_path(const string& path) {
+  quartus_path_ = path;
   return *this;
 }
 
-QuartusServer& QuartusServer::port(uint32_t port) {
+QuartusServer& QuartusServer::set_port(uint32_t port) {
   port_ = port;
+  return *this;
+}
+
+QuartusServer& QuartusServer::set_usb(const string& usb) {
+  usb_ = usb;
   return *this;
 }
 
 bool QuartusServer::check() const {
   // Return false if we can't locate any of the necessary quartus components
-  if (System::execute("ls " + path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
+  if (System::execute("ls " + quartus_path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("ls " + path_ + "/bin/quartus_map > /dev/null") != 0) {
+  if (System::execute("ls " + quartus_path_ + "/bin/quartus_map > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("ls " + path_ + "/bin/quartus_fit > /dev/null") != 0) {
+  if (System::execute("ls " + quartus_path_ + "/bin/quartus_fit > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("ls " + path_ + "/bin/quartus_asm > /dev/null") != 0) {
+  if (System::execute("ls " + quartus_path_ + "/bin/quartus_asm > /dev/null") != 0) {
     return false;
   }
-  if (System::execute("ls " + path_ + "/bin/quartus_pgm > /dev/null") != 0) {
+  if (System::execute("ls " + quartus_path_ + "/bin/quartus_pgm > /dev/null") != 0) {
     return false;
   }
   return true;
 }
 
+void QuartusServer::init_cache() {
+  // Create the cache if it doesn't already exist
+  System::execute("mkdir -p " + cache_path_);
+  System::execute("touch " + cache_path_ + "/index.txt");
+
+  // Read cache into memory
+  ifstream ifs(cache_path_ + "/index.txt");
+  while (true) {
+    string text;
+    getline(ifs, text, '\0');
+    if (ifs.eof()) {
+      break;
+    } 
+
+    string path;
+    getline(ifs, path, '\0');
+    cache_.insert(make_pair(text, path));
+  } 
+}
+
 void QuartusServer::run_logic() {
+  init_cache();
+
   sockserver server(port_, 8);
   if (server.error()) {
     return;
@@ -131,35 +160,62 @@ void QuartusServer::Worker::run_logic() {
   string text;
   getline(*qs_->sock_, text, '\0');
 
-  ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-  ofs << text << endl;
-  ofs.close();
-
   // A message of length 1 signals that no compilation is necessary.
   if (text.length() == 1) {
     qs_->sock_->put(0);
+    qs_->sock_->flush();
+    return;
   }
-  // Compile everything.
-  else if (stop_requested() || System::execute(qs_->path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-    qs_->sock_->put(0);
+
+  // Check whether this program is in the cache
+  auto itr = qs_->cache_.find(text);
+
+  // If it isn't, we need to compile it
+  if (itr == qs_->cache_.end()) {
+    ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+    ofs << text << endl;
+    ofs.close();
+
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    } 
+    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      qs_->sock_->put(0);
+      qs_->sock_->flush();
+      return;
+    }
+
+    stringstream ss;
+    ss << "bitstream_" << qs_->cache_.size() << ".sof";
+    const auto path = ss.str();
+
+    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + qs_->cache_path_ + "/" + path);
+    itr = qs_->cache_.insert(make_pair(text, path)).first;
   } 
-  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+
+  // Now that it's definitely in the cache, use this bitstream to program the device
+  if (System::execute(qs_->quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + itr->second + "@2\"") != 0) {
     qs_->sock_->put(0);
-  } 
-  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-    qs_->sock_->put(0);
-  } 
-  else if (stop_requested() || System::execute(qs_->path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-    qs_->sock_->put(0);
-  } 
-  else if (System::execute(qs_->path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof@2\"") != 0) {
-    qs_->sock_->put(0);
-  }
-  // Everything succeeded
-  else {
+  } else {
     qs_->sock_->put(1);
   }
   qs_->sock_->flush();
+}
+
+void QuartusServer::stop_logic() {
+  cache_.clear();
 }
 
 } // namespace cascade

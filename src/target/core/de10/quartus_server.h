@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 
+#include <unordered_map>
 #include <string>
 #include "src/base/thread/asynchronous.h"
 
@@ -43,9 +44,10 @@ class QuartusServer : public Asynchronous {
     QuartusServer();
     ~QuartusServer() override = default;
 
-    QuartusServer& path(const std::string& path);
-    QuartusServer& usb(const std::string& usb);
-    QuartusServer& port(uint32_t port);
+    QuartusServer& set_cache(const std::string& path);
+    QuartusServer& set_path(const std::string& path);
+    QuartusServer& set_port(uint32_t port);
+    QuartusServer& set_usb(const std::string& usb);
 
     bool check() const;
 
@@ -59,15 +61,19 @@ class QuartusServer : public Asynchronous {
         QuartusServer* qs_;
     };
 
-    std::string path_;
-    std::string usb_;
+    std::string cache_path_;
+    std::string quartus_path_;
     uint32_t port_;
+    std::string usb_;
 
     sockstream* sock_;
+    std::unordered_map<std::string, std::string> cache_;
     Worker worker_;
 
-    void run_logic() override;
+    void init_cache();
 
+    void run_logic() override;
+    void stop_logic() override;
 };
 
 } // namespace cascade
