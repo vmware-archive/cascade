@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 #define CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 
+#include <string>
 #include "src/base/container/vector.h"
 #include "src/verilog/ast/visitors/editor.h"
 
@@ -64,6 +65,9 @@ class Resolve {
     // get_full_id(x) might return root.f[0].x. The caller of this method
     // takes responsibility for the resulting memory.
     Identifier* get_full_id(const Identifier* id);
+    // Convenience method. Converts an id to a full id, transforms it to a
+    // string and deletes the intermediate memory.
+    std::string get_readable_full_id(const Identifier* id);
     // Returns a pointer to the ModuleDeclaration that this identifier appears
     // in. Returns nullptr on failure. For example, for variables that are not
     // part of the AST.

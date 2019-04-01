@@ -199,7 +199,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md, const Identifier* id) {
   // Record human readable name for this module
-  const auto* fid = Resolve().get_full_id(id);
+  const auto fid = Resolve().get_readable_full_id(id);
 
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
@@ -257,7 +257,6 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
       stringstream ss;
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
-      delete fid;
 
       Masker().mask(md2);
       auto* e_slow = compile(md2);
@@ -271,7 +270,6 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
       });
     }));
   } else {
-    delete fid;
     delete md2;
   }
 }
