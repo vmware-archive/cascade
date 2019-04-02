@@ -32,6 +32,7 @@
 
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <map>
 #include <unistd.h>
 #include "src/base/stream/sockstream.h"
 #include "src/verilog/analyze/evaluate.h"
@@ -187,15 +188,28 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   const auto mid = to_mid(md->get_id());
   auto* de = new De10Logic(interface, md, addr);
 
-  // Register inputs, state, and outputs
+  // Register inputs, state, and outputs. Invoke these methods
+  // lexicographically to ensure a deterministic variable table ordering.
+  map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
-    de->set_input(i, to_vid(i));
+    is.insert(make_pair(to_vid(i), i));
   }
+  for (const auto& i : is) {
+    de->set_input(i.second, i.first);
+  }
+  map<VId, const Identifier*> ss;
   for (auto* s : info.stateful()) {
-    de->set_state(s, to_vid(s));
+    ss.insert(make_pair(to_vid(s), s));
   }
+  for (const auto& s : ss) {
+    de->set_state(s.second, s.first);
+  }
+  map<VId, const Identifier*> os;
   for (auto* o : info.outputs()) {
-    de->set_output(o, to_vid(o));
+    os.insert(make_pair(to_vid(o), o));
+  }
+  for (const auto& o : os) {
+    de->set_output(o.second, o.first);
   }
 
   // Check size of variable table
