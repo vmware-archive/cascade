@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -64,8 +65,16 @@ Module::iterator& Module::iterator::operator++() {
   }
   const auto* ptr = path_.front();
   path_.pop_front();
-  for (auto i = ptr->children_.rbegin(), ie = ptr->children_.rend(); i != ie; ++i) {
-    path_.push_front(*i);
+
+  // Sort children lexicographically to enforce deterministic iteration
+  // orderings.
+  map<string, Module*> cs;
+  for (auto i = ptr->children_.begin(), ie = ptr->children_.end(); i != ie; ++i) {
+    const auto* mi = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent());
+    cs.insert(make_pair(Resolve().get_readable_full_id(mi->get_iid()), *i));
+  }
+  for (const auto& c : cs) {
+    path_.push_front(c.second);
   }
   return *this;
 }
