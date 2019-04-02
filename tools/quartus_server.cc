@@ -42,18 +42,22 @@ using namespace std;
 namespace {
 
 __attribute__((unused)) auto& g = Group::create("Quartus Server Options");
+auto& cache = StrArg<string>::create("--cache")
+  .usage("<path/to/cache>")
+  .description("Path to directory to use as compilation cache")
+  .initial("/tmp/quartus_cache");
 auto& path = StrArg<string>::create("--path")
   .usage("<path/to/quarus>")
   .description("Path to quartus installation directory")
   .initial("~/intelFPGA_lite/17.1/quartus");
-auto& usb = StrArg<string>::create("--usb")
-  .usage("[x-y]")
-  .description("USB interface providing JTAG connectivity")
-  .initial("[3-11]");
 auto& port = StrArg<uint32_t>::create("--port")
   .usage("<int>")
   .description("Port to run quartus server on")
   .initial(9900);
+auto& usb = StrArg<string>::create("--usb")
+  .usage("[x-y]")
+  .description("USB interface providing JTAG connectivity")
+  .initial("[3-11]");
 
 QuartusServer* qs = nullptr;
 
@@ -74,9 +78,10 @@ int main(int argc, char** argv) {
   sigaction(SIGINT, &action, nullptr);
 
   ::qs = new QuartusServer();
-  ::qs->path(::path.value());
-  ::qs->usb(::usb.value());
-  ::qs->port(::port.value());
+  ::qs->set_cache(::cache.value());
+  ::qs->set_path(::path.value());
+  ::qs->set_port(::port.value());
+  ::qs->set_usb(::usb.value());
 
   if (!::qs->check()) {
     cout << "Unable to locate core quartus components!" << endl;

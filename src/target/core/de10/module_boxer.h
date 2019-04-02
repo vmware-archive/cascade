@@ -90,15 +90,15 @@ class ModuleBoxer : public Builder {
     void emit_sys_task_state(indstream& os);
     void emit_control_state(indstream& os);
     void emit_view_variables(indstream& os);
-    void emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo);
-    void emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo);
-    void emit_subscript(indstream& os, size_t idx, size_t n, const std::vector<size_t>& arity);
+    void emit_view_decl(std::ostream& os, const De10Logic::VarInfo& vinfo);
+    void emit_view_init(std::ostream& os, const De10Logic::VarInfo& vinfo);
+    void emit_subscript(std::ostream& os, size_t idx, size_t n, const std::vector<size_t>& arity);
     void emit_program_logic(indstream& os);
     void emit_update_logic(indstream& os);
     void emit_sys_task_logic(indstream& os);
     void emit_control_logic(indstream& os);
     void emit_variable_table_logic(indstream& os, ModuleInfo& info);
-    void emit_slice(indstream& os, size_t w, size_t i);
+    void emit_slice(std::ostream& os, size_t w, size_t i);
     void emit_output_logic(indstream& os);
 };
 

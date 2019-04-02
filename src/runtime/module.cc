@@ -64,6 +64,9 @@ Module::iterator& Module::iterator::operator++() {
   }
   const auto* ptr = path_.front();
   path_.pop_front();
+
+  // Sort children lexicographically to enforce deterministic iteration
+  // orderings.
   for (auto i = ptr->children_.rbegin(), ie = ptr->children_.rend(); i != ie; ++i) {
     path_.push_front(*i);
   }

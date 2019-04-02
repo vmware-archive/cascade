@@ -301,17 +301,26 @@ void ModuleBoxer::emit_variable_table(indstream& os) {
 
 void ModuleBoxer::emit_update_state(indstream& os, ModuleInfo& info) {
   // Declare intermediate state for stateful elements. This is where we will
-  // store update values while we wait for the update latch to be set. 
-
-  os << "// Update State" << endl;
+  // store update values while we wait for the update latch to be set.  Sort
+  // these declarations lexicographically to ensure deterministic code.
+  vector<string> decls;
   for (auto* s : info.stateful()) {
     assert(s->get_parent()->is(Node::Tag::reg_declaration));
     auto* rd = static_cast<RegDeclaration*>(s->get_parent()->clone());
     rd->get_id()->purge_ids();
     rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
     rd->replace_val(nullptr);
-    TextPrinter(os) << rd << "\n";
+
+    stringstream ss;
+    TextPrinter(ss) << rd;
+    decls.push_back(ss.str());
     delete rd;
+  }
+  sort(decls.begin(), decls.end());
+
+  os << "// Update State" << endl;
+  for (const auto& d : decls) {
+    os << d << endl;
   }
   os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __update_mask = 0;" << endl;
   os << "reg[" << ((de_->table_size() < 2) ? 1 : (de_->table_size()-1)) << ":0] __next_update_mask = 0;" << endl;
@@ -343,22 +352,40 @@ void ModuleBoxer::emit_control_state(indstream& os) {
 void ModuleBoxer::emit_view_variables(indstream& os) {
   // Define view variables on top of the variable table for inputs and stateful
   // elements. This will allow the program to reference inputs and stateful
-  // elements in the variable table without modification.
+  // elements in the variable table without modification. Sort these declarations
+  // lexicographically to ensure deterministic code.
 
-  os << "// View Variables:" << endl;
+  vector<string> decls;
+  vector<string> inits;
   for (auto v = de_->map_begin(), ve = de_->map_end(); v != ve; ++v) {
     const auto titr = de_->table_find(v->first);
     assert(titr != de_->table_end());
     if (!titr->second.materialized()) {
       continue;
     }
-    emit_view_decl(os, titr->second);
-    emit_view_init(os, titr->second);
+
+    stringstream decl;
+    emit_view_decl(decl, titr->second);
+    decls.push_back(decl.str());
+
+    stringstream init;
+    emit_view_init(init, titr->second);
+    inits.push_back(init.str());
+  }
+  sort(decls.begin(), decls.end());
+  sort(inits.begin(), inits.end());
+
+  os << "// View Variables:" << endl;
+  for (const auto& d : decls) {
+    os << d << endl;
+  }
+  for (const auto& i : inits) {
+    os << i;
   }
   os << endl;
 }
 
-void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo) {
+void ModuleBoxer::emit_view_decl(ostream& os, const De10Logic::VarInfo& vinfo) {
   const RangeExpression* re = nullptr;
   auto is_signed = false;
   if (vinfo.id()->get_parent()->is(Node::Tag::net_declaration)) {
@@ -379,10 +406,10 @@ void ModuleBoxer::emit_view_decl(indstream& os, const De10Logic::VarInfo& vinfo)
   if (re != nullptr) {
     TextPrinter(os) << "[" << re->get_upper() << ":0]";
   }
-  TextPrinter(os) << " " << vinfo.id() << ";\n";
+  TextPrinter(os) << " " << vinfo.id() << ";";
 }
 
-void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo) {
+void ModuleBoxer::emit_view_init(ostream& os, const De10Logic::VarInfo& vinfo) {
   const auto arity = vinfo.arity();
   for (size_t i = 0, ie = vinfo.elements(); i < ie; ++i) {
     os << "assign " << vinfo.id()->front_ids()->get_readable_sid();
@@ -398,7 +425,7 @@ void ModuleBoxer::emit_view_init(indstream& os, const De10Logic::VarInfo& vinfo)
   }
 }
 
-void ModuleBoxer::emit_subscript(indstream& os, size_t idx, size_t n, const vector<size_t>& arity) {
+void ModuleBoxer::emit_subscript(ostream& os, size_t idx, size_t n, const vector<size_t>& arity) {
   for (auto a : arity) {
     n /= a;
     const auto i = idx / n;
@@ -484,16 +511,16 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
   // overwrites its value.  Requesting an update forces all stateful variables
   // to latch the values of their counterparts.  In all other cases, variables
   // keep the same value. Special consideration is given to the open loop
-  // clock.
+  // clock.  Sort this logic lexicographically to ensure deterministic code.
 
-  os << "// Variable Table Logic:" << endl;
-  os << "always @(posedge __clk) begin" << endl;
-  os.tab();
+  vector<string> logic;
   for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
     // Ignore variables that weren't materialized or correspond to sys tasks
     if (!t->second.materialized() || (Resolve().get_resolution(t->first) != t->first)) {
       continue;
     }
+
+    stringstream ss;
 
     const auto arity = t->second.arity();
     const auto w = t->second.bit_size();
@@ -502,34 +529,42 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
     for (size_t i = 0, ie = t->second.elements(); i < ie; ++i) {
       for (size_t j = 0, je = t->second.element_size(); j < je; ++j) {
 
-        os << "__var[" << idx << "] <= ";
+        ss << "__var[" << idx << "] <= ";
         if (de_->open_loop_enabled() && (t->first == de_->open_loop_clock())) {
-          TextPrinter(os) << "__open_loop_tick ? {31'b0, ~" << t->first << "} : ";
+          TextPrinter(ss) << "__open_loop_tick ? {31'b0, ~" << t->first << "} : ";
         } 
-        os << "(__read && (__vid == " << idx << ")) ? __in : ";
+        ss << "(__read && (__vid == " << idx << ")) ? __in : ";
         if (info.is_stateful(t->first)) {
-          TextPrinter(os) << "(__apply_updates && __update_queue[" << idx << "]) ? ";
-          TextPrinter(os) << t->first->front_ids()->get_readable_sid() << "_next";
-          emit_subscript(os, i, ie, arity);
-          emit_slice(os, w, j);
-          os << " : ";
+          TextPrinter(ss) << "(__apply_updates && __update_queue[" << idx << "]) ? ";
+          TextPrinter(ss) << t->first->front_ids()->get_readable_sid() << "_next";
+          emit_subscript(ss, i, ie, arity);
+          emit_slice(ss, w, j);
+          ss << " : ";
         }
-        TextPrinter(os) << t->first->front_ids();
-        emit_subscript(os, i, ie, arity);
-        emit_slice(os, w, j);
-        os  << ";";
-        os << endl;
+        TextPrinter(ss) << t->first->front_ids();
+        emit_subscript(ss, i, ie, arity);
+        emit_slice(ss, w, j);
+        ss  << ";" << endl;
 
         ++idx;
       }
     }
+    logic.push_back(ss.str());
+  }
+  sort(logic.begin(), logic.end());
+
+  os << "// Variable Table Logic:" << endl;
+  os << "always @(posedge __clk) begin" << endl;
+  os.tab();
+  for (const auto& l : logic) {
+    os << l;
   }
   os.untab();
   os << "end" << endl;
   os << endl;
 }
 
-void ModuleBoxer::emit_slice(indstream& os, size_t w, size_t i) {
+void ModuleBoxer::emit_slice(ostream& os, size_t w, size_t i) {
   const auto upper = min(32*(i+1),w)-1;
   const auto lower = 32*i;
   if (upper == 0) {
@@ -543,7 +578,24 @@ void ModuleBoxer::emit_slice(indstream& os, size_t w, size_t i) {
 
 void ModuleBoxer::emit_output_logic(indstream& os) {
   // Output logic. Controls which parts of which variables are propagated to
-  // out in response to the value of vid.
+  // out in response to the value of vid.  Sort this logic lexicographically to
+  // ensure deterministic code.
+
+  vector<string> logic;
+  for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
+    if (!t->second.materialized()) {
+      stringstream ss;
+      assert(t->second.elements() == 1);
+      const auto w = t->second.bit_size();
+      for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
+        TextPrinter(ss) << (t->second.index()+i) << ": __out = " << t->first;
+        emit_slice(ss, w, i); 
+        ss << ";";
+      }
+      logic.push_back(ss.str());
+    }
+  }
+  sort(logic.begin(), logic.end());
 
   os << "// Output Control Logic:" << endl;
   os << "always @(*) begin" << endl;
@@ -555,16 +607,8 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
   os << de_->sys_task_idx() << ": __out = __task_queue;" << endl;
   os << de_->open_loop_idx() << ": __out = __open_loop_itrs;" << endl;
   // Now emit cases for variables which weren't materialized
-  for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
-    if (!t->second.materialized()) {
-      assert(t->second.elements() == 1);
-      const auto w = t->second.bit_size();
-      for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
-        TextPrinter(os) << (t->second.index()+i) << ": __out = " << t->first;
-        emit_slice(os, w, i); 
-        os << ";\n";
-      }
-    }
+  for (const auto& l : logic) {
+    os << l << endl;
   }
   // For everything else __vid is an index into the variable table
   os << "default: __out = __var[__vid];" << endl;
