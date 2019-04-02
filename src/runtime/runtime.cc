@@ -477,7 +477,7 @@ void Runtime::rebuild() {
   done_logic_.clear();
   clock_ = nullptr;
   inlined_logic_ = nullptr;
-  // Reconfigure scheduling state and determine whether optimizations are possible
+  // Reconfigure scheduling state 
   for (auto* m : *root_) {
     if (m->engine()->is_stub()) {
       continue;
@@ -494,7 +494,12 @@ void Runtime::rebuild() {
     }
   }
   schedule_all_ = true;
+
+  // Determine whether we can reenter open loop in this state. If we can, make
+  // sure to adjust open_loop_itrs_ back to something manageable for software!
+  // Otherwise we'll hang in the next call to open_loop.
   enable_open_loop_ = (logic_.size() == 2) && (clock_ != nullptr) && (inlined_logic_ != nullptr);
+  open_loop_itrs_ = 2;
 }
 
 void Runtime::drain_active() {
