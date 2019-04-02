@@ -557,7 +557,7 @@ void ModuleBoxer::emit_variable_table_logic(indstream& os, ModuleInfo& info) {
   os << "always @(posedge __clk) begin" << endl;
   os.tab();
   for (const auto& l : logic) {
-    os << l << endl;
+    os << l;
   }
   os.untab();
   os << "end" << endl;

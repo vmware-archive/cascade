@@ -107,11 +107,10 @@ void QuartusServer::Worker::run_logic() {
 
   // If it isn't, we need to compile it
   if (itr == qs_->cache_.end()) {
-    ofstream ofs;
-    
-    ofs.open(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-    ofs << text << endl;
-    ofs.close();
+    ofstream ofs1(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+    ofs1 << text << endl;
+    ofs1.flush();
+    ofs1.close();
 
     if (stop_requested() || System::execute(qs_->quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
       qs_->sock_->put(0);
@@ -141,9 +140,10 @@ void QuartusServer::Worker::run_logic() {
 
     itr = qs_->cache_.insert(make_pair(text, file)).first;
 
-    ofs.open(qs_->cache_path_ + "/index.txt", ios::app);
-    ofs << text << '\0' << file << '\0';
-    ofs.close();
+    ofstream ofs2(qs_->cache_path_ + "/index.txt", ios::app);
+    ofs2 << text << '\0' << file << '\0';
+    ofs2.flush();
+    ofs2.close();
   } 
 
   // Now that it's definitely in the cache, use this bitstream to program the device
