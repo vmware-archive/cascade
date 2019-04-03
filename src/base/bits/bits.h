@@ -292,15 +292,13 @@ inline size_t BitsBase<T, BT, ST>::deserialize(std::istream& is) {
   resize(header & 0x7fffffffu);
   signed_ = header & 0x80000000u;
 
-  for (auto& v : val_) {
-    for (size_t i = 0; i < bytes_per_word(); ++i) {
-      uint8_t b;
-      is.read(reinterpret_cast<char*>(&b), 1);
-      v |= (static_cast<T>(b) << (8*i));
-    }
+  const auto n = (size_+7) / 8;
+  for (size_t i = 0; i < n; ++i) {
+    uint8_t b = is.get();
+    val_[i/bytes_per_word()] |= (static_cast<T>(b) << (8*(i%bytes_per_word())));
   }
 
-  return 4 + (val_.size() * bytes_per_word());
+  return 4 + n;
 }
 
 template <typename T, typename BT, typename ST>
@@ -308,15 +306,13 @@ inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
   uint32_t header = size_ | (signed_ ? 0x80000000u : 0);
   os.write(reinterpret_cast<char*>(&header), 4);
 
-  for (auto v : val_) {
-    for (size_t i = 0; i < bytes_per_word(); ++i) {
-      uint8_t b = v & 0xff;
-      os.write(reinterpret_cast<char*>(&b), 1);
-      v >>= 8;
-    }
+  const auto n = (size_+7) / 8;
+  for (size_t i = 0; i < n; ++i) {
+    const uint8_t b = (val_[i/bytes_per_word()] >> (8*(i%bytes_per_word()))) & 0xffu;
+    os.put(b);
   }
 
-  return 4 + (val_.size() * bytes_per_word());
+  return 4 + n;
 }
 
 template <typename T, typename BT, typename ST>
