@@ -256,8 +256,8 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error. Every time this code
   // path is invoked, we increment the compilation sequence number.
-  const auto seq = seq_compile_++;
   if (jit && (e_fast != nullptr)) {
+    const auto seq = seq_compile_++;
     pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, seq]{
       stringstream ss;
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
