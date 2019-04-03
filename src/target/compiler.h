@@ -106,6 +106,8 @@ class Compiler {
 
     // JIT State:
     ThreadPool pool_;
+    size_t seq_compile_;
+    size_t seq_build_;
 
     // Error State:
     std::mutex lock_;
