@@ -63,6 +63,9 @@ Compiler::Compiler() {
   pool_.stop_now();
   pool_.set_num_threads(4);
   pool_.run();
+
+  seq_compile_ = 1;
+  seq_build_ = 0;
 }
 
 Compiler::~Compiler() {
@@ -251,20 +254,23 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. Note that we schedule an
   // interrupt regardless. This is to trigger an interaction with the runtime
-  // even if only just for the sake of catching an error.
+  // even if only just for the sake of catching an error. Every time this code
+  // path is invoked, we increment the compilation sequence number.
   if (jit && (e_fast != nullptr)) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid]{
+    const auto seq = seq_compile_++;
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, seq]{
       stringstream ss;
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
       Masker().mask(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([e, e_slow, rt, str]{
-        if (e_slow == nullptr) {
+      rt->schedule_interrupt([this, e, e_slow, rt, str, seq]{
+        if ((seq <= seq_build_) || (e_slow == nullptr)) {
           rt->info("Aborted " + str);
         } else {
           e->replace_with(e_slow);
+          seq_build_ = seq;
           rt->info("Finished " + str);
         }
       });

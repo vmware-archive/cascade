@@ -113,6 +113,7 @@ HDR=\
 	src/base/undo/undo_val.h\
 	src/base/undo/undo_vector.h\
 	src/base/undo/undoable.h\
+	src/base/uuid/uuid.h\
 	\
 	src/runtime/data_plane.h\
 	src/runtime/ids.h\
