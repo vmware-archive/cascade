@@ -200,7 +200,11 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   return new Engine(c, i);
 }
 
-void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md, const Identifier* id) {
+void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id) {
+  // Bump the sequence number for this engine
+  ++version;
+  const auto this_version = version;
+
   // Record human readable name for this module
   const auto fid = Resolve().get_readable_full_id(id);
 
@@ -254,23 +258,20 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. Note that we schedule an
   // interrupt regardless. This is to trigger an interaction with the runtime
-  // even if only just for the sake of catching an error. Every time this code
-  // path is invoked, we increment the compilation sequence number.
+  // even if only just for the sake of catching an error. 
   if (jit && (e_fast != nullptr)) {
-    const auto seq = seq_compile_++;
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, seq]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, this_version, &version]{
       stringstream ss;
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
       Masker().mask(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([this, e, e_slow, rt, str, seq]{
-        if ((seq <= seq_build_) || (e_slow == nullptr)) {
+      rt->schedule_interrupt([this, e, e_slow, rt, str, this_version, &version]{
+        if ((this_version < version) || (e_slow == nullptr)) {
           rt->info("Aborted " + str);
         } else {
           e->replace_with(e_slow);
-          seq_build_ = seq;
           rt->info("Finished " + str);
         }
       });
