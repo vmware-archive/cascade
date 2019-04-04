@@ -36,6 +36,8 @@ OBJ=\
 	\
 	lib/cascade.o\
 	\
+	src/base/token/tokenize.o\
+	\
 	src/runtime/data_plane.o\
 	src/runtime/isolate.o\
 	src/runtime/module.o\

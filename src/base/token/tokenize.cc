@@ -28,52 +28,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_TOKEN_TOKENIZE_H
-#define CASCADE_SRC_BASE_TOKEN_TOKENIZE_H
+#include "src/base/token/tokenize.h"
 
-#include <cassert>
-#include <limits>
-#include <mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
+using namespace std;
 
 namespace cascade {
 
-// This class is used to represent the overhead of keeping track of string
-// variables by replacing them with integer tokens. 
-
-class Tokenize {
-  public:
-    // Typedefs:
-    typedef uint32_t Token;
-
-    // Map/Unmap:
-    Token map(const std::string& s);
-    const std::string& unmap(Token t);
-
-  private:
-    static std::mutex lock_;
-    static std::vector<std::string> t2s_;
-    static std::unordered_map<std::string, Token> s2t_;
-};
-
-inline Tokenize::Token Tokenize::map(const std::string& s) {
-  std::lock_guard<std::mutex> lg(lock_);
-  const auto res = s2t_.insert(make_pair(s, t2s_.size()));
-  if (res.second) {
-    assert(t2s_.size() < std::numeric_limits<Token>::max());
-    t2s_.push_back(s);
-  }
-  return res.first->second;
-}
-
-inline const std::string& Tokenize::unmap(Token t) {
-  assert(t < t2s_.size());
-  std::lock_guard<std::mutex> lg(lock_);
-  return t2s_[t];
-}
+mutex Tokenize::lock_;
+vector<string> Tokenize::t2s_;
+unordered_map<string, Tokenize::Token> Tokenize::s2t_;
 
 } // namespace cascade
-
-#endif
