@@ -197,7 +197,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     return nullptr;
   }
 
-  return new Engine(c, i);
+  return new Engine(i, c, ic, cc);
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id) {
