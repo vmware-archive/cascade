@@ -102,6 +102,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolat
 
   src_ = nullptr;
   engine_ = new Engine();
+  version_ = 0;
 
   psrc_ = psrc;
   parent_ = nullptr;
@@ -174,7 +175,7 @@ void Module::rebuild() {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
@@ -223,7 +224,7 @@ void Module::synchronize(size_t n) {
     const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
