@@ -3,7 +3,6 @@
 
 include data/stdlib/stdlib.v;
 
-(*__target="sw"*)
 Root root();
 
 Clock clock();
