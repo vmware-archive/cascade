@@ -80,9 +80,9 @@ Program& Program::typecheck(bool tc) {
 }
 
 bool Program::declare(ModuleDeclaration* md, Log* log, const Parser* p) {
-  // Declarations inherit defaults from the root instantiation. 
-  if (root_elab() != elab_end()) {
-    auto* attrs = root_elab()->second->get_attrs()->clone();
+  // Declarations inherit defaults from the root declaration. 
+  if (root_decl() != decl_end()) {
+    auto* attrs = root_decl()->second->get_attrs()->clone();
     attrs->set_or_replace(md->get_attrs());
     md->replace_attrs(attrs);
   }
@@ -208,10 +208,15 @@ void Program::elaborate(Node* n, Log* log, const Parser* p) {
           Navigate(mi).invalidate();
         }
 
-        // Instantiations inherit attributes from their declarations 
+        // Instantiations inherit attributes from their declarations. User
+        // logic also inherits attributes from the root instantiation.
         assert(decl_find(mi->get_mid()) != decl_end());
         auto* attrs = decl_find(mi->get_mid())->second->get_attrs()->clone();
+        if ((root_elab() != elab_end()) && attrs->get<String>("__std")->eq("logic")) {
+          attrs->set_or_replace(root_elab()->second->get_attrs());
+        }
         attrs->set_or_replace(mi->get_attrs());
+
         e->replace_attrs(attrs);
         elabs_.insert(Resolve().get_full_id(mi->get_iid()), e);
       }
