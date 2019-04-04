@@ -35,6 +35,7 @@
 #include <map>
 #include <unistd.h>
 #include "src/base/stream/sockstream.h"
+#include "src/target/core/de10/module_boxer.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
@@ -62,9 +63,6 @@ De10Compiler::De10Compiler() : CoreCompiler() {
 
   set_host("localhost"); 
   set_port(9900);
-
-  curr_seq_ = 1;
-  next_seq_ = 2;
 }
 
 De10Compiler::~De10Compiler() {
@@ -87,28 +85,17 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
   return *this;
 }
 
-void De10Compiler::flush() {
-  pbox_.flush();
-  curr_seq_ = 1;
-  next_seq_ = 2;
-  wait_table_.clear(); 
+void De10Compiler::cleanup(QuartusServer::Id id) {
+  sockstream sock(host_.c_str(), port_);;
+  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
+  sock.put(static_cast<uint8_t>(id));
+  sock.flush();
 }
 
 void De10Compiler::abort() {
   sockstream sock(host_.c_str(), port_);;
-
-  // Set the current sequence number to zero to indicate it's time to shutdown 
-  { lock_guard<mutex> lg(lock_);
-    curr_seq_ = 0;
-    if (!sock.error()) {
-      sock.put(1);
-      sock.put('\0');
-      sock.flush();
-    }
-  }
-  // Notify any outstanding threads to force their shutdown.
-  unique_lock<mutex> ul(lock_);
-  cv_.notify_all();
+  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
+  sock.flush();
 }
 
 De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
@@ -181,22 +168,28 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
 }
 
 De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
-  ModuleInfo info(md);
-
-  // Check range on mid 
-  if (to_mid(md->get_id()) >= 4) {
-    error("Unable to compile a module with internal id greater than 3!");
-    delete md;
+  // Connect to quartus server
+  sockstream sock(host_.c_str(), port_);
+  if (sock.error()) {
+    error("Unable to connect to quartus compilation server");
+    return nullptr;
+  }
+  // Send a slot request. If it comes back negative, the server is full.
+  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::REQUEST_SLOT));
+  sock.flush();
+  const auto sid = sock.get();
+  if (sid == -1) {
+    error("No remaining slots available on de10 fabric");
     return nullptr;
   }
 
   // Create a new core with address identity based on module id
-  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + to_mid(md->get_id());
-  const auto mid = to_mid(md->get_id());
-  auto* de = new De10Logic(interface, md, addr);
+  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + sid;
+  auto* de = new De10Logic(interface, sid, md, addr);
 
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering.
+  ModuleInfo info(md);
   map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
     is.insert(make_pair(to_vid(i), i));
@@ -218,7 +211,6 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   for (const auto& o : os) {
     de->set_output(o.second, o.first);
   }
-
   // Check size of variable table
   if (de->open_loop_idx() >= 0x4000) {
     error("Unable to compile module with more than 0x4000 entries in variable table");
@@ -226,66 +218,25 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     return nullptr;
   }
 
-  // Connect to quartus server
-  sockstream sock(host_.c_str(), port_);
-  if (sock.error()) {
-    error("Unable to connect to quartus compilation server");
+  // Blocking call to compile. 
+  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
+  sock.put(static_cast<uint8_t>(sid));
+  const auto text = ModuleBoxer().box(md, de);
+  sock.write(text.c_str(), text.length());
+  sock.put('\0');
+  sock.flush();
+
+  // At this point, we don't expect compilations to fail.  A non-zero return
+  // value indicates that the compilation was aborted. 
+  if (sock.get() != 0) {
+    sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
+    sock.put(static_cast<uint8_t>(sid));
+    sock.flush();
     delete de;
     return nullptr;
   }
 
-  // Critical Section #1: 
-  size_t my_seq = 0;
-  { lock_guard<mutex> lg(lock_); 
-    // Try pushing this module into the repository. If the push fails, this
-    // code is out of date and we can abort the compilation now.
-    if (!pbox_.push(mid, md, de)) {
-      delete de;
-      return nullptr;
-    }
-    // The push succeeded, start a new compilation.
-    const auto psrc = pbox_.get();
-    sock.write(psrc.c_str(), psrc.length());
-    sock.put('\0');
-    sock.flush();
-    // Record which sequence number this module is waiting on
-    my_seq = next_seq_++;
-    wait_table_[mid] = my_seq;
-  }
-
-  // Block on result
-  const auto result = (sock.get() == 1);
-
-  // Critical Section #2
-  { unique_lock<mutex> ul(lock_);
-    // If the request was successfully, no newer results have come back, and we
-    // haven't trapped the special sequence number zero, update the current
-    // sequence number, and tell everyone to check their exit conditions.
-    if (result && (my_seq > curr_seq_) && (curr_seq_ > 0)) {
-      curr_seq_ = my_seq; 
-    }
-    cv_.notify_all();
-
-    // Exit condition loop: 
-    for (; true; cv_.wait(ul)) {
-      // The special sequence number forces all threads to abort
-      if (curr_seq_ == 0) {
-        delete de;
-        return nullptr;
-      }
-      // If this thread's entry in the wait table has been replaced, it can
-      // abort as well
-      if (my_seq < wait_table_[mid]) {
-        delete de;
-        return nullptr;
-      }
-      // Otherwise, if we're waiting on a sequence number less than what's been
-      // commited, we can return.
-      if (wait_table_[mid] <= curr_seq_) {
-        return de;
-      } 
-    } 
-  }
+  return de;
 }
 
 } // namespace cascade

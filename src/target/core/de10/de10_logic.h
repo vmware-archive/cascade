@@ -36,6 +36,7 @@
 #include "src/base/bits/bits.h"
 #include "src/base/container/vector.h"
 #include "src/target/core.h"
+#include "src/target/core/de10/quartus_server.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -75,7 +76,7 @@ class De10Logic : public Logic, public Visitor {
     typedef std::unordered_map<const Identifier*, VarInfo>::const_iterator table_iterator;
 
     // Constructors:
-    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr);
+    De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -123,6 +124,9 @@ class De10Logic : public Logic, public Visitor {
   private:
     // Program Source:
     ModuleDeclaration* src_;
+
+    // Quartus Server State:
+    QuartusServer::Id id_;
 
     // FPGA Memory Map:
     volatile uint8_t* addr_;

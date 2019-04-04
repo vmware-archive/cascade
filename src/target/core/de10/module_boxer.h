@@ -45,7 +45,7 @@ namespace cascade {
 class ModuleBoxer : public Builder {
   public:
     ~ModuleBoxer() override = default;
-    std::string box(MId id, const ModuleDeclaration* md, const De10Logic* de);
+    std::string box(const ModuleDeclaration* md, const De10Logic* de);
 
   private:
     // Source Management:

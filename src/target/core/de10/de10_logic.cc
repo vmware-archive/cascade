@@ -96,7 +96,8 @@ size_t De10Logic::VarInfo::entry_size() const {
   return elements() * element_size();
 }
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+  id_ = id;
   src_ = src;
   addr_ = addr;
   next_index_ = 0;
@@ -268,8 +269,7 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
 void De10Logic::cleanup(CoreCompiler* cc) {
   auto* dc = dynamic_cast<De10Compiler*>(cc);
   assert(dc != nullptr);
-
-  dc->flush();
+  dc->cleanup(id_);
 }
 
 De10Logic::map_iterator De10Logic::map_begin() const {

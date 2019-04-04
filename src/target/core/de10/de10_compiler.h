@@ -31,17 +31,14 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 
-#include <condition_variable>
-#include <mutex>
 #include <stdint.h>
 #include <string>
-#include <unordered_map>
 #include "src/target/core_compiler.h"
 #include "src/target/core/de10/de10_gpio.h"
 #include "src/target/core/de10/de10_led.h"
 #include "src/target/core/de10/de10_logic.h"
 #include "src/target/core/de10/de10_pad.h"
-#include "src/target/core/de10/program_boxer.h"
+#include "src/target/core/de10/quartus_server.h"
 
 namespace cascade {
 
@@ -55,7 +52,7 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_host(const std::string& host);
     De10Compiler& set_port(uint32_t port);
 
-    void flush();
+    void cleanup(QuartusServer::Id id);
     void abort() override;
 
   private:
@@ -68,13 +65,6 @@ class De10Compiler : public CoreCompiler {
     uint32_t port_;
 
     // Compilation Request Ordering:
-    std::condition_variable cv_;
-    std::mutex lock_;
-    ProgramBoxer pbox_;
-    size_t curr_seq_;
-    size_t next_seq_;
-    std::unordered_map<MId, size_t> wait_table_;
-
     De10Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md) override;
     De10Led* compile_led(Interface* interface, ModuleDeclaration* md) override;
     De10Logic* compile_logic(Interface* interface, ModuleDeclaration* md) override;

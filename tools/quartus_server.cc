@@ -78,12 +78,12 @@ int main(int argc, char** argv) {
   sigaction(SIGINT, &action, nullptr);
 
   ::qs = new QuartusServer();
-  ::qs->set_cache(::cache.value());
-  ::qs->set_path(::path.value());
+  ::qs->set_cache_path(::cache.value());
+  ::qs->set_quartus_path(::path.value());
   ::qs->set_port(::port.value());
   ::qs->set_usb(::usb.value());
 
-  if (!::qs->check()) {
+  if (::qs->error()) {
     cout << "Unable to locate core quartus components!" << endl;
   } else {
     ::qs->run();

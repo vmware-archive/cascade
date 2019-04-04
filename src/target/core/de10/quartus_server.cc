@@ -34,25 +34,25 @@
 #include <sstream>
 #include "src/base/stream/sockstream.h"
 #include "src/base/system/system.h"
+#include "src/target/core/de10/program_boxer.h"
 
 using namespace std;
 
 namespace cascade {
 
-QuartusServer::QuartusServer() : Asynchronous(), worker_(this) { 
-  set_cache("/tmp/quartus_cache/");
-  set_path("");
+QuartusServer::QuartusServer() : Asynchronous() { 
+  set_cache_path("/tmp/quartus_cache/");
+  set_quartus_path("");
   set_port(9900);
   set_usb("");
-  sock_ = nullptr;
 }
 
-QuartusServer& QuartusServer::set_cache(const string& path) {
+QuartusServer& QuartusServer::set_cache_path(const string& path) {
   cache_path_ = path;
   return *this;
 }
 
-QuartusServer& QuartusServer::set_path(const string& path) {
+QuartusServer& QuartusServer::set_quartus_path(const string& path) {
   quartus_path_ = path;
   return *this;
 }
@@ -67,92 +67,30 @@ QuartusServer& QuartusServer::set_usb(const string& usb) {
   return *this;
 }
 
-bool QuartusServer::check() const {
-  // Return false if we can't locate any of the necessary quartus components
+bool QuartusServer::error() const {
+  // Return true if we can't locate any of the necessary quartus components
   if (System::execute("ls " + quartus_path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
-    return false;
+    return true;
   }
   if (System::execute("ls " + quartus_path_ + "/bin/quartus_map > /dev/null") != 0) {
-    return false;
+    return true;
   }
   if (System::execute("ls " + quartus_path_ + "/bin/quartus_fit > /dev/null") != 0) {
-    return false;
+    return true;
   }
   if (System::execute("ls " + quartus_path_ + "/bin/quartus_asm > /dev/null") != 0) {
-    return false;
+    return true;
   }
   if (System::execute("ls " + quartus_path_ + "/bin/quartus_pgm > /dev/null") != 0) {
-    return false;
+    return true;
   }
-  return true;
+  return false;
 }
 
-QuartusServer::Worker::Worker(QuartusServer* qs) { 
-  qs_ = qs;
-}
-
-void QuartusServer::Worker::run_logic() {
-  string text;
-  getline(*qs_->sock_, text, '\0');
-
-  // A message of length 1 signals that no compilation is necessary.
-  if (text.length() == 1) {
-    qs_->sock_->put(0);
-    qs_->sock_->flush();
-    return;
-  }
-
-  // Check whether this program is in the cache
-  auto itr = qs_->cache_.find(text);
-
-  // If it isn't, we need to compile it
-  if (itr == qs_->cache_.end()) {
-    ofstream ofs1(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-    ofs1 << text << endl;
-    ofs1.flush();
-    ofs1.close();
-
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    } 
-    if (stop_requested() || System::execute(qs_->quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      qs_->sock_->put(0);
-      qs_->sock_->flush();
-      return;
-    }
-
-    stringstream ss;
-    ss << "bitstream_" << qs_->cache_.size() << ".sof";
-    const auto file = ss.str();
-    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + qs_->cache_path_ + "/" + file);
-
-    itr = qs_->cache_.insert(make_pair(text, file)).first;
-
-    ofstream ofs2(qs_->cache_path_ + "/index.txt", ios::app);
-    ofs2 << text << '\0' << file << '\0';
-    ofs2.flush();
-    ofs2.close();
-  } 
-
-  // Now that it's definitely in the cache, use this bitstream to program the device
-  if (System::execute(qs_->quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + qs_->cache_path_ + "/" + itr->second + "@2\"") != 0) {
-    qs_->sock_->put(0);
-  } else {
-    qs_->sock_->put(1);
-  }
-  qs_->sock_->flush();
+void QuartusServer::init_pool() {
+  pool_.stop_now();
+  pool_.set_num_threads(4);
+  pool_.run();
 }
 
 void QuartusServer::init_cache() {
@@ -162,6 +100,7 @@ void QuartusServer::init_cache() {
 
   // Read cache into memory
   ifstream ifs(cache_path_ + "/index.txt");
+  cache_.clear();
   while (true) {
     string text;
     getline(ifs, text, '\0');
@@ -175,11 +114,141 @@ void QuartusServer::init_cache() {
   } 
 }
 
+void QuartusServer::init_slots() {
+  slots_.resize(4);
+  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+    slots_[i].first = QuartusServer::State::OPEN;
+    slots_[i].second = "";
+  }
+}
+
+void QuartusServer::request_slot(sockstream* sock) {
+  lock_guard<mutex> lg(lock_);
+  uint8_t res = -1;
+  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+    if (slots_[i].first == QuartusServer::State::OPEN) {
+      slots_[i].first = QuartusServer::State::ABORTED;
+      res = i;
+      break;
+    }
+  }
+  sock->put(res);
+  sock->flush();
+  delete sock;
+}
+
+void QuartusServer::update_slot(sockstream* sock) {
+  const auto i = static_cast<size_t>(sock->get());
+  assert(i < slots_.size());
+  string text = "";
+  getline(*sock, text, '\0');
+
+  // Kill everything before entering the critical section and starting a new
+  // compile. This will knock any current compilation threads out of the
+  // critical section.
+  killall();
+    
+  unique_lock<mutex> ul(lock_);
+  slots_[i].first = QuartusServer::State::WAITING;
+  slots_[i].second = text;
+  pool_.insert(new ThreadPool::Job([this]{recompile();}));
+
+  while (slots_[i].first == QuartusServer::State::WAITING) {
+    cv_.wait(ul);
+  }  
+  sock->put((slots_[i].first == QuartusServer::State::CURRENT) ? 0 : 1);
+  sock->flush();
+  delete sock;
+}
+
+void QuartusServer::return_slot(sockstream* sock) {
+  const auto i = static_cast<size_t>(sock->get());
+  assert(i < slots_.size());
+
+  lock_guard<mutex> lg(lock_);
+  slots_[i].first = QuartusServer::State::OPEN;
+  slots_[i].second = "";
+  sock->put(0);
+  sock->flush();
+  delete sock;
+}
+
+void QuartusServer::killall() {
+  // Note that we never kill quartus_pgm.  It runs quickly and an
+  // inconsistently programmed fpga is a nightmware we don't want to consider.
+  System::execute("killall java > /dev/null 2>&1");
+  System::execute("killall quartus_map > /dev/null 2>&1");
+  System::execute("killall quartus_fit > /dev/null 2>&1");
+  System::execute("killall quartus_asm > /dev/null 2>&1");
+}
+
+void QuartusServer::recompile() {
+  lock_guard<mutex> lg(lock_);
+
+  ProgramBoxer pb;
+  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+    if (slots_[i].first != QuartusServer::State::OPEN) {
+      pb.push(i, slots_[i].second);
+    }
+  }
+  const auto text = pb.get();
+
+  // If the program isn't in the cache we need to compile it
+  auto itr = cache_.find(text);
+  if (itr == cache_.end()) {
+    ofstream ofs1(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+    ofs1 << text << endl;
+    ofs1.flush();
+    ofs1.close();
+
+    if (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+      return;
+    } 
+    if (System::execute(quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      return;
+    } 
+    if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      return;
+    } 
+    if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+      return;
+    }
+
+    stringstream ss;
+    ss << "bitstream_" << cache_.size() << ".sof";
+    const auto file = ss.str();
+    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
+
+    itr = cache_.insert(make_pair(text, file)).first;
+
+    ofstream ofs2(cache_path_ + "/index.txt", ios::app);
+    ofs2 << text << '\0' << file << '\0';
+    ofs2.flush();
+    ofs2.close();
+  } 
+
+  // Use the cached bitstream to reporgram the device
+  if (System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + itr->second + "@2\"") != 0) {
+    return;
+  } 
+
+  // If we made it this far, change the state on every waiting slot to current and notify everyone
+  for (auto& s : slots_) {
+    if (s.first == QuartusServer::State::WAITING) {
+      s.first = QuartusServer::State::CURRENT;
+    }
+  }
+  cv_.notify_all();
+}
+
 void QuartusServer::run_logic() {
+  init_pool();
   init_cache();
+  init_slots();
 
   sockserver server(port_, 8);
   if (server.error()) {
+    pool_.stop_now();
     return;
   }
 
@@ -199,29 +268,41 @@ void QuartusServer::run_logic() {
       continue;
     }
 
-    // Set workers done signal, kill any existing quartus jobs,
-    // and wait for the worker to return control here.
-    worker_.request_stop();
-    System::execute("killall java > /dev/null 2>&1");
-    System::execute("killall quartus_map > /dev/null 2>&1");
-    System::execute("killall quartus_fit > /dev/null 2>&1");
-    System::execute("killall quartus_asm > /dev/null 2>&1");
-    worker_.wait_for_stop();
-    
-    // Create a new socket for this request and rerun the worker.
-    // Note that we're not waiting for finish here. Best case, it 
-    // finishes, worst case, we kill it the next time through this
-    // loop in response to the next incoming request.
-    if (sock_ != nullptr) {
-      delete sock_;
+    auto* sock = server.accept();
+    const auto rpc = static_cast<QuartusServer::Rpc>(sock->get());
+    switch (rpc) {
+      case QuartusServer::Rpc::REQUEST_SLOT:
+        pool_.insert(new ThreadPool::Job([this, sock]{request_slot(sock);}));
+        break;
+      case QuartusServer::Rpc::UPDATE_SLOT:
+        pool_.insert(new ThreadPool::Job([this, sock]{update_slot(sock);}));
+        break;
+      case QuartusServer::Rpc::RETURN_SLOT:
+        pool_.insert(new ThreadPool::Job([this, sock]{return_slot(sock);}));
+        break;
+
+      case QuartusServer::Rpc::ABORT:
+      case QuartusServer::Rpc::ERROR:
+      default:
+        request_stop();
+        break;
     }
-    sock_ = server.accept();
-    worker_.run();
   }
+
+  abort();
+  pool_.stop_now();
 }
 
-void QuartusServer::stop_logic() {
-  cache_.clear();
+void QuartusServer::abort() {
+  killall();
+
+  lock_guard<mutex> lg(lock_);
+  for (auto& s : slots_) {
+    if (s.first == QuartusServer::State::WAITING) {
+      s.first = QuartusServer::State::ABORTED;
+    }
+  }
+  cv_.notify_all();
 }
 
 } // namespace cascade
