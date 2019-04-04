@@ -267,7 +267,7 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
 
       Masker().mask(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([this, e, e_slow, rt, str, this_version, &version]{
+      rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
         if ((this_version < version) || (e_slow == nullptr)) {
           rt->info("Aborted " + str);
         } else {
