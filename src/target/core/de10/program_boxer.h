@@ -42,6 +42,7 @@ class De10Logic;
 
 class ProgramBoxer {
   public:
+    void flush();
     bool push(MId id, const ModuleDeclaration* md, const De10Logic* de);
     std::string get() const;
 

@@ -87,6 +87,13 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
   return *this;
 }
 
+void De10Compiler::flush() {
+  pbox_.flush();
+  curr_seq_ = 1;
+  next_seq_ = 2;
+  wait_table_.clear(); 
+}
+
 void De10Compiler::abort() {
   sockstream sock(host_.c_str(), port_);;
 

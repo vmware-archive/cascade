@@ -40,6 +40,10 @@ using namespace std;
 
 namespace cascade {
 
+void ProgramBoxer::flush() {
+  repo_.clear();
+}
+
 bool ProgramBoxer::push(MId mid, const ModuleDeclaration* md, const De10Logic* de) {
   // Count the number of lines in this module. Code size increases monotonically, which
   // means it should function sufficiently as a sequence number.

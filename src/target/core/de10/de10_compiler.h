@@ -55,6 +55,7 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_host(const std::string& host);
     De10Compiler& set_port(uint32_t port);
 
+    void flush();
     void abort() override;
 
   private:

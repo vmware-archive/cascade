@@ -97,6 +97,8 @@ class De10Logic : public Logic, public Visitor {
 
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
+    void cleanup(CoreCompiler* cc) override;
+
     // Iterators over ast id to data plane id conversion:
     map_iterator map_begin() const;
     map_iterator map_end() const;
