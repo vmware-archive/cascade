@@ -146,8 +146,6 @@ void QuartusServer::Worker::run_logic() {
     ofs2.close();
   } 
 
-    cout << "CACHE HIT FOR " << itr->second << endl;
-
   // Now that it's definitely in the cache, use this bitstream to program the device
   if (System::execute(qs_->quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + qs_->usb_ + "\" --mode JTAG -o \"P;" + qs_->cache_path_ + "/" + itr->second + "@2\"") != 0) {
     qs_->sock_->put(0);
