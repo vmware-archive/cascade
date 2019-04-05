@@ -218,7 +218,8 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     return nullptr;
   }
 
-  // Blocking call to compile. 
+  // Blocking call to compile.  At this point, we don't expect compilations to
+  // fail.  A non-zero return value indicates that the compilation was aborted. 
   sockstream sock2(host_.c_str(), port_);
   sock2.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
   sock2.put(static_cast<uint8_t>(sid));
@@ -226,19 +227,17 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   sock2.write(text.c_str(), text.length());
   sock2.put('\0');
   sock2.flush();
-
-  // At this point, we don't expect compilations to fail.  A non-zero return
-  // value indicates that the compilation was aborted. 
-  sockstream sock3(host_.c_str(), port_);
-  if (sock3.get() != 0) {
-    sock3.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
-    sock3.put(static_cast<uint8_t>(sid));
-    sock3.flush();
-    delete de;
-    return nullptr;
+  if (sock2.get() == 0) {
+    return de;
   }
 
-  return de;
+  // If the compilation was aborted, return this slot to the server.
+  sockstream sock3(host_.c_str(), port_);
+  sock3.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
+  sock3.put(static_cast<uint8_t>(sid));
+  sock3.flush();
+  delete de;
+  return nullptr;
 }
 
 } // namespace cascade
