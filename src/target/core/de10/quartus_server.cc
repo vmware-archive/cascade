@@ -280,8 +280,10 @@ void QuartusServer::run_logic() {
       case QuartusServer::Rpc::RETURN_SLOT:
         pool_.insert(new ThreadPool::Job([this, sock]{return_slot(sock);}));
         break;
-
       case QuartusServer::Rpc::ABORT:
+        abort();
+        break;
+
       case QuartusServer::Rpc::ERROR:
       default:
         request_stop();
