@@ -169,16 +169,16 @@ De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) 
 
 De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
   // Connect to quartus server
-  sockstream sock(host_.c_str(), port_);
-  if (sock.error()) {
+  sockstream sock1(host_.c_str(), port_);
+  if (sock1.error()) {
     error("Unable to connect to quartus compilation server");
     return nullptr;
   }
   // Send a slot request. If it comes back negative, the server is full.
-  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::REQUEST_SLOT));
-  sock.flush();
-  const auto sid = sock.get();
-  if (sid == -1) {
+  sock1.put(static_cast<uint8_t>(QuartusServer::Rpc::REQUEST_SLOT));
+  sock1.flush();
+  const auto sid = sock1.get();
+  if (sid == static_cast<uint8_t>(-1)) {
     error("No remaining slots available on de10 fabric");
     return nullptr;
   }
@@ -218,25 +218,26 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     return nullptr;
   }
 
-  // Blocking call to compile. 
-  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
-  sock.put(static_cast<uint8_t>(sid));
+  // Blocking call to compile.  At this point, we don't expect compilations to
+  // fail.  A non-zero return value indicates that the compilation was aborted. 
+  sockstream sock2(host_.c_str(), port_);
+  sock2.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
+  sock2.put(static_cast<uint8_t>(sid));
   const auto text = ModuleBoxer().box(md, de);
-  sock.write(text.c_str(), text.length());
-  sock.put('\0');
-  sock.flush();
-
-  // At this point, we don't expect compilations to fail.  A non-zero return
-  // value indicates that the compilation was aborted. 
-  if (sock.get() != 0) {
-    sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
-    sock.put(static_cast<uint8_t>(sid));
-    sock.flush();
-    delete de;
-    return nullptr;
+  sock2.write(text.c_str(), text.length());
+  sock2.put('\0');
+  sock2.flush();
+  if (sock2.get() == 0) {
+    return de;
   }
 
-  return de;
+  // If the compilation was aborted, return this slot to the server.
+  sockstream sock3(host_.c_str(), port_);
+  sock3.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
+  sock3.put(static_cast<uint8_t>(sid));
+  sock3.flush();
+  delete de;
+  return nullptr;
 }
 
 } // namespace cascade
