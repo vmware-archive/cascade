@@ -122,6 +122,10 @@ void QuartusServer::init_slots() {
   }
 }
 
+void QuartusServer::init_versioning() {
+  version_ = 0;
+}
+
 void QuartusServer::request_slot(sockstream* sock) {
   lock_guard<mutex> lg(lock_);
   uint8_t res = -1;
@@ -133,30 +137,6 @@ void QuartusServer::request_slot(sockstream* sock) {
     }
   }
   sock->put(res);
-  sock->flush();
-  delete sock;
-}
-
-void QuartusServer::update_slot(sockstream* sock) {
-  const auto i = static_cast<size_t>(sock->get());
-  assert(i < slots_.size());
-  string text = "";
-  getline(*sock, text, '\0');
-
-  // Kill everything before entering the critical section and starting a new
-  // compile. This will knock any current compilation threads out of the
-  // critical section.
-  killall();
-    
-  unique_lock<mutex> ul(lock_);
-  slots_[i].first = QuartusServer::State::WAITING;
-  slots_[i].second = text;
-  pool_.insert(new ThreadPool::Job([this]{recompile();}));
-
-  while (slots_[i].first == QuartusServer::State::WAITING) {
-    cv_.wait(ul);
-  }  
-  sock->put((slots_[i].first == QuartusServer::State::CURRENT) ? 0 : 1);
   sock->flush();
   delete sock;
 }
@@ -182,69 +162,131 @@ void QuartusServer::killall() {
   System::execute("killall quartus_asm > /dev/null 2>&1");
 }
 
-void QuartusServer::recompile() {
-  lock_guard<mutex> lg(lock_);
+void QuartusServer::update_slot(sockstream* sock) {
+  const auto i = static_cast<size_t>(sock->get());
+  assert(i < slots_.size());
+  string text = "";
+  getline(*sock, text, '\0');
 
-  ProgramBoxer pb;
-  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
-    if (slots_[i].first != QuartusServer::State::OPEN) {
-      pb.push(i, slots_[i].second);
+  killall();
+
+  unique_lock<mutex> ul(lock_);
+  slots_[i].first = QuartusServer::State::WAITING;
+  slots_[i].second = text;
+  pool_.insert(new ThreadPool::Job([this]{recompile(++version_);}));
+
+  while (slots_[i].first == QuartusServer::State::WAITING) {
+    cv_.wait(ul);
+  }  
+  sock->put((slots_[i].first == QuartusServer::State::CURRENT) ? 0 : 1);
+  sock->flush();
+  delete sock;
+}
+
+void QuartusServer::recompile(size_t my_version) {
+  // This method takes a potentially very long time to run to completion. It's
+  // important that it be atomic.  But it's also important that simultaneous
+  // invocations of recompile() be able to preempt it. The way we deal with
+  // this is to break this method into pieces and at each step along the way
+  // check whether we've been superceded by a new compilation. This isn't
+  // *technically* race free. But the timescales here are so long that it
+  // should work correctly with any reasonably fair scheduler.
+
+  string text = "";
+  auto itr = cache_.end();
+
+  { // Step 1: Generate program text and do a cache lookup, prep the code for
+    // compilation if the lookup fails
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
+    } 
+
+    ProgramBoxer pb;
+    for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+      if (slots_[i].first != QuartusServer::State::OPEN) {
+        pb.push(i, slots_[i].second);
+      }
     }
-  }
-  const auto text = pb.get();
-
-  // If the program isn't in the cache we need to compile it
-  auto itr = cache_.find(text);
-  if (itr == cache_.end()) {
-    ofstream ofs1(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-    ofs1 << text << endl;
-    ofs1.flush();
-    ofs1.close();
-
-    if (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
-      return;
-    } 
-    if (System::execute(quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      return;
-    } 
-    if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      return;
-    } 
-    if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
-      return;
+    text = pb.get();
+    itr = cache_.find(text);
+    
+    if (itr == cache_.end()) {
+      ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+      ofs << text << endl;
+      ofs.flush();
     }
-
-    stringstream ss;
-    ss << "bitstream_" << cache_.size() << ".sof";
-    const auto file = ss.str();
-    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
-
-    itr = cache_.insert(make_pair(text, file)).first;
-
-    ofstream ofs2(cache_path_ + "/index.txt", ios::app);
-    ofs2 << text << '\0' << file << '\0';
-    ofs2.flush();
-    ofs2.close();
   } 
-
-  // Use the cached bitstream to reporgram the device
-  if (System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + itr->second + "@2\"") != 0) {
-    return;
-  } 
-
-  // If we made it this far, change the state on every waiting slot to current and notify everyone
-  for (auto& s : slots_) {
-    if (s.first == QuartusServer::State::WAITING) {
-      s.first = QuartusServer::State::CURRENT;
+  { // Step 2: qsys
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
     }
+    if ((itr == cache_.end()) && (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0)) {
+      return;
+    } 
+  } 
+  { // Step 3: map
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
+    }
+    if ((itr == cache_.end()) && (System::execute(quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0)) {
+      return;
+    } 
+  } 
+  { // Step 4: fit
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
+    }
+    if ((itr == cache_.end()) && (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0)) {
+      return;
+    } 
+  } 
+  { // Step 5: asm
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
+    }
+    if ((itr == cache_.end()) && (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0)) {
+      return;
+    }
+  } 
+  { // Step 6: Put code into cache, reprogram, update status, and notify all
+    lock_guard<mutex> lg(lock_);
+    if (my_version < version_) {
+      return;
+    }
+    if (itr == cache_.end()) {
+      stringstream ss;
+      ss << "bitstream_" << cache_.size() << ".sof";
+      const auto file = ss.str();
+      System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
+
+      ofstream ofs(cache_path_ + "/index.txt", ios::app);
+      ofs << text << '\0' << file << '\0';
+      ofs.flush();
+
+      itr = cache_.insert(make_pair(text, file)).first;
+    }
+    if (System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + itr->second + "@2\"") != 0) {
+      return;
+    } 
+    for (auto& s : slots_) {
+      if (s.first == QuartusServer::State::WAITING) {
+        s.first = QuartusServer::State::CURRENT;
+      }
+    }
+    cv_.notify_all();
   }
-  cv_.notify_all();
 }
 
 void QuartusServer::run_logic() {
   init_pool();
   init_cache();
   init_slots();
+  init_versioning();
 
   sockserver server(port_, 8);
   if (server.error()) {
@@ -299,6 +341,7 @@ void QuartusServer::abort() {
   killall();
 
   lock_guard<mutex> lg(lock_);
+  ++version_;
   for (auto& s : slots_) {
     if (s.first == QuartusServer::State::WAITING) {
       s.first = QuartusServer::State::ABORTED;

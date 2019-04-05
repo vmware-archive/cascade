@@ -84,16 +84,18 @@ class QuartusServer : public Asynchronous {
 
     std::mutex lock_;
     std::condition_variable cv_;
+    size_t version_;
 
     void init_pool();
     void init_cache();
     void init_slots();
+    void init_versioning();
 
     void request_slot(sockstream* sock);
-    void update_slot(sockstream* sock);
     void return_slot(sockstream* sock);
     void killall();
-    void recompile();
+    void update_slot(sockstream* sock);
+    void recompile(size_t my_version);
     void abort();
 
     void run_logic() override;
