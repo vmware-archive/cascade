@@ -127,6 +127,9 @@ void QuartusServer::init_versioning() {
 }
 
 void QuartusServer::request_slot(sockstream* sock) {
+  killall();
+  ++version_;
+
   lock_guard<mutex> lg(lock_);
   uint8_t res = -1;
   for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
@@ -169,11 +172,12 @@ void QuartusServer::update_slot(sockstream* sock) {
   getline(*sock, text, '\0');
 
   killall();
+  ++version_;
 
   unique_lock<mutex> ul(lock_);
   slots_[i].first = QuartusServer::State::WAITING;
   slots_[i].second = text;
-  pool_.insert(new ThreadPool::Job([this]{recompile(++version_);}));
+  pool_.insert(new ThreadPool::Job([this]{recompile(version_);}));
 
   while (slots_[i].first == QuartusServer::State::WAITING) {
     cv_.wait(ul);
@@ -339,9 +343,9 @@ void QuartusServer::run_logic() {
 
 void QuartusServer::abort() {
   killall();
+  ++version_;
 
   lock_guard<mutex> lg(lock_);
-  ++version_;
   for (auto& s : slots_) {
     if (s.first == QuartusServer::State::WAITING) {
       s.first = QuartusServer::State::ABORTED;
