@@ -34,6 +34,10 @@ BISON_SRC=src/verilog/parse/verilog.tab.cc
 OBJ=\
 	ext/mongoose/mongoose.o\
 	\
+	lib/cascade.o\
+	\
+	src/base/token/tokenize.o\
+	\
 	src/runtime/data_plane.o\
 	src/runtime/isolate.o\
 	src/runtime/module.o\
@@ -55,7 +59,6 @@ OBJ=\
 	src/target/state.o\
 	\
 	src/ui/log/log_view.o\
-	src/ui/stream/stream_controller.o\
 	src/ui/term/term_controller.o\
 	src/ui/term/term_view.o\
 	src/ui/web/web_ui.o\
@@ -113,6 +116,7 @@ HDR=\
 	src/base/undo/undo_val.h\
 	src/base/undo/undo_vector.h\
 	src/base/undo/undoable.h\
+	src/base/uuid/uuid.h\
 	\
 	src/runtime/data_plane.h\
 	src/runtime/ids.h\
@@ -160,7 +164,6 @@ HDR=\
 	src/ui/combinator/many_view.h\
 	src/ui/combinator/maybe_view.h\
 	src/ui/log/log_view.h\
-	src/ui/stream/stream_controller.h\
 	src/ui/term/term_controller.h\
 	src/ui/term/term_view.h\
 	src/ui/web/web_ui.h\
@@ -310,9 +313,6 @@ all: ${BIN}
 test: ${TEST_TARGET}
 	${TEST_TARGET}
 benchmark: ${BMARK_TARGET}
-	${BMARK_TARGET}
-benchmark_de10: ${BMARK_TARGET}
-	${BMARK_TARGET} --march de10_jit
 clean:
 	${MAKE} -C src/target/core/de10/fpga clean
 	${RM} -rf ${GTEST_BUILD_DIR} ${TEST_TARGET} ${BMARK_TARGET} ${TEST_OBJ} 

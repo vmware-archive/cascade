@@ -37,6 +37,8 @@
 
 namespace cascade {
 
+class InterfaceCompiler;
+
 // This module encapsulates the mechanism by which a core communicates values
 // and system task executions back to the runtime.
 
@@ -76,12 +78,21 @@ class Interface {
     virtual uint32_t sgetn(SId id, char* c, uint32_t n) = 0;
     virtual int32_t sputc(SId id, char c) = 0;
     virtual uint32_t sputn(SId id, const char* c, uint32_t n) = 0;
+
+    // Target specific implementations may override this method to perform
+    // last-minute cleanup in the compiler that created this interface.
+    virtual void cleanup(InterfaceCompiler* ic);
 };
 
 inline void Interface::write(VId id, bool b) {
   Bits temp;
   temp.set(0, b ? 1 : 0);
   write(id, &temp);
+}
+
+inline void Interface::cleanup(InterfaceCompiler* ic) {
+  // Does nothing.
+  (void) ic;
 }
 
 } // namespace cascade

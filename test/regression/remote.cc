@@ -29,25 +29,43 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
+#include "lib/cascade.h"
 #include "test/harness.h"
 
 using namespace cascade;
 
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+
+  // Create a slave runtime for remote tests. This doesn't actually solve
+  // the race condition of running a remote test before the slave runtime
+  // enters its accept loop, but if there's anything in between here and
+  // the first remote test, it makes it *excepptionally unlikely* that it
+  // will ever happen.
+  Cascade slave;
+  slave.set_slave_mode(true);
+  slave.set_slave_path("/tmp/fpga_socket");
+  slave.run();
+
+  return RUN_ALL_TESTS();
+}
+
 TEST(remote, hello_1) {
-  run_remote("data/test/regression/simple/hello_1.v", "Hello World");
+  run_code("minimal_remote", "data/test/regression/simple/hello_1.v", "Hello World");
 }
 TEST(remote, pipeline_1) {
-  run_remote("data/test/regression/simple/pipeline_1.v", "0123456789");
+  run_code("minimal_remote", "data/test/regression/simple/pipeline_1.v", "0123456789");
 }
 TEST(remote, pipeline_2) {
-  run_remote("data/test/regression/simple/pipeline_2.v", "0123456789");
+  run_code("minimal_remote", "data/test/regression/simple/pipeline_2.v", "0123456789");
 }
 TEST(remote, bitcoin) {
-  run_remote("data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+  run_code("minimal_remote", "data/test/benchmark/bitcoin/run_4.v", "f 93\n");
 }
 TEST(remote, bubble) {
-  run_remote("data/test/benchmark/mips32/run_bubble_128.v", "1");
+  run_code("minimal_remote", "data/test/benchmark/mips32/run_bubble_128.v", "1");
 }
-TEST(remote, regex) {
-  run_remote("data/test/benchmark/regex/run_disjunct_1.v", "424");
-}
+// TODO(eschkufz) This is *really* slow. Reenable this test when file i/o works
+//TEST(remote, regex) {
+//  run_code("minimal_remote", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+//}

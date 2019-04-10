@@ -125,6 +125,7 @@ class Module {
     // Implementation State:
     ModuleDeclaration* src_;
     Engine* engine_;
+    size_t version_;
 
     // Hierarchical State:
     const ModuleDeclaration* psrc_;

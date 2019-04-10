@@ -28,29 +28,56 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_STREAM_STREAM_CONTROLLER_H
-#define CASCADE_SRC_UI_STREAM_STREAM_CONTROLLER_H
+#ifndef CASCADE_SRC_BASE_UUID_UUID_H
+#define CASCADE_SRC_BASE_UUID_UUID_H
 
-#include <iosfwd>
-#include "src/ui/controller.h"
+#include <iostream>
+#include <uuid/uuid.h>
+#include "src/base/serial/serializable.h"
 
 namespace cascade {
 
-class Runtime;
+// This class is a simple wrapper around the DCE compatible Universally Unique
+// Identifier Library. It can be used wherever objects need to be uniquely
+// id'ed between different processes.
 
-class StreamController : public Controller {
+class Uuid : public Seializable {
   public:
-    StreamController(Runtime* rt, std::istream& is);
-    ~StreamController() override = default;
+    Uuid();
+    Uuid(const Uuid& rhs);
+    Uuid& operator=(const Uuid& rhs);
+    ~Uuid() override = default;
 
-  protected:
-    void run_logic() override;
+    size_t deserialize(std::istream& is) override;
+    size_t serialize(std::ostream& os) const override;
 
   private:
-    std::istream& is_;
+    uuid_t id_;
 };
+
+inline Uuid::Uuid() : Serializable() {
+  uuid_generate(id_);
+}
+
+inline Uuid::Uuid(const Uuid& rhs) {
+  uuid_copy(id_, rhs.id_);
+}
+
+inline Uuid& Uuid::operator=(const Uuid& rhs) {
+  uuid_copy(id_, rhs.id_);
+  return *this;
+}
+
+inline size_t Uuid::deserialize(std::istream& is) {
+  is.read(reinterpret_cast<char*>(&id_), sizeof(id));
+  return sizeof(id);
+}
+
+inline size_t Uuid::serialize(std::ostream& os) const {
+  os.write(reinterpret_cast<const char*>(&id_), sizeof(id));
+  return sizeof(id);
+}
 
 } // namespace cascade
 
 #endif
-

@@ -86,8 +86,4 @@ void LogView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   TextPrinter(os_) << md << "\n";
 }
 
-void LogView::crash() {
-  os_ << "CRASH " << time(nullptr) << endl;
-}
-
 } // namespace cascade

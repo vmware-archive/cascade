@@ -40,7 +40,6 @@
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/program/elaborate.h"
-#include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
 
@@ -207,11 +206,7 @@ ModuleDeclaration* Isolate::get_shell() {
   // deterministically
   map<string, const Identifier*> ports;
   for (auto* i : ios) {
-    stringstream ss;
-    auto* fid = Resolve().get_full_id(i);
-    TextPrinter(ss) << fid;
-    delete fid;
-    ports.insert(make_pair(ss.str(), i));
+    ports.insert(make_pair(Resolve().get_readable_full_id(i), i));
   }
   // Generate port declarations
   for (auto& p : ports) {
@@ -271,11 +266,7 @@ vector<ModuleItem*> Isolate::get_local_decls() {
     if (ModuleInfo(src_).is_read(l) || ModuleInfo(src_).is_write(l)) {
       continue;
     }
-    stringstream ss;
-    auto* fid = Resolve().get_full_id(l);
-    TextPrinter(ss) << fid;
-    delete fid;
-    locals.insert(make_pair(ss.str(), l));
+    locals.insert(make_pair(Resolve().get_readable_full_id(l), l));
   }
 
   vector<ModuleItem*> res;
@@ -294,7 +285,15 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
   const auto itr = conns.find(mi->get_iid());
   assert(itr != conns.end());
 
+  // Sort connections lexicographically by name so that we generate statements
+  // deterministically.
+  map<string, pair<const Identifier*, const Expression*>> sorted_conns;
   for (auto& c : itr->second) {
+    sorted_conns.insert(make_pair(Resolve().get_readable_full_id(c.first), c));
+  }
+
+  for (const auto& sc : sorted_conns) {
+    const auto& c = sc.second;
     auto* lhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
         c.first->accept(this) : 
         static_cast<Identifier*>(c.second->accept(this));

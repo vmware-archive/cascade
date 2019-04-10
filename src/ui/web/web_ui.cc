@@ -39,7 +39,6 @@
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/print/debug/debug_printer.h"
 #include "src/verilog/print/html/html_printer.h"
-#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/program.h"
 
 using namespace std;
@@ -77,7 +76,7 @@ void ev_handler(struct mg_connection* nc, int ev, void* ev_data) {
 namespace cascade {
 
 WebUi::WebUi(Runtime* rt) : Controller(rt), View() { 
-  set_port("11111");
+  set_port(11111);
   set_buffer(128);
   set_debug(false);
 
@@ -85,8 +84,10 @@ WebUi::WebUi(Runtime* rt) : Controller(rt), View() {
   overflow_ = 0;
 }
 
-WebUi& WebUi::set_port(const string& port) {
-  port_ = port;
+WebUi& WebUi::set_port(size_t port) {
+  stringstream ss; 
+  ss << port;
+  port_ = ss.str();
   return *this;
 }
 
@@ -154,9 +155,7 @@ void WebUi::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   for (auto i = p->elab_begin(), ie = p->elab_end(); i != ie; ++i) {
     stringstream ss;
     ss << "{\"text\":\"[elab] ";
-    const auto* fid = Resolve().get_full_id(ModuleInfo(i->second).id());
-    TextPrinter(ss) << fid;
-    delete fid;
+    ss << Resolve().get_readable_full_id(ModuleInfo(i->second).id());
     ss << "\",\"value\":\"";
     if (debug_) {
       DebugHtmlPrinter(ss, true) << i->second;
@@ -178,10 +177,6 @@ void WebUi::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   }
   ss << "\"}";
   buffer("eval", ss.str(), false, true);
-}
-
-void WebUi::crash() {
-  error(0, "CASCADE SHUTDOWN UNEXPECTEDLY --- PLEASE FORWARD LOG FILE TO DEVELOPERS");
 }
 
 void WebUi::send_index(struct mg_connection* nc, struct http_message* msg) {

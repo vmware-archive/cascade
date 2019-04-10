@@ -31,8 +31,13 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 
+#include <condition_variable>
+#include <mutex>
 #include <string>
+#include <unordered_map>
+#include <vector>
 #include "src/base/thread/asynchronous.h"
+#include "src/base/thread/thread_pool.h"
 
 namespace cascade {
 
@@ -40,34 +45,60 @@ class sockstream;
 
 class QuartusServer : public Asynchronous {
   public:
+    // RPC Interface:
+    typedef uint8_t Id;
+    enum class Rpc : uint8_t {
+      ERROR = 0,
+      REQUEST_SLOT,
+      UPDATE_SLOT,
+      RETURN_SLOT,
+      ABORT
+    };
+
     QuartusServer();
     ~QuartusServer() override = default;
 
-    QuartusServer& path(const std::string& path);
-    QuartusServer& usb(const std::string& usb);
-    QuartusServer& port(uint32_t port);
+    QuartusServer& set_cache_path(const std::string& path);
+    QuartusServer& set_quartus_path(const std::string& path);
+    QuartusServer& set_port(uint32_t port);
+    QuartusServer& set_usb(const std::string& usb);
 
-    bool check() const;
+    bool error() const;
 
   private:
-    class Worker : public Asynchronous {
-      public:
-        explicit Worker(QuartusServer* qs);
-        ~Worker() override = default;
-        void run_logic() override;
-      private:
-        QuartusServer* qs_;
+    enum class State : uint8_t {
+      OPEN = 0,
+      CURRENT,
+      WAITING,
+      ABORTED
     };
 
-    std::string path_;
-    std::string usb_;
+    std::string cache_path_;
+    std::string quartus_path_;
     uint32_t port_;
+    std::string usb_;
 
-    sockstream* sock_;
-    Worker worker_;
+    ThreadPool pool_;
+    std::unordered_map<std::string, std::string> cache_;
+    std::vector<std::pair<QuartusServer::State, std::string>> slots_;
+
+    std::mutex lock_;
+    std::condition_variable cv_;
+    size_t version_;
+
+    void init_pool();
+    void init_cache();
+    void init_slots();
+    void init_versioning();
+
+    void request_slot(sockstream* sock);
+    void return_slot(sockstream* sock);
+    void killall();
+    void update_slot(sockstream* sock);
+    void recompile(size_t my_version);
+    void abort();
 
     void run_logic() override;
-
 };
 
 } // namespace cascade

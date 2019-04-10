@@ -32,21 +32,18 @@
 #define CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
 
 #include <string>
-#include <unordered_map>
+#include <map>
 #include "src/runtime/ids.h"
-#include "src/verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
-class De10Logic;
-
 class ProgramBoxer {
   public:
-    bool push(MId id, const ModuleDeclaration* md, const De10Logic* de);
+    void push(MId id, const std::string& text);
     std::string get() const;
 
   private:
-    std::unordered_map<MId, std::pair<size_t, std::string>> repo_;
+    std::map<MId, std::string> repo_;
 };
 
 } // namespace cascade

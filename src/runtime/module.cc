@@ -44,7 +44,6 @@
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
@@ -65,6 +64,9 @@ Module::iterator& Module::iterator::operator++() {
   }
   const auto* ptr = path_.front();
   path_.pop_front();
+
+  // Sort children lexicographically to enforce deterministic iteration
+  // orderings.
   for (auto i = ptr->children_.rbegin(), ie = ptr->children_.rend(); i != ie; ++i) {
     path_.push_front(*i);
   }
@@ -100,6 +102,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolat
 
   src_ = nullptr;
   engine_ = new Engine();
+  version_ = 0;
 
   psrc_ = psrc;
   parent_ = nullptr;
@@ -148,9 +151,8 @@ void Module::restart(std::istream& is) {
     }
 
     stringstream ss;
-    const auto* fid = Resolve().get_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
-    TextPrinter(ss) << "Updated state for " << fid;
-    delete fid;
+    const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    ss << "Updated state for " << fid;
     rt_->info(ss.str());
 
     (*i)->engine_->set_input(itr->second.first);
@@ -173,7 +175,7 @@ void Module::rebuild() {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;
@@ -222,7 +224,7 @@ void Module::synchronize(size_t n) {
     const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->src_, iid);
+    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (compiler_->error()) {
       return;

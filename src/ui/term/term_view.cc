@@ -111,10 +111,4 @@ void TermView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
   cout.flush();
 }
 
-void TermView::crash() {
-  lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::RED << "CASCADE SHUTDOWN UNEXPECTEDLY --- PLEASE FORWARD LOG FILE TO DEVELOPERS" << Color::RESET << "\n";
-  cout.flush();
-}
-
 } // namespace cascade

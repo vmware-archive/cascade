@@ -33,7 +33,7 @@ module Root();
 endmodule
 
 // The top-level virtual clock.
-(*__std="clock"*)
+(*__std="clock", __loc="runtime", __target="sw"*)
 module Clock(
   output wire val
 );
@@ -121,7 +121,7 @@ endmodule
 // __file = "..."
 //   Optional. If specified the contents of this memory will be read/written
 //   from/to this file when the program begins/finishes executing.
-(*__std="memory",__target="sw",__loc="runtime"*)
+(*__std="memory",__loc="runtime",__target="sw"*)
 module Memory#(
   parameter ADDR_SIZE = 4,
   parameter BYTE_SIZE = 8
@@ -149,7 +149,7 @@ endmodule
 // __count = "..."
 //   Optional. If specifid along with __file, this fifo will be initialized
 //   with 'count' copies of the data in __file.
-(*__std="fifo",__target="sw",__loc="runtime"*)
+(*__std="fifo",__loc="runtime",__target="sw"*)
 module Fifo#(
   parameter DEPTH = 8,
   parameter BYTE_SIZE = 8

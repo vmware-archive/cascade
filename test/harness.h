@@ -52,24 +52,20 @@ class PView : public View {
 // Another stripped-down view; filters everything other than error messages
 class EView : public View {
   public:
-    EView();
+    EView(std::ostream& os);
     ~EView() override = default;
 
-    bool error() const;
     void error(size_t t, const std::string& s) override;
 
   private:
-    bool error_;
+    std::ostream& os_;
 };
 
 // Harnesses for major components:
 void run_parse(const std::string& path, bool expected);
 void run_typecheck(const std::string& march, const std::string& path, bool expected);
 void run_code(const std::string& march, const std::string& path, const std::string& expected);
-void run_remote(const std::string& path, const std::string& expected);
-
-// Benchmark harnesses:
-void run_mips(const std::string& march, const std::string& path, const std::string& expected);
+void run_benchmark(const std::string& path, const std::string& expected);
 
 } // namespace cascade
 

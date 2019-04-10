@@ -28,19 +28,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/ui/stream/stream_controller.h"
-
-#include <iostream>
-#include "src/runtime/runtime.h"
+#include "src/base/token/tokenize.h"
 
 using namespace std;
 
 namespace cascade {
 
-StreamController::StreamController(Runtime* rt, istream& is) : Controller(rt), is_(is) { }
-
-void StreamController::run_logic() {
-  runtime()->eval(is_, false);
-}
+mutex Tokenize::lock_;
+vector<string> Tokenize::t2s_;
+unordered_map<string, Tokenize::Token> Tokenize::s2t_;
 
 } // namespace cascade

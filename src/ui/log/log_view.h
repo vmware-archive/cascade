@@ -54,8 +54,6 @@ class LogView : public View {
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
-    void crash() override;
-
   private:
     std::ostream& os_;
 };

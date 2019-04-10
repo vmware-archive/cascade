@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include "src/target/core/common/printf.h"
+#include "src/target/core/de10/de10_compiler.h"
 #include "src/target/core/de10/io.h"
 #include "src/target/input.h"
 #include "src/target/interface.h"
@@ -95,7 +96,8 @@ size_t De10Logic::VarInfo::entry_size() const {
   return elements() * element_size();
 }
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+  id_ = id;
   src_ = src;
   addr_ = addr;
   next_index_ = 0;
@@ -264,6 +266,12 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   return DE10_READ(MANGLE(addr_, open_loop_idx()));
 }
 
+void De10Logic::cleanup(CoreCompiler* cc) {
+  auto* dc = dynamic_cast<De10Compiler*>(cc);
+  assert(dc != nullptr);
+  dc->cleanup(id_);
+}
+
 De10Logic::map_iterator De10Logic::map_begin() const {
   return var_map_.begin();
 }
@@ -429,6 +437,7 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
     for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
       const volatile auto word = bs[i].read_word<uint32_t>(j);
       DE10_WRITE(MANGLE(addr_, idx), word);
+      ++idx;
     }
   }
 }
