@@ -365,7 +365,7 @@ inline void ProxyCore<T>::recv() {
         auto* c = new char[n];
         uint32_t res = T::interface()->sgetn(id, c, n);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
-        sock_->write(c, n);
+        sock_->write(c, res);
         sock_->flush();
         delete[] c;
         break;
