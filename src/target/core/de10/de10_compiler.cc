@@ -184,7 +184,7 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   }
 
   // Create a new core with address identity based on module id
-  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + sid;
+  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (sid << 14);
   auto* de = new De10Logic(interface, sid, md, addr);
 
   // Register inputs, state, and outputs. Invoke these methods
@@ -212,8 +212,8 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     de->set_output(o.second, o.first);
   }
   // Check size of variable table
-  if (de->open_loop_idx() >= 0x4000) {
-    error("Unable to compile module with more than 0x4000 entries in variable table");
+  if (de->open_loop_idx() >= 0x1000) {
+    error("Unable to compile module with more than 4096 entries in variable table");
     delete de;
     return nullptr;
   }

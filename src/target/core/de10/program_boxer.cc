@@ -59,7 +59,6 @@ string ProgramBoxer::get() const {
   os << "input wire reset," << endl;
   os << endl;
   os << "input wire[15:0]  s0_address," << endl;
-  os << "input wire [1:0]  s0_byteenable," << endl;
   os << "input wire        s0_read," << endl;
   os << "input wire        s0_write," << endl;
   os << endl;
@@ -72,8 +71,8 @@ string ProgramBoxer::get() const {
   os.tab();
 
   os << "// Unpack address into module id and variable id" << endl;
-  os << "wire[13:0] __vid = s0_address[13:0];" << endl;
-  os << "wire [1:0] __mid = s0_byteenable;" << endl;
+  os << "wire [1:0] __mid = s0_address[13:12];" << endl;
+  os << "wire[11:0] __vid = s0_address[11: 0];" << endl;
 
   os << "// Module Instantiations:" << endl;
   for (const auto& s : repo_) {
