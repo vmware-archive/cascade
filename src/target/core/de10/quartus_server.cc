@@ -318,13 +318,13 @@ void QuartusServer::run_logic() {
     const auto rpc = static_cast<QuartusServer::Rpc>(sock->get());
     switch (rpc) {
       case QuartusServer::Rpc::REQUEST_SLOT:
-        pool_.insert(new ThreadPool::Job([this, sock]{request_slot(sock);}));
+        request_slot(sock);
         break;
       case QuartusServer::Rpc::UPDATE_SLOT:
         pool_.insert(new ThreadPool::Job([this, sock]{update_slot(sock);}));
         break;
       case QuartusServer::Rpc::RETURN_SLOT:
-        pool_.insert(new ThreadPool::Job([this, sock]{return_slot(sock);}));
+        return_slot(sock);
         break;
       case QuartusServer::Rpc::ABORT:
         abort();

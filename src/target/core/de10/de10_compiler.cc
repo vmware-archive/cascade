@@ -90,12 +90,14 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
   sock.put(static_cast<uint8_t>(id));
   sock.flush();
+  sock.get();
 }
 
 void De10Compiler::abort() {
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
   sock.flush();
+  sock.get();
 }
 
 De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
