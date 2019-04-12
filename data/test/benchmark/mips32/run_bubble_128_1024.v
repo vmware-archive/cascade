@@ -8,7 +8,7 @@ Mem#(6,32) imem(
   .rdata1(instr)
 );
 
-stream s = $fopen("data/test/benchmark/mips32/run_bubble_512.hex");
+stream s = $fopen("data/test/benchmark/mips32/run_bubble_128_1024.hex");
 integer i = 0;
 reg[31:0] val = 0;
 initial begin

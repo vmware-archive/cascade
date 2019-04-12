@@ -83,7 +83,7 @@ module Mips32(
   // Data Memory (2^16 aligned 32-bit words)
   // (Aligned word addressable, so addres are shifted right 2)
   wire[31:0] mem_read;
-  Mem#(11,32) dmem(
+  Mem#(7,32) dmem(
     .clock(clock.val),
     .wen(mem_write),
     .raddr1(result >> 2),
