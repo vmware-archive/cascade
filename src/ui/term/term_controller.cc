@@ -30,6 +30,7 @@
 
 #include "src/ui/term/term_controller.h"
 
+#include <cctype>
 #include <iostream>
 #include <sys/select.h>
 #include <unistd.h>
@@ -57,6 +58,16 @@ void TermController::run_logic() {
       if (stop_requested()) {
         return;
       }
+    }
+
+    // Scan past leading whitespace. We only want to hand control over to the
+    // runtime when there's actually something to parse here. Otherwise if you
+    // type enter, you can hang the runtime in between clock ticks while it
+    // waits for more input. You can still hang the runtime if you don't
+    // *finish* typing your input. But in this case you at least have a visual
+    // indicator of what you're doing.
+    while (!stop_requested() && isspace(cin.peek())) {
+      cin.get();
     }
 
     // Flag cin as controlled by the runtime. This second interrupt, which
