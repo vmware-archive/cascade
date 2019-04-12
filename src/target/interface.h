@@ -37,6 +37,8 @@
 
 namespace cascade {
 
+class InterfaceCompiler;
+
 // This module encapsulates the mechanism by which a core communicates values
 // and system task executions back to the runtime.
 
@@ -66,6 +68,10 @@ class Interface {
     // whenever a write of a single-bit variable is required.
     virtual void write(VId id, bool b);
 
+    // Target specific implementations may override this method to perform
+    // last-minute cleanup in the compiler that created this interface.
+    virtual void cleanup(InterfaceCompiler* ic);
+
   private:
     Bits temp_;
 };
@@ -75,6 +81,11 @@ inline Interface::Interface() : temp_(1,0) { }
 inline void Interface::write(VId id, bool b) {
   temp_.set(0, b ? 1 : 0);
   write(id, &temp_);
+}
+
+inline void Interface::cleanup(InterfaceCompiler* ic) {
+  // Does nothing.
+  (void) ic;
 }
 
 } // namespace cascade

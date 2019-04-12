@@ -28,25 +28,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
+#include "src/base/token/tokenize.h"
 
-#include <string>
-#include <map>
-#include "src/runtime/ids.h"
+using namespace std;
 
 namespace cascade {
 
-class ProgramBoxer {
-  public:
-    void push(MId id, const std::string& text);
-    std::string get() const;
-
-  private:
-    std::map<MId, std::string> repo_;
-};
+mutex Tokenize::lock_;
+vector<string> Tokenize::t2s_;
+unordered_map<string, Tokenize::Token> Tokenize::s2t_;
 
 } // namespace cascade
-
-#endif
-

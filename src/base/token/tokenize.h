@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <limits>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -40,8 +41,7 @@
 namespace cascade {
 
 // This class is used to represent the overhead of keeping track of string
-// variables by replacing them with integer tokens. WARNING: This class is not
-// thread-safe.
+// variables by replacing them with integer tokens. 
 
 class Tokenize {
   public:
@@ -53,32 +53,25 @@ class Tokenize {
     const std::string& unmap(Token t);
 
   private:
-    static std::vector<std::string>& t2s();
-    static std::unordered_map<std::string, Token>& s2t();
+    static std::mutex lock_;
+    static std::vector<std::string> t2s_;
+    static std::unordered_map<std::string, Token> s2t_;
 };
 
 inline Tokenize::Token Tokenize::map(const std::string& s) {
-  const auto res = s2t().insert(make_pair(s, t2s().size()));
+  std::lock_guard<std::mutex> lg(lock_);
+  const auto res = s2t_.insert(make_pair(s, t2s_.size()));
   if (res.second) {
-    assert(t2s().size() < std::numeric_limits<Token>::max());
-    t2s().push_back(s);
+    assert(t2s_.size() < std::numeric_limits<Token>::max());
+    t2s_.push_back(s);
   }
   return res.first->second;
 }
 
 inline const std::string& Tokenize::unmap(Token t) {
-  assert(t < t2s().size());
-  return t2s()[t];
-}
-
-inline std::vector<std::string>& Tokenize::t2s() {
-  static std::vector<std::string> t2s_;
-  return t2s_;
-}
-
-inline std::unordered_map<std::string, Tokenize::Token>& Tokenize::s2t() {
-  static std::unordered_map<std::string, Token> s2t_;
-  return s2t_;
+  assert(t < t2s_.size());
+  std::lock_guard<std::mutex> lg(lock_);
+  return t2s_[t];
 }
 
 } // namespace cascade

@@ -32,32 +32,13 @@
 
 #include <sstream>
 #include "src/base/stream/indstream.h"
-#include "src/verilog/ast/ast.h"
-#include "src/target/core/de10/de10_logic.h"
-#include "src/target/core/de10/module_boxer.h"
 
 using namespace std;
 
 namespace cascade {
 
-bool ProgramBoxer::push(MId mid, const ModuleDeclaration* md, const De10Logic* de) {
-  // Count the number of lines in this module. Code size increases monotonically, which
-  // means it should function sufficiently as a sequence number.
-  const auto seq = md->size_items();
-
-  // Reject push requests for code which is older than the repository.  
-  auto itr = repo_.find(mid);
-  if (itr != repo_.end()) {
-    const auto rseq = itr->second.first;
-    if (seq < rseq) {
-      return false;
-    }
-  }
-
-  // This request is fresh. box the logic and insert it into the repository. 
-  const auto bmd = ModuleBoxer().box(mid, md, de);
-  repo_.insert(make_pair(mid, make_pair(seq, bmd)));
-  return true;
+void ProgramBoxer::push(MId mid, const string& text) {
+  repo_.insert(make_pair(mid, text));
 }
 
 string ProgramBoxer::get() const {
@@ -66,7 +47,8 @@ string ProgramBoxer::get() const {
 
   // Module Declarations
   for (const auto& s : repo_) {
-    os << s.second.second << endl;
+    os << "module M" << s.first;
+    os << s.second << endl;
     os << endl;
   }
 
@@ -77,7 +59,6 @@ string ProgramBoxer::get() const {
   os << "input wire reset," << endl;
   os << endl;
   os << "input wire[15:0]  s0_address," << endl;
-  os << "input wire [1:0]  s0_byteenable," << endl;
   os << "input wire        s0_read," << endl;
   os << "input wire        s0_write," << endl;
   os << endl;
@@ -90,8 +71,8 @@ string ProgramBoxer::get() const {
   os.tab();
 
   os << "// Unpack address into module id and variable id" << endl;
-  os << "wire[13:0] __vid = s0_address[13:0];" << endl;
-  os << "wire [1:0] __mid = s0_byteenable;" << endl;
+  os << "wire [1:0] __mid = s0_address[13:12];" << endl;
+  os << "wire[11:0] __vid = s0_address[11: 0];" << endl;
 
   os << "// Module Instantiations:" << endl;
   for (const auto& s : repo_) {

@@ -41,7 +41,7 @@ using namespace std;
 
 namespace cascade {
 
-std::string ModuleBoxer::box(MId id, const ModuleDeclaration* md, const De10Logic* de) {
+std::string ModuleBoxer::box(const ModuleDeclaration* md, const De10Logic* de) {
   md_ = md;
   de_ = de;
 
@@ -49,7 +49,7 @@ std::string ModuleBoxer::box(MId id, const ModuleDeclaration* md, const De10Logi
   stringstream ss;
   indstream os(ss);
 
-  os << "module M" << id << "(" << endl;
+  os << "(" << endl;
   os.tab();
   os << "input  wire       __clk," << endl;
   os << "input  wire       __read," << endl;
@@ -590,7 +590,7 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
       for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
         TextPrinter(ss) << (t->second.index()+i) << ": __out = " << t->first;
         emit_slice(ss, w, i); 
-        ss << ";";
+        ss << ";" << endl;
       }
       logic.push_back(ss.str());
     }
@@ -608,7 +608,7 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
   os << de_->open_loop_idx() << ": __out = __open_loop_itrs;" << endl;
   // Now emit cases for variables which weren't materialized
   for (const auto& l : logic) {
-    os << l << endl;
+    os << l;
   }
   // For everything else __vid is an index into the variable table
   os << "default: __out = __var[__vid];" << endl;

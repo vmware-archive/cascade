@@ -36,8 +36,10 @@
 #include "src/target/core/stub/stub_core.h"
 #include "src/target/core/sw/sw_clock.h"
 #include "src/target/core.h"
+#include "src/target/core_compiler.h"
 #include "src/target/interface/stub/stub_interface.h"
 #include "src/target/interface.h"
+#include "src/target/interface_compiler.h"
 #include "src/target/state.h"
 
 namespace cascade {
@@ -46,7 +48,7 @@ class Engine {
   public:
     // Constructors:
     Engine();
-    Engine(Core* core, Interface* interface);
+    Engine(Interface* i, Core* c, InterfaceCompiler* ic, CoreCompiler* cc);
     ~Engine();
 
     // Query Interface:
@@ -91,59 +93,73 @@ class Engine {
     void replace_with(Engine* e);
 
   private:
-    Core* core_;
-    Interface* interface_;
+    Interface* i_;
+    Core* c_;
+    InterfaceCompiler* ic_;
+    CoreCompiler* cc_;
 
     bool there_are_reads_;
 };
 
 inline Engine::Engine() {
-  interface_ = new StubInterface();
-  core_ = new StubCore(interface_);
+  i_ = new StubInterface();
+  c_ = new StubCore(i_);
+  ic_ = nullptr;
+  cc_ = nullptr;
   there_are_reads_ = false;
 }
 
-inline Engine::Engine(Core* core, Interface* interface) {
-  core_ = core;
-  interface_ = interface;
+inline Engine::Engine(Interface* i, Core* c, InterfaceCompiler* ic, CoreCompiler* cc) {
+  assert(i != nullptr);
+  assert(c != nullptr);
+  i_ = i;
+  c_ = c;
+  ic_ = ic;
+  cc_ = cc;
   there_are_reads_ = false;
 }
 
 inline Engine::~Engine() {
-  if (core_ != nullptr) {
-    delete core_;
+  if ((c_ != nullptr) && (cc_ != nullptr)) {
+    c_->cleanup(cc_);
   }
-  if (interface_ != nullptr) {
-    delete interface_;
+  if ((i_ != nullptr) && (ic_ != nullptr)) {
+    i_->cleanup(ic_);
+  }
+  if (c_ != nullptr) {
+    delete c_;
+  }
+  if (i_ != nullptr) {
+    delete i_;
   }
 }
 
 inline bool Engine::is_clock() const {
-  return core_->is_clock();
+  return c_->is_clock();
 }
 
 inline bool Engine::is_logic() const {
-  return core_->is_logic();
+  return c_->is_logic();
 }
 
 inline bool Engine::is_stub() const {
-  return core_->is_stub();
+  return c_->is_stub();
 }
 
 inline bool Engine::overrides_done_step() const {
-  return core_->overrides_done_step();
+  return c_->overrides_done_step();
 }
 
 inline void Engine::done_step() {
-  core_->done_step();
+  c_->done_step();
 }
 
 inline bool Engine::overrides_done_simulation() const {
-  return core_->overrides_done_simulation();
+  return c_->overrides_done_simulation();
 }
 
 inline void Engine::done_simulation() {
-  core_->done_simulation();
+  c_->done_simulation();
 }
 
 inline bool Engine::there_are_reads() const {
@@ -151,21 +167,21 @@ inline bool Engine::there_are_reads() const {
 }
 
 inline void Engine::evaluate() {
-  core_->evaluate();
+  c_->evaluate();
   there_are_reads_ = false;
 }
 
 inline bool Engine::there_are_updates() const {
-  return core_->there_are_updates();
+  return c_->there_are_updates();
 }
 
 inline void Engine::update() {
-  core_->update();
+  c_->update();
   there_are_reads_ = false;
 }
 
 inline bool Engine::there_were_tasks() const {
-  return core_->there_were_tasks();
+  return c_->there_were_tasks();
 }
 
 inline bool Engine::conditional_evaluate() {
@@ -177,36 +193,36 @@ inline bool Engine::conditional_evaluate() {
 }
 
 inline bool Engine::conditional_update() {
-  return core_->conditional_update();
+  return c_->conditional_update();
 }
 
 inline size_t Engine::open_loop(VId clk, bool val, size_t itr) {
-  return core_->open_loop(clk, val, itr);
+  return c_->open_loop(clk, val, itr);
 }
 
 inline void Engine::read(VId id, const Bits* b) {
-  core_->read(id, b);
+  c_->read(id, b);
   there_are_reads_ = true;
 }
 
 inline State* Engine::get_state() {
-  return core_->get_state();
+  return c_->get_state();
 }
 
 inline void Engine::set_state(const State* s) {
-  core_->set_state(s);
+  c_->set_state(s);
 }
 
 inline Input* Engine::get_input() {
-  return core_->get_input();
+  return c_->get_input();
 }
 
 inline void Engine::set_input(const Input* i) {
-  core_->set_input(i);
+  c_->set_input(i);
 }
 
 inline void Engine::finalize() {
-  core_->finalize();
+  c_->finalize();
 }
 
 inline bool Engine::get_bit(VId id) {
@@ -228,25 +244,38 @@ inline void Engine::set_bit(VId id, bool b) {
 }
 
 inline void Engine::replace_with(Engine* e) {
-  const auto* s = core_->get_state();
-  e->core_->set_state(s);
+  // Move state and inputs from this engine into the new engine
+  const auto* s = c_->get_state();
+  e->c_->set_state(s);
   delete s;
-
-  const auto* i = core_->get_input();
-  e->core_->set_input(i);
+  const auto* i = c_->get_input();
+  e->c_->set_input(i);
   delete i;
+  e->c_->finalize();
 
-  e->core_->finalize();
+  // Now that we're done with our core and interface, clean them up
+  // and delete them.
+  if (cc_ != nullptr) {
+    c_->cleanup(cc_);
+  }
+  if (ic_ != nullptr) {
+    i_->cleanup(ic_);
+  }
+  delete c_;
+  delete i_;
 
-  delete core_;
-  core_ = e->core_;
-  e->core_ = nullptr;
-
-  delete interface_;
-  interface_ = e->interface_;
-  e->interface_ = nullptr;
-
+  // Move the internal state from the new engine into this one
+  c_ = e->c_;
+  cc_ = e->cc_;
+  i_ = e->i_;
+  ic_ = e->ic_;
   there_are_reads_ = e->there_are_reads_;
+
+  // Delete the shell which is left over
+  e->i_ = nullptr;
+  e->c_ = nullptr;
+  e->ic_ = nullptr;
+  e->cc_ = nullptr;
   delete e;
 }
 

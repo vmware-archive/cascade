@@ -87,7 +87,7 @@ class Compiler {
     // thread safe interface will indicate what happened. In the event that md
     // has been mangled beyond recognition, id can be used to provide a legible
     // identifier for the sake of logging.
-    void compile_and_replace(Runtime* rt, Engine* e, ModuleDeclaration* md, const Identifier* id);
+    void compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id);
 
     // Thread-Safe Error Interface:
     void error(const std::string& s);
