@@ -33,6 +33,7 @@
 
 #include <arpa/inet.h>
 #include <cstring>
+#include <fcntl.h>
 #include <resolv.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -53,7 +54,11 @@ class sockstream : public fdstream {
     sockstream(const char* host, uint32_t port);
     ~sockstream() override;
 
+    // Returns true if an error occurred while creating this socket
     bool error() const;
+    // Returns true if the file descriptor underlying this socket is valid
+    bool valid() const;
+    // Returns the file descriptor underlying this socket
     int descriptor() const;
 
   private:
@@ -71,7 +76,11 @@ class sockserver {
 
     sockstream* accept();
 
+    // Returns true if an error occurred while creating this socket
     bool error() const;
+    // Returns true if the file descriptor underlying this socket is valid
+    bool valid() const;
+    // Returns the file descriptor underlying this socket
     int descriptor() const;
 
   private:
@@ -92,6 +101,11 @@ inline sockstream::~sockstream() {
 
 inline bool sockstream::error() const {
   return fd_ == -1;
+}
+
+inline bool sockstream::valid() const {
+  errno = 0;
+  return (fcntl(fd_, F_GETFD) != -1) || (errno != EBADF);
 }
 
 inline int sockstream::descriptor() const {
@@ -176,6 +190,11 @@ inline sockstream* sockserver::accept() {
 
 inline bool sockserver::error() const {
   return fd_ == -1;
+}
+
+inline bool sockserver::valid() const {
+  errno = 0;
+  return (fcntl(fd_, F_GETFD) != -1) || (errno != EBADF);
 }
 
 inline int sockserver::descriptor() const {
