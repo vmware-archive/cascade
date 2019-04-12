@@ -55,6 +55,6 @@ TEST(benchmark, bitcoin) {
 //TEST(benchmark, nw) {
 //  run_benchmark("data/test/benchmark/nw/run_16.v", "TODO...");
 //}
-TEST(benchmark, regex) {
-  run_benchmark("data/test/benchmark/regex/run_disjunct_16.v", "6784");
-}
+//TEST(benchmark, regex) {
+//  run_benchmark("data/test/benchmark/regex/run_disjunct_16.v", "6784");
+//}

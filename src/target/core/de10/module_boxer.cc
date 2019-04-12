@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/resolve.h"
@@ -435,21 +436,53 @@ void ModuleBoxer::emit_subscript(ostream& os, size_t idx, size_t n, const vector
 }
 
 void ModuleBoxer::emit_program_logic(indstream& os) {
-  // Emit the original program logic. The builder interface for this class is
-  // used to make several small modifications to the program text. Declarations
-  // for inputs and stateful elements are removed (they were converted to view
-  // variables above), port declarations for non-stateful outputs are demoted
-  // to normal declarations, and system tasks are replaced by updates to the
-  // sys task mask.
+  // Emit the original program logic. 
+        
+  // The builder interface for this class is used to make several small
+  // modifications to the program text. Declarations for inputs and stateful
+  // elements are removed (they were converted to view variables above), port
+  // declarations for non-stateful outputs are demoted to normal declarations,
+  // and system tasks are replaced by updates to the sys task mask.
+
+  // Also note that rather than emit always blocks inline, we do our best to
+  // coallesce them and emit them all at once at the end of the program.
+
+  task_id_ = 0;
+  unordered_map<string, vector<Statement*>> always_blocks_;
 
   os << "// Original Program Logic:" << endl;
-  task_id_ = 0;
   for (auto i = md_->begin_items(), ie = md_->end_items(); i != ie; ++i) {
+    // Corner Case: Check for always blocks          
+    if ((*i)->is(Node::Tag::always_construct)) {
+      const auto* ac = static_cast<const AlwaysConstruct*>(*i);
+      if (ac->get_stmt()->is(Node::Tag::timing_control_statement)) {
+        const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
+        stringstream ss;
+        TextPrinter(ss) << tcs->get_ctrl();
+        always_blocks_[ss.str()].push_back(tcs->get_stmt()->accept(this));
+        continue;
+      }
+    }
+
+    // Common Case: Descend and print here
     auto* temp = (*i)->accept(this);
     if (temp != nullptr) {
       TextPrinter(os) << temp << "\n";
       delete temp;
     }
+  }
+  os << endl;
+
+  os << "// Coallesced Always Blocks:" << endl;
+  for (auto& ab : always_blocks_) {
+    os << "always " << ab.first << " begin " << endl;
+    os.tab();
+    for (auto* s : ab.second) {
+      TextPrinter(os) << s << "\n";
+      delete s;
+    }
+    os.untab();
+    os << "end" << endl;
   }
   os << endl;
 }
