@@ -739,6 +739,10 @@ void TypeCheck::visit(const ForeverStatement* fs) {
   error("Cascade does not currently support the use of forever statements", fs);
 }
 
+void TypeCheck::visit(const RepeatStatement* rs) {
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", rs);
+}
+
 void TypeCheck::visit(const DisplayStatement* ds) {
   ds->accept_args(this);
   check_printf(ds->size_args(), ds->begin_args(), ds->end_args());

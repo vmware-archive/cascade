@@ -1369,15 +1369,15 @@ loop_statement
   }
   | REPEAT OPAREN expression CPAREN statement { 
     $$ = new RepeatStatement($3,$5); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   | WHILE OPAREN expression CPAREN statement { 
     $$ = new WhileStatement($3,$5); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   | FOR OPAREN variable_assignment SCOLON expression SCOLON variable_assignment CPAREN statement {
     $$ = new ForStatement($3,$5,$7,$9); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   ;
 
