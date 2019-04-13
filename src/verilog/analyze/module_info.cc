@@ -705,6 +705,15 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
   md_->stateful_.insert(r);
 }
 
+void ModuleInfo::visit(const GetStatement* gs) {
+  Visitor::visit(gs);
+
+  const auto* r = Resolve().get_resolution(gs->get_var());
+  assert(r != nullptr);
+
+  md_->stateful_.insert(r);
+}
+
 void ModuleInfo::visit(const VariableAssign* va) {
   lhs_ = true;
   va->accept_lhs(this);
