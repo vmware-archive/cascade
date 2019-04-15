@@ -735,12 +735,23 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   }
 }
 
+void TypeCheck::visit(const ForStatement* fs) {
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", fs);
+  Visitor::visit(fs);
+}
+
 void TypeCheck::visit(const ForeverStatement* fs) {
   error("Cascade does not currently support the use of forever statements", fs);
 }
 
 void TypeCheck::visit(const RepeatStatement* rs) {
   warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", rs);
+  Visitor::visit(rs);
+}
+
+void TypeCheck::visit(const WhileStatement* ws) {
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", ws);
+  Visitor::visit(ws);
 }
 
 void TypeCheck::visit(const DisplayStatement* ds) {

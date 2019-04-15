@@ -31,7 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_TRANSFORM_LOOP_UNROLL_H
 #define CASCADE_SRC_VERILOG_TRANSFORM_LOOP_UNROLL_H
 
+#include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/rewriter.h"
+#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
@@ -43,8 +45,27 @@ class LoopUnroll : public Rewriter {
     void run(ModuleDeclaration* md);
 
   private:
-    // Rewriter Interface:
+    struct Unroll : public Builder {
+      Unroll();
+      ~Unroll() override = default;
+
+      Statement* build(const BlockingAssign* ba) override;
+      Statement* build(const ForStatement* fs) override;
+      Statement* build(const RepeatStatement* rs) override;
+      Statement* build(const WhileStatement* ws) override;
+    };
+
+    struct Reset : public Visitor {
+      Reset();
+      ~Reset() override = default;
+
+      void visit(const IntegerDeclaration* id) override;
+      void visit(const RegDeclaration* rd) override;
+    };
+
+    Statement* rewrite(ForStatement* fs) override;
     Statement* rewrite(RepeatStatement* rs) override;
+    Statement* rewrite(WhileStatement* ws) override;
 };
 
 } // namespace cascade

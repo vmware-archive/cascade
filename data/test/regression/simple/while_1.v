@@ -1,9 +1,9 @@
-reg[1:0] x = 2'd3;
+integer x = 3;
 
 initial begin 
   while (x) begin
     $write("3");
-    x = x - 2'd1;
+    x = x - 1;
   end
   $finish;
 end

@@ -32,6 +32,7 @@
 
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
+#include "src/verilog/analyze/navigate.h"
 #include "src/verilog/analyze/resolve.h"
 
 using namespace std;
@@ -47,16 +48,89 @@ void LoopUnroll::run(ModuleDeclaration* md) {
   // there's no need to invalidate the scope tree).
   Resolve().invalidate(md);
   ModuleInfo(md).invalidate();
+
+  // Now that we're back on solid ground, reset the values of any variables in
+  // this module which we may have updated while statically evaluating a loop.
+  Reset r;
+  md->accept_items(&r);
 }
 
-Statement* LoopUnroll::rewrite(RepeatStatement* rs) {
+LoopUnroll::Unroll::Unroll() : Builder() { }
+
+Statement* LoopUnroll::Unroll::build(const BlockingAssign* ba) {
+  const auto& val = Evaluate().get_value(ba->get_assign()->get_rhs());
+  Evaluate().assign_value(ba->get_assign()->get_lhs(), val);
+
+  return ba->clone();
+}
+
+Statement* LoopUnroll::Unroll::build(const ForStatement* fs) {
+  auto* sb = new SeqBlock();
+
+  const auto& ival = Evaluate().get_value(fs->get_init()->get_rhs());
+  Evaluate().assign_value(fs->get_init()->get_lhs(), ival);
+  sb->push_back_stmts(new BlockingAssign(fs->get_init()->clone()));
+
+  while (Evaluate().get_value(fs->get_cond()).to_bool()) {
+    auto* s = fs->get_stmt()->accept(this);
+    sb->push_back_stmts(s);
+
+    const auto& uval = Evaluate().get_value(fs->get_update()->get_rhs());
+    Evaluate().assign_value(fs->get_update()->get_lhs(), uval);
+    sb->push_back_stmts(new BlockingAssign(fs->get_update()->clone()));
+  }
+
+  return sb;
+}
+
+Statement* LoopUnroll::Unroll::build(const RepeatStatement* rs) {
   const auto n = Evaluate().get_value(rs->get_cond()).to_int();
   auto* sb = new SeqBlock();
   for (size_t i = 0; i < n; ++i) {
-    sb->push_back_stmts(rs->get_stmt()->clone());
+    auto* s = rs->get_stmt()->accept(this);
+    sb->push_back_stmts(s);
   }
-  sb->accept(this);
   return sb;
+}
+
+LoopUnroll::Reset::Reset() : Visitor() { }
+
+void LoopUnroll::Reset::visit(const IntegerDeclaration* id) {
+  if (id->is_non_null_val()) {
+    const auto& val = Evaluate().get_value(id->get_val());
+    Evaluate().assign_value(id->get_id(), val);
+  }
+}
+
+void LoopUnroll::Reset::visit(const RegDeclaration* rd) {
+  if (rd->is_non_null_val()) {
+    const auto& val = Evaluate().get_value(rd->get_val());
+    Evaluate().assign_value(rd->get_id(), val);
+  }
+}
+
+Statement* LoopUnroll::Unroll::build(const WhileStatement* ws) {
+  auto* sb = new SeqBlock();
+  while (Evaluate().get_value(ws->get_cond()).to_bool()) {
+    auto* s = ws->get_stmt()->accept(this);
+    sb->push_back_stmts(s);
+  }
+  return sb;
+}
+
+Statement* LoopUnroll::rewrite(ForStatement* fs) {
+  Unroll u;
+  return fs->accept(&u);
+}
+
+Statement* LoopUnroll::rewrite(RepeatStatement* rs) {
+  Unroll u;
+  return rs->accept(&u);
+}
+
+Statement* LoopUnroll::rewrite(WhileStatement* ws) {
+  Unroll u;
+  return ws->accept(&u);
 }
 
 

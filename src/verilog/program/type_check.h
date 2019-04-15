@@ -112,8 +112,10 @@ class TypeCheck : public Visitor {
     void visit(const NonblockingAssign* na) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
+    void visit(const ForStatement* fs) override;
     void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
+    void visit(const WhileStatement* ws) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FlushStatement* gs) override;

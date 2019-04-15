@@ -135,6 +135,9 @@ TEST(simple, finish_1) {
 TEST(simple, for_1) {
   run_code("minimal","data/test/regression/simple/for_1.v", "333");
 }
+TEST(simple, for_2) {
+  run_code("minimal","data/test/regression/simple/for_2.v", "012458");
+}
 TEST(simple, generate_1) {
   run_code("minimal","data/test/regression/simple/generate_1.v", "01234567");
 }
@@ -296,4 +299,7 @@ TEST(simple, sign_2) {
 //}
 TEST(simple, while_1) {
   run_code("minimal","data/test/regression/simple/while_1.v", "333");
+}
+TEST(simple, while_2) {
+  run_code("minimal","data/test/regression/simple/while_2.v", "012345");
 }

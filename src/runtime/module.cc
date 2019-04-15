@@ -51,9 +51,6 @@
 #include "src/verilog/transform/dead_code_eliminate.h"
 #include "src/verilog/transform/loop_unroll.h"
 
-
-#include "src/verilog/print/term/term_printer.h"
-
 using namespace std;
 
 namespace cascade {
@@ -319,7 +316,6 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     DeAlias().run(md);
     ConstantProp().run(md);
     DeadCodeEliminate().run(md);
-    TermPrinter(cout) << md << "\n";
   }
   return md;
 }
