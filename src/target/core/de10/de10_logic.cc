@@ -101,7 +101,6 @@ De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclarati
   src_ = src;
   addr_ = addr;
   next_index_ = 0;
-  src_->accept(this);
 }
 
 De10Logic::~De10Logic() {
@@ -146,6 +145,11 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
   // Insert a pointer to this variable into the output index
   outputs_.push_back(make_pair(vid, &var_table_.find(id)->second));
 
+  return *this;
+}
+
+De10Logic& De10Logic::index_tasks() {
+  src_->accept(this);
   return *this;
 }
 

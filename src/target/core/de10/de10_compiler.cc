@@ -213,7 +213,13 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   for (const auto& o : os) {
     de->set_output(o.second, o.first);
   }
-  // Check size of variable table
+  // Now index system tasks. This may generate additional internal state, but a
+  // deterministic ordering is guaranteed here, because this method is based on
+  // a lexicographic descent of the source code
+  de->index_tasks();
+  // Check size of variable table. If we've allocated more than 4096 variables,
+  // we won't be able to uniquely name them using our current lightweight
+  // hps-fpga master-slave addressing scheme.
   if (de->open_loop_idx() >= 0x1000) {
     error("Unable to compile module with more than 4096 entries in variable table");
     delete de;

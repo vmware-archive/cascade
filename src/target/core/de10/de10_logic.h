@@ -83,6 +83,7 @@ class De10Logic : public Logic, public Visitor {
     De10Logic& set_input(const Identifier* id, VId vid);
     De10Logic& set_state(const Identifier* id, VId vid);
     De10Logic& set_output(const Identifier* id, VId vid);
+    De10Logic& index_tasks();
 
     // Core Interface:
     State* get_state() override;
