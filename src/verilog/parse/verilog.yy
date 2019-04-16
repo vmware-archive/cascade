@@ -1469,7 +1469,7 @@ system_task_enable
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_SEEK OPAREN identifier COMMA expression CPAREN SCOLON {
+  | SYS_SEEK OPAREN identifier COMMA number CPAREN SCOLON {
     $$ = new SeekStatement($3, $5);
     parser->set_loc($$);
   }

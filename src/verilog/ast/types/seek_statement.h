@@ -41,7 +41,7 @@ namespace cascade {
 class SeekStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit SeekStatement(Identifier* arg__, Expression* pos__);
+    explicit SeekStatement(Identifier* arg__, Number* pos__);
     ~SeekStatement() override;
 
     // Node Interface:
@@ -50,14 +50,14 @@ class SeekStatement : public SystemTaskEnableStatement {
 
     // Get/Set:
     PTR_GET_SET(SeekStatement, Identifier, arg)
-    PTR_GET_SET(SeekStatement, Expression, pos)
+    PTR_GET_SET(SeekStatement, Number, pos)
 
   private:
     PTR_ATTR(Identifier, arg);
-    PTR_ATTR(Expression, pos);
+    PTR_ATTR(Number, pos);
 };
 
-inline SeekStatement::SeekStatement(Identifier* arg__, Expression* pos__) : SystemTaskEnableStatement(Node::Tag::seek_statement) {
+inline SeekStatement::SeekStatement(Identifier* arg__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::seek_statement) {
   PTR_SETUP(arg);
   PTR_SETUP(pos);
   parent_ = nullptr;
