@@ -116,11 +116,12 @@ class De10Logic : public Logic, public Visitor {
     size_t there_are_updates_idx() const;
     size_t update_idx() const;
     size_t sys_task_idx() const;
+    size_t io_task_idx() const;
     size_t open_loop_idx() const;
 
     // Task Index Properties:
-    size_t task_size() const;
-    size_t io_size() const;
+    size_t sys_task_size() const;
+    size_t io_task_size() const;
 
     // Optimization properties:
     bool open_loop_enabled() const;
@@ -144,8 +145,8 @@ class De10Logic : public Logic, public Visitor {
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
-    std::vector<std::pair<const Node*, size_t>> ios_; 
-    std::vector<const SystemTaskEnableStatement*> tasks_;
+    std::vector<std::pair<const Node*, size_t>> io_tasks_; 
+    std::vector<const SystemTaskEnableStatement*> sys_tasks_;
 
     // Execution State:
     bool there_were_tasks_;

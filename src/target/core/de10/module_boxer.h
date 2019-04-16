@@ -53,7 +53,8 @@ class ModuleBoxer : public Builder {
     const De10Logic* de_;
 
     // System task management:
-    size_t task_id_;
+    size_t sys_task_id_;
+    size_t io_task_id_;
 
     // Builder Interface:
     Attributes* build(const Attributes* as) override; 
@@ -63,6 +64,7 @@ class ModuleBoxer : public Builder {
     Statement* build(const NonblockingAssign* na) override;
     Statement* build(const DisplayStatement* ds) override;
     Statement* build(const FinishStatement* fs) override;
+    Statement* build(const PutStatement* ps) override;
     Statement* build(const WriteStatement* ws) override;
 
     // Builder Helpers:
@@ -71,7 +73,7 @@ class ModuleBoxer : public Builder {
     // Sys Task Mangling Helper:
     class Mangler : public Visitor {
       public:
-        explicit Mangler(const De10Logic* de);
+        explicit Mangler(const De10Logic* de, bool is_io);
         ~Mangler() override = default;
 
         template<typename InputItr>
@@ -80,7 +82,9 @@ class ModuleBoxer : public Builder {
       private:
         void init(size_t id);
         void visit(const Identifier* id) override;
+        void visit(const PutStatement* ps) override;
         const De10Logic* de_;
+        bool is_io_;
         SeqBlock* t_;
     };
 

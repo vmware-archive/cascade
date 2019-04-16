@@ -224,12 +224,12 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     delete de;
     return nullptr;
   }
-  if (de->task_size() > 32) {
+  if (de->sys_task_size() > 32) {
     error("Unable to compile a module with more than 32 system task invocations");
     delete de;
     return nullptr;
   }
-  if (de->io_size() > 32) {
+  if (de->io_task_size() > 32) {
     error("Unable to compile a module with more than 32 file i/o task invocations");
     delete de;
     return nullptr;

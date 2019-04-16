@@ -316,16 +316,20 @@ size_t De10Logic::sys_task_idx() const {
   return next_index_ + 3;
 }
 
-size_t De10Logic::open_loop_idx() const {
+size_t De10Logic::io_task_idx() const {
   return next_index_ + 4;
 }
 
-size_t De10Logic::task_size() const {
-  return tasks_.size();
+size_t De10Logic::open_loop_idx() const {
+  return next_index_ + 5;
+}
+
+size_t De10Logic::sys_task_size() const {
+  return sys_tasks_.size();
 }
   
-size_t De10Logic::io_size() const {
-  return ios_.size();
+size_t De10Logic::io_task_size() const {
+  return io_tasks_.size();
 }
   
 bool De10Logic::open_loop_enabled() const {
@@ -350,7 +354,7 @@ void De10Logic::visit(const EofExpression* ee) {
   // Record this io task and insert a materialized instance of its stream arg
   // into the variable table. It's a little bit of a hack to do this, but we
   // only need a single bit, and we know we've got it here in the AST.
-  ios_.push_back(make_pair(ee, 0));
+  io_tasks_.push_back(make_pair(ee, 0));
   Inserter i(this);
   ee->get_arg()->accept(&i); 
 }
@@ -358,7 +362,7 @@ void De10Logic::visit(const EofExpression* ee) {
 void De10Logic::visit(const DisplayStatement* ds) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(ds);
+  sys_tasks_.push_back(ds);
   Inserter i(this);
   ds->accept_args(&i);
 }
@@ -366,7 +370,7 @@ void De10Logic::visit(const DisplayStatement* ds) {
 void De10Logic::visit(const ErrorStatement* es) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(es);
+  sys_tasks_.push_back(es);
   Inserter i(this);
   es->accept_args(&i);
 }
@@ -374,7 +378,7 @@ void De10Logic::visit(const ErrorStatement* es) {
 void De10Logic::visit(const FinishStatement* fs) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(fs);
+  sys_tasks_.push_back(fs);
   Inserter i(this);
   fs->accept_arg(&i);
 }
@@ -382,7 +386,7 @@ void De10Logic::visit(const FinishStatement* fs) {
 void De10Logic::visit(const GetStatement* gs) {
   // Record this io task and insert a materialized instance of its argument in
   // the variable table.
-  ios_.push_back(make_pair(gs, 0));
+  io_tasks_.push_back(make_pair(gs, 0));
   Inserter i(this);
   gs->get_var()->accept(&i); 
 }
@@ -390,7 +394,7 @@ void De10Logic::visit(const GetStatement* gs) {
 void De10Logic::visit(const InfoStatement* is) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(is);
+  sys_tasks_.push_back(is);
   Inserter i(this);
   is->accept_args(&i);
 }
@@ -398,25 +402,25 @@ void De10Logic::visit(const InfoStatement* is) {
 void De10Logic::visit(const PutStatement* ps) {
   // Record this io task and insert a materialized instance of its argument in
   // the variable table.
-  ios_.push_back(make_pair(ps, 0));
+  io_tasks_.push_back(make_pair(ps, 0));
   Inserter i(this);
   ps->get_var()->accept(&i); 
 }
 
 void De10Logic::visit(const RetargetStatement* rs) {
   // Record this task, but no need to descend on its argument (which is a constant)
-  tasks_.push_back(rs);
+  sys_tasks_.push_back(rs);
 }
 
 void De10Logic::visit(const SeekStatement* ss) {
   // Record this task, but don't insert anything in the variable table.
-  ios_.push_back(make_pair(ss, 0));
+  io_tasks_.push_back(make_pair(ss, 0));
 }
 
 void De10Logic::visit(const WarningStatement* ws) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(ws);
+  sys_tasks_.push_back(ws);
   Inserter i(this);
   ws->accept_args(&i);
 }
@@ -424,7 +428,7 @@ void De10Logic::visit(const WarningStatement* ws) {
 void De10Logic::visit(const WriteStatement* ws) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
-  tasks_.push_back(ws);
+  sys_tasks_.push_back(ws);
   Inserter i(this);
   ws->accept_args(&i);
 }
@@ -506,40 +510,40 @@ void De10Logic::handle_tasks() {
       continue;
     }
     Evaluate eval;
-    if (tasks_[i]->is(Node::Tag::display_statement)) {
-      const auto* ds = static_cast<const DisplayStatement*>(tasks_[i]);
+    if (sys_tasks_[i]->is(Node::Tag::display_statement)) {
+      const auto* ds = static_cast<const DisplayStatement*>(sys_tasks_[i]);
       Sync sync(this);
       ds->accept_args(&sync);
       interface()->display(Printf(&eval).format(ds->begin_args(), ds->end_args()));
-    } else if (tasks_[i]->is(Node::Tag::error_statement)) {
-      const auto* es = static_cast<const ErrorStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::error_statement)) {
+      const auto* es = static_cast<const ErrorStatement*>(sys_tasks_[i]);
       Sync sync(this);
       es->accept_args(&sync);
       interface()->error(Printf(&eval).format(es->begin_args(), es->end_args()));
-    } else if (tasks_[i]->is(Node::Tag::finish_statement)) {
-      const auto* fs = static_cast<const FinishStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::finish_statement)) {
+      const auto* fs = static_cast<const FinishStatement*>(sys_tasks_[i]);
       interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
-    } else if (tasks_[i]->is(Node::Tag::info_statement)) {
-      const auto* is = static_cast<const InfoStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::info_statement)) {
+      const auto* is = static_cast<const InfoStatement*>(sys_tasks_[i]);
       Sync sync(this);
       is->accept_args(&sync);
       interface()->info(Printf(&eval).format(is->begin_args(), is->end_args()));
-    } else if (tasks_[i]->is(Node::Tag::restart_statement)) {
-      const auto* rs = static_cast<const RestartStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::restart_statement)) {
+      const auto* rs = static_cast<const RestartStatement*>(sys_tasks_[i]);
       interface()->restart(rs->get_arg()->get_readable_val());
-    } else if (tasks_[i]->is(Node::Tag::retarget_statement)) {
-      const auto* rs = static_cast<const RetargetStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::retarget_statement)) {
+      const auto* rs = static_cast<const RetargetStatement*>(sys_tasks_[i]);
       interface()->retarget(rs->get_arg()->get_readable_val());
-    } else if (tasks_[i]->is(Node::Tag::save_statement)) {
-      const auto* ss = static_cast<const SaveStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::save_statement)) {
+      const auto* ss = static_cast<const SaveStatement*>(sys_tasks_[i]);
       interface()->save(ss->get_arg()->get_readable_val());
-    } else if (tasks_[i]->is(Node::Tag::warning_statement)) {
-      const auto* ws = static_cast<const WarningStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::warning_statement)) {
+      const auto* ws = static_cast<const WarningStatement*>(sys_tasks_[i]);
       Sync sync(this);
       ws->accept_args(&sync);
       interface()->warning(Printf(&eval).format(ws->begin_args(), ws->end_args()));
-    } else if (tasks_[i]->is(Node::Tag::write_statement)) {
-      const auto* ws = static_cast<const WriteStatement*>(tasks_[i]);
+    } else if (sys_tasks_[i]->is(Node::Tag::write_statement)) {
+      const auto* ws = static_cast<const WriteStatement*>(sys_tasks_[i]);
       Sync sync(this);
       ws->accept_args(&sync);
       interface()->write(Printf(&eval).format(ws->begin_args(), ws->end_args()));

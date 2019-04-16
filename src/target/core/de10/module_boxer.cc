@@ -155,15 +155,19 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
 }
 
 Statement* ModuleBoxer::build(const DisplayStatement* ds) {
-  return Mangler(de_).mangle(task_id_++, ds->begin_args(), ds->end_args());
+  return Mangler(de_, false).mangle(sys_task_id_++, ds->begin_args(), ds->end_args());
 }
 
 Statement* ModuleBoxer::build(const FinishStatement* fs) {
-  return Mangler(de_).mangle(task_id_++, fs->get_arg());
+  return Mangler(de_, false).mangle(sys_task_id_++, fs->get_arg());
+}
+
+Statement* ModuleBoxer::build(const PutStatement* ps) {
+  return Mangler(de_, true).mangle(io_task_id_++, ps);
 }
 
 Statement* ModuleBoxer::build(const WriteStatement* ws) {
-  return Mangler(de_).mangle(task_id_++, ws->begin_args(), ws->end_args());
+  return Mangler(de_, false).mangle(sys_task_id_++, ws->begin_args(), ws->end_args());
 }
 
 Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *i) {
@@ -193,8 +197,9 @@ Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *
   return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
 }
 
-ModuleBoxer::Mangler::Mangler(const De10Logic* de) : Visitor() {
+ModuleBoxer::Mangler::Mangler(const De10Logic* de, bool is_io) : Visitor() {
   de_ = de;
+  is_io_ = is_io;
   t_ = nullptr;
 }
 
@@ -211,13 +216,13 @@ void ModuleBoxer::Mangler::init(size_t id) {
   t_->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
-        new Id("__next_task_mask"),
+        (is_io_ ? new Id("__next_io_mask") : new Id("__next_task_mask")),
         new Number(Bits(32, id))
       ),
       new UnaryExpression(
         UnaryExpression::Op::TILDE,
         new Identifier(
-          new Id("__next_task_mask"),
+          (is_io_ ? new Id("__next_io_mask") : new Id("__next_task_mask")),
           new Number(Bits(32, id))
         )
       )
@@ -283,6 +288,32 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
   }
 }
 
+void ModuleBoxer::Mangler::visit(const PutStatement* ps) {
+  // Replace this put statement with an assignment from the current value of
+  // this variable, to the temporary space we've allocated in the AST for this
+  // version.
+
+  const auto* r = Resolve().get_resolution(ps->get_var());
+  assert(r != nullptr);
+  const auto sitr = de_->table_find(r);
+  assert(sitr != nullptr);
+  const auto titr = de_->table_find(ps->get_var());
+  assert(titr != nullptr);
+
+  for (size_t i = 0, ie = sitr->second.entry_size(); i < ie; ++i) {
+    stringstream sst;
+    sst << "__var[" << (titr->second.index()+i) << "]";
+    stringstream sss;
+    sss << "__var[" << (sitr->second.index()+i) << "]";
+    t_->push_back_stmts(new BlockingAssign(
+      new VariableAssign(
+        new Identifier(sst.str()),
+        new Identifier(sss.str())
+      )
+    ));
+  }
+}
+
 void ModuleBoxer::emit_variable_table(indstream& os) {
   // Declare the variable table for this module. Contains enough storage for
   // all inputs and stateful variables in this module. Note that (1) stateful
@@ -336,6 +367,8 @@ void ModuleBoxer::emit_sys_task_state(indstream& os) {
   os << "// Sys Task State" << endl;
   os << "reg[31:0] __task_mask = 0;" << endl;
   os << "reg[31:0] __next_task_mask = 0;" << endl;
+  os << "reg[31:0] __io_mask = 0;" << endl;
+  os << "reg[31:0] __next_io_mask = 0;" << endl;
   os << endl;
 }
 
@@ -442,12 +475,13 @@ void ModuleBoxer::emit_program_logic(indstream& os) {
   // modifications to the program text. Declarations for inputs and stateful
   // elements are removed (they were converted to view variables above), port
   // declarations for non-stateful outputs are demoted to normal declarations,
-  // and system tasks are replaced by updates to the sys task mask.
+  // and system tasks are replaced by updates to the sys task masks.
 
   // Also note that rather than emit always blocks inline, we do our best to
   // coallesce them and emit them all at once at the end of the program.
 
-  task_id_ = 0;
+  sys_task_id_ = 0;
+  io_task_id_ = 0;
   unordered_map<string, vector<Statement*>> always_blocks_;
 
   os << "// Original Program Logic:" << endl;
@@ -506,7 +540,7 @@ void ModuleBoxer::emit_update_logic(indstream& os) {
 }
 
 void ModuleBoxer::emit_sys_task_logic(indstream& os) {
-  // Logic for systasks. The task mask is cleared whenever the user forces a
+  // Logic for systasks. The masks are cleared whenever the user forces a
   // read of the mask.
 
   os << "// Sys Task Logic:" << endl;
@@ -515,6 +549,13 @@ void ModuleBoxer::emit_sys_task_logic(indstream& os) {
   os << "always @(posedge __clk) begin" << endl;
   os.tab();
   os << "__task_mask <= (__read && (__vid == " << de_->sys_task_idx() << ")) ? __next_task_mask : __task_mask;" << endl;
+  os.untab();
+  os << "end" << endl;
+  os << "wire[31:0] __io_queue = __io_mask ^ __next_io_mask;" << endl;
+  os << "wire __there_was_io = |__io_queue;" << endl;
+  os << "always @(posedge __clk) begin" << endl;
+  os.tab();
+  os << "__io_mask <= (__read && (__vid == " << de_->io_task_idx() << ")) ? __next_io_mask : __io_mask;" << endl;
   os.untab();
   os << "end" << endl;
   os << endl;
@@ -638,6 +679,7 @@ void ModuleBoxer::emit_output_logic(indstream& os) {
   // Special cases for control variables first:
   os << de_->there_are_updates_idx() << ": __out = __there_are_updates;" << endl;
   os << de_->sys_task_idx() << ": __out = __task_queue;" << endl;
+  os << de_->io_task_idx() << ": __out = __io_queue;" << endl;
   os << de_->open_loop_idx() << ": __out = __open_loop_itrs;" << endl;
   // Now emit cases for variables which weren't materialized
   for (const auto& l : logic) {
