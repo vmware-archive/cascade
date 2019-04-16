@@ -110,13 +110,17 @@ class De10Logic : public Logic, public Visitor {
     table_iterator table_begin() const;
     table_iterator table_end() const;
 
-    // Variable table properties:
+    // Variable Table Properties:
     size_t table_size() const;
     size_t live_idx() const;
     size_t there_are_updates_idx() const;
     size_t update_idx() const;
     size_t sys_task_idx() const;
     size_t open_loop_idx() const;
+
+    // Task Index Properties:
+    size_t task_size() const;
+    size_t io_size() const;
 
     // Optimization properties:
     bool open_loop_enabled() const;
@@ -140,17 +144,22 @@ class De10Logic : public Logic, public Visitor {
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
+    std::vector<std::pair<const Node*, size_t>> ios_; 
     std::vector<const SystemTaskEnableStatement*> tasks_;
 
     // Execution State:
     bool there_were_tasks_;
 
     // Visitor Interface:
+    void visit(const EofExpression* ee) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RetargetStatement* rs) override;
+    void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
 

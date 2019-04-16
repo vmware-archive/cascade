@@ -319,6 +319,14 @@ size_t De10Logic::sys_task_idx() const {
 size_t De10Logic::open_loop_idx() const {
   return next_index_ + 4;
 }
+
+size_t De10Logic::task_size() const {
+  return tasks_.size();
+}
+  
+size_t De10Logic::io_size() const {
+  return ios_.size();
+}
   
 bool De10Logic::open_loop_enabled() const {
   ModuleInfo info(src_);
@@ -336,6 +344,15 @@ bool De10Logic::open_loop_enabled() const {
 
 const Identifier* De10Logic::open_loop_clock() const {
   return open_loop_enabled() ? *ModuleInfo(src_).inputs().begin() : nullptr;
+}
+
+void De10Logic::visit(const EofExpression* ee) {
+  // Record this io task and insert a materialized instance of its stream arg
+  // into the variable table. It's a little bit of a hack to do this, but we
+  // only need a single bit, and we know we've got it here in the AST.
+  ios_.push_back(make_pair(ee, 0));
+  Inserter i(this);
+  ee->get_arg()->accept(&i); 
 }
 
 void De10Logic::visit(const DisplayStatement* ds) {
@@ -362,6 +379,14 @@ void De10Logic::visit(const FinishStatement* fs) {
   fs->accept_arg(&i);
 }
 
+void De10Logic::visit(const GetStatement* gs) {
+  // Record this io task and insert a materialized instance of its argument in
+  // the variable table.
+  ios_.push_back(make_pair(gs, 0));
+  Inserter i(this);
+  gs->get_var()->accept(&i); 
+}
+
 void De10Logic::visit(const InfoStatement* is) {
   // Record this task and insert materialized instances of the
   // variables in its arguments into the variable table.
@@ -370,9 +395,22 @@ void De10Logic::visit(const InfoStatement* is) {
   is->accept_args(&i);
 }
 
+void De10Logic::visit(const PutStatement* ps) {
+  // Record this io task and insert a materialized instance of its argument in
+  // the variable table.
+  ios_.push_back(make_pair(ps, 0));
+  Inserter i(this);
+  ps->get_var()->accept(&i); 
+}
+
 void De10Logic::visit(const RetargetStatement* rs) {
   // Record this task, but no need to descend on its argument (which is a constant)
   tasks_.push_back(rs);
+}
+
+void De10Logic::visit(const SeekStatement* ss) {
+  // Record this task, but don't insert anything in the variable table.
+  ios_.push_back(make_pair(ss, 0));
 }
 
 void De10Logic::visit(const WarningStatement* ws) {

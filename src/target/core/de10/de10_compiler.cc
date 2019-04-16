@@ -190,7 +190,9 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   auto* de = new De10Logic(interface, sid, md, addr);
 
   // Register inputs, state, and outputs. Invoke these methods
-  // lexicographically to ensure a deterministic variable table ordering.
+  // lexicographically to ensure a deterministic variable table ordering. The
+  // final invocation of index_tasks is lexicographic by construction, as it's
+  // based on a recursive descent of the AST.
   ModuleInfo info(md);
   map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
@@ -213,15 +215,22 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   for (const auto& o : os) {
     de->set_output(o.second, o.first);
   }
-  // Now index system tasks. This may generate additional internal state, but a
-  // deterministic ordering is guaranteed here, because this method is based on
-  // a lexicographic descent of the source code
   de->index_tasks();
-  // Check size of variable table. If we've allocated more than 4096 variables,
-  // we won't be able to uniquely name them using our current lightweight
-  // hps-fpga master-slave addressing scheme.
+
+  // Check table and index sizes. If this program uses too much state, we won't
+  // be able to uniquely name its elements using our current addressing scheme.
   if (de->open_loop_idx() >= 0x1000) {
-    error("Unable to compile module with more than 4096 entries in variable table");
+    error("Unable to compile a module with more than 4096 entries in variable table");
+    delete de;
+    return nullptr;
+  }
+  if (de->task_size() > 32) {
+    error("Unable to compile a module with more than 32 system task invocations");
+    delete de;
+    return nullptr;
+  }
+  if (de->io_size() > 32) {
+    error("Unable to compile a module with more than 32 file i/o task invocations");
     delete de;
     return nullptr;
   }
