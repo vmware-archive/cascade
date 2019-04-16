@@ -98,7 +98,6 @@ class Node;
       class DisplayStatement;
       class ErrorStatement;
       class FinishStatement;
-      class FlushStatement;
       class GetStatement;
       class InfoStatement;
       class PutStatement;

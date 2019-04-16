@@ -540,7 +540,6 @@
   friend class DisplayStatement; \
   friend class ErrorStatement; \
   friend class FinishStatement; \
-  friend class FlushStatement; \
   friend class GetStatement; \
   friend class InfoStatement; \
   friend class PutStatement; \

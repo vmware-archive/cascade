@@ -595,13 +595,6 @@ void Printer::visit(const FinishStatement* fs) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
-void Printer::visit(const FlushStatement* fs) {
-  *this << Color::YELLOW << "$flush" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  fs->accept_arg(this);
-  *this << Color::RED << ");" << Color::RESET;
-}
-
 void Printer::visit(const GetStatement* gs) {
   *this << Color::YELLOW << "$get" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;

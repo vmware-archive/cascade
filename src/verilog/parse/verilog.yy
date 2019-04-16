@@ -156,7 +156,6 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
-%token SYS_FLUSH    "$flush"
 %token SYS_FOPEN    "$fopen"
 %token SYS_GET      "$get"
 %token SYS_INFO     "$info"
@@ -1424,10 +1423,6 @@ system_task_enable
     sb->push_back_stmts(new ErrorStatement($5.begin(), $5.end()));
     sb->push_back_stmts(new FinishStatement($3));
     $$ = sb;
-    parser->set_loc($$);
-  }
-  | SYS_FLUSH OPAREN identifier CPAREN SCOLON {
-    $$ = new FlushStatement($3);
     parser->set_loc($$);
   }
   | SYS_FINISH SCOLON { 

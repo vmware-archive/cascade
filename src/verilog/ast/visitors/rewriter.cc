@@ -335,11 +335,6 @@ Statement* Rewriter::rewrite(FinishStatement* fs) {
   return fs;
 }
 
-Statement* Rewriter::rewrite(FlushStatement* fs) {
-  fs->accept_arg(this);
-  return fs;
-}
-
 Statement* Rewriter::rewrite(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);

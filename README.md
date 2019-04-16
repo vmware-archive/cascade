@@ -426,7 +426,6 @@ brief description of their behavior is shown below.
 |                       | $retarget(march)          |  x        |             |                  |
 | Stream I/O            | $fopen(file)              |  x        |             |                  |
 |                       | $eof(s)                   |  x        |             |                  |
-|                       | $flush(s)                 |  x        |             |                  |
 |                       | $get(s, var)              |  x        |             |                  |
 |                       | $put(s, var)              |  x        |             |                  |
 |                       | $seek(s, var)             |  x        |             |                  |
@@ -558,10 +557,11 @@ always @(posedge clock.val) begin
 end
 ```
 
-In addition to the tasks described above, the ```$flush()``` task can be used
-to force a writeback of all of the values written to a stream using the
-```$push``` task, and the ```$seek()``` task can be used to reset the position
-from which ```$get()``` tasks are performed.
+In addition to the tasks described above, the ```$seek()``` task can be used to
+reset the position from which ```$get()``` tasks are performed. Note that
+Cascade uses an eventual consistency model for ```$put()``` statements.
+Attempting to interleave reads and writes to the same stream may result in
+unexpected behavior.
 
 Standard Library
 =====

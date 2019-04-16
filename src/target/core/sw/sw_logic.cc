@@ -497,21 +497,6 @@ void SwLogic::visit(const FinishStatement* fs) {
   notify(fs);
 }
 
-void SwLogic::visit(const FlushStatement* fs) {
-  if (!silent_) {
-    const auto* r = Resolve().get_resolution(fs->get_arg());
-    const auto itr = streams_.find(r);
-    assert(itr != streams_.end());
-
-    itr->second->flush();
-
-    // Notify changes in stream state
-    eval_.flag_changed(r);
-    notify(r);
-  }
-  notify(fs);
-}
-
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
     const auto* rid = Resolve().get_resolution(gs->get_id());

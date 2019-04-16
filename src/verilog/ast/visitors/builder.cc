@@ -402,12 +402,6 @@ Statement* Builder::build(const FinishStatement* fs) {
   );
 }
 
-Statement* Builder::build(const FlushStatement* fs) {
-  return new FlushStatement(
-    fs->accept_arg(this)
-  );
-}
-
 Statement* Builder::build(const GetStatement* gs) {
   return new GetStatement(
     gs->accept_id(this),

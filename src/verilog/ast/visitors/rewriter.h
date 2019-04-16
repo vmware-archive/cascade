@@ -93,7 +93,6 @@ struct Rewriter {
   virtual Statement* rewrite(DisplayStatement* ds);
   virtual Statement* rewrite(ErrorStatement* es);
   virtual Statement* rewrite(FinishStatement* fs);
-  virtual Statement* rewrite(FlushStatement* fs);
   virtual Statement* rewrite(GetStatement* gs);
   virtual Statement* rewrite(InfoStatement* is);
   virtual Statement* rewrite(PutStatement* ps);

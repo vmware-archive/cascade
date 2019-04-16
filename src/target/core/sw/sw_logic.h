@@ -115,7 +115,6 @@ class SwLogic : public Logic, public Visitor {
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
-    void visit(const FlushStatement* fs) override;
     void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
     void visit(const PutStatement* ps) override;

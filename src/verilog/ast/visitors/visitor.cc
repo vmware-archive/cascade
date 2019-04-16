@@ -288,10 +288,6 @@ void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
-void Visitor::visit(const FlushStatement* fs) {
-  fs->accept_arg(this);
-}
-
 void Visitor::visit(const GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);

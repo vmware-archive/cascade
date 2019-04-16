@@ -764,23 +764,6 @@ void TypeCheck::visit(const ErrorStatement* es) {
   check_printf(es->size_args(), es->begin_args(), es->end_args());
 }
 
-void TypeCheck::visit(const FlushStatement* fs) {
-  Visitor::visit(fs);
-  
-  // Can't continue checking if pointers are unresolvable
-  const auto* id = Resolve().get_resolution(fs->get_arg());
-  if (id == nullptr) {
-    return;
-  }
-  
-  // CHECK: Arg is stream id
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The argument to a $flush() statement must be a stream id", fs);
-  } 
-}
-
 void TypeCheck::visit(const GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);

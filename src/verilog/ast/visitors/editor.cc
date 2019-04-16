@@ -288,10 +288,6 @@ void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
-void Editor::edit(FlushStatement* fs) {
-  fs->accept_arg(this);
-}
-
 void Editor::edit(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);

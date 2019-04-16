@@ -94,7 +94,6 @@ struct Builder {
   virtual Statement* build(const DisplayStatement* ds);
   virtual Statement* build(const ErrorStatement* es);
   virtual Statement* build(const FinishStatement* fs);
-  virtual Statement* build(const FlushStatement* fs);
   virtual Statement* build(const GetStatement* gs);
   virtual Statement* build(const InfoStatement* is);
   virtual Statement* build(const PutStatement* ps);

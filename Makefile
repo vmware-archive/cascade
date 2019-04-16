@@ -206,7 +206,6 @@ HDR=\
 	src/verilog/ast/types/expression.h\
 	src/verilog/ast/types/fopen_expression.h\
 	src/verilog/ast/types/finish_statement.h\
-	src/verilog/ast/types/flush_statement.h\
 	src/verilog/ast/types/for_statement.h\
 	src/verilog/ast/types/forever_statement.h\
 	src/verilog/ast/types/get_statement.h\

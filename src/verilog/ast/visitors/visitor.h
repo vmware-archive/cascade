@@ -91,7 +91,6 @@ struct Visitor {
   virtual void visit(const DisplayStatement* ds);
   virtual void visit(const ErrorStatement* es);
   virtual void visit(const FinishStatement* fs);
-  virtual void visit(const FlushStatement* fs);
   virtual void visit(const GetStatement* gs);
   virtual void visit(const InfoStatement* is);
   virtual void visit(const PutStatement* ps);
