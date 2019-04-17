@@ -289,29 +289,8 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
 }
 
 void ModuleBoxer::Mangler::visit(const PutStatement* ps) {
-  // Replace this put statement with an assignment from the current value of
-  // this variable, to the temporary space we've allocated in the AST for this
-  // version.
-
-  const auto* r = Resolve().get_resolution(ps->get_var());
-  assert(r != nullptr);
-  const auto sitr = de_->table_find(r);
-  assert(sitr != de_->table_end());
-  const auto titr = de_->table_find(ps->get_var());
-  assert(titr != de_->table_end());
-
-  for (size_t i = 0, ie = sitr->second.entry_size(); i < ie; ++i) {
-    stringstream sst;
-    sst << "__var[" << (titr->second.index()+i) << "]";
-    stringstream sss;
-    sss << "__var[" << (sitr->second.index()+i) << "]";
-    t_->push_back_stmts(new BlockingAssign(
-      new VariableAssign(
-        new Identifier(sst.str()),
-        new Identifier(sss.str())
-      )
-    ));
-  }
+  // We only need to record the value of the variable. Don't descend on id.
+  ps->accept_var(this);
 }
 
 void ModuleBoxer::emit_variable_table(indstream& os) {
