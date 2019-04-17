@@ -87,7 +87,7 @@ class interfacestream : public std::iostream {
     std::streambuf* get_buf(Interface* interface);
 };
 
-interfacebuf::interfacebuf(Interface* interface, SId id) {
+inline interfacebuf::interfacebuf(Interface* interface, SId id) {
   interface_ = interface;
   id_ = id;
 }
