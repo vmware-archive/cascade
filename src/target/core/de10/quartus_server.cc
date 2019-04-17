@@ -134,7 +134,7 @@ void QuartusServer::request_slot(sockstream* sock) {
   uint8_t res = -1;
   for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
     if (slots_[i].first == QuartusServer::State::OPEN) {
-      slots_[i].first = QuartusServer::State::ABORTED;
+      slots_[i].first = QuartusServer::State::CURRENT;
       res = i;
       break;
     }
@@ -348,7 +348,7 @@ void QuartusServer::abort() {
   lock_guard<mutex> lg(lock_);
   for (auto& s : slots_) {
     if (s.first == QuartusServer::State::WAITING) {
-      s.first = QuartusServer::State::ABORTED;
+      s.first = QuartusServer::State::OPEN;
     }
   }
   cv_.notify_all();

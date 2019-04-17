@@ -125,8 +125,10 @@ class Runtime : public Asynchronous {
 
     // Program-Logic Interface:
     //
-    // Schedules an intterupt on the interrupt queue
-    void schedule_interrupt(Interrupt int_);
+    // Schedules an interrupt on the interrupt queue. Returns false if the
+    // runtime is no longer active, meaning there is no hope of this interrupt
+    // ever being serviced.
+    bool schedule_interrupt(Interrupt int_);
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which

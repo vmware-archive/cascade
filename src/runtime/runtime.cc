@@ -298,9 +298,10 @@ void Runtime::save(const string& path) {
   });
 }
 
-void Runtime::schedule_interrupt(Interrupt int_) {
+bool Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
   ints_.push_back(int_);
+  return !stop_requested();
 }
 
 void Runtime::write(VId id, const Bits* bits) {
