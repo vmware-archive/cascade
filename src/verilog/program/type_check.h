@@ -81,6 +81,7 @@ class TypeCheck : public Visitor {
     const Node* outermost_loop_;
     const ModuleInstantiation* instantiation_;
     bool net_lval_;
+    bool in_conditional_;
 
     // Error Tracking:
     bool exists_bad_id_;
@@ -112,6 +113,8 @@ class TypeCheck : public Visitor {
     void visit(const NonblockingAssign* na) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
+    void visit(const CaseStatement* cs) override;
+    void visit(const ConditionalStatement* cs) override;
     void visit(const ForStatement* fs) override;
     void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;

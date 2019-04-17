@@ -60,6 +60,7 @@ TypeCheck::TypeCheck(const Program* program, Log* log, const Parser* parser) : V
   outermost_loop_ = nullptr;
   instantiation_ = nullptr;
   net_lval_ = false;
+  in_conditional_ = false;
 
   exists_bad_id_ = false;
 }
@@ -735,6 +736,18 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   }
 }
 
+void TypeCheck::visit(const CaseStatement* cs) {
+  in_conditional_ = true;
+  Visitor::visit(cs);
+  in_conditional_ = false;
+}
+
+void TypeCheck::visit(const ConditionalStatement* cs) {
+  in_conditional_ = true;
+  Visitor::visit(cs);
+  in_conditional_ = false;
+}
+
 void TypeCheck::visit(const ForStatement* fs) {
   warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", fs);
   Visitor::visit(fs);
@@ -765,6 +778,10 @@ void TypeCheck::visit(const ErrorStatement* es) {
 }
 
 void TypeCheck::visit(const GetStatement* gs) {
+  if (in_conditional_) {
+    error("Cascade does not currently support the use of $get() statements within conditionals", gs);
+  }
+
   gs->accept_id(this);
   gs->accept_var(this);
   
@@ -793,6 +810,10 @@ void TypeCheck::visit(const InfoStatement* is) {
 }
 
 void TypeCheck::visit(const PutStatement* ps) {
+  if (in_conditional_) {
+    error("Cascade does not currently support the use of $put() statements within conditionals", ps);
+  }
+
   ps->accept_id(this);
   ps->accept_var(this);
   

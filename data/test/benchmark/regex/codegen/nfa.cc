@@ -164,41 +164,40 @@ void Nfa::to_verilog(ostream& os) const {
   os << "    end else begin" << endl;
   os << "      itr <= itr + 1;" << endl;
   os << "      $seek(s, 0);" << endl;
-  os << "      $get(s, char);" << endl;
   os << "    end" << endl;
-  os << "  end" << endl;
-  os << endl;
-  os << "  if (state > 0) begin" << endl;
-  os << "    ie <= ie + 1;" << endl;
-  os << "  end" << endl;
-  os << "  case (state)" << endl;
-  os << "    32'd0:" << endl;
-  os << "      state <= " << ids[entry_] << ";" << endl;
+  os << "  end else begin" << endl;
+  os << "    if (state > 0) begin" << endl;
+  os << "      ie <= ie + 1;" << endl;
+  os << "    end" << endl;
+  os << "    case (state)" << endl;
+  os << "      32'd0:" << endl;
+  os << "        state <= " << ids[entry_] << ";" << endl;
   for (auto s : states_) {
-    os << "    32'd" << ids[s] << ": case(char) " << endl;
+    os << "      32'd" << ids[s] << ": case(char) " << endl;
     for (auto& t : s->ts) {
-      os << "      8'h" << hex << (int)t.first << dec << ": begin" << endl;
+      os << "        8'h" << hex << (int)t.first << dec << ": begin" << endl;
       if (is_accept(*t.second.begin())) {
-        os << "        //$display(\"Match %d:%d\", i, ie);" << endl;
-        os << "        i <= ie + 1;" << endl;
-        os << "        count <= count + 1;" << endl;
-        os << "        state <= " << ids[entry_] << ";" << endl;
+        os << "          //$display(\"Match %d:%d\", i, ie);" << endl;
+        os << "          i <= ie + 1;" << endl;
+        os << "          count <= count + 1;" << endl;
+        os << "          state <= " << ids[entry_] << ";" << endl;
       } else {
-        os << "        state <= " << ids[*t.second.begin()] << ";" << endl;
+        os << "          state <= " << ids[*t.second.begin()] << ";" << endl;
       }
-      os << "      end" << endl;
+      os << "        end" << endl;
     }
-    os << "      default: begin" << endl;
-    os << "        i <= ie + 1;" << endl;
-    os << "        state <= " << ids[entry_] << ";" << endl;
-    os << "      end" << endl;
-    os << "    endcase" << endl; 
+    os << "        default: begin" << endl;
+    os << "          i <= ie + 1;" << endl;
+    os << "          state <= " << ids[entry_] << ";" << endl;
+    os << "        end" << endl;
+    os << "      endcase" << endl; 
   }
-  os << "    default: begin" << endl;
-  os << "      $display(\"Unrecognized state!\");" << endl;
-  os << "      $finish;" << endl;
-  os << "    end" << endl;
-  os << "  endcase" << endl;
+  os << "      default: begin" << endl;
+  os << "        $display(\"Unrecognized state!\");" << endl;
+  os << "        $finish;" << endl;
+  os << "      end" << endl;
+  os << "    endcase" << endl;
+  os << "  end" << endl;
   os << "end";
 }
 
