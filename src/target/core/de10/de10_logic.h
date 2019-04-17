@@ -36,7 +36,9 @@
 #include "src/base/bits/bits.h"
 #include "src/base/container/vector.h"
 #include "src/target/core.h"
+#include "src/target/core/common/interfacestream.h"
 #include "src/target/core/de10/quartus_server.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -90,6 +92,7 @@ class De10Logic : public Logic, public Visitor {
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
+    void finalize() override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;
@@ -128,8 +131,9 @@ class De10Logic : public Logic, public Visitor {
     const Identifier* open_loop_clock() const;
 
   private:
-    // Program Source:
+    // Sourcei Management:
     ModuleDeclaration* src_;
+    std::vector<interfacestream*> streams_;
 
     // Quartus Server State:
     QuartusServer::Id id_;
@@ -175,7 +179,12 @@ class De10Logic : public Logic, public Visitor {
     
     // Evaluate / Update Helpers:
     void handle_outputs();
-    void handle_tasks();
+    void handle_io_tasks();
+    void handle_sys_tasks();
+
+    // Open Loop Variants
+    size_t io_free_open_loop(VId clk, bool val, size_t itr);
+    size_t io_open_loop(VId clk, bool val, size_t itr);
 
     // Inserts the identifiers in an AST subtree into the variable table.
     struct Inserter : Visitor {

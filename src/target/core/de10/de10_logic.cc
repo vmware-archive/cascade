@@ -105,6 +105,11 @@ De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclarati
 
 De10Logic::~De10Logic() {
   delete src_;
+  for (auto* s : streams_) {
+    if (s != nullptr) {
+      delete s;
+    }
+  }
 }
 
 De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
@@ -175,6 +180,7 @@ void De10Logic::set_state(const State* s) {
 
   ModuleInfo info(src_);
   for (auto* v : info.stateful()) {
+    // Write value directly to de10
     const auto vid = var_map_.find(v);
     assert(vid != var_map_.end());
     const auto vinfo = var_table_.find(v);
@@ -182,7 +188,13 @@ void De10Logic::set_state(const State* s) {
 
     const auto itr = s->find(vid->second);
     if (itr != s->end()) {
+      // Write value directly to device
       write_array(vinfo->second, itr->second);
+      // Write stream values to sw as well, since we'll need this value when
+      // resolving io tasks
+      if (info.is_stream(v)) {
+        Evaluate().assign_value(vinfo->first, itr->second[0]);
+      }
     }
   }
 
@@ -227,6 +239,17 @@ void De10Logic::set_input(const Input* i) {
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
+void De10Logic::finalize() {
+  ModuleInfo info(src_);
+  for (auto* s : info.streams()) {
+    const auto sid = Evaluate().get_value(s).to_int();
+    if (sid > streams_.size()) {
+      streams_.resize(sid+1, nullptr);
+    }
+    streams_[sid] = new interfacestream(interface(), sid);
+  }
+}
+
 void De10Logic::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
@@ -236,7 +259,8 @@ void De10Logic::read(VId id, const Bits* b) {
 void De10Logic::evaluate() {
   // Read outputs and handle tasks
   handle_outputs();
-  handle_tasks();
+  handle_io_tasks();
+  handle_sys_tasks();
 }
 
 bool De10Logic::there_are_updates() const {
@@ -249,7 +273,8 @@ void De10Logic::update() {
   DE10_WRITE(MANGLE(addr_, update_idx()), 1);
   // Read outputs and handle tasks
   handle_outputs();
-  handle_tasks();
+  handle_io_tasks();
+  handle_sys_tasks();
 }
 
 bool De10Logic::there_were_tasks() const {
@@ -257,17 +282,7 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
-  // The fpga already knows the value of clk. We can ignore it.
-  (void) clk;
-  (void) val;
-
-  // Go into open loop mode and handle tasks when we return. No need
-  // to handle outputs. This methods assumes that we don't have any.
-  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
-  handle_tasks();
-
-  // Return the number of iterations that we ran for
-  return DE10_READ(MANGLE(addr_, open_loop_idx()));
+  return io_tasks_.empty() ? io_free_open_loop(clk, val, itr) : io_open_loop(clk, val, itr);
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -495,18 +510,49 @@ void De10Logic::handle_outputs() {
   }
 }
 
-void De10Logic::handle_tasks() {
+void De10Logic::handle_io_tasks() {
+  volatile auto queue = DE10_READ(MANGLE(addr_, io_task_idx()));
+  if (queue == 0) {
+    return;
+  }
+
+  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
+    if ((queue & 0x1) == 0) {
+      continue;
+    }
+    if (io_tasks_[i].first->is(Node::Tag::put_statement)) {
+      const auto* ps = static_cast<const PutStatement*>(io_tasks_[i].first);
+      
+      const auto* r = Resolve().get_resolution(ps->get_id());
+      assert(r != nullptr);
+      const auto sid = Evaluate().get_value(r).to_int();
+      assert(sid < streams_.size()); 
+      assert(streams_[sid] != nullptr);
+
+      Sync sync(this);
+      ps->accept_var(&sync);
+      const auto& val = Evaluate().get_value(ps->get_var());
+      val.write(*streams_[sid], 16);
+      streams_[sid]->put(' ');
+    }
+  }
+
+  // Reset the task mask
+  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
+}
+
+void De10Logic::handle_sys_tasks() {
   // By default, we'll assume there were no tasks
   there_were_tasks_ = false;
-  volatile auto task_queue = DE10_READ(MANGLE(addr_, sys_task_idx()));
-  if (task_queue == 0) {
+  volatile auto queue = DE10_READ(MANGLE(addr_, sys_task_idx()));
+  if (queue == 0) {
     return;
   }
 
   // There were tasks after all; we need to empty the queue
   there_were_tasks_ = true;
-  for (size_t i = 0; task_queue != 0; task_queue >>= 1, ++i) {
-    if ((task_queue & 0x1) == 0) {
+  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
+    if ((queue & 0x1) == 0) {
       continue;
     }
     Evaluate eval;
@@ -554,6 +600,39 @@ void De10Logic::handle_tasks() {
 
   // Reset the task mask
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
+}
+
+size_t De10Logic::io_free_open_loop(VId clk, bool val, size_t itr) {
+  // The fpga already knows the value of clk. We can ignore it.
+  (void) clk;
+  (void) val;
+
+  // Go into open loop mode and handle tasks when we return. No need
+  // to handle outputs. This methods assumes that we don't have any.
+  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
+  handle_sys_tasks();
+
+  // Return the number of iterations that we ran for
+  return DE10_READ(MANGLE(addr_, open_loop_idx()));
+}
+
+size_t De10Logic::io_open_loop(VId clk, bool val, size_t itr) {
+  // The fpga already knows the value of clk. We can ignore it.
+  (void) clk;
+  (void) val;
+
+  // We can't quite go into open loop here because we need to perform file i/o
+  // every so many clock ticks. Still, it's better to spin here than back and
+  // forth with the runtime
+  size_t res = 0;
+  for (there_were_tasks_ = false; (res < itr) && !there_were_tasks_; ++res) {
+    DE10_WRITE(MANGLE(addr_, open_loop_idx()), 1);
+    handle_io_tasks();
+    handle_sys_tasks();
+  }
+
+  // Return the number of iterations that we ran for
+  return res;
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
