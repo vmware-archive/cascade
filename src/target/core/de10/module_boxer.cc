@@ -296,9 +296,9 @@ void ModuleBoxer::Mangler::visit(const PutStatement* ps) {
   const auto* r = Resolve().get_resolution(ps->get_var());
   assert(r != nullptr);
   const auto sitr = de_->table_find(r);
-  assert(sitr != nullptr);
+  assert(sitr != de_->table_end());
   const auto titr = de_->table_find(ps->get_var());
-  assert(titr != nullptr);
+  assert(titr != de_->table_end());
 
   for (size_t i = 0, ie = sitr->second.entry_size(); i < ie; ++i) {
     stringstream sst;
