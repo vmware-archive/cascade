@@ -144,27 +144,6 @@ void QuartusServer::request_slot(sockstream* sock) {
   delete sock;
 }
 
-void QuartusServer::return_slot(sockstream* sock) {
-  const auto i = static_cast<size_t>(sock->get());
-  assert(i < slots_.size());
-
-  lock_guard<mutex> lg(lock_);
-  slots_[i].first = QuartusServer::State::OPEN;
-  slots_[i].second = "";
-  sock->put(0);
-  sock->flush();
-  delete sock;
-}
-
-void QuartusServer::killall() {
-  // Note that we never kill quartus_pgm.  It runs quickly and an
-  // inconsistently programmed fpga is a nightmware we don't want to consider.
-  System::execute("killall java > /dev/null 2>&1");
-  System::execute("killall quartus_map > /dev/null 2>&1");
-  System::execute("killall quartus_fit > /dev/null 2>&1");
-  System::execute("killall quartus_asm > /dev/null 2>&1");
-}
-
 void QuartusServer::update_slot(sockstream* sock) {
   const auto i = static_cast<size_t>(sock->get());
   assert(i < slots_.size());
@@ -185,6 +164,46 @@ void QuartusServer::update_slot(sockstream* sock) {
   sock->put((slots_[i].first == QuartusServer::State::CURRENT) ? 0 : 1);
   sock->flush();
   delete sock;
+}
+
+void QuartusServer::return_slot(sockstream* sock) {
+  const auto i = static_cast<size_t>(sock->get());
+  assert(i < slots_.size());
+
+  lock_guard<mutex> lg(lock_);
+  slots_[i].first = QuartusServer::State::OPEN;
+  slots_[i].second = "";
+  sock->put(0);
+  sock->flush();
+  delete sock;
+}
+
+void QuartusServer::abort(sockstream* sock) {
+  killall();
+  ++version_;
+
+  lock_guard<mutex> lg(lock_);
+  for (auto& s : slots_) {
+    if (s.first == QuartusServer::State::WAITING) {
+      s.first = QuartusServer::State::OPEN;
+    }
+  }
+  cv_.notify_all();
+
+  if (sock != nullptr) {
+    sock->put(0);
+    sock->flush();
+    delete sock;
+  }
+}
+
+void QuartusServer::killall() {
+  // Note that we never kill quartus_pgm.  It runs quickly and an
+  // inconsistently programmed fpga is a nightmware we don't want to consider.
+  System::execute("killall java > /dev/null 2>&1");
+  System::execute("killall quartus_map > /dev/null 2>&1");
+  System::execute("killall quartus_fit > /dev/null 2>&1");
+  System::execute("killall quartus_asm > /dev/null 2>&1");
 }
 
 void QuartusServer::recompile(size_t my_version) {
@@ -327,7 +346,7 @@ void QuartusServer::run_logic() {
         return_slot(sock);
         break;
       case QuartusServer::Rpc::ABORT:
-        abort();
+        abort(sock);
         break;
 
       case QuartusServer::Rpc::ERROR:
@@ -337,21 +356,8 @@ void QuartusServer::run_logic() {
     }
   }
 
-  abort();
+  abort(nullptr);
   pool_.stop_now();
-}
-
-void QuartusServer::abort() {
-  killall();
-  ++version_;
-
-  lock_guard<mutex> lg(lock_);
-  for (auto& s : slots_) {
-    if (s.first == QuartusServer::State::WAITING) {
-      s.first = QuartusServer::State::OPEN;
-    }
-  }
-  cv_.notify_all();
 }
 
 } // namespace cascade
