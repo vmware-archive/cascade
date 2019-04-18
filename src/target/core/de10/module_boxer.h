@@ -64,10 +64,16 @@ class ModuleBoxer : public Builder {
     ModuleItem* build(const PortDeclaration* pd) override;
     Statement* build(const NonblockingAssign* na) override;
     Statement* build(const DisplayStatement* ds) override;
+    Statement* build(const ErrorStatement* es) override;
     Statement* build(const FinishStatement* fs) override;
     Statement* build(const GetStatement* gs) override;
+    Statement* build(const InfoStatement* is) override;
     Statement* build(const PutStatement* ps) override;
+    Statement* build(const RestartStatement* rs) override;
+    Statement* build(const RetargetStatement* rs) override;
+    Statement* build(const SaveStatement* ss) override;
     Statement* build(const SeekStatement* ps) override;
+    Statement* build(const WarningStatement* ws) override;
     Statement* build(const WriteStatement* ws) override;
 
     // Builder Helpers:

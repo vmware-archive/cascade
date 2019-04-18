@@ -172,6 +172,10 @@ Statement* ModuleBoxer::build(const DisplayStatement* ds) {
   return Mangler(de_, false, true).mangle(sys_task_id_++, ds->begin_args(), ds->end_args());
 }
 
+Statement* ModuleBoxer::build(const ErrorStatement* es) {
+  return Mangler(de_, false, true).mangle(sys_task_id_++, es->begin_args(), es->end_args());
+}
+
 Statement* ModuleBoxer::build(const FinishStatement* fs) {
   return Mangler(de_, false, true).mangle(sys_task_id_++, fs->get_arg());
 }
@@ -180,13 +184,36 @@ Statement* ModuleBoxer::build(const GetStatement* gs) {
   return Mangler(de_, true, false).mangle(io_task_id_++, gs->get_var());
 }
 
+Statement* ModuleBoxer::build(const InfoStatement* is) {
+  return Mangler(de_, false, true).mangle(sys_task_id_++, is->begin_args(), is->end_args());
+}
+
 Statement* ModuleBoxer::build(const PutStatement* ps) {
   return Mangler(de_, true, true).mangle(io_task_id_++, ps->get_var());
+}
+
+Statement* ModuleBoxer::build(const RestartStatement* rs) {
+  (void) rs;
+  return Mangler(de_, false, true).mangle(sys_task_id_++);
+}
+
+Statement* ModuleBoxer::build(const RetargetStatement* rs) {
+  (void) rs;
+  return Mangler(de_, false, true).mangle(sys_task_id_++);
+}
+
+Statement* ModuleBoxer::build(const SaveStatement* ss) {
+  (void) ss;
+  return Mangler(de_, false, true).mangle(sys_task_id_++);
 }
 
 Statement* ModuleBoxer::build(const SeekStatement* ss) {
   (void) ss;
   return Mangler(de_, true, true).mangle(io_task_id_++);
+}
+
+Statement* ModuleBoxer::build(const WarningStatement* ws) {
+  return Mangler(de_, false, true).mangle(sys_task_id_++, ws->begin_args(), ws->end_args());
 }
 
 Statement* ModuleBoxer::build(const WriteStatement* ws) {
