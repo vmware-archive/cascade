@@ -335,6 +335,8 @@ void Evaluate::edit(EofExpression* ee) {
   // Relies on target-specific logic:
   if (eof_ != nullptr) {
     ee->bit_val_[0].set(0, eof_(this, ee));
+  } else {
+    ee->bit_val_[0].set(0, true);
   }
 }
 
@@ -342,6 +344,8 @@ void Evaluate::edit(FopenExpression* fe) {
   // Relies on target-specific logic:
   if (fopen_ != nullptr) {
     fe->bit_val_[0].assign(Bits(32, fopen_(this, fe)));
+  } else {
+    fe->bit_val_[0].assign(Bits(32, 0));
   }
 }
 
@@ -509,10 +513,9 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::Invalidate::edit(EofExpression* ee) {
-  // eof expressions are evaluated using target-specific handlers.  No need to
-  // descend beyond here.
   ee->bit_val_.clear();
   ee->set_flag<0>(true);
+  Editor::edit(ee);
 }
 
 void Evaluate::Invalidate::edit(FopenExpression* fe) {
@@ -654,6 +657,8 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
 }
 
 void Evaluate::SelfDetermine::edit(EofExpression* ee) {
+  Editor::edit(ee);
+
   // $eof() expressions return 1-bit unsigned flags
   ee->bit_val_.push_back(Bits(1, 0));
   ee->bit_val_[0].set_signed(false);

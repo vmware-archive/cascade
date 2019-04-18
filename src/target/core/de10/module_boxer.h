@@ -58,13 +58,16 @@ class ModuleBoxer : public Builder {
 
     // Builder Interface:
     Attributes* build(const Attributes* as) override; 
+    Expression* build(const EofExpression* ee) override;
     ModuleItem* build(const InitialConstruct* ic) override;
     ModuleItem* build(const RegDeclaration* rd) override;
     ModuleItem* build(const PortDeclaration* pd) override;
     Statement* build(const NonblockingAssign* na) override;
     Statement* build(const DisplayStatement* ds) override;
     Statement* build(const FinishStatement* fs) override;
+    Statement* build(const GetStatement* gs) override;
     Statement* build(const PutStatement* ps) override;
+    Statement* build(const SeekStatement* ps) override;
     Statement* build(const WriteStatement* ws) override;
 
     // Builder Helpers:
@@ -73,18 +76,23 @@ class ModuleBoxer : public Builder {
     // Sys Task Mangling Helper:
     class Mangler : public Visitor {
       public:
-        explicit Mangler(const De10Logic* de, bool is_io);
+        explicit Mangler(const De10Logic* de, bool is_io, bool is_pull);
         ~Mangler() override = default;
 
         template<typename InputItr>
         Statement* mangle(size_t id, InputItr begin, InputItr end);
         Statement* mangle(size_t id, const Node* arg);
+        Statement* mangle(size_t id);
+
       private:
-        void init(size_t id);
         void visit(const Identifier* id) override;
-        void visit(const PutStatement* ps) override;
+        void init(size_t id);
+        void to_pull(const Identifier* id);
+        void to_push(const Identifier* id);
+
         const De10Logic* de_;
         bool is_io_;
+        bool is_pull_;
         SeqBlock* t_;
     };
 

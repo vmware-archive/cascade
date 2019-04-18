@@ -149,11 +149,14 @@ class De10Logic : public Logic, public Visitor {
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
-    std::vector<std::pair<const Node*, size_t>> io_tasks_; 
+    std::vector<const Node*> io_tasks_; 
     std::vector<const SystemTaskEnableStatement*> sys_tasks_;
 
     // Execution State:
     bool there_were_tasks_;
+
+    // Scratch Space:
+    Bits scratch_;
 
     // Visitor Interface:
     void visit(const EofExpression* ee) override;
@@ -178,6 +181,7 @@ class De10Logic : public Logic, public Visitor {
     void write_array(const VarInfo& vi, const Vector<Bits>& bs);
     
     // Evaluate / Update Helpers:
+    void prepare_io_tasks();
     void handle_outputs();
     void handle_io_tasks();
     void handle_sys_tasks();

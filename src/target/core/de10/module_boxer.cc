@@ -84,6 +84,20 @@ Attributes* ModuleBoxer::build(const Attributes* as) {
   return new Attributes();
 }
 
+Expression* ModuleBoxer::build(const EofExpression* ee) {
+  // This is a bit confusing. What's going on here is the de10 compiler has
+  // created an entry in the variable table for the argument to this expression
+  // (like we do with arguments to display statements). Prior to transfering
+  // control to the fpga, De10Logic will place the result of this eof check
+  // into this location in hardware.
+  const auto itr = de_->table_find(ee->get_arg());
+  assert(itr != de_->table_end());
+  stringstream ss;
+  ss << "__var[" << itr->second.index() << "]";
+
+  return new Identifier(ss.str());
+}
+
 ModuleItem* ModuleBoxer::build(const InitialConstruct* ic) {
   // If we're seeing a non-ignored initial block here, it's a problem.  These
   // should have been handled in software.
@@ -155,19 +169,28 @@ Statement* ModuleBoxer::build(const NonblockingAssign* na) {
 }
 
 Statement* ModuleBoxer::build(const DisplayStatement* ds) {
-  return Mangler(de_, false).mangle(sys_task_id_++, ds->begin_args(), ds->end_args());
+  return Mangler(de_, false, true).mangle(sys_task_id_++, ds->begin_args(), ds->end_args());
 }
 
 Statement* ModuleBoxer::build(const FinishStatement* fs) {
-  return Mangler(de_, false).mangle(sys_task_id_++, fs->get_arg());
+  return Mangler(de_, false, true).mangle(sys_task_id_++, fs->get_arg());
+}
+
+Statement* ModuleBoxer::build(const GetStatement* gs) {
+  return Mangler(de_, true, false).mangle(io_task_id_++, gs->get_var());
 }
 
 Statement* ModuleBoxer::build(const PutStatement* ps) {
-  return Mangler(de_, true).mangle(io_task_id_++, ps);
+  return Mangler(de_, true, true).mangle(io_task_id_++, ps->get_var());
+}
+
+Statement* ModuleBoxer::build(const SeekStatement* ss) {
+  (void) ss;
+  return Mangler(de_, true, true).mangle(io_task_id_++);
 }
 
 Statement* ModuleBoxer::build(const WriteStatement* ws) {
-  return Mangler(de_, false).mangle(sys_task_id_++, ws->begin_args(), ws->end_args());
+  return Mangler(de_, false, true).mangle(sys_task_id_++, ws->begin_args(), ws->end_args());
 }
 
 Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *i) {
@@ -197,9 +220,10 @@ Expression* ModuleBoxer::get_table_range(const Identifier* r, const Identifier *
   return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
 }
 
-ModuleBoxer::Mangler::Mangler(const De10Logic* de, bool is_io) : Visitor() {
+ModuleBoxer::Mangler::Mangler(const De10Logic* de, bool is_io, bool is_pull) : Visitor() {
   de_ = de;
   is_io_ = is_io;
+  is_pull_ = is_pull;
   t_ = nullptr;
 }
 
@@ -207,6 +231,19 @@ Statement* ModuleBoxer::Mangler::mangle(size_t id, const Node* arg) {
   init(id);
   arg->accept(this);
   return new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+}
+
+Statement* ModuleBoxer::Mangler::mangle(size_t id) {
+  init(id);
+  return new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+}
+
+void ModuleBoxer::Mangler::visit(const Identifier* id) {
+  if (is_pull_) {
+    to_pull(id);
+  } else {
+    to_push(id);
+  }
 }
 
 void ModuleBoxer::Mangler::init(size_t id) {
@@ -230,7 +267,7 @@ void ModuleBoxer::Mangler::init(size_t id) {
   ));
 }
 
-void ModuleBoxer::Mangler::visit(const Identifier* id) {
+void ModuleBoxer::Mangler::to_pull(const Identifier* id) {
   const auto titr = de_->table_find(id);
   assert(titr != de_->table_end());
 
@@ -288,9 +325,8 @@ void ModuleBoxer::Mangler::visit(const Identifier* id) {
   }
 }
 
-void ModuleBoxer::Mangler::visit(const PutStatement* ps) {
-  // We only need to record the value of the variable. Don't descend on id.
-  ps->accept_var(this);
+void ModuleBoxer::Mangler::to_push(const Identifier* id) {
+  (void) id;
 }
 
 void ModuleBoxer::emit_variable_table(indstream& os) {
