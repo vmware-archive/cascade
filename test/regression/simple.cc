@@ -291,6 +291,9 @@ TEST(simple, reduce_xnor) {
 //TEST(simple, repeat_2) {
 //  run_code("minimal","data/test/regression/simple/repeat_2.v", "666666");
 //}
+TEST(simple, seq_1) {
+  run_code("minimal","data/test/regression/simple/seq_1.v", "12");
+}
 TEST(simple, sign_1) {
   run_code("minimal","data/test/regression/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");
 }
