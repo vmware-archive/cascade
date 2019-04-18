@@ -232,7 +232,7 @@ void SwLogic::silent_evaluate() {
   silent_ = false;
 }
 
-uint8_t& SwLogic::get_state(const Statement* s) {
+uint16_t& SwLogic::get_state(const Statement* s) {
   return const_cast<Statement*>(s)->ctrl_;
 }
 
