@@ -574,7 +574,7 @@ void SwLogic::visit(const SeekStatement* ss) {
     const auto itr = streams_.find(r);
     assert(itr != streams_.end());
 
-    const auto& pos = eval_.get_value(ss->get_pos()).to_int();
+    const auto pos = eval_.get_value(ss->get_pos()).to_int();
     itr->second->clear();
     itr->second->seekg(pos);
 
