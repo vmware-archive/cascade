@@ -680,7 +680,7 @@ void TypeCheck::visit(const ModuleInstantiation* mi) {
 
 void TypeCheck::visit(const ParBlock* pb) {
   // CHECK: Upper bound on number of statements imposed by sw_logic
-  if (pb->size_stmts() > 0xffff ) {
+  if (pb->size_stmts() > 0xffff) {
     error("Cascade does not currently support parallel blocks with more than 2^16 statements", pb);
   }
 
@@ -692,7 +692,7 @@ void TypeCheck::visit(const ParBlock* pb) {
 
 void TypeCheck::visit(const SeqBlock* sb) {
   // CHECK: Upper bound on number of statements imposed by sw_logic
-  if (sb->size_stmts() > 0xffff ) {
+  if (sb->size_stmts() > 0xffff) {
     error("Cascade does not currently support sequential blocks with more than 2^16 statements", sb);
   }
 
