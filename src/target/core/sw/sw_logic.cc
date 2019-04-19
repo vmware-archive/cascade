@@ -404,55 +404,6 @@ void SwLogic::visit(const ConditionalStatement* cs) {
   }
 }
 
-void SwLogic::visit(const ForStatement* fs) {
-  auto& state = get_state(fs);
-  switch (state) {
-    case 0:
-      ++state;
-      schedule_now(fs->get_init());
-      // Fallthrough
-    case 1:
-      if (!eval_.get_value(fs->get_cond()).to_bool()) {
-        state = 0;
-        notify(fs);
-        return;
-      }
-      state = 2;
-      schedule_now(fs->get_stmt());
-      break;
-    default:
-      state = 1;
-      schedule_now(fs->get_update());
-      schedule_now(fs);
-      break;
-  }
-}
-
-void SwLogic::visit(const RepeatStatement* rs) {
-  auto& state = get_state(rs);
-  switch (state) {
-    case 0:
-      state = eval_.get_value(rs->get_cond()).to_int() + 1;
-      // Fallthrough ...
-    default: 
-      if (--state == 0) {
-        notify(rs);
-      } else {
-        schedule_now(rs->get_stmt());
-      }
-      break;
-  }
-}
-
-void SwLogic::visit(const WhileStatement* ws) {
-  if (!eval_.get_value(ws->get_cond()).to_bool()) {
-    notify(ws);
-    return;
-  }
-  schedule_now(ws->get_stmt());
-}
-
-
 void SwLogic::visit(const TimingControlStatement* tcs) {
   auto& state = get_state(tcs);
   switch (state) {
