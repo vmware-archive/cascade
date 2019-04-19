@@ -156,6 +156,9 @@ TEST(simple, generate_2) {
 TEST(simple, generate_3) {
   run_code("minimal","data/test/regression/simple/generate_3.v", "1357");
 }
+TEST(simple, generate_4) {
+  run_code("minimal","data/test/regression/simple/generate_4.v", "10");
+}
 TEST(simple, hello_1) {
   run_code("minimal","data/test/regression/simple/hello_1.v", "Hello World");
 }
