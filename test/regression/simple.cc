@@ -147,6 +147,9 @@ TEST(simple, generate_2) {
 TEST(simple, generate_3) {
   run_code("minimal","data/test/regression/simple/generate_3.v", "1357");
 }
+TEST(simple, generate_4) {
+  run_code("minimal","data/test/regression/simple/generate_4.v", "10");
+}
 TEST(simple, hello_1) {
   run_code("minimal","data/test/regression/simple/hello_1.v", "Hello World");
 }
@@ -287,6 +290,9 @@ TEST(simple, repeat_2) {
 }
 TEST(simple, repeat_3) {
   run_code("minimal","data/test/regression/simple/repeat_3.v", "999999999");
+}
+TEST(simple, seq_1) {
+  run_code("minimal","data/test/regression/simple/seq_1.v", "12");
 }
 TEST(simple, sign_1) {
   run_code("minimal","data/test/regression/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");

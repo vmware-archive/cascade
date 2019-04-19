@@ -95,7 +95,7 @@ class SwLogic : public Logic, public Visitor {
     void silent_evaluate();
 
     // Control State:
-    uint8_t& get_state(const Statement* s);
+    uint16_t& get_state(const Statement* s);
 
     // Visitor Interface:
     void visit(const Event* e) override;

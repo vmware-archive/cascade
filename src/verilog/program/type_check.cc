@@ -328,6 +328,13 @@ void TypeCheck::multiple_def(const Node* n) {
   error("A variable with this name already appears in this scope", n);
 }
 
+void TypeCheck::visit(const Event* e) {
+  Visitor::visit(e);
+  if (!e->get_expr()->is(Node::Tag::identifier)) {
+    error("Cascade does not currently support expressions inside event controls", e);
+  }
+}
+
 void TypeCheck::visit(const EofExpression* ee) {
   // RECURSE: arg
   ee->accept_arg(this);
@@ -699,6 +706,11 @@ void TypeCheck::visit(const ModuleInstantiation* mi) {
 }
 
 void TypeCheck::visit(const ParBlock* pb) {
+  // CHECK: Upper bound on number of statements imposed by sw_logic
+  if (pb->size_stmts() > 0xffff) {
+    error("Cascade does not currently support parallel blocks with more than 2^16 statements", pb);
+  }
+
   // CHECK: TODO(eschkufz) Duplicate definition
   // RECURSE: decls and body
   pb->accept_decls(this);
@@ -706,6 +718,11 @@ void TypeCheck::visit(const ParBlock* pb) {
 }
 
 void TypeCheck::visit(const SeqBlock* sb) {
+  // CHECK: Upper bound on number of statements imposed by sw_logic
+  if (sb->size_stmts() > 0xffff) {
+    error("Cascade does not currently support sequential blocks with more than 2^16 statements", sb);
+  }
+
   // CHECK: TODO(eschkufz) Duplicate definition
   // RECURSE: decls and body
   sb->accept_decls(this);

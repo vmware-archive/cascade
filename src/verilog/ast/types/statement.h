@@ -50,7 +50,7 @@ class Statement : public Node {
 
   private:
     friend class SwLogic;
-    DECORATION(uint8_t, ctrl);
+    DECORATION(uint16_t, ctrl);
 };
 
 inline Statement::Statement(Node::Tag tag) : Node(tag) { 

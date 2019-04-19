@@ -765,11 +765,10 @@ void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
 void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
   // Don't descend on id, we handle it below
 
-  // Genvars are materialized as localparams and follow the same rules.  For
-  // lack of information in this declaration though, we have to assume 32 bit
-  // unsigned. 
+  // Genvars are treated as integers during compilation and follow the
+  // same rules.
   gd->get_id()->bit_val_.push_back(Bits(32, 0));
-  gd->get_id()->bit_val_[0].set_signed(false);
+  gd->get_id()->bit_val_[0].set_signed(true);
 }
 
 void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
