@@ -127,14 +127,6 @@ class Compiler {
         void visit(const FinishStatement* fs) override;
         void visit(const WriteStatement* ws) override;
     };    
-    // Helper Class: Annotates initial statements with ignore comments
-    class Masker : public Editor {
-      public:
-        ~Masker() override = default;
-        void mask(ModuleDeclaration* md);
-      private:
-        void edit(InitialConstruct* ic) override;
-    };
 };
 
 } // namespace cascade

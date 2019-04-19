@@ -93,6 +93,7 @@ OBJ=\
 	src/verilog/transform/constant_prop.o\
 	src/verilog/transform/de_alias.o\
 	src/verilog/transform/dead_code_eliminate.o\
+	src/verilog/transform/delete_initial.o\
 	src/verilog/transform/loop_unroll.o
 
 ### Header files

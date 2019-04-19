@@ -594,8 +594,8 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
 void ModuleInfo::visit(const IntegerDeclaration* id) {
   md_->locals_.insert(id->get_id());   
   record_external_use(id->get_id());
+  md_->stateful_.insert(id->get_id());
   if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
-    md_->stateful_.insert(id->get_id());
     md_->streams_.insert(id->get_id());
   }
 }
@@ -620,8 +620,8 @@ void ModuleInfo::visit(const ParameterDeclaration* pd) {
 void ModuleInfo::visit(const RegDeclaration* rd) {
   md_->locals_.insert(rd->get_id());   
   record_external_use(rd->get_id());
+  md_->stateful_.insert(rd->get_id());
   if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
-    md_->stateful_.insert(rd->get_id());
     md_->streams_.insert(rd->get_id());
   }
 }
@@ -688,21 +688,6 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
   } else {
     ordered_parent_conn(mi, pd, md_->ordered_ports_.size()-1);
   }
-}
-
-void ModuleInfo::visit(const NonblockingAssign* na) {
-  na->accept_assign(this);
-
-  auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
-  assert(r != nullptr);
-
-  if (md_->locals_.find(r) == md_->locals_.end()) {
-    return;
-  }
-  if (md_->stateful_.find(r) != md_->stateful_.end()) {
-    return;
-  }
-  md_->stateful_.insert(r);
 }
 
 void ModuleInfo::visit(const GetStatement* gs) {

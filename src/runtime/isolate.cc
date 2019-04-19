@@ -100,14 +100,9 @@ ModuleDeclaration* Isolate::build(const ModuleDeclaration* md) {
 }
 
 ModuleItem* Isolate::build(const InitialConstruct* ic) {
-  auto* attrs = ic->get_attrs()->accept(this);
-  if (ignore_ >= 0) {
-    attrs->set_or_replace("__ignore", new String("true"));
-  }
-  return new InitialConstruct (
-    attrs,
-    static_cast<Statement*>(ic->accept_stmt(this))
-  );
+  return (ignore_ >= 0) ?
+    nullptr :
+    new InitialConstruct(ic->accept_attrs(this), ic->accept_stmt(this));
 }
 
 ModuleItem* Isolate::build(const GenvarDeclaration* gd) {

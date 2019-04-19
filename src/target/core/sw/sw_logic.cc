@@ -337,7 +337,6 @@ void SwLogic::visit(const NonblockingAssign* na) {
 
 void SwLogic::visit(const ParBlock* pb) {
   auto& state = get_state(pb);
-  assert(state < 255);
   switch (state) {
     case 0:
       state = pb->size_stmts();
@@ -355,7 +354,6 @@ void SwLogic::visit(const ParBlock* pb) {
 
 void SwLogic::visit(const SeqBlock* sb) { 
   auto& state = get_state(sb);
-  assert(state < 255);
   if (state < sb->size_stmts()) {
     auto* item = sb->get_stmts(state++);
     schedule_now(item);

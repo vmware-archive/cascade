@@ -43,6 +43,7 @@
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
+#include "src/verilog/transform/delete_initial.h"
 
 using namespace std;
 
@@ -265,7 +266,7 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
-      Masker().mask(md2);
+      DeleteInitial().run(md2);
       auto* e_slow = compile(md2);
       // If compilation came back before the runtime was shutdown, we can swap
       // it in place of the fast-pass compilation. Otherwise we need to delete
@@ -333,14 +334,6 @@ void Compiler::StubCheck::visit(const FinishStatement* fs) {
 void Compiler::StubCheck::visit(const WriteStatement* ws) {
   (void) ws;
   stub_ = false;
-}
-
-void Compiler::Masker::mask(ModuleDeclaration* md) {
-  md->accept_items(this);
-}
-
-void Compiler::Masker::edit(InitialConstruct* ic) {
-  ic->get_attrs()->set_or_replace("__ignore", new String("true"));
 }
 
 } // namespace cascade
