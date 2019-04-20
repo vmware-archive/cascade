@@ -46,6 +46,7 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
+#include "src/verilog/transform/block_flatten.h"
 #include "src/verilog/transform/constant_prop.h"
 #include "src/verilog/transform/control_merge.h"
 #include "src/verilog/transform/de_alias.h"
@@ -322,6 +323,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     EventExpand().run(md);
     ControlMerge().run(md);
     DeadCodeEliminate().run(md);
+    BlockFlatten().run(md);
   }
   return md;
 }

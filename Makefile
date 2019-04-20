@@ -90,6 +90,7 @@ OBJ=\
 	src/verilog/program/program.o\
 	src/verilog/program/type_check.o\
 	\
+	src/verilog/transform/block_flatten.o\
 	src/verilog/transform/constant_prop.o\
 	src/verilog/transform/control_merge.o\
 	src/verilog/transform/de_alias.o\

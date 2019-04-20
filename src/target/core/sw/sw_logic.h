@@ -104,7 +104,6 @@ class SwLogic : public Logic, public Visitor {
     void visit(const ContinuousAssign* ca) override;
     void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
-    void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;

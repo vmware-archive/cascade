@@ -335,23 +335,6 @@ void SwLogic::visit(const NonblockingAssign* na) {
   notify(na);
 }
 
-void SwLogic::visit(const ParBlock* pb) {
-  auto& state = get_state(pb);
-  switch (state) {
-    case 0:
-      state = pb->size_stmts();
-      for (auto i = pb->begin_stmts(), ie = pb->end_stmts(); i != ie; ++i) {
-        schedule_now(*i);
-      }
-      break;
-    default:
-      if (--state == 0) {
-        notify(pb);
-      }
-      break;
-  }
-}
-
 void SwLogic::visit(const SeqBlock* sb) { 
   auto& state = get_state(sb);
   if (state < sb->size_stmts()) {

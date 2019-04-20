@@ -49,6 +49,7 @@ namespace cascade {
 // 3. Generate constructs are flattened into their enclosing scope.
 // 4. Attribute annotations which appear inside the module are removed.
 // 5. The 'ignore' oldest initial blocks are deleted.
+// 6. fork/join blocks are replaced by begin/end blocks.
 
 class Isolate : public Builder {
   public:
@@ -82,6 +83,7 @@ class Isolate : public Builder {
     ModuleItem* build(const LocalparamDeclaration* ld) override;
     ModuleItem* build(const ParameterDeclaration* pd) override;
     ModuleItem* build(const PortDeclaration* pd) override;
+    Statement* build(const ParBlock* pb) override;
 
     // Returns a mangled identifier
     Identifier* to_mangled_id(const ModuleInstantiation* mi);
