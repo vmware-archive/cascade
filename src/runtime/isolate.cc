@@ -166,11 +166,13 @@ Statement* Isolate::build(const ParBlock* pb) {
   // Until the day when we add support for delay statements, sequential
   // execution is guaranteed to be a valid scheduling of a par block.
   auto* res =  new SeqBlock();
-  if (pb->is_non_null_id()) {
-    res->replace_id(pb->accept_id(this));
-  }
-  pb->accept_decls(this, res->back_inserter_decls());
   pb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
+}
+
+Statement* Isolate::build(const SeqBlock* sb) {
+  auto* res = new SeqBlock();
+  sb->accept_stmts(this, res->back_inserter_stmts());
   return res;
 }
 

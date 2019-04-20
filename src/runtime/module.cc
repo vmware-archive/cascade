@@ -324,6 +324,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     ControlMerge().run(md);
     DeadCodeEliminate().run(md);
     BlockFlatten().run(md);
+    //TermPrinter(cout) << md << "\n";
   }
   return md;
 }
