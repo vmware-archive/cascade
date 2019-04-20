@@ -47,6 +47,7 @@ OBJ=\
 	src/target/compiler.o\
 	src/target/core/de10/de10_compiler.o\
 	src/target/core/de10/de10_logic.o\
+	src/target/core/de10/machinify.o\
 	src/target/core/de10/module_boxer.o\
 	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\

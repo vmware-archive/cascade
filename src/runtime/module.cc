@@ -55,6 +55,8 @@
 #include "src/verilog/transform/loop_unroll.h"
 
 #include "src/verilog/print/term/term_printer.h"
+#include "src/target/core/de10/machinify.h"
+
 
 using namespace std;
 
@@ -324,7 +326,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     ControlMerge().run(md);
     DeadCodeEliminate().run(md);
     BlockFlatten().run(md);
-    //TermPrinter(cout) << md << "\n";
+    //TermPrinter(cout) << Machinify().run(md) << "\n";
   }
   return md;
 }
