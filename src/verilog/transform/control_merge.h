@@ -28,29 +28,20 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/transform/delete_initial.h"
+#ifndef CASCADE_SRC_VERILOG_TRANSFORM_CONTROL_MERGE_H
+#define CASCADE_SRC_VERILOG_TRANSFORM_CONTROL_MERGE_H
 
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/navigate.h"
-#include "src/verilog/analyze/resolve.h"
+#include "src/verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
-DeleteInitial::DeleteInitial() : Editor() { }
-
-void DeleteInitial::run(ModuleDeclaration* md) {
-  for (auto i = md->begin_items(); i != md->end_items();) {
-    if ((*i)->is(Node::Tag::initial_construct)) {
-      i = md->purge_items(i);
-      continue;
-    } 
-    ++i;
-  }
-
-  Resolve().invalidate(md);
-  Navigate(md).invalidate();
-  ModuleInfo(md).invalidate();
-}
+class ControlMerge {
+  public:
+    void run(ModuleDeclaration* md);
+};
 
 } // namespace cascade
+
+#endif
+
+

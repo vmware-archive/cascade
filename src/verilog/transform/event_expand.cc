@@ -28,29 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/transform/delete_initial.h"
+#include "src/verilog/transform/event_expand.h"
 
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/navigate.h"
+#include <map>
+#include <sstream>
+#include <string>
+#include "src/verilog/analyze/read_set.h"
 #include "src/verilog/analyze/resolve.h"
+#include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
+
+using namespace std;
 
 namespace cascade {
 
-DeleteInitial::DeleteInitial() : Editor() { }
+EventExpand::EventExpand() : Editor() { }
 
-void DeleteInitial::run(ModuleDeclaration* md) {
-  for (auto i = md->begin_items(); i != md->end_items();) {
-    if ((*i)->is(Node::Tag::initial_construct)) {
-      i = md->purge_items(i);
-      continue;
-    } 
-    ++i;
+void EventExpand::run(ModuleDeclaration* md) {
+  md->accept(this);
+}
+
+void EventExpand::edit(TimingControlStatement* tcs) {
+  // Proceed as normal for everything other than an empty event control
+  if (!tcs->get_ctrl()->is(Node::Tag::event_control)) {
+    return Editor::edit(tcs);
+  }
+  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
+  if (!ec->empty_events()) {
+    return Editor::edit(tcs);
   }
 
-  Resolve().invalidate(md);
-  Navigate(md).invalidate();
-  ModuleInfo(md).invalidate();
+  // Look up the read dependencies for this statement. Sort lexicographically
+  // to ensure deterministic compiles.
+  map<string, const Identifier*> reads;
+  for (auto* i : ReadSet(tcs->get_stmt())) {
+    const auto* r = Resolve().get_resolution(i);
+    assert(r != nullptr);
+
+    stringstream ss;
+    TextPrinter(ss) << r;
+    reads.insert(make_pair(ss.str(), r));
+  }
+
+  // Create a new timing control with an explicit list
+  auto* ctrl = new EventControl();
+  for (auto& r : reads) {
+    ctrl->push_back_events(new Event(Event::Type::EDGE, r.second->clone()));
+  }
+  tcs->replace_ctrl(ctrl);
 }
 
 } // namespace cascade

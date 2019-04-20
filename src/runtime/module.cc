@@ -47,9 +47,13 @@
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
 #include "src/verilog/transform/constant_prop.h"
+#include "src/verilog/transform/control_merge.h"
 #include "src/verilog/transform/de_alias.h"
 #include "src/verilog/transform/dead_code_eliminate.h"
+#include "src/verilog/transform/event_expand.h"
 #include "src/verilog/transform/loop_unroll.h"
+
+#include "src/verilog/print/term/term_printer.h"
 
 using namespace std;
 
@@ -315,6 +319,8 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     LoopUnroll().run(md);
     DeAlias().run(md);
     ConstantProp().run(md);
+    EventExpand().run(md);
+    ControlMerge().run(md);
     DeadCodeEliminate().run(md);
   }
   return md;

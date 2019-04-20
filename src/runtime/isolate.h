@@ -41,8 +41,8 @@
 namespace cascade {
 
 // This class is responsible for transforming an instantiated module into a
-// stand-alone piece of code. Additionally, this class enforces useful
-// invariants on the form of that code for down-stream passes:
+// stand-alone piece of code. This class also enforces useful invariants on the
+// form of that code for down-stream passes.
 //
 // 1. Integer declarations are desugared to 32-bit register declarations.
 // 2. Generate regions are flattened into their enclosing scope.

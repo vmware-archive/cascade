@@ -28,29 +28,27 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/transform/delete_initial.h"
+#ifndef CASCADE_SRC_VERILOG_TRANSFORM_EVENT_EXPAND_H
+#define CASCADE_SRC_VERILOG_TRANSFORM_EVENT_EXPAND_H
 
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/navigate.h"
-#include "src/verilog/analyze/resolve.h"
+#include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
 
-DeleteInitial::DeleteInitial() : Editor() { }
+class EventExpand : public Editor {
+  public:
+    EventExpand();
+    ~EventExpand() override = default;
 
-void DeleteInitial::run(ModuleDeclaration* md) {
-  for (auto i = md->begin_items(); i != md->end_items();) {
-    if ((*i)->is(Node::Tag::initial_construct)) {
-      i = md->purge_items(i);
-      continue;
-    } 
-    ++i;
-  }
+    void run(ModuleDeclaration* md);
 
-  Resolve().invalidate(md);
-  Navigate(md).invalidate();
-  ModuleInfo(md).invalidate();
-}
+  private:
+    void edit(TimingControlStatement* tcs) override;
+};
 
 } // namespace cascade
+
+#endif
+
+
+

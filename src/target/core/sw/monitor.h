@@ -52,7 +52,6 @@ class Monitor : public Editor {
 
     void edit(Event* e) override;
     void edit(ContinuousAssign* ca) override;
-    void edit(EventControl* ec) override;
 };
 
 inline Monitor::Monitor() : Editor() { }
@@ -84,20 +83,6 @@ inline void Monitor::edit(Event* e) {
 inline void Monitor::edit(ContinuousAssign* ca) {
   Editor::edit(ca);
   wait_on_reads(ca, ca->get_assign()->get_rhs());
-}
-
-inline void Monitor::edit(EventControl* ec) {
-  if (ec->empty_events()) {
-    assert(ec->get_parent()->is(Node::Tag::timing_control_statement));
-    auto* tcs = static_cast<TimingControlStatement*>(ec->get_parent());
-    for (auto* i : ReadSet(tcs->get_stmt())) {
-      auto* r = Resolve().get_resolution(i);
-      assert(r != nullptr);
-      wait_on_node(ec, const_cast<Identifier*>(r));
-    }
-  } else {
-    Editor::edit(ec);
-  }
 }
 
 } // namespace cascade
