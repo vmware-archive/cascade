@@ -103,7 +103,7 @@ Statement* RewriteText::build(const NonblockingAssign* na) {
   ));
 
   // Return a conditional statement in place of the original assignment
-  return new ConditionalStatement(new Identifier("__live"), t, f);
+  return new SeqBlock(new ConditionalStatement(new Identifier("__live"), t, f));
 }
 
 Expression* RewriteText::get_table_range(const Identifier* r, const Identifier* i) {

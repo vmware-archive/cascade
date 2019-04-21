@@ -245,7 +245,7 @@ void TaskMangle::finish(const SystemTaskEnableStatement* s) {
   within_task_ = false;
   stringstream ss;
   TextPrinter(ss) << s;
-  tasks_[ss.str()] = new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+  tasks_[ss.str()] = new SeqBlock(new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock()));
 }
 
 } // namespace cascade

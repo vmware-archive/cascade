@@ -44,6 +44,7 @@ class ParBlock : public BlockStatement {
   public:
     // Constructors:
     ParBlock();
+    explicit ParBlock(Statement* stmt__);
     template <typename DeclsItr, typename StmtsItr>
     ParBlock(Identifier* id__, DeclsItr decls_begin__, DeclsItr decls_end__, StmtsItr stmts_begin__, StmtsItr stmts_end__);
     ~ParBlock() override;
@@ -70,6 +71,10 @@ inline ParBlock::ParBlock() : BlockStatement(Node::Tag::par_block) {
   MANY_DEFAULT_SETUP(stmts);
   parent_ = nullptr;
   scope_idx_.next_supdate_ = 0;
+}
+
+inline ParBlock::ParBlock(Statement* stmt__) : ParBlock() {
+  push_back_stmts(stmt__);
 }
 
 template <typename DeclsItr, typename StmtsItr>

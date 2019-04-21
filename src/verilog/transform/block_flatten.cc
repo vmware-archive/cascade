@@ -125,19 +125,11 @@ void BlockFlatten::edit(CaseStatement* cs) {
 }
 
 void BlockFlatten::edit(ConditionalStatement* cs) {
+  // DO NOT try to flatten the branches of a conditional. This could lead to an
+  // unexpected rebinding of if/then/else precedence when this code is printed
+  // and rescanned.
   cs->accept_then(this);
-  if (can_flatten(cs->get_then())) {
-    auto* s = static_cast<SeqBlock*>(cs->get_then())->remove_front_stmts();
-    Resolve().invalidate(cs->get_then());
-    cs->replace_then(s);
-  }
-
   cs->accept_else(this);
-  if (can_flatten(cs->get_else())) {
-    auto* s = static_cast<SeqBlock*>(cs->get_else())->remove_front_stmts();
-    Resolve().invalidate(cs->get_else());
-    cs->replace_else(s);
-  }
 }
 
 bool BlockFlatten::can_flatten(const Statement* s) const {
