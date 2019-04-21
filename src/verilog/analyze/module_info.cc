@@ -594,10 +594,17 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
 void ModuleInfo::visit(const IntegerDeclaration* id) {
   md_->locals_.insert(id->get_id());   
   record_external_use(id->get_id());
-  md_->stateful_.insert(id->get_id());
   if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(id->get_id());
     md_->streams_.insert(id->get_id());
   }
+  for (auto i = Resolve().use_begin(id->get_id()), ie = Resolve().use_end(id->get_id()); i != ie; ++i) {
+    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
+        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
+      return;
+    }
+  }
+  md_->stateful_.insert(id->get_id());
 }
 
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
@@ -620,10 +627,17 @@ void ModuleInfo::visit(const ParameterDeclaration* pd) {
 void ModuleInfo::visit(const RegDeclaration* rd) {
   md_->locals_.insert(rd->get_id());   
   record_external_use(rd->get_id());
-  md_->stateful_.insert(rd->get_id());
   if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(rd->get_id());
     md_->streams_.insert(rd->get_id());
   }
+  for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
+    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
+        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
+      return;
+    }
+  }
+  md_->stateful_.insert(rd->get_id());
 }
 
 void ModuleInfo::visit(const ModuleInstantiation* mi) {
@@ -688,6 +702,21 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
   } else {
     ordered_parent_conn(mi, pd, md_->ordered_ports_.size()-1);
   }
+}
+
+void ModuleInfo::visit(const NonblockingAssign* na) {
+  na->accept_assign(this);
+
+  auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  assert(r != nullptr);
+
+  if (md_->locals_.find(r) == md_->locals_.end()) {
+    return;
+  }
+  if (md_->stateful_.find(r) != md_->stateful_.end()) {
+    return;
+  }
+  md_->stateful_.insert(r);
 }
 
 void ModuleInfo::visit(const GetStatement* gs) {

@@ -78,8 +78,10 @@ class ModuleInfo : public Visitor {
     // Returns true if this a local variable which was declared as an output
     // port.
     bool is_output(const Identifier* id);
-    // Returns true if this a local variable which is declared with type reg.
-    // Note that this over-approximates the set of truly stateful elements.
+    // Returns true if this a local variable which is declared with type reg
+    // and either never assigned to or assigned through a get() or fopen()
+    // statement.
+    // TODO(eschkufz) this semantics isn't quite correct. 
     bool is_stateful(const Identifier* id);
     // Returns true if this is a local variable which is initialized by the
     // $fopen() system task.
@@ -178,6 +180,7 @@ class ModuleInfo : public Visitor {
     void visit(const RegDeclaration* rd) override;
     void visit(const ModuleInstantiation* mi) override;
     void visit(const PortDeclaration* pd) override;
+    void visit(const NonblockingAssign* na) override;
     void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;
 
