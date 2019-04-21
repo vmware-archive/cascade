@@ -31,34 +31,25 @@
 #include "src/target/core/de10/de10_rewrite.h"
 
 #include <algorithm>
-#include <map>
 #include <sstream>
-#include <string>
 #include "src/target/core/de10/de10_logic.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
+#include "src/verilog/print/text/text_printer.h"
 
 using namespace std;
 
 namespace cascade {
 
-De10Rewrite::De10Rewrite() : Builder() { }
-
 ModuleDeclaration* De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id)  {
-  de_ = de;
-  id_ = id;
-  return md->accept(this);
-}
-
-ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   // Variables we'll use in a few places
-  const auto table_dim = max(static_cast<size_t>(32), de_->table_size());
+  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
 
   // Emit a new declaration. The module name is formed using the slot id
   // assigned by the quartus server.
   stringstream ss;
-  ss << "M" << static_cast<int>(id_);
+  ss << "M" << static_cast<int>(id);
   auto* res = new ModuleDeclaration(
     new Attributes(),
     new Identifier(ss.str())
@@ -93,7 +84,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   // Emit the variable table. This is the hardware image of the table owned by
   // the de logic core.
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(de_->open_loop_idx()+1, 0)), false, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(de->open_loop_idx()+1, 0)), false, new RangeExpression(32, 0), nullptr
   ));
 
   // Emit shadow declarations for stateful elements. These are where update
@@ -147,9 +138,9 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   // original program which have been relocated into the variable table. These
   // declarations are sorted lexicograhically to ensure deterministic code.
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
-  for (auto v = de_->map_begin(), ve = de_->map_end(); v != ve; ++v) {
-    const auto titr = de_->table_find(v->first);
-    assert(titr != de_->table_end());
+  for (auto v = de->map_begin(), ve = de->map_end(); v != ve; ++v) {
+    const auto titr = de->table_find(v->first);
+    assert(titr != de->table_end());
     if (!titr->second.materialized()) {
       continue;
     }
@@ -191,9 +182,15 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
     }
   }
 
-  // Emit original program logic...
-  // TODO(eschkufz) we still need to do some work here
-  md->accept_items(this, res->back_inserter_items());
+  // Emit original program logic
+  TaskMangle tm(de);
+  md->accept_items(&tm);
+  RewriteText rt(md, de);
+  md->accept_items(&rt, res->back_inserter_items());
+  Machinify mfy;
+  res->accept(&mfy);
+  FinishMangle fm(&tm);
+  res->accept(&fm);
 
   // Emit logic for update requests. An update is pending whenever a shadow
   // variable's value differs from its counterpart. Updates are triggered
@@ -220,7 +217,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
     new Identifier("__apply_updates"), 
     new BinaryExpression(
       new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->update_idx())))),
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->update_idx())))),
       BinaryExpression::Op::PPIPE,
       new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
@@ -258,7 +255,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
         new BinaryExpression(
           new Identifier("__read"),
           BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->sys_task_idx())))
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->sys_task_idx())))
         ),
         new Identifier("__next_task_mask"), 
         new Identifier("__task_mask"))
@@ -286,7 +283,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
         new BinaryExpression(
           new Identifier("__read"),
           BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->io_task_idx())))
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->io_task_idx())))
         ),
         new Identifier("__next_io_mask"), 
         new Identifier("__io_mask"))
@@ -319,7 +316,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->live_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->live_idx())))
       ),
       new Number(Bits(true)),
       new Identifier("__live")
@@ -331,7 +328,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->open_loop_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
       ),
       new Identifier("__in"),
       new ConditionalExpression(
@@ -347,7 +344,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de_->open_loop_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
       ),
       new Number(Bits(false)),
       new ConditionalExpression(
@@ -371,7 +368,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   // to latch their shadow values. This logic is sorted lexicographically to
   // guarantee deterministic code.
   map<size_t, NonblockingAssign*> logic;
-  for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
+  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
     if (!t->second.materialized() || (Resolve().get_resolution(t->first) != t->first)) {
       continue;
     }
@@ -413,7 +410,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
           rhs
         );
   
-        if (de_->open_loop_enabled() && (t->first == de_->open_loop_clock())) {
+        if (de->open_loop_enabled() && (t->first == de->open_loop_clock())) {
           auto* concat = new Concatenation();
           concat->push_back_exprs(new Number(Bits(31, 0), Number::Format::BIN));
           concat->push_back_exprs(new UnaryExpression(UnaryExpression::Op::TILDE, t->first->clone()));
@@ -442,7 +439,7 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   // Emit output logic. These assignments are sorted lexicographically to
   // ensure deterministic code.
   map<size_t, CaseItem*> outputs;
-  for (auto t = de_->table_begin(), te = de_->table_end(); t != te; ++t) {
+  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
     if (t->second.materialized()) {
       continue;
     }
@@ -464,19 +461,19 @@ ModuleDeclaration* De10Rewrite::build(const ModuleDeclaration* md) {
   }
   auto* cs = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__vid"));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de_->there_are_updates_idx())),
+    new Number(Bits(32, de->there_are_updates_idx())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__there_are_updates")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de_->sys_task_idx())),
+    new Number(Bits(32, de->sys_task_idx())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__task_queue")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de_->io_task_idx())),
+    new Number(Bits(32, de->io_task_idx())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__io_queue")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de_->open_loop_idx())),
+    new Number(Bits(32, de->open_loop_idx())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__open_loop_itrs")))
   ));
   for (auto& o : outputs) {
@@ -510,6 +507,561 @@ void De10Rewrite::append_slice(Identifier* id, size_t w, size_t i) const {
   } else {
     id->push_back_dim(new Number(Bits(32, lower)));
   }
+}
+
+De10Rewrite::TaskMangle::TaskMangle(const De10Logic* de) : Visitor() {
+  de_ = de;
+  within_task_ = false;
+  io_idx_ = 0;
+  task_idx_ = 0;
+}
+
+Node* De10Rewrite::TaskMangle::get(const Node* n) {
+  stringstream ss;
+  TextPrinter(ss) << n;
+
+  const auto itr = tasks_.find(ss.str());
+  assert(itr != tasks_.end());
+  return itr->second;
+}
+
+void De10Rewrite::TaskMangle::visit(const EofExpression* ee) {
+  // This is a bit confusing: the de10 compiler has created an entry in the
+  // variable table for the argument to this expression (like we do with
+  // arguments to display statements). Prior to transfering control to the fpga
+  // we'll place the result of this eof check into this location in hardware.
+  const auto itr = de_->table_find(ee->get_arg());
+  assert(itr != de_->table_end());
+
+  stringstream ss;
+  TextPrinter(ss) << ee;
+  tasks_[ss.str()] = new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
+}
+
+void De10Rewrite::TaskMangle::visit(const Identifier* id) {
+  if (!within_task_) {
+    return;
+  }
+
+  const auto titr = de_->table_find(id);
+  assert(titr != de_->table_end());
+
+  // This is a bit nasty. The amount of space we set aside for this argument in
+  // the variable table may exceed its actual bit-width. This is because the
+  // width of the argument may have been implicitly extended if it's part of an
+  // expression. 
+  const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  const auto w = Evaluate().get_width(r);
+
+  for (size_t i = 0; i < titr->second.entry_size(); ++i) {
+    const auto upper = min(32*(i+1),w)-1;
+    const auto lower = 32*i;
+
+    // Create a sign extension mask: all zeros for unsigned values, 32 copies
+    // of id's highest order bit for signed values.
+    Expression* sext = nullptr;
+    if (Evaluate().get_signed(id)) {
+      sext = new MultipleConcatenation(
+        new Number("32"),
+        new Concatenation((w == 1) ?
+          new Identifier(id->front_ids()->clone()) :
+          new Identifier(id->front_ids()->clone(), new Number(Bits(32, w-1)))
+        )
+      );
+    } else {
+      sext = new Number(Bits(32, 0), Number::Format::HEX);
+    }
+
+    // Concatenate the rhs with the sign extension bits
+    auto* lsbs = new Identifier(id->front_ids()->clone());
+    id->clone_dim(lsbs->back_inserter_dim());
+    if (lsbs->size_dim() > r->size_dim()) {
+      lsbs->purge_to_dim(r->size_dim());
+    }
+    if (upper == lower) {
+      lsbs->push_back_dim(new Number(Bits(32, upper)));
+    } else if (upper > lower) {
+      lsbs->push_back_dim(new RangeExpression(upper+1, lower));
+    } 
+    auto* rhs = new Concatenation(sext);
+    rhs->push_back_exprs(lsbs);
+
+    // Attach the concatenation to an assignment, we'll always have enough bits now
+    t_->push_back_stmts(new NonblockingAssign(
+      new VariableAssign(
+        new Identifier(new Id("__var"), new Number(Bits(32, titr->second.index()+i))),
+        rhs
+      )
+    ));
+  }
+}
+
+void De10Rewrite::TaskMangle::visit(const DisplayStatement* ds) {
+  begin_mangle_task();
+  ds->accept_args(this);
+  finish(ds);
+}
+
+void De10Rewrite::TaskMangle::visit(const ErrorStatement* es) {
+  begin_mangle_task();
+  es->accept_args(this);
+  finish(es);
+}
+
+void De10Rewrite::TaskMangle::visit(const FinishStatement* fs) {
+  begin_mangle_task();
+  fs->accept_arg(this);
+  finish(fs);
+}
+
+void De10Rewrite::TaskMangle::visit(const GetStatement* gs) {
+  (void) gs;
+  begin_mangle_io();
+  finish(gs);
+}
+
+void De10Rewrite::TaskMangle::visit(const InfoStatement* is) {
+  begin_mangle_task();
+  is->accept_args(this);
+  finish(is);
+}
+
+void De10Rewrite::TaskMangle::visit(const PutStatement* ps) {
+  (void) ps;
+  begin_mangle_io();
+  finish(ps);
+}
+
+void De10Rewrite::TaskMangle::visit(const RestartStatement* rs) {
+  (void) rs;
+  begin_mangle_task();
+  finish(rs);
+}
+
+void De10Rewrite::TaskMangle::visit(const RetargetStatement* rs) {
+  (void) rs;
+  begin_mangle_task();
+  finish(rs);
+}
+
+void De10Rewrite::TaskMangle::visit(const SaveStatement* ss) {
+  (void) ss;
+  begin_mangle_task();
+  finish(ss);
+}
+
+void De10Rewrite::TaskMangle::visit(const SeekStatement* ss) {
+  (void) ss;
+  begin_mangle_io();
+  finish(ss);
+}
+
+void De10Rewrite::TaskMangle::visit(const WarningStatement* ws) {
+  begin_mangle_task();
+  ws->accept_args(this);
+  finish(ws);
+}
+
+void De10Rewrite::TaskMangle::visit(const WriteStatement* ws) {
+  begin_mangle_task();
+  ws->accept_args(this);
+  finish(ws);
+}
+
+void De10Rewrite::TaskMangle::begin_mangle_io() {
+  within_task_ = true;
+  t_ = new SeqBlock();
+  t_->push_back_stmts(new NonblockingAssign(
+    new VariableAssign(
+      new Identifier(
+        new Id("__next_io_mask"),
+        new Number(Bits(32, io_idx_))
+      ),
+      new UnaryExpression(
+        UnaryExpression::Op::TILDE,
+        new Identifier(
+          new Id("__next_io_mask"),
+          new Number(Bits(32, io_idx_))
+        )
+      )
+    )    
+  ));
+  ++io_idx_;
+}
+
+void De10Rewrite::TaskMangle::begin_mangle_task() {
+  within_task_ = true;
+  t_ = new SeqBlock();
+  t_->push_back_stmts(new NonblockingAssign(
+    new VariableAssign(
+      new Identifier(
+        new Id("__next_task_mask"),
+        new Number(Bits(32, task_idx_))
+      ),
+      new UnaryExpression(
+        UnaryExpression::Op::TILDE,
+        new Identifier(
+          new Id("__next_task_mask"),
+          new Number(Bits(32, task_idx_))
+        )
+      )
+    )    
+  ));
+  ++task_idx_;
+}
+
+void De10Rewrite::TaskMangle::finish(const SystemTaskEnableStatement* s) {
+  within_task_ = false;
+  stringstream ss;
+  TextPrinter(ss) << s;
+  tasks_[ss.str()] = new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock());
+}
+
+De10Rewrite::RewriteText::RewriteText(const ModuleDeclaration* md, const De10Logic* de) : Builder() { 
+  md_ = md;
+  de_ = de;
+}
+
+Attributes* De10Rewrite::RewriteText::build(const Attributes* as) {
+  (void) as;
+  return nullptr;
+}
+
+ModuleItem* De10Rewrite::RewriteText::build(const RegDeclaration* rd) {
+  return ModuleInfo(md_).is_stateful(rd->get_id()) ? nullptr : rd->clone();
+}
+
+ModuleItem* De10Rewrite::RewriteText::build(const PortDeclaration* pd) {
+  ModuleInfo info(md_);
+  if (info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id())) {
+    return nullptr;
+  } else {
+    return pd->get_decl()->clone();
+  }
+}
+
+Statement* De10Rewrite::RewriteText::build(const NonblockingAssign* na) {
+  // Create empty blocks for true and false branches (we'll never populate the
+  // false branch)
+  auto* t = new SeqBlock();
+  auto* f = new SeqBlock();
+
+  // Look up the target of this assignment and the indices it spans in the
+  // variable table
+  const auto* lhs = na->get_assign()->get_lhs();
+  const auto* r = Resolve().get_resolution(lhs);
+  assert(r != nullptr);
+  
+  // Replace the original assignment with an assignment to a temporary variable
+  auto* next = lhs->clone();
+  next->purge_ids();
+  next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
+  t->push_back_stmts(new NonblockingAssign(
+    na->clone_ctrl(),
+    new VariableAssign(
+      next,
+      na->get_assign()->get_rhs()->clone()
+    )
+  ));
+
+  // Insert a new assignment to the next mask
+  t->push_back_stmts(new NonblockingAssign(
+    new VariableAssign(
+      new Identifier(
+        new Id("__next_update_mask"),
+        get_table_range(r, lhs)
+      ),
+      new UnaryExpression(
+        UnaryExpression::Op::TILDE,
+        new Identifier(
+          new Id("__next_update_mask"),
+          get_table_range(r, lhs)
+        )
+      )
+    )
+  ));
+
+  // Return a conditional statement in place of the original assignment
+  return new ConditionalStatement(new Identifier("__live"), t, f);
+}
+
+Expression* De10Rewrite::RewriteText::get_table_range(const Identifier* r, const Identifier* i) {
+  // Look up r in the variable table
+  const auto titr = de_->table_find(r);
+  assert(titr != de_->table_end());
+  assert(titr->second.materialized());
+
+  // Start with an expression for where this variable begins in the variable table
+  Expression* idx = new Number(Bits(32, titr->second.index()));
+
+  // Now iterate over the arity of r and compute a symbolic expression 
+  auto mul = titr->second.elements();
+  auto iitr = i->begin_dim();
+  for (auto a : titr->second.arity()) {
+    mul /= a;
+    idx = new BinaryExpression(
+      idx,
+      BinaryExpression::Op::PLUS,
+      new BinaryExpression(
+        (*iitr++)->clone(),
+        BinaryExpression::Op::TIMES,
+        new Number(Bits(32, mul*titr->second.element_size()))
+      )
+    );
+  }
+  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
+}
+
+De10Rewrite::Machinify::Machinify() : Editor() { 
+  idx_ = 0;
+}
+
+void De10Rewrite::Machinify::edit(AlwaysConstruct* ac) {
+  assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
+  const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
+  assert(tcs->get_ctrl()->is(Node::Tag::event_control));
+  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
+
+  auto* ctrl = ec->clone();
+  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));
+  auto* machine = Generate(idx_++).run(tcs->get_stmt());
+
+  ac->replace_stmt(new TimingControlStatement(ctrl, machine));
+}
+
+De10Rewrite::Machinify::Generate::Generate(size_t idx) : Visitor() { 
+  idx_ = idx;
+}
+
+CaseStatement* De10Rewrite::Machinify::Generate::run(const Statement* s) {
+  machine_ = new CaseStatement(CaseStatement::Type::CASE, state_var());
+  next_state();
+  s->accept(this);
+  return machine_;
+}
+
+void De10Rewrite::Machinify::Generate::visit(const BlockingAssign* ba) {
+  append(ba);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const NonblockingAssign* na) {
+  append(na);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const SeqBlock* sb) {
+  sb->accept_stmts(this);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const CaseStatement* cs) {
+  const auto begin = current();
+
+  vector<pair<size_t, SeqBlock*>> begins;
+  vector<pair<size_t, SeqBlock*>> ends;
+  for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
+    next_state();
+    begins.push_back(current());
+    (*i)->accept_stmt(this);
+    ends.push_back(current());
+  }
+
+  auto* branch = new CaseStatement(cs->get_type(), cs->get_cond()->clone());
+  size_t idx = 0;
+  for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
+    branch->push_back_items(new CaseItem(
+      new NonblockingAssign(new VariableAssign(
+        new Identifier("state"),
+        new Number(Bits(32, begins[idx++].first))
+      ))
+    ));
+    for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) {
+      branch->back_items()->push_back_exprs((*j)->clone());
+    }
+  }
+  append(begin.second, branch);
+  
+  next_state();
+  for (auto& e : ends) {
+    transition(e.second, current().first);
+  }
+}
+
+void De10Rewrite::Machinify::Generate::visit(const ConditionalStatement* cs) {
+  const auto begin = current();
+
+  next_state();
+  const auto then_begin = current();
+  cs->get_then()->accept(this);
+  const auto then_end = current();
+  
+  next_state();
+  const auto else_begin = current();
+  cs->get_else()->accept(this);
+  const auto else_end = current();
+  
+  auto* branch = new ConditionalStatement(
+    cs->get_if()->clone(),
+    new NonblockingAssign(new VariableAssign(
+      new Identifier("state"),
+      new Number(Bits(32, then_begin.first))
+    )),
+    new NonblockingAssign(new VariableAssign(
+      new Identifier("state"),
+      new Number(Bits(32, else_begin.first))
+    ))
+  );
+  append(begin.second, branch);
+
+  next_state();
+  transition(then_end.second, current().first);
+  transition(else_end.second, current().first);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const DisplayStatement* ds) {
+  append(ds);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const ErrorStatement* es) {
+  append(es);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const FinishStatement* fs) {
+  append(fs);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const GetStatement* gs) {
+  append(gs);
+  transition(current().first+1);
+  next_state();
+}
+
+void De10Rewrite::Machinify::Generate::visit(const InfoStatement* is) {
+  append(is);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const PutStatement* ps) {
+  append(ps);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const RestartStatement* rs) {
+  append(rs);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const RetargetStatement* rs) {
+  append(rs);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const SaveStatement* ss) {
+  append(ss);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const SeekStatement* ss) {
+  append(ss);
+  transition(current().first+1);
+  next_state();
+}
+
+void De10Rewrite::Machinify::Generate::visit(const WarningStatement* ws) {
+  append(ws);
+}
+
+void De10Rewrite::Machinify::Generate::visit(const WriteStatement* ws) {
+  append(ws);
+}
+
+pair<size_t, SeqBlock*> De10Rewrite::Machinify::Generate::current() const {
+  const auto n = machine_->size_items()-1;
+  auto* sb = static_cast<SeqBlock*>(machine_->back_items()->get_stmt());
+  return make_pair(n, sb);
+}
+
+Identifier* De10Rewrite::Machinify::Generate::state_var() const {
+  stringstream ss;
+  ss << "__state_" << idx_;
+  return new Identifier(ss.str());
+}
+
+void De10Rewrite::Machinify::Generate::append(const Statement* s) {
+  auto* sb = static_cast<SeqBlock*>(machine_->back_items()->get_stmt());
+  append(sb, s);
+}
+
+void De10Rewrite::Machinify::Generate::append(SeqBlock* sb, const Statement* s) {
+  sb->push_back_stmts(s->clone());
+}
+
+void De10Rewrite::Machinify::Generate::transition(size_t n) {
+  auto* sb = static_cast<SeqBlock*>(machine_->back_items()->get_stmt());
+  transition(sb, n);
+}
+
+void De10Rewrite::Machinify::Generate::transition(SeqBlock* sb, size_t n) {
+  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+    state_var(),
+    new Number(Bits(32, n))
+  )));
+}
+
+void De10Rewrite::Machinify::Generate::next_state() {
+  auto* ci = new CaseItem(new SeqBlock());
+  ci->push_back_exprs(new Number(Bits(32, machine_->size_items())));
+  machine_->push_back_items(ci);
+}
+
+De10Rewrite::FinishMangle::FinishMangle(TaskMangle* tm) : Rewriter() {
+  tm_ = tm;
+}
+
+Expression* De10Rewrite::FinishMangle::rewrite(EofExpression* ee) {
+  return static_cast<Expression*>(tm_->get(ee));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(DisplayStatement* ds) {
+  return static_cast<Statement*>(tm_->get(ds));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(ErrorStatement* es) {
+  return static_cast<Statement*>(tm_->get(es));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(FinishStatement* fs) {
+  return static_cast<Statement*>(tm_->get(fs));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(GetStatement* gs) {
+  return static_cast<Statement*>(tm_->get(gs));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(InfoStatement* is) {
+  return static_cast<Statement*>(tm_->get(is));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(PutStatement* ps) {
+  return static_cast<Statement*>(tm_->get(ps));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(RestartStatement* rs) {
+  return static_cast<Statement*>(tm_->get(rs));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(RetargetStatement* rs) {
+  return static_cast<Statement*>(tm_->get(rs));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(SaveStatement* ss) {
+  return static_cast<Statement*>(tm_->get(ss));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(SeekStatement* ss) {
+  return static_cast<Statement*>(tm_->get(ss));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(WarningStatement* ws) {
+  return static_cast<Statement*>(tm_->get(ws));
+}
+
+Statement* De10Rewrite::FinishMangle::rewrite(WriteStatement* ws) {
+  return static_cast<Statement*>(tm_->get(ws));
 }
 
 } // namespace cascade
