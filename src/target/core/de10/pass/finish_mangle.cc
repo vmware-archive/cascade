@@ -28,45 +28,68 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
+#include "src/target/core/de10/pass/finish_mangle.h"
 
-#include <map>
-#include <string>
-#include <vector>
-#include "src/target/core/de10/quartus_server.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "src/target/core/de10/pass/task_mangle.h"
+#include "src/verilog/ast/ast.h"
 
 namespace cascade {
 
-class De10Logic;
+FinishMangle::FinishMangle(TaskMangle* tm) : Rewriter() {
+  tm_ = tm;
+}
 
-class De10Rewrite {
-  public:
-    std::string run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id);
+Expression* FinishMangle::rewrite(EofExpression* ee) {
+  return static_cast<Expression*>(tm_->get(ee));
+}
 
-  private:
-    void emit_port_vars(ModuleDeclaration* res);
-    void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
-    void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_mask_vars(ModuleDeclaration* res);
-    void emit_control_vars(ModuleDeclaration* res);
-    void emit_view_vars(ModuleDeclaration* res, const De10Logic* de);
+Statement* FinishMangle::rewrite(DisplayStatement* ds) {
+  return static_cast<Statement*>(tm_->get(ds));
+}
 
-    void emit_update_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_task_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_control_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_output_logic(ModuleDeclaration* res, const De10Logic* de);
-          
-    void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
-    void emit_slice(Identifier* id, size_t w, size_t i) const;
-};
+Statement* FinishMangle::rewrite(ErrorStatement* es) {
+  return static_cast<Statement*>(tm_->get(es));
+}
+
+Statement* FinishMangle::rewrite(FinishStatement* fs) {
+  return static_cast<Statement*>(tm_->get(fs));
+}
+
+Statement* FinishMangle::rewrite(GetStatement* gs) {
+  return static_cast<Statement*>(tm_->get(gs));
+}
+
+Statement* FinishMangle::rewrite(InfoStatement* is) {
+  return static_cast<Statement*>(tm_->get(is));
+}
+
+Statement* FinishMangle::rewrite(PutStatement* ps) {
+  return static_cast<Statement*>(tm_->get(ps));
+}
+
+Statement* FinishMangle::rewrite(RestartStatement* rs) {
+  return static_cast<Statement*>(tm_->get(rs));
+}
+
+Statement* FinishMangle::rewrite(RetargetStatement* rs) {
+  return static_cast<Statement*>(tm_->get(rs));
+}
+
+Statement* FinishMangle::rewrite(SaveStatement* ss) {
+  return static_cast<Statement*>(tm_->get(ss));
+}
+
+Statement* FinishMangle::rewrite(SeekStatement* ss) {
+  return static_cast<Statement*>(tm_->get(ss));
+}
+
+Statement* FinishMangle::rewrite(WarningStatement* ws) {
+  return static_cast<Statement*>(tm_->get(ws));
+}
+
+Statement* FinishMangle::rewrite(WriteStatement* ws) {
+  return static_cast<Statement*>(tm_->get(ws));
+}
 
 } // namespace cascade
 
-#endif

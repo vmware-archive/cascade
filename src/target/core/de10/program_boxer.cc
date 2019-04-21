@@ -47,7 +47,6 @@ string ProgramBoxer::get() const {
 
   // Module Declarations
   for (const auto& s : repo_) {
-    os << "module M" << s.first;
     os << s.second << endl;
     os << endl;
   }

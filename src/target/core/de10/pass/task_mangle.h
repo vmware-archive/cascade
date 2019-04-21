@@ -28,43 +28,53 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TASK_MANGLE_H
+#define CASCADE_SRC_TARGET_CORE_DE10_PASS_TASK_MANGLE_H
 
 #include <map>
-#include <string>
-#include <vector>
-#include "src/target/core/de10/quartus_server.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/rewriter.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
 class De10Logic;
 
-class De10Rewrite {
+// Pass 1: 
+// 
+// Mangle system tasks but don't don't replace them just yet.
+
+class TaskMangle : public Visitor {
   public:
-    std::string run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id);
+    TaskMangle(const De10Logic* de);
+    ~TaskMangle() override = default;
+
+    Node* get(const Node* n);
 
   private:
-    void emit_port_vars(ModuleDeclaration* res);
-    void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
-    void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_mask_vars(ModuleDeclaration* res);
-    void emit_control_vars(ModuleDeclaration* res);
-    void emit_view_vars(ModuleDeclaration* res, const De10Logic* de);
+    const De10Logic* de_;
 
-    void emit_update_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_task_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_control_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_output_logic(ModuleDeclaration* res, const De10Logic* de);
-          
-    void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
-    void emit_slice(Identifier* id, size_t w, size_t i) const;
+    std::map<std::string, Node*> tasks_;
+    SeqBlock* t_;
+    bool within_task_;
+    size_t io_idx_;
+    size_t task_idx_;
+
+    void visit(const EofExpression* ee) override;
+    void visit(const Identifier* id) override;
+    void visit(const DisplayStatement* ds) override;
+    void visit(const ErrorStatement* es) override;
+    void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
+    void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
+    void visit(const RestartStatement* rs) override;
+    void visit(const RetargetStatement* rs) override;
+    void visit(const SaveStatement* ss) override;
+    void visit(const SeekStatement* ss) override;
+    void visit(const WarningStatement* ws) override;
+    void visit(const WriteStatement* ws) override;
+    void begin_mangle_io();
+    void begin_mangle_task();
+    void finish(const SystemTaskEnableStatement* t);
 };
 
 } // namespace cascade

@@ -48,7 +48,10 @@ OBJ=\
 	src/target/core/de10/de10_compiler.o\
 	src/target/core/de10/de10_logic.o\
 	src/target/core/de10/de10_rewrite.o\
-	src/target/core/de10/module_boxer.o\
+	src/target/core/de10/pass/finish_mangle.o\
+	src/target/core/de10/pass/machinify.o\
+	src/target/core/de10/pass/rewrite_text.o\
+	src/target/core/de10/pass/task_mangle.o\
 	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\
 	src/target/core/proxy/proxy_compiler.o\
@@ -149,7 +152,11 @@ HDR=\
 	src/target/core/de10/de10_logic.h\
 	src/target/core/de10/de10_pad.h\
 	src/target/core/de10/io.h\
-	src/target/core/de10/module_boxer.h\
+	src/target/core/de10/de10_rewrite.h\
+	src/target/core/de10/pass/finish_mangle.h\
+	src/target/core/de10/pass/machinify.h\
+	src/target/core/de10/pass/rewrite_text.h\
+	src/target/core/de10/pass/task_mangle.h\
 	src/target/core/de10/program_boxer.h\
 	src/target/core/de10/quartus_server.h\
 	src/target/core/proxy/proxy_compiler.h\

@@ -36,14 +36,9 @@
 #include <unistd.h>
 #include "src/base/stream/sockstream.h"
 #include "src/target/core/de10/de10_rewrite.h"
-#include "src/target/core/de10/module_boxer.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
-
-
-
-#include "src/verilog/print/term/term_printer.h"
 
 using namespace std;
 
@@ -240,14 +235,12 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     return nullptr;
   }
 
-  TermPrinter(cout) << De10Rewrite().run(md, de, sid) << "\n";
-
   // Blocking call to compile.  At this point, we don't expect compilations to
   // fail.  A non-zero return value indicates that the compilation was aborted. 
   sockstream sock2(host_.c_str(), port_);
   sock2.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
   sock2.put(static_cast<uint8_t>(sid));
-  const auto text = ModuleBoxer().box(md, de);
+  const auto text = De10Rewrite().run(md, de, sid);
   sock2.write(text.c_str(), text.length());
   sock2.put('\0');
   sock2.flush();

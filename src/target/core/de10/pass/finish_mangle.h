@@ -28,43 +28,42 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_FINISH_MANGLE_H
+#define CASCADE_SRC_TARGET_CORE_DE10_PASS_FINISH_MANGLE_H
 
-#include <map>
-#include <string>
-#include <vector>
-#include "src/target/core/de10/quartus_server.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
-class De10Logic;
+class TaskMangle;
 
-class De10Rewrite {
+// Pass 4: 
+//
+// Now that we're done using system tasks as landmarks and we don't have to
+// worry about introducing new conditionals, go ahead and replace everything
+// from pass 1
+
+class FinishMangle : public Rewriter {
   public:
-    std::string run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id);
+    FinishMangle(TaskMangle* tm);
+    ~FinishMangle() override = default;
 
   private:
-    void emit_port_vars(ModuleDeclaration* res);
-    void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
-    void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_mask_vars(ModuleDeclaration* res);
-    void emit_control_vars(ModuleDeclaration* res);
-    void emit_view_vars(ModuleDeclaration* res, const De10Logic* de);
+    TaskMangle* tm_;
 
-    void emit_update_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_task_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_control_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_output_logic(ModuleDeclaration* res, const De10Logic* de);
-          
-    void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
-    void emit_slice(Identifier* id, size_t w, size_t i) const;
+    Expression* rewrite(EofExpression* ee) override;
+    Statement* rewrite(DisplayStatement* ds) override;
+    Statement* rewrite(ErrorStatement* es) override;
+    Statement* rewrite(FinishStatement* fs) override;
+    Statement* rewrite(GetStatement* gs) override;
+    Statement* rewrite(InfoStatement* is) override;
+    Statement* rewrite(PutStatement* ps) override;
+    Statement* rewrite(RestartStatement* rs) override;
+    Statement* rewrite(RetargetStatement* rs) override;
+    Statement* rewrite(SaveStatement* ss) override; 
+    Statement* rewrite(SeekStatement* ss) override;
+    Statement* rewrite(WarningStatement* ws) override;
+    Statement* rewrite(WriteStatement* ws) override;
 };
 
 } // namespace cascade
