@@ -28,64 +28,39 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_CASE_ITEM_H
-#define CASCADE_SRC_VERILOG_AST_CASE_ITEM_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
+#define CASCADE_SRC_TARGET_CORE_DE10_DE10_REWRITE_H
 
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/statement.h"
+#include <vector>
+#include "src/target/core/de10/quartus_server.h"
+#include "src/verilog/ast/ast_fwd.h"
+#include "src/verilog/ast/visitors/builder.h"
 
 namespace cascade {
 
-class CaseItem : public Node {
+class De10Logic;
+
+class De10Rewrite : public Builder {
   public:
-    // Constructors:
-    explicit CaseItem(Statement* stmt__);
-    explicit CaseItem(Expression* expr__, Statement* stmt__);
-    template<typename ExprsItr>
-    CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__);
-    ~CaseItem() override;
+    De10Rewrite();
+    ~De10Rewrite() override = default;
 
-    // Node Interface:
-    NODE(CaseItem)
-    CaseItem* clone() const override;
-
-    // Get/Set:
-    MANY_GET_SET(CaseItem, Expression, exprs)
-    PTR_GET_SET(CaseItem, Statement, stmt)
+    ModuleDeclaration* run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id);
 
   private:
-    MANY_ATTR(Expression, exprs);
-    PTR_ATTR(Statement, stmt);
+    const De10Logic* de_;
+    QuartusServer::Id id_;
+
+    // Builder Interface:
+    ModuleDeclaration* build(const ModuleDeclaration* md) override;
+
+
+
+    // Code Generation Helpers:
+    void append_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
+    void append_slice(Identifier* id, size_t w, size_t i) const;
 };
 
-inline CaseItem::CaseItem(Statement* stmt__) : Node(Node::Tag::case_item) {
-  MANY_DEFAULT_SETUP(exprs);
-  PTR_SETUP(stmt);
-  parent_ = nullptr;
-}
-
-inline CaseItem::CaseItem(Expression* expr__, Statement* stmt__) : CaseItem(stmt__) {
-  push_back_exprs(expr__);
-}
-
-template <typename ExprsItr>
-inline CaseItem::CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__) : CaseItem(stmt__) {
-  MANY_SETUP(exprs);
-}
-
-inline CaseItem::~CaseItem() {
-  MANY_TEARDOWN(exprs);
-  PTR_TEARDOWN(stmt);
-}
-
-inline CaseItem* CaseItem::clone() const {
-  auto* res = new CaseItem(stmt_->clone());
-  MANY_CLONE(exprs);
-  return res;
-}
-
-} // namespace cascade 
+} // namespace cascade
 
 #endif

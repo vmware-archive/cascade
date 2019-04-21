@@ -72,7 +72,7 @@ ModuleDeclaration* Machinify::build(const ModuleDeclaration* md) {
 ModuleItem* Machinify::build(const AlwaysConstruct* ac) {
   assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
   const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
-  assert(tcs->get_ctrl()->is(Ndoe::Tag::event_control));
+  assert(tcs->get_ctrl()->is(Node::Tag::event_control));
   const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
 
   auto* ctrl = ec->clone();
