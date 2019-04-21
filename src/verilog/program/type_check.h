@@ -81,7 +81,6 @@ class TypeCheck : public Visitor {
     const Node* outermost_loop_;
     const ModuleInstantiation* instantiation_;
     bool net_lval_;
-    bool in_conditional_;
 
     // Error Tracking:
     bool exists_bad_id_;
