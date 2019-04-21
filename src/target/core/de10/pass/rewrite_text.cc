@@ -45,7 +45,7 @@ RewriteText::RewriteText(const ModuleDeclaration* md, const De10Logic* de) : Bui
 
 Attributes* RewriteText::build(const Attributes* as) {
   (void) as;
-  return nullptr;
+  return new Attributes();
 }
 
 ModuleItem* RewriteText::build(const RegDeclaration* rd) {

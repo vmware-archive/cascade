@@ -138,7 +138,7 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
     auto* rd = static_cast<RegDeclaration*>(s->get_parent()->clone());
     rd->get_id()->purge_ids();
     rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
-    rd->replace_val(new Number(Bits(false)));
+    rd->replace_val(nullptr);
     shadows.insert(make_pair(rd->get_id()->front_ids()->get_readable_sid(), rd));
   }
   for (auto& s : shadows) {
