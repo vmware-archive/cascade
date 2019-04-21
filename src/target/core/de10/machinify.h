@@ -45,13 +45,16 @@ class Machinify : public Builder {
     ModuleDeclaration* run(const ModuleDeclaration* md);
 
   private:
+    size_t idx_; 
+
     // Builder Interface:
+    ModuleDeclaration* build(const ModuleDeclaration* md) override;
     ModuleItem* build(const AlwaysConstruct* ac) override;
 
     // State Machine Construction Helpers:
     class Generate : public Visitor {
       public:
-        Generate();
+        Generate(size_t idx);
         ~Generate() = default;
         CaseStatement* run(const Statement* s);
 
@@ -74,6 +77,7 @@ class Machinify : public Builder {
         void visit(const WarningStatement* ws) override;
         void visit(const WriteStatement* ws) override;
 
+        Identifier* state_var() const;
         std::pair<size_t, SeqBlock*> current() const;
         void append(const Statement* s);
         void append(SeqBlock* sb, const Statement* s);
@@ -82,6 +86,7 @@ class Machinify : public Builder {
         void next_state();
 
         CaseStatement* machine_;
+        size_t idx_;
     };
 };
 

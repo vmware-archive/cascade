@@ -54,10 +54,6 @@
 #include "src/verilog/transform/event_expand.h"
 #include "src/verilog/transform/loop_unroll.h"
 
-#include "src/verilog/print/term/term_printer.h"
-#include "src/target/core/de10/machinify.h"
-
-
 using namespace std;
 
 namespace cascade {
@@ -326,7 +322,6 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     ControlMerge().run(md);
     DeadCodeEliminate().run(md);
     BlockFlatten().run(md);
-    //TermPrinter(cout) << Machinify().run(md) << "\n";
   }
   return md;
 }

@@ -51,6 +51,7 @@ OBJ=\
 	src/target/core/de10/module_boxer.o\
 	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\
+	src/target/core/de10/task_mangle.o\
 	src/target/core/proxy/proxy_compiler.o\
 	src/target/core/sw/sw_compiler.o\
 	src/target/core/sw/sw_logic.o\

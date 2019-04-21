@@ -30,6 +30,7 @@
 
 #include "src/target/core/de10/machinify.h"
 
+#include <sstream>
 #include <vector>
 #include "src/base/bits/bits.h"
 #include "src/verilog/ast/ast.h"
@@ -41,7 +42,31 @@ namespace cascade {
 Machinify::Machinify() : Builder() { }
 
 ModuleDeclaration* Machinify::run(const ModuleDeclaration* md)  {
+  idx_ = 0;
   return md->accept(this);
+}
+
+ModuleDeclaration* Machinify::build(const ModuleDeclaration* md) {
+  auto* res = Builder::build(md);
+  res->push_front_items(new RegDeclaration(
+    new Attributes(),
+    new Identifier("__resume"),
+    false,
+    nullptr,
+    new Number(Bits(false))
+  ));
+  for (size_t i = 0; i < idx_; ++i) {
+    stringstream ss;
+    ss << "__state_" << i;
+    res->push_front_items(new RegDeclaration(
+      new Attributes(),
+      new Identifier(ss.str()),
+      false,
+      new RangeExpression(32, 0),
+      new Number(Bits(32, 0))
+    ));
+  }
+  return res;
 }
 
 ModuleItem* Machinify::build(const AlwaysConstruct* ac) {
@@ -51,15 +76,17 @@ ModuleItem* Machinify::build(const AlwaysConstruct* ac) {
   const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
 
   auto* ctrl = ec->clone();
-  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("resume")));
-  auto* machine = Generate().run(tcs->get_stmt());
+  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));
+  auto* machine = Generate(idx_++).run(tcs->get_stmt());
   return new AlwaysConstruct(new TimingControlStatement(ctrl, machine));
 }
 
-Machinify::Generate::Generate() : Visitor() { }
+Machinify::Generate::Generate(size_t idx) : Visitor() { 
+  idx_ = idx;
+}
 
 CaseStatement* Machinify::Generate::run(const Statement* s) {
-  machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("state"));
+  machine_ = new CaseStatement(CaseStatement::Type::CASE, state_var());
   next_state();
   s->accept(this);
   return machine_;
@@ -193,10 +220,16 @@ void Machinify::Generate::visit(const WriteStatement* ws) {
   append(ws);
 }
 
-std::pair<size_t, SeqBlock*> Machinify::Generate::current() const {
+pair<size_t, SeqBlock*> Machinify::Generate::current() const {
   const auto n = machine_->size_items()-1;
   auto* sb = static_cast<SeqBlock*>(machine_->back_items()->get_stmt());
   return make_pair(n, sb);
+}
+
+Identifier* Machinify::Generate::state_var() const {
+  stringstream ss;
+  ss << "__state_" << idx_;
+  return new Identifier(ss.str());
 }
 
 void Machinify::Generate::append(const Statement* s) {
@@ -215,7 +248,7 @@ void Machinify::Generate::transition(size_t n) {
 
 void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("state"),
+    state_var(),
     new Number(Bits(32, n))
     )));
 }
