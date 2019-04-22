@@ -36,38 +36,61 @@ using namespace std;
 
 namespace cascade {
 
-Machinify::Machinify() : Editor() { 
-  idx_ = 0;
+Machinify::Machinify() : Editor() { }
+
+Machinify::IoCheck::IoCheck() : Visitor() { }
+
+bool Machinify::IoCheck::run(const AlwaysConstruct* ac) {
+  res_ = false; 
+  ac->accept(this);
+  return res_;
 }
 
-void Machinify::edit(AlwaysConstruct* ac) {
-  if (!IoCheck().run(ac)) {
-    return;
-  }
+void Machinify::IoCheck::visit(const GetStatement* gs) {
+  (void) gs;
+  res_ = true;
+}
 
-  assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
-  const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
-  assert(tcs->get_ctrl()->is(Node::Tag::event_control));
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-
-  auto* ctrl = ec->clone();
-  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));
-  auto* machine = Generate(idx_++).run(tcs->get_stmt());
-
-  ac->replace_stmt(new TimingControlStatement(ctrl, machine));
+void Machinify::IoCheck::visit(const PutStatement* ps) {
+  (void) ps;
+  res_ = true;
 }
 
 Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
 }
 
-CaseStatement* Machinify::Generate::run(const Statement* s) {
-  machine_ = new CaseStatement(CaseStatement::Type::CASE, state_var());
+SeqBlock* Machinify::Generate::run(const Statement* s) {
+  // Create a state machine for this statement
+  machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
   next_state();
   s->accept(this);
   next_state();
   transition(current().first);
-  return machine_;
+  // Add reset toggle
+  auto* cs = new ConditionalStatement(
+    new Identifier("__reset"),
+    new NonblockingAssign(new VariableAssign(new Identifier("__state"), new Number(Bits(false)))),
+    machine_
+  );
+  // Add declaration for state register 
+  auto* sb = new SeqBlock(cs);
+  sb->replace_id(name());
+  sb->push_back_decls(new RegDeclaration(
+    new Attributes(), new Identifier("__state"), false, new RangeExpression(32, 0), new Number(Bits(false))
+  ));
+
+  return sb;
+}
+
+Identifier* Machinify::Generate::name() const {
+  stringstream ss;
+  ss << "__machine_" << idx_;
+  return new Identifier(ss.str());
+}
+
+size_t Machinify::Generate::final_state() const {
+  return current().first;
 }
 
 void Machinify::Generate::visit(const BlockingAssign* ba) {
@@ -99,7 +122,7 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
   for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
     branch->push_back_items(new CaseItem(
       new NonblockingAssign(new VariableAssign(
-        new Identifier("state"),
+        new Identifier("__state"),
         new Number(Bits(32, begins[idx++].first))
       ))
     ));
@@ -131,11 +154,11 @@ void Machinify::Generate::visit(const ConditionalStatement* cs) {
   auto* branch = new ConditionalStatement(
     cs->get_if()->clone(),
     new NonblockingAssign(new VariableAssign(
-      new Identifier("state"),
+      new Identifier("__state"),
       new Number(Bits(32, then_begin.first))
     )),
     new NonblockingAssign(new VariableAssign(
-      new Identifier("state"),
+      new Identifier("__state"),
       new Number(Bits(32, else_begin.first))
     ))
   );
@@ -204,12 +227,6 @@ pair<size_t, SeqBlock*> Machinify::Generate::current() const {
   return make_pair(n, sb);
 }
 
-Identifier* Machinify::Generate::state_var() const {
-  stringstream ss;
-  ss << "__state_" << idx_;
-  return new Identifier(ss.str());
-}
-
 void Machinify::Generate::append(const Statement* s) {
   auto* sb = static_cast<SeqBlock*>(machine_->back_items()->get_stmt());
   append(sb, s);
@@ -226,7 +243,7 @@ void Machinify::Generate::transition(size_t n) {
 
 void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    state_var(),
+    new Identifier("__state"),
     new Number(Bits(32, n))
   )));
 }
@@ -237,22 +254,54 @@ void Machinify::Generate::next_state() {
   machine_->push_back_items(ci);
 }
 
-Machinify::IoCheck::IoCheck() : Visitor() { }
+void Machinify::edit(ModuleDeclaration* md) {
+  md->accept_items(this);
 
-bool Machinify::IoCheck::run(const AlwaysConstruct* ac) {
-  res_ = false; 
-  ac->accept(this);
-  return res_;
+  // If we didn't emit any state machines, we can hardwire __done to 1
+  if (generators_.empty()) {
+    md->push_back_items(new ContinuousAssign(new VariableAssign(
+      new Identifier("__done"),
+      new Number(Bits(true))
+    ))); 
+    return;
+  }
+
+  // Otherwise, the done signal is the concatenation of every state machine
+  // being in its terminal state
+  auto* c = new Concatenation();
+  for (auto& g : generators_) {
+    auto* var = g.name();
+    var->push_back_ids(new Id("__state"));
+    c->push_back_exprs(new BinaryExpression(
+      var,
+      BinaryExpression::Op::EEQ,
+      new Number(Bits(32, g.final_state()))
+    ));
+  }
+  md->push_back_items(new ContinuousAssign(new VariableAssign(
+    new Identifier("__done"),
+    new UnaryExpression(UnaryExpression::Op::PIPE, c)
+  )));
 }
 
-void Machinify::IoCheck::visit(const GetStatement* gs) {
-  (void) gs;
-  res_ = true;
-}
+void Machinify::edit(AlwaysConstruct* ac) {
+  if (!IoCheck().run(ac)) {
+    return;
+  }
 
-void Machinify::IoCheck::visit(const PutStatement* ps) {
-  (void) ps;
-  res_ = true;
+  assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
+  const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
+  assert(tcs->get_ctrl()->is(Node::Tag::event_control));
+  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
+
+  Generate gen(generators_.size());
+  auto* machine = gen.run(tcs->get_stmt());
+  auto* ctrl = ec->clone();
+  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));
+  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__reset")));
+
+  ac->replace_stmt(new TimingControlStatement(ctrl, machine));
+  generators_.push_back(gen);
 }
 
 } // namespace cascade

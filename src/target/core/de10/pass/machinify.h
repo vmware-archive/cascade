@@ -33,6 +33,7 @@
 
 #include <stddef.h>
 #include <utility>
+#include <vector>
 #include "src/verilog/ast/visitors/editor.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
@@ -49,9 +50,6 @@ class Machinify : public Editor {
     ~Machinify() override = default;
 
   private:
-    size_t idx_; 
-    void edit(AlwaysConstruct* ac) override;
-
     // Checks whether an always construct contains any i/o statements which
     // require us to trap into the runtime (ie: get() or seek()). 
     struct IoCheck : public Visitor {
@@ -73,7 +71,9 @@ class Machinify : public Editor {
         Generate(size_t idx);
         ~Generate() = default;
 
-        CaseStatement* run(const Statement* s);
+        SeqBlock* run(const Statement* s);
+        Identifier* name() const;
+        size_t final_state() const;
 
       private:
         CaseStatement* machine_;
@@ -97,7 +97,6 @@ class Machinify : public Editor {
         void visit(const WarningStatement* ws) override;
         void visit(const WriteStatement* ws) override;
 
-        Identifier* state_var() const;
         std::pair<size_t, SeqBlock*> current() const;
         void append(const Statement* s);
         void append(SeqBlock* sb, const Statement* s);
@@ -105,6 +104,11 @@ class Machinify : public Editor {
         void transition(SeqBlock* sb, size_t n);
         void next_state();
     };
+
+    std::vector<Generate> generators_;
+
+    void edit(ModuleDeclaration* md) override;
+    void edit(AlwaysConstruct* ac) override;
 };
 
 } // namespace cascade

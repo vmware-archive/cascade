@@ -63,6 +63,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_mask_vars(res);
   emit_control_vars(res);
   emit_view_vars(res, de);
+  emit_state_vars(res);
 
   // Emit original program logic
   TextMangle tm(de);
@@ -228,6 +229,18 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const De10Logic* de) {
       res->push_back_items(ca);
     }
   }
+}
+
+void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier("__resume"), false, nullptr, new Number(Bits(false))
+  ));
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier("__reset"), false, nullptr, new Number(Bits(false))
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__done"), false, nullptr
+  ));
 }
 
 void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {

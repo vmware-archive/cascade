@@ -56,6 +56,7 @@ class De10Rewrite {
     void emit_mask_vars(ModuleDeclaration* res);
     void emit_control_vars(ModuleDeclaration* res);
     void emit_view_vars(ModuleDeclaration* res, const De10Logic* de);
+    void emit_state_vars(ModuleDeclaration* res);
 
     void emit_update_logic(ModuleDeclaration* res, const De10Logic* de);
     void emit_task_logic(ModuleDeclaration* res, const De10Logic* de);
