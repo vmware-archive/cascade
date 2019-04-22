@@ -53,7 +53,7 @@ class Machinify : public Editor {
 
   private:
     // Checks whether an always construct contains any i/o statements which
-    // require us to trap into the runtime (ie: get() or seek()). 
+    // require us to trap into the runtime (ie: get() $put() or seek()). 
     struct IoCheck : public Visitor {
       public:
         IoCheck();

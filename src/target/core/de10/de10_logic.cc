@@ -282,7 +282,17 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
-  return io_tasks_.empty() ? io_free_open_loop(clk, val, itr) : io_open_loop(clk, val, itr);
+  // The fpga already knows the value of clk. We can ignore it.
+  (void) clk;
+  (void) val;
+
+  // Go into open loop mode and handle tasks when we return. No need
+  // to handle outputs. This methods assumes that we don't have any.
+  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
+  handle_sys_tasks();
+
+  // Return the number of iterations that we ran for
+  return DE10_READ(MANGLE(addr_, open_loop_idx()));
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -633,39 +643,6 @@ void De10Logic::handle_sys_tasks() {
 
   // Reset the task mask
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
-}
-
-size_t De10Logic::io_free_open_loop(VId clk, bool val, size_t itr) {
-  // The fpga already knows the value of clk. We can ignore it.
-  (void) clk;
-  (void) val;
-
-  // Go into open loop mode and handle tasks when we return. No need
-  // to handle outputs. This methods assumes that we don't have any.
-  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
-  handle_sys_tasks();
-
-  // Return the number of iterations that we ran for
-  return DE10_READ(MANGLE(addr_, open_loop_idx()));
-}
-
-size_t De10Logic::io_open_loop(VId clk, bool val, size_t itr) {
-  // The fpga already knows the value of clk. We can ignore it.
-  (void) clk;
-  (void) val;
-
-  // We can't quite go into open loop here because we need to perform file i/o
-  // every so many clock ticks. Still, it's better to spin here than back and
-  // forth with the runtime
-  size_t res = 0;
-  for (there_were_tasks_ = false; (res < itr) && !there_were_tasks_; ++res) {
-    DE10_WRITE(MANGLE(addr_, open_loop_idx()), 1);
-    handle_io_tasks();
-    handle_sys_tasks();
-  }
-
-  // Return the number of iterations that we ran for
-  return res;
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {

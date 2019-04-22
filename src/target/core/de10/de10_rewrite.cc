@@ -365,7 +365,11 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new BinaryExpression(
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_are_updates")),
         BinaryExpression::Op::AAMP,
-        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
+        new BinaryExpression(
+          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks")),
+          BinaryExpression::Op::AAMP,
+          new Identifier("__done")
+        )
       )
     )
   )));
@@ -394,7 +398,14 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new ConditionalExpression(
         new Identifier("__open_loop_tick"),
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
-        new ConditionalExpression(new Identifier("__there_were_tasks"), new Number(Bits(false)), new Identifier("__open_loop"))
+        new ConditionalExpression(
+          new BinaryExpression(
+            new Identifier("__there_were_tasks"), 
+            BinaryExpression::Op::PPIPE, 
+            new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done"))), 
+          new Number(Bits(false)), 
+          new Identifier("__open_loop")
+        )
       )
     )
     )));

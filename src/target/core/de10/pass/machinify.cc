@@ -197,6 +197,8 @@ void Machinify::Generate::visit(const InfoStatement* is) {
 
 void Machinify::Generate::visit(const PutStatement* ps) {
   append(ps);
+  transition(current().first+1);
+  next_state();
 }
 
 void Machinify::Generate::visit(const RestartStatement* rs) {

@@ -188,10 +188,6 @@ class De10Logic : public Logic, public Visitor {
     void handle_io_tasks();
     void handle_sys_tasks();
 
-    // Open Loop Variants
-    size_t io_free_open_loop(VId clk, bool val, size_t itr);
-    size_t io_open_loop(VId clk, bool val, size_t itr);
-
     // Inserts the identifiers in an AST subtree into the variable table.
     struct Inserter : Visitor {
       explicit Inserter(De10Logic* de);
