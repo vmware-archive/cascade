@@ -114,7 +114,7 @@ void De10Rewrite::TriggerIndex::visit(const Event* e) {
       posedges_[r->front_ids()->get_readable_sid()] = r;
       break;
     default:
-      edges_[r->front_ids()->get_readable_sid()] = r;
+      // Don't record untyped edges
       break;
   }
 }
@@ -265,9 +265,6 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const De10Logic* de) {
 void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti) {
   // Emit declarations lexicographically to ensure deterministic code
   map<string, const Identifier*> vars;
-  for (auto& e : ti->edges_) {
-    vars[e.first] = e.second;
-  }
   for (auto& e : ti->negedges_) {
     vars[e.first] = e.second;
   }
@@ -293,15 +290,6 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
     ));
   }
 
-  for (auto& e : ti->edges_) {
-    res->push_back_items(new NetDeclaration(
-      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_edge"), false
-    ));
-    res->push_back_items(new ContinuousAssign(new VariableAssign(
-      new Identifier(e.first+"_edge"),
-      new BinaryExpression(e.second->clone(), BinaryExpression::Op::BEQ, new Identifier(e.first+"_prev"))
-    )));
-  }
   for (auto& e : ti->negedges_) {
     res->push_back_items(new NetDeclaration(
       new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_negedge"), false
@@ -611,9 +599,6 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
   // Emit logic lexicographically to ensure deterministic code
   map<string, const Identifier*> vars;
-  for (auto& e : ti->edges_) {
-    vars[e.first] = e.second;
-  }
   for (auto& e : ti->negedges_) {
     vars[e.first] = e.second;
   }

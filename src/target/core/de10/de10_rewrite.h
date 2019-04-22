@@ -54,7 +54,6 @@ class De10Rewrite {
     struct TriggerIndex : public Visitor {
       TriggerIndex();
       ~TriggerIndex() override = default;
-      std::map<std::string, const Identifier*> edges_;
       std::map<std::string, const Identifier*> negedges_;
       std::map<std::string, const Identifier*> posedges_;
       void visit(const Event* e) override;

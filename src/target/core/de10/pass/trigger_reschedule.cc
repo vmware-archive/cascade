@@ -42,12 +42,17 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
   assert(tcs->get_ctrl()->is(Node::Tag::event_control));
   auto* ec = static_cast<EventControl*>(tcs->get_ctrl());
 
+  // Nothing to do if this is a combinational always block
   auto i = ec->begin_events();
+  if ((*i)->get_type() == Event::Type::EDGE) {
+    return;
+  }
+  
+  // Otherwise, push these triggers down inside of an @(posedge __clk)
   Expression* guard = to_guard(*i++);
   for (auto ie = ec->end_events(); i != ie; ++i) {
     guard = new BinaryExpression(to_guard(*i), BinaryExpression::Op::PPIPE, guard);
   }
-
   tcs->replace_ctrl(new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))));
   tcs->replace_stmt(new ConditionalStatement(guard, tcs->get_stmt()->clone(), new SeqBlock()));
 }
@@ -57,12 +62,13 @@ Identifier* TriggerReschedule::to_guard(const Event* e) const {
   const auto* i = static_cast<const Identifier*>(e->get_expr());
 
   switch (e->get_type()) {
-    case Event::Type::EDGE:
-      return new Identifier(i->front_ids()->get_readable_sid()+"_edge");
     case Event::Type::NEGEDGE:
       return new Identifier(i->front_ids()->get_readable_sid()+"_negedge");
-    default:
+    case Event::Type::POSEDGE:
       return new Identifier(i->front_ids()->get_readable_sid()+"_posedge");
+    default:
+      assert(false);
+      return nullptr;
   }
 }
 
