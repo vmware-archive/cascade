@@ -51,7 +51,6 @@ class FinishMangle : public Rewriter {
   private:
     TextMangle* tm_;
 
-    Expression* rewrite(EofExpression* ee) override;
     Statement* rewrite(NonblockingAssign* na) override;
     Statement* rewrite(DisplayStatement* ds) override;
     Statement* rewrite(ErrorStatement* es) override;

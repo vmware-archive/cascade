@@ -35,19 +35,22 @@
 
 namespace cascade {
 
+class De10Logic;
 class TextMangle;
 
 // Pass 2: 
 // 
-// Delete declarations and attributes.
+// Delete declarations and attributes. Replace eof() expressions with
+// corresponding variables.
 
 class RewriteText : public Builder {
   public:
-    RewriteText(const ModuleDeclaration* md, TextMangle* tm);
+    RewriteText(const ModuleDeclaration* md, const De10Logic* de, TextMangle* tm);
     ~RewriteText() override = default;
 
   private:
     const ModuleDeclaration* md_;
+    const De10Logic* de_;
     TextMangle* tm_;
 
     Attributes* build(const Attributes* as) override;

@@ -30,14 +30,16 @@
 
 #include "src/target/core/de10/pass/rewrite_text.h"
 
+#include "src/target/core/de10/de10_logic.h"
 #include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
 
-RewriteText::RewriteText(const ModuleDeclaration* md, TextMangle* tm) : Builder() { 
+RewriteText::RewriteText(const ModuleDeclaration* md, const De10Logic* de, TextMangle* tm) : Builder() { 
   md_ = md;
+  de_ = de;
   tm_ = tm;
 }
 
@@ -60,9 +62,13 @@ ModuleItem* RewriteText::build(const PortDeclaration* pd) {
 }
 
 Expression* RewriteText::build(const EofExpression* ee) {
-  auto* res = Builder::build(ee);
-  tm_->replace(ee, res);
-  return res;
+  // This is a bit confusing: the de10 compiler has created an entry in the
+  // variable table for the argument to this expression (like we do with
+  // arguments to display statements). Prior to transfering control to the fpga
+  // we'll place the result of this eof check into this location in hardware.
+  const auto itr = de_->table_find(ee->get_arg());
+  assert(itr != de_->table_end());
+  return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
 }
 
 Statement* RewriteText::build(const NonblockingAssign* na) {

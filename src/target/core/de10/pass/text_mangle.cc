@@ -46,15 +46,15 @@ TextMangle::TextMangle(const De10Logic* de) : Visitor() {
   task_idx_ = 0;
 }
 
-void TextMangle::replace(const Node* n, const Node* m) {
-  auto itr = reps_.find(n);
+void TextMangle::replace(const Statement* s1, const Statement* s2) {
+  auto itr = reps_.find(s1);
   assert(itr != reps_.end());
-  reps_.insert(make_pair(m, itr->second));
+  reps_.insert(make_pair(s2, itr->second));
   reps_.erase(itr);
 }
 
-TextMangle::iterator TextMangle::find(const Node* n) {
-  return reps_.find(n);
+TextMangle::iterator TextMangle::find(const Statement* s) {
+  return reps_.find(s);
 }
 
 TextMangle::iterator TextMangle::begin() {
@@ -63,19 +63,6 @@ TextMangle::iterator TextMangle::begin() {
 
 TextMangle::iterator TextMangle::end() {
   return reps_.end();
-}
-
-void TextMangle::visit(const EofExpression* ee) {
-  // This is a bit confusing: the de10 compiler has created an entry in the
-  // variable table for the argument to this expression (like we do with
-  // arguments to display statements). Prior to transfering control to the fpga
-  // we'll place the result of this eof check into this location in hardware.
-  const auto itr = de_->table_find(ee->get_arg());
-  assert(itr != de_->table_end());
-
-  stringstream ss;
-  TextPrinter(ss) << ee;
-  reps_[ee] = new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
 }
 
 void TextMangle::visit(const NonblockingAssign* na) {

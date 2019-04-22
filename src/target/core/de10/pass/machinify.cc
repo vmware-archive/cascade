@@ -30,13 +30,16 @@
 
 #include "src/target/core/de10/pass/machinify.h"
 
+#include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/ast/ast.h"
 
 using namespace std;
 
 namespace cascade {
 
-Machinify::Machinify() : Editor() { }
+Machinify::Machinify(TextMangle* tm) : Editor() { 
+  tm_ = tm;
+}
 
 Machinify::IoCheck::IoCheck() : Visitor() { }
 
@@ -56,7 +59,8 @@ void Machinify::IoCheck::visit(const PutStatement* ps) {
   res_ = true;
 }
 
-Machinify::Generate::Generate(size_t idx) : Visitor() { 
+Machinify::Generate::Generate(TextMangle* tm, size_t idx) : Visitor() { 
+  tm_ = tm;
   idx_ = idx;
 }
 
@@ -233,7 +237,11 @@ void Machinify::Generate::append(const Statement* s) {
 }
 
 void Machinify::Generate::append(SeqBlock* sb, const Statement* s) {
-  sb->push_back_stmts(s->clone());
+  auto* c = s->clone();
+  if (tm_->find(s) != tm_->end()) {
+    tm_->replace(s, c);
+  }
+  sb->push_back_stmts(c);
 }
 
 void Machinify::Generate::transition(size_t n) {
@@ -294,7 +302,7 @@ void Machinify::edit(AlwaysConstruct* ac) {
   assert(tcs->get_ctrl()->is(Node::Tag::event_control));
   const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
 
-  Generate gen(generators_.size());
+  Generate gen(tm_, generators_.size());
   auto* machine = gen.run(tcs->get_stmt());
   auto* ctrl = ec->clone();
   ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));

@@ -45,27 +45,26 @@ class De10Logic;
 
 class TextMangle : public Visitor {
   public:
-    typedef std::unordered_map<const Node*, Node*>::iterator iterator;
+    typedef std::unordered_map<const Statement*, Statement*>::iterator iterator;
 
     TextMangle(const De10Logic* de);
     ~TextMangle() override = default;
 
-    void replace(const Node* n, const Node* m);
+    void replace(const Statement* s1, const Statement* s2);
 
-    iterator find(const Node* n);
+    iterator find(const Statement* s);
     iterator begin();
     iterator end();
 
   private:
     const De10Logic* de_;
 
-    std::unordered_map<const Node*, Node*> reps_;
+    std::unordered_map<const Statement*, Statement*> reps_;
     SeqBlock* t_;
     bool within_task_;
     size_t io_idx_;
     size_t task_idx_;
 
-    void visit(const EofExpression* ee) override;
     void visit(const NonblockingAssign* na) override;
     void visit(const Identifier* id) override;
     void visit(const DisplayStatement* ds) override;

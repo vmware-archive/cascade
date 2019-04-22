@@ -68,9 +68,9 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   // Emit original program logic
   TextMangle tm(de);
   md->accept_items(&tm);
-  RewriteText rt(md, &tm);
+  RewriteText rt(md, de, &tm);
   md->accept_items(&rt, res->back_inserter_items());
-  Machinify mfy;
+  Machinify mfy(&tm);
   res->accept(&mfy);
   FinishMangle fm(&tm);
   res->accept(&fm);

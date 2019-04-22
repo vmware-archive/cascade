@@ -39,6 +39,8 @@
 
 namespace cascade {
 
+class TextMangle;
+
 // Pass 3: 
 //        
 // Transform always blocks into continuation-passing state machines if they
@@ -46,7 +48,7 @@ namespace cascade {
 
 class Machinify : public Editor {
   public:
-    Machinify();
+    Machinify(TextMangle* tm);
     ~Machinify() override = default;
 
   private:
@@ -68,7 +70,7 @@ class Machinify : public Editor {
     // State Machine Construction Helpers:
     class Generate : public Visitor {
       public:
-        Generate(size_t idx);
+        Generate(TextMangle* tm, size_t idx);
         ~Generate() = default;
 
         SeqBlock* run(const Statement* s);
@@ -76,6 +78,7 @@ class Machinify : public Editor {
         size_t final_state() const;
 
       private:
+        TextMangle* tm_;
         CaseStatement* machine_;
         size_t idx_;
 
@@ -105,6 +108,7 @@ class Machinify : public Editor {
         void next_state();
     };
 
+    TextMangle* tm_;
     std::vector<Generate> generators_;
 
     void edit(ModuleDeclaration* md) override;
