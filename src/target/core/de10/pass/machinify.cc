@@ -65,6 +65,8 @@ CaseStatement* Machinify::Generate::run(const Statement* s) {
   machine_ = new CaseStatement(CaseStatement::Type::CASE, state_var());
   next_state();
   s->accept(this);
+  next_state();
+  transition(current().first);
   return machine_;
 }
 

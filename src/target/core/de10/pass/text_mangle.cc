@@ -46,17 +46,23 @@ TextMangle::TextMangle(const De10Logic* de) : Visitor() {
   task_idx_ = 0;
 }
 
-Node* TextMangle::get(const Node* n) {
-  const auto itr = reps_.find(n);
-  assert(itr != reps_.end());
-  return itr->second;
-}
-
 void TextMangle::replace(const Node* n, const Node* m) {
   auto itr = reps_.find(n);
   assert(itr != reps_.end());
   reps_.insert(make_pair(m, itr->second));
   reps_.erase(itr);
+}
+
+TextMangle::iterator TextMangle::find(const Node* n) {
+  return reps_.find(n);
+}
+
+TextMangle::iterator TextMangle::begin() {
+  return reps_.begin();
+}
+
+TextMangle::iterator TextMangle::end() {
+  return reps_.end();
 }
 
 void TextMangle::visit(const EofExpression* ee) {

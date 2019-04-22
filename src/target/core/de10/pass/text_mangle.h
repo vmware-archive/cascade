@@ -45,11 +45,16 @@ class De10Logic;
 
 class TextMangle : public Visitor {
   public:
+    typedef std::unordered_map<const Node*, Node*>::iterator iterator;
+
     TextMangle(const De10Logic* de);
     ~TextMangle() override = default;
 
-    Node* get(const Node* n);
     void replace(const Node* n, const Node* m);
+
+    iterator find(const Node* n);
+    iterator begin();
+    iterator end();
 
   private:
     const De10Logic* de_;

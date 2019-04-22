@@ -40,59 +40,73 @@ FinishMangle::FinishMangle(TextMangle* tm) : Rewriter() {
 }
 
 Expression* FinishMangle::rewrite(EofExpression* ee) {
-  return static_cast<Expression*>(tm_->get(ee));
+  auto itr = tm_->find(ee);
+  return (itr != tm_->end()) ? static_cast<Expression*>(itr->second) : ee;
 }
 
 Statement* FinishMangle::rewrite(NonblockingAssign* na) {
-  return static_cast<Statement*>(tm_->get(na));
+  auto itr = tm_->find(na);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : na;
 }
 
 Statement* FinishMangle::rewrite(DisplayStatement* ds) {
-  return static_cast<Statement*>(tm_->get(ds));
+  auto itr = tm_->find(ds);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ds;
 }
 
 Statement* FinishMangle::rewrite(ErrorStatement* es) {
-  return static_cast<Statement*>(tm_->get(es));
+  auto itr = tm_->find(es);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : es;
 }
 
 Statement* FinishMangle::rewrite(FinishStatement* fs) {
-  return static_cast<Statement*>(tm_->get(fs));
+  auto itr = tm_->find(fs);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : fs;
 }
 
 Statement* FinishMangle::rewrite(GetStatement* gs) {
-  return static_cast<Statement*>(tm_->get(gs));
+  auto itr = tm_->find(gs);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : gs;
 }
 
 Statement* FinishMangle::rewrite(InfoStatement* is) {
-  return static_cast<Statement*>(tm_->get(is));
+  auto itr = tm_->find(is);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : is;
 }
 
 Statement* FinishMangle::rewrite(PutStatement* ps) {
-  return static_cast<Statement*>(tm_->get(ps));
+  auto itr = tm_->find(ps);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ps;
 }
 
 Statement* FinishMangle::rewrite(RestartStatement* rs) {
-  return static_cast<Statement*>(tm_->get(rs));
+  auto itr = tm_->find(rs);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : rs;
 }
 
 Statement* FinishMangle::rewrite(RetargetStatement* rs) {
-  return static_cast<Statement*>(tm_->get(rs));
+  auto itr = tm_->find(rs);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : rs;
 }
 
 Statement* FinishMangle::rewrite(SaveStatement* ss) {
-  return static_cast<Statement*>(tm_->get(ss));
+  auto itr = tm_->find(ss);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ss;
 }
 
 Statement* FinishMangle::rewrite(SeekStatement* ss) {
-  return static_cast<Statement*>(tm_->get(ss));
+  auto itr = tm_->find(ss);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ss;
 }
 
 Statement* FinishMangle::rewrite(WarningStatement* ws) {
-  return static_cast<Statement*>(tm_->get(ws));
+  auto itr = tm_->find(ws);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ws;
 }
 
 Statement* FinishMangle::rewrite(WriteStatement* ws) {
-  return static_cast<Statement*>(tm_->get(ws));
+  auto itr = tm_->find(ws);
+  return (itr != tm_->end()) ? static_cast<Statement*>(itr->second) : ws;
 }
 
 } // namespace cascade
