@@ -198,7 +198,8 @@ void De10Logic::set_state(const State* s) {
     }
   }
 
-  wait_until_done();
+  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
+  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
@@ -236,7 +237,8 @@ void De10Logic::set_input(const Input* i) {
     }
   }
 
-  wait_until_done();
+  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
+  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
