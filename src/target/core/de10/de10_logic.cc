@@ -257,8 +257,6 @@ void De10Logic::read(VId id, const Bits* b) {
 }
 
 void De10Logic::evaluate() {
-  // Prepare io inputs
-  prepare_io_tasks();      
   // Read outputs and handle tasks
   handle_outputs();
   handle_io_tasks();
@@ -271,8 +269,6 @@ bool De10Logic::there_are_updates() const {
 }
 
 void De10Logic::update() {
-  // Prepare io inputs
-  prepare_io_tasks();
   // Throw the update trigger
   DE10_WRITE(MANGLE(addr_, update_idx()), 1);
   // Read outputs and handle tasks
@@ -507,46 +503,6 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
   }
 }
 
-void De10Logic::prepare_io_tasks() {
-  for (auto* n : io_tasks_) {
-    switch(n->get_tag()) {
-      case Node::Tag::eof_expression: {
-        const auto* ee = static_cast<const EofExpression*>(n);
-
-        const auto* r = Resolve().get_resolution(ee->get_arg());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
-        
-        const auto itr = table_find(ee->get_arg());
-        assert(itr != table_end());
-        write_scalar(itr->second, Bits(streams_[sid]->eof()));
-
-        break;
-      }  
-      case Node::Tag::get_statement: {
-        const auto* gs = static_cast<const GetStatement*>(n);
-
-        const auto* r = Resolve().get_resolution(gs->get_id());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
-        scratch_.read(*streams_[sid], 16);
-
-        const auto itr = table_find(gs->get_var());
-        assert(itr != table_end());
-        write_scalar(itr->second, scratch_);
-
-        break;
-      }  
-      default:
-        break;
-    }
-  }
-}
-
 void De10Logic::handle_outputs() {
   for (const auto& o : outputs_) {
     read_scalar(*o.second);
@@ -691,7 +647,6 @@ size_t De10Logic::io_open_loop(VId clk, bool val, size_t itr) {
   // forth with the runtime
   size_t res = 0;
   for (there_were_tasks_ = false; (res < itr) && !there_were_tasks_; ++res) {
-    prepare_io_tasks();
     DE10_WRITE(MANGLE(addr_, open_loop_idx()), 1);
     handle_io_tasks();
     handle_sys_tasks();
@@ -718,5 +673,47 @@ void De10Logic::Sync::visit(const Identifier* id) {
   assert(vinfo != de_->var_table_.end());
   de_->read_scalar(vinfo->second);
 }
+
+/*
+void De10Logic::prepare_io_tasks() {
+  for (auto* n : io_tasks_) {
+    switch(n->get_tag()) {
+      case Node::Tag::eof_expression: {
+        const auto* ee = static_cast<const EofExpression*>(n);
+
+        const auto* r = Resolve().get_resolution(ee->get_arg());
+        assert(r != nullptr);
+        const auto sid = Evaluate().get_value(r).to_int();
+        assert(sid < streams_.size()); 
+        assert(streams_[sid] != nullptr);
+        
+        const auto itr = table_find(ee->get_arg());
+        assert(itr != table_end());
+        write_scalar(itr->second, Bits(streams_[sid]->eof()));
+
+        break;
+      }  
+      case Node::Tag::get_statement: {
+        const auto* gs = static_cast<const GetStatement*>(n);
+
+        const auto* r = Resolve().get_resolution(gs->get_id());
+        assert(r != nullptr);
+        const auto sid = Evaluate().get_value(r).to_int();
+        assert(sid < streams_.size()); 
+        assert(streams_[sid] != nullptr);
+        scratch_.read(*streams_[sid], 16);
+
+        const auto itr = table_find(gs->get_var());
+        assert(itr != table_end());
+        write_scalar(itr->second, scratch_);
+
+        break;
+      }  
+      default:
+        break;
+    }
+  }
+}
+*/
 
 } // namespace cascade

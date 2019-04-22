@@ -181,7 +181,6 @@ class De10Logic : public Logic, public Visitor {
     void write_array(const VarInfo& vi, const Vector<Bits>& bs);
     
     // Evaluate / Update Helpers:
-    void prepare_io_tasks();
     void handle_outputs();
     void handle_io_tasks();
     void handle_sys_tasks();
