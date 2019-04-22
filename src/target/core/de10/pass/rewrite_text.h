@@ -35,28 +35,38 @@
 
 namespace cascade {
 
-class De10Logic;
+class TextMangle;
 
 // Pass 2: 
 // 
-// Delete declarations and attributes, replace non-blocking assigns. Mangle
-// system tasks as well, but don't rewrite them just yet. We need to leave them
-// as is for the next pass.
+// Delete declarations and attributes.
 
 class RewriteText : public Builder {
   public:
-    RewriteText(const ModuleDeclaration* md, const De10Logic* de);
+    RewriteText(const ModuleDeclaration* md, TextMangle* tm);
     ~RewriteText() override = default;
 
   private:
     const ModuleDeclaration* md_;
-    const De10Logic* de_;
+    TextMangle* tm_;
 
     Attributes* build(const Attributes* as) override;
     ModuleItem* build(const RegDeclaration* rd) override;
     ModuleItem* build(const PortDeclaration* pd) override;
+    Expression* build(const EofExpression* ee) override;
     Statement* build(const NonblockingAssign* na) override;
-    Expression* get_table_range(const Identifier* r, const Identifier* i);
+    Statement* build(const DisplayStatement* ds) override;
+    Statement* build(const ErrorStatement* es) override;
+    Statement* build(const FinishStatement* fs) override;
+    Statement* build(const GetStatement* gs) override;
+    Statement* build(const InfoStatement* is) override;
+    Statement* build(const PutStatement* ps) override;
+    Statement* build(const RestartStatement* rs) override;
+    Statement* build(const RetargetStatement* rs) override;
+    Statement* build(const SaveStatement* ss) override;
+    Statement* build(const SeekStatement* ss) override;
+    Statement* build(const WarningStatement* ws) override;
+    Statement* build(const WriteStatement* ws) override;
 };
 
 } // namespace cascade

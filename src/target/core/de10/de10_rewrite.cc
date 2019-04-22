@@ -35,7 +35,7 @@
 #include "src/target/core/de10/pass/finish_mangle.h"
 #include "src/target/core/de10/pass/machinify.h"
 #include "src/target/core/de10/pass/rewrite_text.h"
-#include "src/target/core/de10/pass/task_mangle.h"
+#include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -65,9 +65,9 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_view_vars(res, de);
 
   // Emit original program logic
-  TaskMangle tm(de);
+  TextMangle tm(de);
   md->accept_items(&tm);
-  RewriteText rt(md, de);
+  RewriteText rt(md, &tm);
   md->accept_items(&rt, res->back_inserter_items());
   Machinify mfy;
   res->accept(&mfy);

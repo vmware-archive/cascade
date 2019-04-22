@@ -28,10 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TASK_MANGLE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PASS_TASK_MANGLE_H
+#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TEXT_MANGLE_H
+#define CASCADE_SRC_TARGET_CORE_DE10_PASS_TEXT_MANGLE_H
 
-#include <map>
+#include <unordered_map>
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -40,25 +40,28 @@ class De10Logic;
 
 // Pass 1: 
 // 
-// Mangle system tasks but don't don't replace them just yet.
+// Mangle system tasks and non-blocking assignments but don't don't replace
+// them just yet. We need these left textually as is for later passes.
 
-class TaskMangle : public Visitor {
+class TextMangle : public Visitor {
   public:
-    TaskMangle(const De10Logic* de);
-    ~TaskMangle() override = default;
+    TextMangle(const De10Logic* de);
+    ~TextMangle() override = default;
 
     Node* get(const Node* n);
+    void replace(const Node* n, const Node* m);
 
   private:
     const De10Logic* de_;
 
-    std::map<std::string, Node*> tasks_;
+    std::unordered_map<const Node*, Node*> reps_;
     SeqBlock* t_;
     bool within_task_;
     size_t io_idx_;
     size_t task_idx_;
 
     void visit(const EofExpression* ee) override;
+    void visit(const NonblockingAssign* na) override;
     void visit(const Identifier* id) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
@@ -72,9 +75,12 @@ class TaskMangle : public Visitor {
     void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
+
     void begin_mangle_io();
     void begin_mangle_task();
     void finish(const SystemTaskEnableStatement* t);
+
+    Expression* get_table_range(const Identifier* r, const Identifier* i);
 };
 
 } // namespace cascade

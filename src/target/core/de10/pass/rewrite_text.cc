@@ -30,17 +30,15 @@
 
 #include "src/target/core/de10/pass/rewrite_text.h"
 
-#include "src/target/core/de10/de10_logic.h"
+#include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
 
 namespace cascade {
 
-RewriteText::RewriteText(const ModuleDeclaration* md, const De10Logic* de) : Builder() { 
+RewriteText::RewriteText(const ModuleDeclaration* md, TextMangle* tm) : Builder() { 
   md_ = md;
-  de_ = de;
+  tm_ = tm;
 }
 
 Attributes* RewriteText::build(const Attributes* as) {
@@ -61,76 +59,88 @@ ModuleItem* RewriteText::build(const PortDeclaration* pd) {
   }
 }
 
-Statement* RewriteText::build(const NonblockingAssign* na) {
-  // Create empty blocks for true and false branches (we'll never populate the
-  // false branch)
-  auto* t = new SeqBlock();
-  auto* f = new SeqBlock();
-
-  // Look up the target of this assignment and the indices it spans in the
-  // variable table
-  const auto* lhs = na->get_assign()->get_lhs();
-  const auto* r = Resolve().get_resolution(lhs);
-  assert(r != nullptr);
-  
-  // Replace the original assignment with an assignment to a temporary variable
-  auto* next = lhs->clone();
-  next->purge_ids();
-  next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
-  t->push_back_stmts(new NonblockingAssign(
-    na->clone_ctrl(),
-    new VariableAssign(
-      next,
-      na->get_assign()->get_rhs()->clone()
-    )
-  ));
-
-  // Insert a new assignment to the next mask
-  t->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
-      new Identifier(
-        new Id("__next_update_mask"),
-        get_table_range(r, lhs)
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_update_mask"),
-          get_table_range(r, lhs)
-        )
-      )
-    )
-  ));
-
-  // Return a conditional statement in place of the original assignment
-  return new SeqBlock(new ConditionalStatement(new Identifier("__live"), t, f));
+Expression* RewriteText::build(const EofExpression* ee) {
+  auto* res = Builder::build(ee);
+  tm_->replace(ee, res);
+  return res;
 }
 
-Expression* RewriteText::get_table_range(const Identifier* r, const Identifier* i) {
-  // Look up r in the variable table
-  const auto titr = de_->table_find(r);
-  assert(titr != de_->table_end());
-  assert(titr->second.materialized());
+Statement* RewriteText::build(const NonblockingAssign* na) {
+  auto* res = Builder::build(na);
+  tm_->replace(na, res);
+  return res;
+}
 
-  // Start with an expression for where this variable begins in the variable table
-  Expression* idx = new Number(Bits(32, titr->second.index()));
+Statement* RewriteText::build(const DisplayStatement* ds) {
+  auto* res = Builder::build(ds);
+  tm_->replace(ds, res);
+  return res;
+}
 
-  // Now iterate over the arity of r and compute a symbolic expression 
-  auto mul = titr->second.elements();
-  auto iitr = i->begin_dim();
-  for (auto a : titr->second.arity()) {
-    mul /= a;
-    idx = new BinaryExpression(
-      idx,
-      BinaryExpression::Op::PLUS,
-      new BinaryExpression(
-        (*iitr++)->clone(),
-        BinaryExpression::Op::TIMES,
-        new Number(Bits(32, mul*titr->second.element_size()))
-      )
-    );
-  }
-  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
+Statement* RewriteText::build(const ErrorStatement* es) {
+  auto* res = Builder::build(es);
+  tm_->replace(es, res);
+  return res;
+}
+
+Statement* RewriteText::build(const FinishStatement* fs) {
+  auto* res = Builder::build(fs);
+  tm_->replace(fs, res);
+  return res;
+}
+
+Statement* RewriteText::build(const GetStatement* gs) {
+  auto* res = Builder::build(gs);
+  tm_->replace(gs, res);
+  return res;
+}
+
+Statement* RewriteText::build(const InfoStatement* is) {
+  auto* res = Builder::build(is);
+  tm_->replace(is, res);
+  return res;
+}
+
+Statement* RewriteText::build(const PutStatement* ps) {
+  auto* res = Builder::build(ps);
+  tm_->replace(ps, res);
+  return res;
+}
+
+Statement* RewriteText::build(const RestartStatement* rs) {
+  auto* res = Builder::build(rs);
+  tm_->replace(rs, res);
+  return res;
+}
+
+Statement* RewriteText::build(const RetargetStatement* rs) {
+  auto* res = Builder::build(rs);
+  tm_->replace(rs, res);
+  return res;
+}
+
+Statement* RewriteText::build(const SaveStatement* ss) {
+  auto* res = Builder::build(ss);
+  tm_->replace(ss, res);
+  return res;
+}
+
+Statement* RewriteText::build(const SeekStatement* ss) {
+  auto* res = Builder::build(ss);
+  tm_->replace(ss, res);
+  return res;
+}
+
+Statement* RewriteText::build(const WarningStatement* ws) {
+  auto* res = Builder::build(ws);
+  tm_->replace(ws, res);
+  return res;
+}
+
+Statement* RewriteText::build(const WriteStatement* ws) {
+  auto* res = Builder::build(ws);
+  tm_->replace(ws, res);
+  return res;
 }
 
 } // namespace cascade

@@ -35,7 +35,7 @@
 
 namespace cascade {
 
-class TaskMangle;
+class TextMangle;
 
 // Pass 4: 
 //
@@ -45,13 +45,14 @@ class TaskMangle;
 
 class FinishMangle : public Rewriter {
   public:
-    FinishMangle(TaskMangle* tm);
+    FinishMangle(TextMangle* tm);
     ~FinishMangle() override = default;
 
   private:
-    TaskMangle* tm_;
+    TextMangle* tm_;
 
     Expression* rewrite(EofExpression* ee) override;
+    Statement* rewrite(NonblockingAssign* na) override;
     Statement* rewrite(DisplayStatement* ds) override;
     Statement* rewrite(ErrorStatement* es) override;
     Statement* rewrite(FinishStatement* fs) override;

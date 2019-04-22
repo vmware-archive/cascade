@@ -30,17 +30,21 @@
 
 #include "src/target/core/de10/pass/finish_mangle.h"
 
-#include "src/target/core/de10/pass/task_mangle.h"
+#include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
 
-FinishMangle::FinishMangle(TaskMangle* tm) : Rewriter() {
+FinishMangle::FinishMangle(TextMangle* tm) : Rewriter() {
   tm_ = tm;
 }
 
 Expression* FinishMangle::rewrite(EofExpression* ee) {
   return static_cast<Expression*>(tm_->get(ee));
+}
+
+Statement* FinishMangle::rewrite(NonblockingAssign* na) {
+  return static_cast<Statement*>(tm_->get(na));
 }
 
 Statement* FinishMangle::rewrite(DisplayStatement* ds) {
