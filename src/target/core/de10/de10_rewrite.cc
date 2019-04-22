@@ -79,6 +79,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_task_logic(res, de);
   emit_control_logic(res, de);
   emit_var_logic(res, md, de);
+  emit_state_logic(res, de);
   emit_output_logic(res, de);
 
   // Holy cow! We're done!
@@ -498,6 +499,41 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   ))); 
 }
 
+void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) {
+  // The resume and reset flags stay high for exactly one clock tick whenever
+  // the user forces a read
+
+  auto* sb = new SeqBlock();
+  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+    new Identifier("__resume"),
+    new ConditionalExpression(
+      new BinaryExpression(
+        new Identifier("__read"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->resume_idx())))
+      ),
+      new Number(Bits(true)),
+      new Number(Bits(false))
+    )
+  )));
+  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+    new Identifier("__reset"),
+    new ConditionalExpression(
+      new BinaryExpression(
+        new Identifier("__read"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->reset_idx())))
+      ),
+      new Number(Bits(true)),
+      new Number(Bits(false))
+    )
+  )));
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    sb
+  ))); 
+}
+
 void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const De10Logic* de) {
   // Assignments are sorted lexicographically to guarantee deterministic code.
 
@@ -534,6 +570,10 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const De10Logic* de)
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->io_task_idx())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__io_queue")))
+  ));
+  cs->push_back_items(new CaseItem(
+    new Number(Bits(32, de->done_idx())),
+    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__done")))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->open_loop_idx())),

@@ -120,6 +120,9 @@ class De10Logic : public Logic, public Visitor {
     size_t update_idx() const;
     size_t sys_task_idx() const;
     size_t io_task_idx() const;
+    size_t resume_idx() const;
+    size_t reset_idx() const;
+    size_t done_idx() const;
     size_t open_loop_idx() const;
 
     // Task Index Properties:

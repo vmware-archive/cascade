@@ -335,8 +335,20 @@ size_t De10Logic::io_task_idx() const {
   return next_index_ + 4;
 }
 
-size_t De10Logic::open_loop_idx() const {
+size_t De10Logic::resume_idx() const {
   return next_index_ + 5;
+}
+
+size_t De10Logic::reset_idx() const {
+  return next_index_ + 6;
+}
+
+size_t De10Logic::done_idx() const {
+  return next_index_ + 7;
+}
+
+size_t De10Logic::open_loop_idx() const {
+  return next_index_ + 8;
 }
 
 size_t De10Logic::sys_task_size() const {

@@ -288,7 +288,7 @@ void Machinify::edit(ModuleDeclaration* md) {
   }
   md->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__done"),
-    new UnaryExpression(UnaryExpression::Op::PIPE, c)
+    new UnaryExpression(UnaryExpression::Op::AMP, c)
   )));
 }
 
