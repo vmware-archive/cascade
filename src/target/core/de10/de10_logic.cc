@@ -198,6 +198,7 @@ void De10Logic::set_state(const State* s) {
     }
   }
 
+  wait_until_done();
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
@@ -235,6 +236,7 @@ void De10Logic::set_input(const Input* i) {
     }
   }
 
+  wait_until_done();
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
@@ -258,8 +260,8 @@ void De10Logic::read(VId id, const Bits* b) {
 
 void De10Logic::evaluate() {
   // Read outputs and handle tasks
+  wait_until_done();
   handle_outputs();
-  handle_io_tasks();
   handle_sys_tasks();
 }
 
@@ -272,8 +274,8 @@ void De10Logic::update() {
   // Throw the update trigger
   DE10_WRITE(MANGLE(addr_, update_idx()), 1);
   // Read outputs and handle tasks
+  wait_until_done();
   handle_outputs();
-  handle_io_tasks();
   handle_sys_tasks();
 }
 
@@ -289,6 +291,7 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   // Go into open loop mode and handle tasks when we return. No need
   // to handle outputs. This methods assumes that we don't have any.
   DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
+  wait_until_done();
   handle_sys_tasks();
 
   // Return the number of iterations that we ran for
@@ -523,6 +526,15 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
       ++idx;
     }
   }
+}
+
+void De10Logic::wait_until_done() {
+  while (!DE10_READ(MANGLE(addr_, done_idx()))) {
+    handle_io_tasks();
+    DE10_WRITE(MANGLE(addr_, resume_idx()), 1);
+  }
+  handle_io_tasks();
+  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);  
 }
 
 void De10Logic::handle_outputs() {
