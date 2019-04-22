@@ -52,6 +52,7 @@ OBJ=\
 	src/target/core/de10/pass/machinify.o\
 	src/target/core/de10/pass/rewrite_text.o\
 	src/target/core/de10/pass/text_mangle.o\
+	src/target/core/de10/pass/trigger_reschedule.o\
 	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\
 	src/target/core/proxy/proxy_compiler.o\
@@ -157,6 +158,7 @@ HDR=\
 	src/target/core/de10/pass/machinify.h\
 	src/target/core/de10/pass/rewrite_text.h\
 	src/target/core/de10/pass/text_mangle.h\
+	src/target/core/de10/pass/trigger_reschedule.h\
 	src/target/core/de10/program_boxer.h\
 	src/target/core/de10/quartus_server.h\
 	src/target/core/proxy/proxy_compiler.h\

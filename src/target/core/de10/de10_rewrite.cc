@@ -36,6 +36,7 @@
 #include "src/target/core/de10/pass/machinify.h"
 #include "src/target/core/de10/pass/rewrite_text.h"
 #include "src/target/core/de10/pass/text_mangle.h"
+#include "src/target/core/de10/pass/trigger_reschedule.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
@@ -47,6 +48,10 @@ namespace cascade {
 
 string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id)  {
   stringstream ss;
+
+  // Generate index tables before doing anything even remotely invasive
+  TriggerIndex ti;
+  md->accept(&ti);
 
   // Emit a new declaration. The module name is formed using the slot id
   // assigned by the quartus server.
@@ -63,6 +68,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_mask_vars(res);
   emit_control_vars(res);
   emit_view_vars(res, de);
+  emit_trigger_vars(res, &ti);
   emit_state_vars(res);
 
   // Emit original program logic
@@ -74,11 +80,14 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   res->accept(&mfy);
   FinishMangle fm(&tm);
   res->accept(&fm);
+  TriggerReschedule tr;
+  res->accept(&tr);
 
   emit_update_logic(res, de);
   emit_task_logic(res, de);
   emit_control_logic(res, de);
   emit_var_logic(res, md, de);
+  emit_trigger_logic(res, &ti);
   emit_state_logic(res, de);
   emit_output_logic(res, de);
 
@@ -87,6 +96,27 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   TextPrinter(ss) << res;
   delete res;
   return ss.str();
+}
+
+De10Rewrite::TriggerIndex::TriggerIndex() : Visitor() { }
+
+void De10Rewrite::TriggerIndex::visit(const Event* e) {
+  assert(e->get_expr()->is(Node::Tag::identifier));
+  const auto* i = static_cast<const Identifier*>(e->get_expr());
+  const auto* r = Resolve().get_resolution(i);
+  assert(r != nullptr);
+
+  switch (e->get_type()) {
+    case Event::Type::NEGEDGE:
+      negedges_[r->front_ids()->get_readable_sid()] = r;
+      break;
+    case Event::Type::POSEDGE:
+      posedges_[r->front_ids()->get_readable_sid()] = r;
+      break;
+    default:
+      edges_[r->front_ids()->get_readable_sid()] = r;
+      break;
+  }
 }
 
 void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
@@ -229,6 +259,74 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const De10Logic* de) {
     for (auto* ca : v.second.second) {
       res->push_back_items(ca);
     }
+  }
+}
+
+void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti) {
+  // Emit declarations lexicographically to ensure deterministic code
+  map<string, const Identifier*> vars;
+  for (auto& e : ti->edges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->negedges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->posedges_) {
+    vars[e.first] = e.second;
+  }
+
+  for (auto& v : vars) {
+    const RangeExpression* re = nullptr;
+    switch (v.second->get_parent()->get_tag()) {
+      case Node::Tag::net_declaration:
+        re = static_cast<const NetDeclaration*>(v.second->get_parent())->get_dim();
+        break;
+      case Node::Tag::reg_declaration:
+        re = static_cast<const RegDeclaration*>(v.second->get_parent())->get_dim();
+        break;
+      default:
+        assert(false);
+        break;
+    }
+    res->push_back_items(new RegDeclaration(
+      new Attributes(), new Identifier(v.first+"_prev"), false, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
+    ));
+  }
+
+  for (auto& e : ti->edges_) {
+    res->push_back_items(new NetDeclaration(
+      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_edge"), false
+    ));
+    res->push_back_items(new ContinuousAssign(new VariableAssign(
+      new Identifier(e.first+"_edge"),
+      new BinaryExpression(e.second->clone(), BinaryExpression::Op::BEQ, new Identifier(e.first+"_prev"))
+    )));
+  }
+  for (auto& e : ti->negedges_) {
+    res->push_back_items(new NetDeclaration(
+      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_negedge"), false
+    ));
+    res->push_back_items(new ContinuousAssign(new VariableAssign(
+      new Identifier(e.first+"_negedge"),
+      new BinaryExpression(
+        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(true))),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(false)))
+      )  
+    )));
+  }
+  for (auto& e : ti->posedges_) {
+    res->push_back_items(new NetDeclaration(
+      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_posedge"), false
+    ));
+    res->push_back_items(new ContinuousAssign(new VariableAssign(
+      new Identifier(e.first+"_posedge"),
+      new BinaryExpression(
+        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(false))),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(true)))
+      )  
+    )));
   }
 }
 
@@ -507,6 +605,32 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     lsb
+  ))); 
+}
+
+void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
+  // Emit logic lexicographically to ensure deterministic code
+  map<string, const Identifier*> vars;
+  for (auto& e : ti->edges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->negedges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->posedges_) {
+    vars[e.first] = e.second;
+  }
+
+  auto* sb = new SeqBlock();
+  for (auto& v : vars) {
+    sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+      new Identifier(v.first+"_prev"),
+      v.second->clone()
+    )));
+  }
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    sb
   ))); 
 }
 
