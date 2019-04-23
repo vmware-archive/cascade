@@ -69,19 +69,22 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
   machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
   next_state();
   s->accept(this);
-  next_state();
-  transition(current().first);
-  // Add reset toggle
-  auto* cs = new ConditionalStatement(
-    new Identifier("__reset"),
-    new NonblockingAssign(new VariableAssign(new Identifier("__state"), new Number(Bits(false)))),
-    machine_
-  );
+  // Add final transition to done state
+  auto c = current();
+  transition(c.second, c.first+1);
+  machine_->push_back_items(new CaseItem(new NonblockingAssign(new VariableAssign(
+    new Identifier("__state"),
+    new Number(Bits(32, c.first+1))
+  ))));
   // Add declaration for state register 
-  auto* sb = new SeqBlock(cs);
+  auto* sb = new SeqBlock(machine_);
   sb->replace_id(name());
   sb->push_back_decls(new RegDeclaration(
     new Attributes(), new Identifier("__state"), false, new RangeExpression(32, 0), new Number(Bits(false))
+  ));
+  // Add a localparam declaration for final state
+  sb->push_back_decls(new LocalparamDeclaration(
+    new Attributes(), false, new Identifier("__final"), new Number(Bits(32, c.first+1))
   ));
 
   return sb;
@@ -295,21 +298,24 @@ void Machinify::edit(ModuleDeclaration* md) {
 }
 
 void Machinify::edit(AlwaysConstruct* ac) {
-  if (!IoCheck().run(ac)) {
-    return;
-  }
-
   assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
   const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
   assert(tcs->get_ctrl()->is(Node::Tag::event_control));
   const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
 
+  // Nothing to do if this is a combinational always block
+  if (ec->front_events()->get_type() == Event::Type::EDGE) {
+    return;
+  }
+  // Also nothing to do if there's no file i/o in this block
+  // TODO(eschkufz) turn this back on
+  // if (!IoCheck().run(ac)) {
+  //  return;
+  //}
+  // Otherwise, replace this block with a reentrant state machine
   Generate gen(tm_, generators_.size());
   auto* machine = gen.run(tcs->get_stmt());
   auto* ctrl = ec->clone();
-  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__resume")));
-  ctrl->push_back_events(new Event(Event::Type::POSEDGE, new Identifier("__reset")));
-
   ac->replace_stmt(new TimingControlStatement(ctrl, machine));
   generators_.push_back(gen);
 }

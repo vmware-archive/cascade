@@ -43,18 +43,53 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
   auto* ec = static_cast<EventControl*>(tcs->get_ctrl());
 
   // Nothing to do if this is a combinational always block
-  auto i = ec->begin_events();
-  if ((*i)->get_type() == Event::Type::EDGE) {
+  if (ec->front_events()->get_type() == Event::Type::EDGE) {
     return;
   }
   
-  // Otherwise, push these triggers down inside of an @(posedge __clk)
+  // Check whether this block was machinified --- it will have a non-null id.
+  const auto is_sb = tcs->get_stmt()->is(Node::Tag::seq_block);
+  const auto is_mified = is_sb && static_cast<SeqBlock*>(tcs->get_stmt())->is_non_null_id();
+
+  // Push triggers down into a guard
+  auto i = ec->begin_events();
   Expression* guard = to_guard(*i++);
   for (auto ie = ec->end_events(); i != ie; ++i) {
     guard = new BinaryExpression(to_guard(*i), BinaryExpression::Op::PPIPE, guard);
   }
+
+  // Create a new block. If this code was machinified, we'll need to copy it's
+  // id and declarations up to here
+  auto* sb = new SeqBlock();
+  if (is_mified) {
+    auto* rhs = static_cast<SeqBlock*>(tcs->get_stmt());
+    sb->set_id(rhs->remove_id());
+    while (!rhs->empty_decls()) {
+      sb->push_back_decls(rhs->remove_front_decls());
+    }
+  }
+  // Create the control logic for the new block
+  if (!is_mified) {
+    sb->push_back_stmts(new ConditionalStatement(guard, tcs->get_stmt()->clone(), new SeqBlock()));
+  } else {
+    sb->push_back_stmts(new ConditionalStatement(
+      new Identifier("__reset"),
+      new NonblockingAssign(new VariableAssign(new Identifier("__state"), new Identifier("__final"))),
+      new ConditionalStatement(
+        guard,
+        new NonblockingAssign(new VariableAssign(new Identifier("__state"), new Number(Bits(false)))),
+        new ConditionalStatement(
+          new Identifier("__resume"),
+          tcs->get_stmt()->clone(),
+          new SeqBlock()
+        )
+      )
+    ));
+  }
+
+  // Push the new block down into a new always @(posedge __clk)        
   tcs->replace_ctrl(new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))));
-  tcs->replace_stmt(new ConditionalStatement(guard, tcs->get_stmt()->clone(), new SeqBlock()));
+  tcs->replace_stmt(sb);
 }
 
 Identifier* TriggerReschedule::to_guard(const Event* e) const {
