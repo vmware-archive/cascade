@@ -855,7 +855,7 @@ void TypeCheck::visit(const SeekStatement* ss) {
   Visitor::visit(ss);
   
   // Can't continue checking if arg is unreachable
-  const auto* id = Resolve().get_resolution(ss->get_arg());
+  const auto* id = Resolve().get_resolution(ss->get_id());
   if (id == nullptr){
     return;
   }

@@ -244,6 +244,7 @@ void De10Logic::set_input(const Input* i) {
 }
 
 void De10Logic::finalize() {
+  // Create interface streams for every stream variable
   ModuleInfo info(src_);
   for (auto* s : info.streams()) {
     const auto sid = Evaluate().get_value(s).to_int();
@@ -251,6 +252,49 @@ void De10Logic::finalize() {
       streams_.resize(sid+1, nullptr);
     }
     streams_[sid] = new interfacestream(interface(), sid);
+  }
+
+  // For every io task...
+  for (auto& io : io_tasks_) {
+    // Look up the stream variable that this task references
+    const Identifier* r = nullptr;
+    switch(get<0>(io)->get_tag()) {
+      case Node::Tag::get_statement:
+        r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
+        break;
+      case Node::Tag::put_statement:
+        r = Resolve().get_resolution(static_cast<const PutStatement*>(get<0>(io))->get_id());
+        break;
+      case Node::Tag::seek_statement:
+        r = Resolve().get_resolution(static_cast<const SeekStatement*>(get<0>(io))->get_id());
+        break;
+      default:
+        assert(false);
+        break;
+    }
+    assert(r != nullptr);
+
+    // Now that we've set state, we can use it's value to store a pointer to its underlying
+    // stream in the io_task index.
+    assert(Evaluate().get_value(r).to_int() < streams_.size());
+    get<1>(io) = streams_[Evaluate().get_value(r).to_int()];
+
+    // Also look up the set of eof checks that depend on this stream variable. Store the
+    // var info for those check in the index as well, so we can quickly(*ish*) update those
+    // values whenever we interact with this stream
+    const auto itr = eof_checks_.find(r);
+    assert(itr != eof_check_.end());
+    for (auto* i : itr->second) {
+      const auto titr = table_find(i);
+      assert(titr != table_end());
+      get<2>(io).push_back(titr->second);
+    }
+
+    // And while we're here, set the initial values for those checks
+    const auto val = get<1>(io)->eof();
+    for (auto& vinfo : get<2>(io)) {
+      write_scalar(vinfo, Bits(val));
+    }
   }
 }
 
@@ -399,10 +443,15 @@ const Identifier* De10Logic::open_loop_clock() const {
 }
 
 void De10Logic::visit(const EofExpression* ee) {
-  // Record this io task and insert a materialized instance of its stream arg
-  // into the variable table. It's a little bit of a hack to do this, but we
-  // only need a single bit, and we know we've got it here in the AST.
-  io_tasks_.push_back(ee);
+  // This isn't technically an io task, but it needs to be associated with io tasks
+  // that affect it.
+  const auto* s = Resolve().get_resolution(ee->get_arg());
+  assert(s != nullptr);
+  eof_checks_[s].push_back(ee->get_arg());
+
+  // Insert a materialized instance of its stream arg into the variable table.
+  // It's a little bit of a hack to do this, but we only need a single bit, and
+  // we know we've got it here in the AST. 
   Inserter i(this);
   ee->accept_arg(&i); 
 }
@@ -434,7 +483,7 @@ void De10Logic::visit(const FinishStatement* fs) {
 void De10Logic::visit(const GetStatement* gs) {
   // Record this io task and insert a materialized instance of its argument in
   // the variable table.
-  io_tasks_.push_back(gs);
+  io_tasks_.push_back(make_tuple(gs, nullptr, vector<VarInfo>()));
   Inserter i(this);
   gs->accept_var(&i); 
 }
@@ -450,7 +499,7 @@ void De10Logic::visit(const InfoStatement* is) {
 void De10Logic::visit(const PutStatement* ps) {
   // Record this io task and insert a materialized instance of its argument in
   // the variable table.
-  io_tasks_.push_back(ps);
+  io_tasks_.push_back(make_tuple(ps, nullptr, vector<VarInfo>()));
   Inserter i(this);
   ps->accept_var(&i); 
 }
@@ -462,7 +511,7 @@ void De10Logic::visit(const RetargetStatement* rs) {
 
 void De10Logic::visit(const SeekStatement* ss) {
   // Record this task, but no need to descend on its arguments (which are constants)
-  io_tasks_.push_back(ss);
+  io_tasks_.push_back(make_tuple(ss, nullptr, vector<VarInfo>()));
 }
 
 void De10Logic::visit(const WarningStatement* ws) {
@@ -562,36 +611,44 @@ void De10Logic::handle_io_tasks() {
     if ((queue & 0x1) == 0) {
       continue;
     }
-    switch (io_tasks_[i]->get_tag()) {
+    switch (get<0>(io_tasks_[i])->get_tag()) {
+      case Node::Tag::get_statement: {
+        const auto* gs = static_cast<const GetStatement*>(get<0>(io_tasks_[i]));
+
+        Bits temp;
+        temp.read(*get<1>(io_tasks_[i]), 16);
+        const auto itr = table_find(gs->get_var());
+        assert(itr != table_end());
+        write_scalar(itr->second, temp);
+
+        const auto val = get<1>(io_tasks_[i])->eof();
+        for (auto& vinfo : get<2>(io_tasks_[i])) {
+          write_scalar(vinfo, Bits(val));
+        }
+        break;
+      }  
       case Node::Tag::put_statement: {
-        const auto* ps = static_cast<const PutStatement*>(io_tasks_[i]);
-      
-        const auto* r = Resolve().get_resolution(ps->get_id());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
+        const auto* ps = static_cast<const PutStatement*>(get<0>(io_tasks_[i]));
 
         Sync sync(this);
         ps->accept_var(&sync);
         const auto& val = Evaluate().get_value(ps->get_var());
-        val.write(*streams_[sid], 16);
-        streams_[sid]->put(' ');
+        val.write(*get<1>(io_tasks_[i]), 16);
+        get<1>(io_tasks_[i])->put(' ');
 
         break;
       }
       case Node::Tag::seek_statement: {
-        const auto* ss = static_cast<const SeekStatement*>(io_tasks_[i]);
-
-        const auto* r = Resolve().get_resolution(ss->get_arg());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
+        const auto* ss = static_cast<const SeekStatement*>(get<0>(io_tasks_[i]));
 
         const auto pos = Evaluate().get_value(ss->get_pos()).to_int();
-        streams_[sid]->clear();
-        streams_[sid]->seekg(pos);
+        get<1>(io_tasks_[i])->clear();
+        get<1>(io_tasks_[i])->seekg(pos);
+
+        const auto val = get<1>(io_tasks_[i])->eof();
+        for (auto& vinfo : get<2>(io_tasks_[i])) {
+          write_scalar(vinfo, Bits(val));
+        }
 
         break;
       }
@@ -699,22 +756,6 @@ void De10Logic::prepare_io_tasks() {
         const auto itr = table_find(ee->get_arg());
         assert(itr != table_end());
         write_scalar(itr->second, Bits(streams_[sid]->eof()));
-
-        break;
-      }  
-      case Node::Tag::get_statement: {
-        const auto* gs = static_cast<const GetStatement*>(n);
-
-        const auto* r = Resolve().get_resolution(gs->get_id());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
-        scratch_.read(*streams_[sid], 16);
-
-        const auto itr = table_find(gs->get_var());
-        assert(itr != table_end());
-        write_scalar(itr->second, scratch_);
 
         break;
       }  

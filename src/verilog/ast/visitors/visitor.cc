@@ -315,7 +315,7 @@ void Visitor::visit(const SaveStatement* ss) {
 }
 
 void Visitor::visit(const SeekStatement* ss) {
-  ss->accept_arg(this);
+  ss->accept_id(this);
   ss->accept_pos(this);
 }
 

@@ -442,7 +442,7 @@ Statement* Builder::build(const SaveStatement* ss) {
 
 Statement* Builder::build(const SeekStatement* ss) {
   return new SeekStatement(
-    ss->accept_arg(this),
+    ss->accept_id(this),
     ss->accept_pos(this)
   );
 }

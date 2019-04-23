@@ -315,7 +315,7 @@ void Editor::edit(SaveStatement* ss) {
 }
 
 void Editor::edit(SeekStatement* ss) {
-  ss->accept_arg(this);
+  ss->accept_id(this);
   ss->accept_pos(this);
 }
 

@@ -41,7 +41,7 @@ namespace cascade {
 class SeekStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit SeekStatement(Identifier* arg__, Number* pos__);
+    explicit SeekStatement(Identifier* id__, Number* pos__);
     ~SeekStatement() override;
 
     // Node Interface:
@@ -49,27 +49,27 @@ class SeekStatement : public SystemTaskEnableStatement {
     SeekStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(SeekStatement, Identifier, arg)
+    PTR_GET_SET(SeekStatement, Identifier, id)
     PTR_GET_SET(SeekStatement, Number, pos)
 
   private:
-    PTR_ATTR(Identifier, arg);
+    PTR_ATTR(Identifier, id);
     PTR_ATTR(Number, pos);
 };
 
-inline SeekStatement::SeekStatement(Identifier* arg__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::seek_statement) {
-  PTR_SETUP(arg);
+inline SeekStatement::SeekStatement(Identifier* id__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::seek_statement) {
+  PTR_SETUP(id);
   PTR_SETUP(pos);
   parent_ = nullptr;
 }
 
 inline SeekStatement::~SeekStatement() {
-  PTR_TEARDOWN(arg);
+  PTR_TEARDOWN(id);
   PTR_TEARDOWN(pos);
 }
 
 inline SeekStatement* SeekStatement::clone() const {
-  return new SeekStatement(arg_->clone(), pos_->clone());
+  return new SeekStatement(id_->clone(), pos_->clone());
 }
 
 } // namespace cascade 

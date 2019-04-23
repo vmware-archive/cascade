@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
@@ -152,14 +153,12 @@ class De10Logic : public Logic, public Visitor {
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
-    std::vector<const Node*> io_tasks_; 
     std::vector<const SystemTaskEnableStatement*> sys_tasks_;
+    std::unordered_map<const Identifier*, std::vector<const Identifier*>> eof_checks_;
+    std::vector<std::tuple<const SystemTaskEnableStatement*, interfacestream*, std::vector<VarInfo>>> io_tasks_; 
 
     // Execution State:
     bool there_were_tasks_;
-
-    // Scratch Space:
-    Bits scratch_;
 
     // Visitor Interface:
     void visit(const EofExpression* ee) override;

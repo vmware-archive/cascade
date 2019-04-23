@@ -645,7 +645,7 @@ void Printer::visit(const SaveStatement* ss) {
 void Printer::visit(const SeekStatement* ss) {
   *this << Color::YELLOW << "$seek" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  ss->accept_arg(this);
+  ss->accept_id(this);
   *this << Color::RED << "," << Color::RESET;
   ss->accept_pos(this);
   *this << Color::RED << ");" << Color::RESET;

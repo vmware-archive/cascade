@@ -368,7 +368,7 @@ Statement* Rewriter::rewrite(SaveStatement* ss) {
 }
 
 Statement* Rewriter::rewrite(SeekStatement* ss) {
-  ss->accept_arg(this);
+  ss->accept_id(this);
   ss->accept_pos(this);
   return ss;
 }

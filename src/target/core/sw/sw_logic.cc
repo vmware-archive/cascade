@@ -502,7 +502,7 @@ void SwLogic::visit(const SaveStatement* ss) {
 
 void SwLogic::visit(const SeekStatement* ss) {
   if (!silent_) {
-    const auto* r = Resolve().get_resolution(ss->get_arg());
+    const auto* r = Resolve().get_resolution(ss->get_id());
     const auto itr = streams_.find(r);
     assert(itr != streams_.end());
 
