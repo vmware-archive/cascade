@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TEXT_MANGLE_H
 #define CASCADE_SRC_TARGET_CORE_DE10_PASS_TEXT_MANGLE_H
 
+#include <stddef.h>
 #include <vector>
 #include "src/verilog/ast/visitors/builder.h"
 #include "src/verilog/ast/visitors/visitor.h"

@@ -41,9 +41,6 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
 
-
-#include "src/verilog/print/term/term_printer.h"
-
 using namespace std;
 
 namespace cascade {
@@ -74,19 +71,14 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_state_vars(res);
 
   // Emit original program logic
-  TermPrinter(cout) << "BEFORE MANGLE " << md << "\n";
   TextMangle tm(md, de);
   md->accept_items(&tm, res->back_inserter_items());
-  TermPrinter(cout) << "AFTER MANGLE " << res << "\n";
   Machinify mfy;
   res->accept(&mfy);
-  TermPrinter(cout) << "AFTER MIFY " << res << "\n";
   FinishMangle fm(&tm);
   res->accept(&fm);
-  TermPrinter(cout) << "AFTER FINISH " << res << "\n";
   TriggerReschedule tr;
   res->accept(&tr);
-  TermPrinter(cout) << "AFTER RESCHED " << res << "\n";
 
   emit_update_logic(res, de);
   emit_task_logic(res, de);
