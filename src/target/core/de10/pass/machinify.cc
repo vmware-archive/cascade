@@ -138,6 +138,9 @@ void Machinify::Generate::visit(const SeqBlock* sb) {
 }
 
 void Machinify::Generate::visit(const CaseStatement* cs) {
+  // TODO(eschkufz) There are similar optimizations to the ones in
+  // ConditionalStatement that can still be made here.
+
   if (!IoCheck().run(cs)) {
     append(cs);
     return;
