@@ -31,6 +31,7 @@
 #include "src/target/core/de10/pass/finish_mangle.h"
 
 #include "src/target/core/de10/pass/text_mangle.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/ast/ast.h"
 
 namespace cascade {
@@ -40,68 +41,18 @@ FinishMangle::FinishMangle(TextMangle* tm) : Rewriter() {
 }
 
 Statement* FinishMangle::rewrite(NonblockingAssign* na) {
-  auto itr = tm_->find(na);
-  return (itr != tm_->end()) ? itr->second : na;
-}
-
-Statement* FinishMangle::rewrite(DisplayStatement* ds) {
-  auto itr = tm_->find(ds);
-  return (itr != tm_->end()) ? itr->second : ds;
-}
-
-Statement* FinishMangle::rewrite(ErrorStatement* es) {
-  auto itr = tm_->find(es);
-  return (itr != tm_->end()) ? itr->second : es;
-}
-
-Statement* FinishMangle::rewrite(FinishStatement* fs) {
-  auto itr = tm_->find(fs);
-  return (itr != tm_->end()) ? itr->second : fs;
-}
-
-Statement* FinishMangle::rewrite(GetStatement* gs) {
-  auto itr = tm_->find(gs);
-  return (itr != tm_->end()) ? itr->second : gs;
-}
-
-Statement* FinishMangle::rewrite(InfoStatement* is) {
-  auto itr = tm_->find(is);
-  return (itr != tm_->end()) ? itr->second : is;
-}
-
-Statement* FinishMangle::rewrite(PutStatement* ps) {
-  auto itr = tm_->find(ps);
-  return (itr != tm_->end()) ? itr->second : ps;
-}
-
-Statement* FinishMangle::rewrite(RestartStatement* rs) {
-  auto itr = tm_->find(rs);
-  return (itr != tm_->end()) ? itr->second : rs;
-}
-
-Statement* FinishMangle::rewrite(RetargetStatement* rs) {
-  auto itr = tm_->find(rs);
-  return (itr != tm_->end()) ? itr->second : rs;
-}
-
-Statement* FinishMangle::rewrite(SaveStatement* ss) {
-  auto itr = tm_->find(ss);
-  return (itr != tm_->end()) ? itr->second : ss;
-}
-
-Statement* FinishMangle::rewrite(SeekStatement* ss) {
-  auto itr = tm_->find(ss);
-  return (itr != tm_->end()) ? itr->second : ss;
-}
-
-Statement* FinishMangle::rewrite(WarningStatement* ws) {
-  auto itr = tm_->find(ws);
-  return (itr != tm_->end()) ? itr->second : ws;
-}
-
-Statement* FinishMangle::rewrite(WriteStatement* ws) {
-  auto itr = tm_->find(ws);
-  return (itr != tm_->end()) ? itr->second : ws;
+  const auto* id = na->get_assign()->get_lhs();
+  if (id->eq("__1")) {
+    assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
+    const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
+    return tm_->get_io(Evaluate().get_value(n).to_int());
+  }
+  if (id->eq("__2")) {
+    assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
+    const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
+    return tm_->get_task(Evaluate().get_value(n).to_int());
+  }
+  return na;
 }
 
 } // namespace cascade

@@ -30,37 +30,30 @@
 
 #include "src/target/core/de10/pass/machinify.h"
 
-#include "src/target/core/de10/pass/text_mangle.h"
 #include "src/verilog/ast/ast.h"
 
 using namespace std;
 
 namespace cascade {
 
-Machinify::Machinify(TextMangle* tm) : Editor() { 
-  tm_ = tm;
-}
+Machinify::Machinify() : Editor() { }
 
 Machinify::IoCheck::IoCheck() : Visitor() { }
 
-bool Machinify::IoCheck::run(const AlwaysConstruct* ac) {
+bool Machinify::IoCheck::run(const Node* n) {
   res_ = false; 
-  ac->accept(this);
+  n->accept(this);
   return res_;
 }
 
-void Machinify::IoCheck::visit(const GetStatement* gs) {
-  (void) gs;
-  res_ = true;
+void Machinify::IoCheck::visit(const NonblockingAssign* na) {
+  const auto* i = na->get_assign()->get_lhs();
+  if (i->eq("__1")) {
+    res_ = true;
+  }
 }
 
-void Machinify::IoCheck::visit(const PutStatement* ps) {
-  (void) ps;
-  res_ = true;
-}
-
-Machinify::Generate::Generate(TextMangle* tm, size_t idx) : Visitor() { 
-  tm_ = tm;
+Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
 }
 
@@ -69,13 +62,24 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
   machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
   next_state();
   s->accept(this);
-  // Add final transition to done state
+
+  // Now we need a done state. If the last state in the machine is currently
+  // empty, then we can use that one. Otherwise, we'll have to create one last
+  // transition to a new state.
   auto c = current();
-  transition(c.second, c.first+1);
-  machine_->push_back_items(new CaseItem(new NonblockingAssign(new VariableAssign(
-    new Identifier("__state"),
-    new Number(Bits(32, c.first+1))
-  ))));
+  if (c.second->empty_stmts()) {
+    assert(c.second->get_parent()->is(Node::Tag::case_item));
+    auto* ci = static_cast<CaseItem*>(c.second->get_parent());
+    ci->purge_exprs();
+    transition(c.first);
+  } else {
+    transition(c.second, c.first+1);
+    machine_->push_back_items(new CaseItem(new NonblockingAssign(new VariableAssign(
+      new Identifier("__state"),
+      new Number(Bits(32, c.first+1))
+    ))));
+  }
+
   // Add declaration for state register 
   auto* sb = new SeqBlock(machine_);
   sb->replace_id(name());
@@ -106,6 +110,27 @@ void Machinify::Generate::visit(const BlockingAssign* ba) {
 
 void Machinify::Generate::visit(const NonblockingAssign* na) {
   append(na);
+
+  // We have the invariant that our code doesn't have any nested seq blocks
+  // (which we didn't introduce ourselves, and those by construction won't have
+  // any io tasks inside them).  So if this is the last statement in a seq
+  // block, it's already sitting at a state boundary, and there's no need to
+  // introduce another break.
+  const auto* p = na->get_parent();
+  if (p->is(Node::Tag::seq_block)) {
+    const auto* sb = static_cast<const SeqBlock*>(p);
+    if (sb->back_stmts() == na) {
+      return;
+    }
+  }
+
+  // Otherwise, if this is an io statement, we'll need to break for a state
+  // transition.
+  const auto* id = na->get_assign()->get_lhs();
+  if (id->eq("__1")) {
+    transition(current().first+1);
+    next_state();
+  }
 }
 
 void Machinify::Generate::visit(const SeqBlock* sb) {
@@ -113,6 +138,11 @@ void Machinify::Generate::visit(const SeqBlock* sb) {
 }
 
 void Machinify::Generate::visit(const CaseStatement* cs) {
+  if (!IoCheck().run(cs)) {
+    append(cs);
+    return;
+  } 
+
   const auto begin = current();
 
   vector<pair<size_t, SeqBlock*>> begins;
@@ -146,18 +176,48 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
 }
 
 void Machinify::Generate::visit(const ConditionalStatement* cs) {
+  // No need to split a conditional statement that doesn't have any io
+  if (!IoCheck().run(cs)) {
+    append(cs);
+    return;
+  }
+
+  // Check whether this conditional has an empty else branch
+  const auto empty_else = 
+    cs->get_else()->is(Node::Tag::seq_block) &&
+    static_cast<const SeqBlock*>(cs->get_else())->empty_stmts();
+  // Check whether this is the last statement in a seq block
+  const auto last_stmt = 
+    cs->get_parent()->is(Node::Tag::seq_block) &&
+    static_cast<const SeqBlock*>(cs->get_parent())->back_stmts() == cs;
+
+  // Record the current state
   const auto begin = current();
 
+  // We definitely need a new state for the true branch
   next_state();
   const auto then_begin = current();
   cs->get_then()->accept(this);
   const auto then_end = current();
-  
-  next_state();
+
+  // We only need a new state for the else branch if it's non-empty.
+  if (!empty_else) {
+    next_state();
+  }
   const auto else_begin = current();
   cs->get_else()->accept(this);
   const auto else_end = current();
+
+  // And if this ISNT the last statement in a seq block or we have a non-empty
+  // else, we need a phi node to join the two. 
+  const auto phi_node = !empty_else || !last_stmt;
+  if (phi_node) {
+    next_state();
+  }
   
+  // And now we need transitions between the branches. The true branch always
+  // goes to tbe beginning of the then state, and the else branch either goes
+  // to the beginning of the else state or one past the end of the then state.
   auto* branch = new ConditionalStatement(
     cs->get_if()->clone(),
     new NonblockingAssign(new VariableAssign(
@@ -166,68 +226,19 @@ void Machinify::Generate::visit(const ConditionalStatement* cs) {
     )),
     new NonblockingAssign(new VariableAssign(
       new Identifier("__state"),
-      new Number(Bits(32, else_begin.first))
+      new Number(Bits(32, !empty_else ? else_begin.first : (then_end.first + 1)))
     ))
   );
   append(begin.second, branch);
 
-  next_state();
-  transition(then_end.second, current().first);
-  transition(else_end.second, current().first);
-}
-
-void Machinify::Generate::visit(const DisplayStatement* ds) {
-  append(ds);
-}
-
-void Machinify::Generate::visit(const ErrorStatement* es) {
-  append(es);
-}
-
-void Machinify::Generate::visit(const FinishStatement* fs) {
-  append(fs);
-}
-
-void Machinify::Generate::visit(const GetStatement* gs) {
-  append(gs);
-  transition(current().first+1);
-  next_state();
-}
-
-void Machinify::Generate::visit(const InfoStatement* is) {
-  append(is);
-}
-
-void Machinify::Generate::visit(const PutStatement* ps) {
-  append(ps);
-  transition(current().first+1);
-  next_state();
-}
-
-void Machinify::Generate::visit(const RestartStatement* rs) {
-  append(rs);
-}
-
-void Machinify::Generate::visit(const RetargetStatement* rs) {
-  append(rs);
-}
-
-void Machinify::Generate::visit(const SaveStatement* ss) {
-  append(ss);
-}
-
-void Machinify::Generate::visit(const SeekStatement* ss) {
-  append(ss);
-  transition(current().first+1);
-  next_state();
-}
-
-void Machinify::Generate::visit(const WarningStatement* ws) {
-  append(ws);
-}
-
-void Machinify::Generate::visit(const WriteStatement* ws) {
-  append(ws);
+  // If we emitted a phi node, the then branch goes there (to the current state).
+  // And if the else branch was non-empty, it goes there as well.
+  if (phi_node) {
+    transition(then_end.second, current().first);
+    if (!empty_else) {
+      transition(else_end.second, current().first);
+    }
+  }
 }
 
 pair<size_t, SeqBlock*> Machinify::Generate::current() const {
@@ -243,9 +254,6 @@ void Machinify::Generate::append(const Statement* s) {
 
 void Machinify::Generate::append(SeqBlock* sb, const Statement* s) {
   auto* c = s->clone();
-  if (tm_->find(s) != tm_->end()) {
-    tm_->replace(s, c);
-  }
   sb->push_back_stmts(c);
 }
 
@@ -312,7 +320,7 @@ void Machinify::edit(AlwaysConstruct* ac) {
     return;
   }
   // Otherwise, replace this block with a reentrant state machine
-  Generate gen(tm_, generators_.size());
+  Generate gen(generators_.size());
   auto* machine = gen.run(tcs->get_stmt());
   auto* ctrl = ec->clone();
   ac->replace_stmt(new TimingControlStatement(ctrl, machine));

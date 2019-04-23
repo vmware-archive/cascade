@@ -37,10 +37,10 @@ namespace cascade {
 
 class TextMangle;
 
-// Pass 4: 
+// Pass 3: 
 //
 // Now that we're done using system tasks as landmarks and we don't have to
-// worry about introducing new conditionals, go ahead and replace everything
+// worry about introducing new conditionals, we can replace everything
 // from pass 1
 
 class FinishMangle : public Rewriter {
@@ -50,20 +50,7 @@ class FinishMangle : public Rewriter {
 
   private:
     TextMangle* tm_;
-
     Statement* rewrite(NonblockingAssign* na) override;
-    Statement* rewrite(DisplayStatement* ds) override;
-    Statement* rewrite(ErrorStatement* es) override;
-    Statement* rewrite(FinishStatement* fs) override;
-    Statement* rewrite(GetStatement* gs) override;
-    Statement* rewrite(InfoStatement* is) override;
-    Statement* rewrite(PutStatement* ps) override;
-    Statement* rewrite(RestartStatement* rs) override;
-    Statement* rewrite(RetargetStatement* rs) override;
-    Statement* rewrite(SaveStatement* ss) override; 
-    Statement* rewrite(SeekStatement* ss) override;
-    Statement* rewrite(WarningStatement* ws) override;
-    Statement* rewrite(WriteStatement* ws) override;
 };
 
 } // namespace cascade

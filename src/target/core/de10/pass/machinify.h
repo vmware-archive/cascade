@@ -39,16 +39,16 @@
 
 namespace cascade {
 
-class TextMangle;
-
-// Pass 3: 
+// Pass 2: 
 //        
 // Transform always blocks into continuation-passing state machines if they
-// contain io tasks.
+// contain io tasks. This pass uses system tasks and io tasks as landmarks,
+// but recall that they've been replaced by non-blocking assigns to sentinal
+// locations in pass 1.
 
 class Machinify : public Editor {
   public:
-    Machinify(TextMangle* tm);
+    Machinify();
     ~Machinify() override = default;
 
   private:
@@ -59,18 +59,17 @@ class Machinify : public Editor {
         IoCheck();
         ~IoCheck() override = default;
 
-        bool run(const AlwaysConstruct* ac);
+        bool run(const Node* n);
 
       private:
         bool res_;
-        void visit(const GetStatement* gs) override;
-        void visit(const PutStatement* ps) override;
+        void visit(const NonblockingAssign* na) override;
     };
 
     // State Machine Construction Helpers:
     class Generate : public Visitor {
       public:
-        Generate(TextMangle* tm, size_t idx);
+        Generate(size_t idx);
         ~Generate() = default;
 
         SeqBlock* run(const Statement* s);
@@ -78,7 +77,6 @@ class Machinify : public Editor {
         size_t final_state() const;
 
       private:
-        TextMangle* tm_;
         CaseStatement* machine_;
         size_t idx_;
 
@@ -87,18 +85,6 @@ class Machinify : public Editor {
         void visit(const SeqBlock* sb) override;
         void visit(const CaseStatement* cs) override;
         void visit(const ConditionalStatement* cs) override;
-        void visit(const DisplayStatement* ds) override;
-        void visit(const ErrorStatement* es) override;
-        void visit(const FinishStatement* fs) override;
-        void visit(const GetStatement* gs) override;
-        void visit(const InfoStatement* is) override;
-        void visit(const PutStatement* ps) override;
-        void visit(const RestartStatement* rs) override;
-        void visit(const RetargetStatement* rs) override;
-        void visit(const SaveStatement* ss) override; 
-        void visit(const SeekStatement* ss) override;
-        void visit(const WarningStatement* ws) override;
-        void visit(const WriteStatement* ws) override;
 
         std::pair<size_t, SeqBlock*> current() const;
         void append(const Statement* s);
@@ -108,7 +94,6 @@ class Machinify : public Editor {
         void next_state();
     };
 
-    TextMangle* tm_;
     std::vector<Generate> generators_;
 
     void edit(ModuleDeclaration* md) override;

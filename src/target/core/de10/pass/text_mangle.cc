@@ -32,6 +32,7 @@
 
 #include <sstream>
 #include "src/target/core/de10/de10_logic.h"
+#include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
 
@@ -39,33 +40,138 @@ using namespace std;
 
 namespace cascade {
 
-TextMangle::TextMangle(const De10Logic* de) : Visitor() {
+TextMangle::TextMangle(const ModuleDeclaration* md, const De10Logic* de) : Builder() {
+  md_ = md;
   de_ = de;
-  within_task_ = false;
-  io_idx_ = 0;
-  task_idx_ = 0;
 }
 
-void TextMangle::replace(const Statement* s1, const Statement* s2) {
-  auto itr = reps_.find(s1);
-  assert(itr != reps_.end());
-  reps_.insert(make_pair(s2, itr->second));
-  reps_.erase(itr);
+Statement* TextMangle::get_io(size_t i) {
+  assert(i < ios_.size());
+  return ios_[i];
 }
 
-TextMangle::iterator TextMangle::find(const Statement* s) {
-  return reps_.find(s);
+Statement* TextMangle::get_task(size_t i) {
+  assert(i < tasks_.size());
+  return tasks_[i];
 }
 
-TextMangle::iterator TextMangle::begin() {
-  return reps_.begin();
+Attributes* TextMangle::build(const Attributes* as) {
+  (void) as;
+  return new Attributes();
 }
 
-TextMangle::iterator TextMangle::end() {
-  return reps_.end();
+ModuleItem* TextMangle::build(const RegDeclaration* rd) {
+  return ModuleInfo(md_).is_stateful(rd->get_id()) ? nullptr : rd->clone();
 }
 
-void TextMangle::visit(const NonblockingAssign* na) {
+ModuleItem* TextMangle::build(const PortDeclaration* pd) {
+  ModuleInfo info(md_);
+  if (info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id())) {
+    return nullptr;
+  } else {
+    return pd->get_decl()->clone();
+  }
+}
+
+Expression* TextMangle::build(const EofExpression* ee) {
+  // This is a bit confusing: the de10 compiler has created an entry in the
+  // variable table for the argument to this expression (like we do with
+  // arguments to display statements). Prior to transfering control to the fpga
+  // we'll place the result of this eof check into this location in hardware.
+  const auto itr = de_->table_find(ee->get_arg());
+  assert(itr != de_->table_end());
+  return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
+}
+
+Statement* TextMangle::build(const NonblockingAssign* na) {
+  Mangle m(de_, false, ios_.size(), tasks_.size());
+  na->accept(&m);
+  return m.res_;
+}
+
+Statement* TextMangle::build(const DisplayStatement* ds) {
+  return save_task(ds);
+}
+
+Statement* TextMangle::build(const ErrorStatement* es) {
+  return save_task(es);
+}
+
+Statement* TextMangle::build(const FinishStatement* fs) {
+  return save_task(fs);
+}
+
+Statement* TextMangle::build(const GetStatement* gs) {
+  return save_io(gs);
+}
+
+Statement* TextMangle::build(const InfoStatement* is) {
+  return save_task(is);
+}
+
+Statement* TextMangle::build(const PutStatement* ps) {
+  return save_io(ps);
+}
+
+Statement* TextMangle::build(const RestartStatement* rs) {
+  return save_task(rs);
+}
+
+Statement* TextMangle::build(const RetargetStatement* rs) {
+  return save_task(rs);
+}
+
+Statement* TextMangle::build(const SaveStatement* ss) {
+  return save_task(ss);
+}
+
+Statement* TextMangle::build(const SeekStatement* ss) {
+  return save_io(ss);
+}
+
+Statement* TextMangle::build(const WarningStatement* ws) {
+  return save_task(ws);
+}
+
+Statement* TextMangle::build(const WriteStatement* ws) {
+  return save_task(ws);
+}
+
+Statement* TextMangle::save_io(const Statement* s) {
+  Mangle m(de_, true, ios_.size(), tasks_.size());
+  s->accept(&m);
+
+  auto* res = new NonblockingAssign(new VariableAssign(
+    new Identifier("__1"), 
+    new Number(Bits(32, ios_.size()))
+  ));
+  ios_.push_back(m.res_);
+
+  return res;
+}
+
+Statement* TextMangle::save_task(const Statement* s) {
+  Mangle m(de_, true, ios_.size(), tasks_.size());
+  s->accept(&m);
+
+  auto* res = new NonblockingAssign(new VariableAssign(
+    new Identifier("__2"), 
+    new Number(Bits(32, tasks_.size()))
+  ));
+  tasks_.push_back(m.res_);
+
+  return res;
+}
+
+TextMangle::Mangle::Mangle(const De10Logic* de, bool within_task, size_t io_idx, size_t task_idx) {
+  de_ = de;
+  within_task_ = within_task;
+  io_idx_ = io_idx;
+  task_idx_ = task_idx;
+  res_ = nullptr;
+}
+
+void TextMangle::Mangle::visit(const NonblockingAssign* na) {
   // Create empty blocks for true and false branches (we'll never populate the
   // false branch)
   auto* t = new SeqBlock();
@@ -107,10 +213,10 @@ void TextMangle::visit(const NonblockingAssign* na) {
   ));
 
   // Return a conditional statement in place of the original assignment
-  reps_[na] = new SeqBlock(new ConditionalStatement(new Identifier("__live"), t, f));
+  res_ = new SeqBlock(new ConditionalStatement(new Identifier("__live"), t, f));
 }
 
-void TextMangle::visit(const Identifier* id) {
+void TextMangle::Mangle::visit(const Identifier* id) {
   if (!within_task_) {
     return;
   }
@@ -160,7 +266,7 @@ void TextMangle::visit(const Identifier* id) {
     rhs->push_back_exprs(lsbs);
 
     // Attach the concatenation to an assignment, we'll always have enough bits now
-    t_->push_back_stmts(new NonblockingAssign(
+    res_->push_back_stmts(new NonblockingAssign(
       new VariableAssign(
         new Identifier(new Id("__var"), new Number(Bits(32, titr->second.index()+i))),
         rhs
@@ -169,82 +275,81 @@ void TextMangle::visit(const Identifier* id) {
   }
 }
 
-void TextMangle::visit(const DisplayStatement* ds) {
+void TextMangle::Mangle::visit(const DisplayStatement* ds) {
   begin_mangle_task();
   ds->accept_args(this);
-  finish(ds);
+  finish();
 }
 
-void TextMangle::visit(const ErrorStatement* es) {
+void TextMangle::Mangle::visit(const ErrorStatement* es) {
   begin_mangle_task();
   es->accept_args(this);
-  finish(es);
+  finish();
 }
 
-void TextMangle::visit(const FinishStatement* fs) {
+void TextMangle::Mangle::visit(const FinishStatement* fs) {
   begin_mangle_task();
   fs->accept_arg(this);
-  finish(fs);
+  finish();
 }
 
-void TextMangle::visit(const GetStatement* gs) {
+void TextMangle::Mangle::visit(const GetStatement* gs) {
   (void) gs;
   begin_mangle_io();
-  finish(gs);
+  finish();
 }
 
-void TextMangle::visit(const InfoStatement* is) {
+void TextMangle::Mangle::visit(const InfoStatement* is) {
   begin_mangle_task();
   is->accept_args(this);
-  finish(is);
+  finish();
 }
 
-void TextMangle::visit(const PutStatement* ps) {
+void TextMangle::Mangle::visit(const PutStatement* ps) {
   (void) ps;
   begin_mangle_io();
-  finish(ps);
+  finish();
 }
 
-void TextMangle::visit(const RestartStatement* rs) {
+void TextMangle::Mangle::visit(const RestartStatement* rs) {
   (void) rs;
   begin_mangle_task();
-  finish(rs);
+  finish();
 }
 
-void TextMangle::visit(const RetargetStatement* rs) {
+void TextMangle::Mangle::visit(const RetargetStatement* rs) {
   (void) rs;
   begin_mangle_task();
-  finish(rs);
+  finish();
 }
 
-void TextMangle::visit(const SaveStatement* ss) {
+void TextMangle::Mangle::visit(const SaveStatement* ss) {
   (void) ss;
   begin_mangle_task();
-  finish(ss);
+  finish();
 }
 
-void TextMangle::visit(const SeekStatement* ss) {
+void TextMangle::Mangle::visit(const SeekStatement* ss) {
   (void) ss;
   begin_mangle_io();
-  finish(ss);
+  finish();
 }
 
-void TextMangle::visit(const WarningStatement* ws) {
+void TextMangle::Mangle::visit(const WarningStatement* ws) {
   begin_mangle_task();
   ws->accept_args(this);
-  finish(ws);
+  finish();
 }
 
-void TextMangle::visit(const WriteStatement* ws) {
+void TextMangle::Mangle::visit(const WriteStatement* ws) {
   begin_mangle_task();
   ws->accept_args(this);
-  finish(ws);
+  finish();
 }
 
-void TextMangle::begin_mangle_io() {
-  within_task_ = true;
-  t_ = new SeqBlock();
-  t_->push_back_stmts(new NonblockingAssign(
+void TextMangle::Mangle::begin_mangle_io() {
+  res_ = new SeqBlock();
+  res_->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
         new Id("__next_io_mask"),
@@ -259,13 +364,11 @@ void TextMangle::begin_mangle_io() {
       )
     )    
   ));
-  ++io_idx_;
 }
 
-void TextMangle::begin_mangle_task() {
-  within_task_ = true;
-  t_ = new SeqBlock();
-  t_->push_back_stmts(new NonblockingAssign(
+void TextMangle::Mangle::begin_mangle_task() {
+  res_ = new SeqBlock();
+  res_->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
         new Id("__next_task_mask"),
@@ -280,15 +383,13 @@ void TextMangle::begin_mangle_task() {
       )
     )    
   ));
-  ++task_idx_;
 }
 
-void TextMangle::finish(const SystemTaskEnableStatement* s) {
-  within_task_ = false;
-  reps_[s] = new SeqBlock(new ConditionalStatement(new Identifier("__live"), t_, new SeqBlock()));
+void TextMangle::Mangle::finish() {
+  res_ = new SeqBlock(new ConditionalStatement(new Identifier("__live"), res_, new SeqBlock()));
 }
 
-Expression* TextMangle::get_table_range(const Identifier* r, const Identifier* i) {
+Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
   const auto titr = de_->table_find(r);
   assert(titr != de_->table_end());

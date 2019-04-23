@@ -93,7 +93,7 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
 }
 
 Identifier* TriggerReschedule::to_guard(const Event* e) const {
-  assert(e->get_expr()-is(Node::Tag::identifier));
+  assert(e->get_expr()->is(Node::Tag::identifier));
   const auto* i = static_cast<const Identifier*>(e->get_expr());
 
   switch (e->get_type()) {

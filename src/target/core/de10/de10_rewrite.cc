@@ -34,13 +34,15 @@
 #include "src/target/core/de10/de10_logic.h"
 #include "src/target/core/de10/pass/finish_mangle.h"
 #include "src/target/core/de10/pass/machinify.h"
-#include "src/target/core/de10/pass/rewrite_text.h"
 #include "src/target/core/de10/pass/text_mangle.h"
 #include "src/target/core/de10/pass/trigger_reschedule.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
+
+
+#include "src/verilog/print/term/term_printer.h"
 
 using namespace std;
 
@@ -72,16 +74,19 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_state_vars(res);
 
   // Emit original program logic
-  TextMangle tm(de);
-  md->accept_items(&tm);
-  RewriteText rt(md, de, &tm);
-  md->accept_items(&rt, res->back_inserter_items());
-  Machinify mfy(&tm);
+  TermPrinter(cout) << "BEFORE MANGLE " << md << "\n";
+  TextMangle tm(md, de);
+  md->accept_items(&tm, res->back_inserter_items());
+  TermPrinter(cout) << "AFTER MANGLE " << res << "\n";
+  Machinify mfy;
   res->accept(&mfy);
+  TermPrinter(cout) << "AFTER MIFY " << res << "\n";
   FinishMangle fm(&tm);
   res->accept(&fm);
+  TermPrinter(cout) << "AFTER FINISH " << res << "\n";
   TriggerReschedule tr;
   res->accept(&tr);
+  TermPrinter(cout) << "AFTER RESCHED " << res << "\n";
 
   emit_update_logic(res, de);
   emit_task_logic(res, de);
