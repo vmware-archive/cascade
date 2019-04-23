@@ -88,7 +88,7 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
   ));
   // Add a localparam declaration for final state
   sb->push_back_decls(new LocalparamDeclaration(
-    new Attributes(), false, new Identifier("__final"), new Number(Bits(32, c.first+1))
+    new Attributes(), false, new Identifier("__final"), new Number(Bits(32, machine_->size_items()-1))
   ));
 
   return sb;
