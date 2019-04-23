@@ -152,8 +152,10 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
 
+  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
+
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(de->open_loop_idx()+1, 0)), false, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(table_dim, 0)), false, new RangeExpression(32, 0), nullptr
   ));
 }
 
@@ -451,11 +453,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new BinaryExpression(
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_are_updates")),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(
-          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks")),
-          BinaryExpression::Op::AAMP,
-          new Identifier("__done")
-        )
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
       )
     )
   )));
@@ -485,10 +483,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
         new Identifier("__open_loop_tick"),
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
         new ConditionalExpression(
-          new BinaryExpression(
-            new Identifier("__there_were_tasks"), 
-            BinaryExpression::Op::PPIPE, 
-            new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done"))), 
+          new Identifier("__there_were_tasks"), 
           new Number(Bits(false)), 
           new Identifier("__open_loop")
         )

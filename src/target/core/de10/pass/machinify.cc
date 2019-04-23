@@ -308,10 +308,9 @@ void Machinify::edit(AlwaysConstruct* ac) {
     return;
   }
   // Also nothing to do if there's no file i/o in this block
-  // TODO(eschkufz) turn this back on
-  // if (!IoCheck().run(ac)) {
-  //  return;
-  //}
+  if (!IoCheck().run(ac)) {
+    return;
+  }
   // Otherwise, replace this block with a reentrant state machine
   Generate gen(tm_, generators_.size());
   auto* machine = gen.run(tcs->get_stmt());
@@ -321,4 +320,3 @@ void Machinify::edit(AlwaysConstruct* ac) {
 }
 
 } // namespace cascade
-

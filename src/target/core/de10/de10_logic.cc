@@ -286,6 +286,13 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
+  // If there are io tasks we're not going to stay in open loop for
+  // very long, so just fall back to the default implementation which
+  // is based on calls to evaluate and update.
+  if (!io_tasks_.empty()) {
+    return Core::open_loop(clk, val, itr);
+  }
+
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
@@ -293,7 +300,6 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   // Go into open loop mode and handle tasks when we return. No need
   // to handle outputs. This methods assumes that we don't have any.
   DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
-  wait_until_done();
   handle_sys_tasks();
 
   // Return the number of iterations that we ran for
