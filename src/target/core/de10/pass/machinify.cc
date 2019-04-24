@@ -296,10 +296,12 @@ void Machinify::edit(ModuleDeclaration* md) {
   for (auto& g : generators_) {
     auto* var = g.name();
     var->push_back_ids(new Id("__state"));
+    auto* fin = g.name();
+    fin->push_back_ids(new Id("__final"));
     c->push_back_exprs(new BinaryExpression(
       var,
       BinaryExpression::Op::EEQ,
-      new Number(Bits(32, g.final_state()))
+      fin
     ));
   }
   md->push_back_items(new ContinuousAssign(new VariableAssign(

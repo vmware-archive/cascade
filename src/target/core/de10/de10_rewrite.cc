@@ -463,7 +463,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
         BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->live_idx())))
       ),
-      new Number(Bits(true)),
+      new Identifier("__in"),
       new Identifier("__live")
     )
   )));
@@ -530,9 +530,11 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
       p->is(Node::Tag::warning_statement) ||
       p->is(Node::Tag::write_statement);
     const auto in_pull_task = 
-      p->is(Node::Tag::eof_expression) ||
-      p->is(Node::Tag::get_statement);
+      p->is(Node::Tag::eof_expression);
 
+    // If this variable wasn't materialized (meaning it's not in the table)
+    // or it's inside of a push task (one that only sends data to the host)
+    // we don't need to emit any update logic.
     if (!t->second.materialized() || in_push_task) {
       continue;
     }
@@ -544,12 +546,8 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     for (size_t i = 0, ie = t->second.elements(); i < ie; ++i) {
       for (size_t j = 0, je = t->second.element_size(); j < je; ++j) {
         auto* lhs = new Identifier(new Id("__var"), new Number(Bits(32, idx)));
-        auto* r = t->first->clone();
-        r->purge_dim();
-        emit_subscript(r, i, ie, arity);
-        emit_slice(r, w, j);
-        Expression* rhs = r;
 
+        Expression* rhs = lhs->clone();
         if (ModuleInfo(md).is_stateful(t->first) && !in_pull_task) {
           auto* id = new Identifier(t->first->front_ids()->get_readable_sid() + "_next");
           emit_subscript(id, i, ie, arity);
@@ -562,8 +560,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
             id,
             rhs
           );
-        }
-
+        } 
         rhs = new ConditionalExpression(
           new BinaryExpression(
             new Identifier("__read"),
@@ -573,7 +570,6 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
           new Identifier("__in"),
           rhs
         );
-  
         if (de->open_loop_enabled() && (t->first == de->open_loop_clock())) {
           auto* concat = new Concatenation();
           concat->push_back_exprs(new Number(Bits(31, 0), Number::Format::BIN));

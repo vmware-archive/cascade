@@ -199,8 +199,8 @@ void De10Logic::set_state(const State* s) {
   }
 
   DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
-  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
+  DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
+  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
@@ -238,8 +238,8 @@ void De10Logic::set_input(const Input* i) {
   }
 
   DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
-  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
+  DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
+  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
   DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
@@ -585,14 +585,10 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
 
 void De10Logic::wait_until_done() {
   while (!DE10_READ(MANGLE(addr_, done_idx()))) {
-    //cout << "handle io..." << endl;
     handle_io_tasks();
     DE10_WRITE(MANGLE(addr_, resume_idx()), 1);
   }
-  //cout << "last io..." << endl;
   handle_io_tasks();
-  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);  
-  //cout << "done" << endl;
 }
 
 void De10Logic::handle_outputs() {
@@ -608,7 +604,6 @@ void De10Logic::handle_io_tasks() {
     return;
   }
 
-  //cout << hex << "IO QUEUE = " << queue << dec << endl;
   for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
     if ((queue & 0x1) == 0) {
       continue;
@@ -622,12 +617,10 @@ void De10Logic::handle_io_tasks() {
         const auto itr = table_find(Resolve().get_resolution(gs->get_var()));
         assert(itr != table_end());
         write_scalar(itr->second, temp);
-        //cout << "$get() = " << temp.to_int() << endl;
 
         const auto val = get<1>(io_tasks_[i])->eof();
         for (auto& vinfo : get<2>(io_tasks_[i])) {
           write_scalar(vinfo, Bits(val));
-          //cout << " eof(" << vinfo.index() << ") = " << val << endl;
         }
         break;
       }  
@@ -648,11 +641,9 @@ void De10Logic::handle_io_tasks() {
         get<1>(io_tasks_[i])->clear();
         get<1>(io_tasks_[i])->seekg(pos);
 
-        //cout << "$seek to = " << pos << endl;
         const auto val = get<1>(io_tasks_[i])->eof();
         for (auto& vinfo : get<2>(io_tasks_[i])) {
           write_scalar(vinfo, Bits(val));
-          //cout << " eof(" << vinfo.index() << ") = " << val << endl;
         }
         break;
       }
