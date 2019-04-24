@@ -10,7 +10,7 @@ stream s = $fopen("data/test/benchmark/regex/iliad.hex");
 always @(posedge clock.val) begin
   $get(s, char);
   if ($eof(s)) begin
-    if (itr == 16) begin
+    if (itr == 64) begin
       $write(count);
       $finish(0);
     end else begin
