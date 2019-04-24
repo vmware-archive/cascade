@@ -481,11 +481,9 @@ void De10Logic::visit(const FinishStatement* fs) {
 }
 
 void De10Logic::visit(const GetStatement* gs) {
-  // Record this io task and insert a materialized instance of its argument in
-  // the variable table.
+  // Record this io task, but no need to descend on its argument.
+  // We'll write its target directly when he handle it.
   io_tasks_.push_back(make_tuple(gs, nullptr, vector<VarInfo>()));
-  Inserter i(this);
-  gs->accept_var(&i); 
 }
 
 void De10Logic::visit(const InfoStatement* is) {
@@ -587,11 +585,14 @@ void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
 
 void De10Logic::wait_until_done() {
   while (!DE10_READ(MANGLE(addr_, done_idx()))) {
+    //cout << "handle io..." << endl;
     handle_io_tasks();
     DE10_WRITE(MANGLE(addr_, resume_idx()), 1);
   }
+  //cout << "last io..." << endl;
   handle_io_tasks();
   DE10_WRITE(MANGLE(addr_, reset_idx()), 1);  
+  //cout << "done" << endl;
 }
 
 void De10Logic::handle_outputs() {
@@ -607,6 +608,7 @@ void De10Logic::handle_io_tasks() {
     return;
   }
 
+  //cout << hex << "IO QUEUE = " << queue << dec << endl;
   for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
     if ((queue & 0x1) == 0) {
       continue;
@@ -617,13 +619,15 @@ void De10Logic::handle_io_tasks() {
 
         Bits temp;
         temp.read(*get<1>(io_tasks_[i]), 16);
-        const auto itr = table_find(gs->get_var());
+        const auto itr = table_find(Resolve().get_resolution(gs->get_var()));
         assert(itr != table_end());
         write_scalar(itr->second, temp);
+        //cout << "$get() = " << temp.to_int() << endl;
 
         const auto val = get<1>(io_tasks_[i])->eof();
         for (auto& vinfo : get<2>(io_tasks_[i])) {
           write_scalar(vinfo, Bits(val));
+          //cout << " eof(" << vinfo.index() << ") = " << val << endl;
         }
         break;
       }  
@@ -635,7 +639,6 @@ void De10Logic::handle_io_tasks() {
         const auto& val = Evaluate().get_value(ps->get_var());
         val.write(*get<1>(io_tasks_[i]), 16);
         get<1>(io_tasks_[i])->put(' ');
-
         break;
       }
       case Node::Tag::seek_statement: {
@@ -645,14 +648,16 @@ void De10Logic::handle_io_tasks() {
         get<1>(io_tasks_[i])->clear();
         get<1>(io_tasks_[i])->seekg(pos);
 
+        //cout << "$seek to = " << pos << endl;
         const auto val = get<1>(io_tasks_[i])->eof();
         for (auto& vinfo : get<2>(io_tasks_[i])) {
           write_scalar(vinfo, Bits(val));
+          //cout << " eof(" << vinfo.index() << ") = " << val << endl;
         }
-
         break;
       }
       default:
+        assert(false);
         break;
     }
   }
@@ -739,31 +744,5 @@ void De10Logic::Sync::visit(const Identifier* id) {
   assert(vinfo != de_->var_table_.end());
   de_->read_scalar(vinfo->second);
 }
-
-/*
-void De10Logic::prepare_io_tasks() {
-  for (auto* n : io_tasks_) {
-    switch(n->get_tag()) {
-      case Node::Tag::eof_expression: {
-        const auto* ee = static_cast<const EofExpression*>(n);
-
-        const auto* r = Resolve().get_resolution(ee->get_arg());
-        assert(r != nullptr);
-        const auto sid = Evaluate().get_value(r).to_int();
-        assert(sid < streams_.size()); 
-        assert(streams_[sid] != nullptr);
-        
-        const auto itr = table_find(ee->get_arg());
-        assert(itr != table_end());
-        write_scalar(itr->second, Bits(streams_[sid]->eof()));
-
-        break;
-      }  
-      default:
-        break;
-    }
-  }
-}
-*/
 
 } // namespace cascade

@@ -520,7 +520,20 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 
   map<size_t, NonblockingAssign*> logic;
   for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
-    if (!t->second.materialized() || (Resolve().get_resolution(t->first) != t->first)) {
+    const auto* p = t->first->get_parent();
+    const auto in_push_task = 
+      p->is(Node::Tag::display_statement) ||
+      p->is(Node::Tag::error_statement) ||
+      p->is(Node::Tag::finish_statement) ||
+      p->is(Node::Tag::info_statement) ||
+      p->is(Node::Tag::put_statement) ||
+      p->is(Node::Tag::warning_statement) ||
+      p->is(Node::Tag::write_statement);
+    const auto in_pull_task = 
+      p->is(Node::Tag::eof_expression) ||
+      p->is(Node::Tag::get_statement);
+
+    if (!t->second.materialized() || in_push_task) {
       continue;
     }
 
@@ -537,7 +550,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
         emit_slice(r, w, j);
         Expression* rhs = r;
 
-        if (ModuleInfo(md).is_stateful(t->first)) {
+        if (ModuleInfo(md).is_stateful(t->first) && !in_pull_task) {
           auto* id = new Identifier(t->first->front_ids()->get_readable_sid() + "_next");
           emit_subscript(id, i, ie, arity);
           emit_slice(id, w, j);
