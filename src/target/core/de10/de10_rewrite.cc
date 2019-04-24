@@ -316,7 +316,7 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
 
 void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__resume"), false, nullptr, new Number(Bits(false))
+    new Attributes(), new Identifier("__continue"), false, nullptr, new Number(Bits(false))
   ));
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__reset"), false, nullptr, new Number(Bits(false))
@@ -509,7 +509,11 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
   ))); 
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__wait"),
-    new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false)))
+    new BinaryExpression(
+      new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
+      BinaryExpression::Op::PPIPE,
+      new Identifier("__continue")
+    )
   )));
 }
 
@@ -626,15 +630,23 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
 
   auto* sb = new SeqBlock();
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__resume"),
-    new ConditionalExpression(
+    new Identifier("__continue"),
+    new BinaryExpression(
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->resume_idx())))
       ),
-      new Number(Bits(true)),
-      new Number(Bits(false))
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new Identifier("__continue"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(
+          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_was_io")),
+          BinaryExpression::Op::AAMP, 
+          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done"))
+        )  
+      )
     )
   )));
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(

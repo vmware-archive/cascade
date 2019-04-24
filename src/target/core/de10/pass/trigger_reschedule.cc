@@ -73,7 +73,7 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
     sb->push_back_stmts(new ConditionalStatement(guard, tcs->get_stmt()->clone(), new SeqBlock()));
   } else {
     sb->push_back_stmts(new ConditionalStatement(
-      new Identifier("__resume"),
+      new Identifier("__continue"),
       static_cast<SeqBlock*>(tcs->get_stmt())->front_stmts()->clone(),
       new NonblockingAssign(new VariableAssign(
         new Identifier("__state"),
