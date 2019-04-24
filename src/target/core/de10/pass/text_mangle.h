@@ -117,7 +117,6 @@ class TextMangle : public Builder {
       
       void begin_mangle_io();
       void begin_mangle_task();
-      void finish();
 
       Expression* get_table_range(const Identifier* r, const Identifier* i);
     

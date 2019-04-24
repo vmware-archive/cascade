@@ -176,8 +176,6 @@ State* De10Logic::get_state() {
 }
 
 void De10Logic::set_state(const State* s) {
-  DE10_WRITE(MANGLE(addr_, live_idx()), 0);
-
   ModuleInfo info(src_);
   for (auto* v : info.stateful()) {
     // Write value directly to de10
@@ -198,10 +196,10 @@ void De10Logic::set_state(const State* s) {
     }
   }
 
+  DE10_WRITE(MANGLE(addr_, drop_update_idx()), 1);
   DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
   DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -222,8 +220,6 @@ Input* De10Logic::get_input() {
 }
 
 void De10Logic::set_input(const Input* i) {
-  DE10_WRITE(MANGLE(addr_, live_idx()), 0);
-
   ModuleInfo info(src_);
   for (auto* in : info.inputs()) {
     const auto vid = var_map_.find(in);
@@ -237,10 +233,10 @@ void De10Logic::set_input(const Input* i) {
     }
   }
 
+  DE10_WRITE(MANGLE(addr_, drop_update_idx()), 1);
   DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
   DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
   DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, live_idx()), 1);
 }
 
 void De10Logic::finalize() {
@@ -318,7 +314,7 @@ bool De10Logic::there_are_updates() const {
 
 void De10Logic::update() {
   // Throw the update trigger
-  DE10_WRITE(MANGLE(addr_, update_idx()), 1);
+  DE10_WRITE(MANGLE(addr_, apply_update_idx()), 1);
   // Read outputs and handle tasks
   wait_until_done();
   handle_outputs();
@@ -380,15 +376,15 @@ size_t De10Logic::table_size() const {
   return next_index_;
 }
 
-size_t De10Logic::live_idx() const {
+size_t De10Logic::there_are_updates_idx() const {
   return next_index_;
 }
 
-size_t De10Logic::there_are_updates_idx() const {
+size_t De10Logic::apply_update_idx() const {
   return next_index_ + 1;
 }
-
-size_t De10Logic::update_idx() const {
+  
+size_t De10Logic::drop_update_idx() const {
   return next_index_ + 2;
 }
   

@@ -116,9 +116,9 @@ class De10Logic : public Logic, public Visitor {
 
     // Variable Table Properties:
     size_t table_size() const;
-    size_t live_idx() const;
     size_t there_are_updates_idx() const;
-    size_t update_idx() const;
+    size_t apply_update_idx() const;
+    size_t drop_update_idx() const;
     size_t sys_task_idx() const;
     size_t io_task_idx() const;
     size_t resume_idx() const;

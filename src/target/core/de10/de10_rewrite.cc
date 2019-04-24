@@ -200,9 +200,6 @@ void De10Rewrite::emit_mask_vars(ModuleDeclaration* res) {
 
 void De10Rewrite::emit_control_vars(ModuleDeclaration* res) {
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__live"), false, nullptr, new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__open_loop"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
   res->push_back_items(new RegDeclaration(
@@ -357,17 +354,32 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
     new Identifier("__apply_updates"), 
     new BinaryExpression(
       new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->update_idx())))),
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->apply_update_idx())))),
       BinaryExpression::Op::PPIPE,
       new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
+    )
+  )));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__drop_updates"), false, nullptr
+  ));
+  res->push_back_items(new ContinuousAssign(new VariableAssign(
+    new Identifier("__drop_updates"), 
+    new BinaryExpression(
+      new Identifier("__read"), 
+      BinaryExpression::Op::AAMP, 
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->drop_update_idx())))
     )
   )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     new NonblockingAssign(new VariableAssign(
       new Identifier("__update_mask"),
-      new ConditionalExpression(new Identifier("__apply_updates"), new Identifier("__next_update_mask"), new Identifier("__update_mask"))
+      new ConditionalExpression(
+        new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
+        new Identifier("__next_update_mask"), 
+        new Identifier("__update_mask")
+      )
     ))
   ))); 
 }
@@ -455,18 +467,6 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
     )
   )));
   auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__live"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->live_idx())))
-      ),
-      new Identifier("__in"),
-      new Identifier("__live")
-    )
-  )));
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
     new Identifier("__open_loop"),
     new ConditionalExpression(

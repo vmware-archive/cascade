@@ -172,10 +172,7 @@ TextMangle::Mangle::Mangle(const De10Logic* de, bool within_task, size_t io_idx,
 }
 
 void TextMangle::Mangle::visit(const NonblockingAssign* na) {
-  // Create empty blocks for true and false branches (we'll never populate the
-  // false branch)
-  auto* t = new SeqBlock();
-  auto* f = new SeqBlock();
+  res_ = new SeqBlock();
 
   // Look up the target of this assignment and the indices it spans in the
   // variable table
@@ -187,7 +184,7 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
   auto* next = lhs->clone();
   next->purge_ids();
   next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
-  t->push_back_stmts(new NonblockingAssign(
+  res_->push_back_stmts(new NonblockingAssign(
     na->clone_ctrl(),
     new VariableAssign(
       next,
@@ -196,7 +193,7 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
   ));
 
   // Insert a new assignment to the next mask
-  t->push_back_stmts(new NonblockingAssign(
+  res_->push_back_stmts(new NonblockingAssign(
     new VariableAssign(
       new Identifier(
         new Id("__next_update_mask"),
@@ -211,9 +208,6 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
       )
     )
   ));
-
-  // Return a conditional statement in place of the original assignment
-  res_ = new SeqBlock(new ConditionalStatement(new Identifier("__live"), t, f));
 }
 
 void TextMangle::Mangle::visit(const Identifier* id) {
@@ -278,73 +272,61 @@ void TextMangle::Mangle::visit(const Identifier* id) {
 void TextMangle::Mangle::visit(const DisplayStatement* ds) {
   begin_mangle_task();
   ds->accept_args(this);
-  finish();
 }
 
 void TextMangle::Mangle::visit(const ErrorStatement* es) {
   begin_mangle_task();
   es->accept_args(this);
-  finish();
 }
 
 void TextMangle::Mangle::visit(const FinishStatement* fs) {
   begin_mangle_task();
   fs->accept_arg(this);
-  finish();
 }
 
 void TextMangle::Mangle::visit(const GetStatement* gs) {
   (void) gs;
   begin_mangle_io();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const InfoStatement* is) {
   begin_mangle_task();
   is->accept_args(this);
-  finish();
 }
 
 void TextMangle::Mangle::visit(const PutStatement* ps) {
   (void) ps;
   begin_mangle_io();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const RestartStatement* rs) {
   (void) rs;
   begin_mangle_task();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const RetargetStatement* rs) {
   (void) rs;
   begin_mangle_task();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const SaveStatement* ss) {
   (void) ss;
   begin_mangle_task();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const SeekStatement* ss) {
   (void) ss;
   begin_mangle_io();
-  finish();
 }
 
 void TextMangle::Mangle::visit(const WarningStatement* ws) {
   begin_mangle_task();
   ws->accept_args(this);
-  finish();
 }
 
 void TextMangle::Mangle::visit(const WriteStatement* ws) {
   begin_mangle_task();
   ws->accept_args(this);
-  finish();
 }
 
 void TextMangle::Mangle::begin_mangle_io() {
@@ -383,10 +365,6 @@ void TextMangle::Mangle::begin_mangle_task() {
       )
     )    
   ));
-}
-
-void TextMangle::Mangle::finish() {
-  res_ = new SeqBlock(new ConditionalStatement(new Identifier("__live"), res_, new SeqBlock()));
 }
 
 Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Identifier* i) {
