@@ -45,9 +45,6 @@ constexpr auto HW_REGS_BASE = 0xfc000000u;
 constexpr auto HW_REGS_SPAN = 0x04000000u;
 constexpr auto HW_REGS_MASK = HW_REGS_SPAN - 1;
 constexpr auto ALT_LWFPGALVS_OFST = 0xff200000u;
-constexpr auto LED_PIO_BASE = 0x00003000u;
-constexpr auto PAD_PIO_BASE = 0x00004000u;
-constexpr auto GPIO_PIO_BASE = 0x00005000u;
 constexpr auto LOG_PIO_BASE = 0x00040000u;
 
 #define DE10_READ(x)    (*((volatile uint32_t*)(x)))
