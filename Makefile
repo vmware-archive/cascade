@@ -317,6 +317,7 @@ BMARK_OBJ=\
 ### Tool binaries
 BIN=\
 	bin/cascade\
+	bin/de10_probe\
 	bin/quartus_server\
 	bin/sw_fpga
 
