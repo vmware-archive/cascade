@@ -55,6 +55,6 @@ TEST(benchmark, mips32) {
 TEST(benchmark, regex) {
   run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
 }
-//TEST(benchmark, nw) {
-//  run_benchmark("data/test/benchmark/nw/run_16.v", "TODO...");
-//}
+TEST(benchmark, nw) {
+  run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
+}
