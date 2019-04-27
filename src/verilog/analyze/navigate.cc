@@ -93,7 +93,9 @@ Navigate::Navigate(const Node* n) : Visitor() {
     if (n == aa->get_exp()) {
       assert(aa->get_parent()->is(Node::Tag::module_instantiation));
       auto* mi = static_cast<const ModuleInstantiation*>(aa->get_parent());
-      if (Elaborate().is_elaborated(mi)) {
+      if (Inline().is_inlined(mi)) {
+        where_ = const_cast<IfGenerateConstruct*>(Inline().get_source(mi))->front_clauses()->get_then();
+      } else if (Elaborate().is_elaborated(mi)) {
         where_ = const_cast<ModuleDeclaration*>(Elaborate().get_elaboration(mi));
       }
     }

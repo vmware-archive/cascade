@@ -39,9 +39,12 @@
 #include "src/target/core.h"
 #include "src/target/input.h"
 #include "src/target/state.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
+
+class interfacestream;
 
 class SwLogic : public Logic, public Visitor {
   public:
@@ -52,6 +55,7 @@ class SwLogic : public Logic, public Visitor {
     SwLogic& set_read(const Identifier* id, VId vid);
     SwLogic& set_write(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
+    SwLogic& set_stream(const Identifier* id, VId vid);
 
     // Core Interface:
     State* get_state() override;
@@ -72,8 +76,10 @@ class SwLogic : public Logic, public Visitor {
     std::vector<const Identifier*> reads_;
     std::vector<std::pair<const Identifier*, VId>> writes_;
     std::unordered_map<VId, const Identifier*> state_;
+    std::unordered_map<const Identifier*, interfacestream*> streams_;
 
     // Control State:
+    Evaluate eval_;
     bool silent_;
     bool there_were_tasks_;
     std::vector<const Node*> active_;
@@ -98,21 +104,20 @@ class SwLogic : public Logic, public Visitor {
     void visit(const ContinuousAssign* ca) override;
     void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
-    void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
-    void visit(const ForStatement* fs) override;
-    void visit(const RepeatStatement* rs) override;
-    void visit(const WhileStatement* ws) override;
     void visit(const TimingControlStatement* tcs) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
+    void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;

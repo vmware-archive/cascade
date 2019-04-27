@@ -73,6 +73,14 @@ void Visitor::visit(const ConditionalExpression* ce) {
   ce->accept_rhs(this);
 }
 
+void Visitor::visit(const EofExpression* ee) {
+  ee->accept_arg(this);
+}
+
+void Visitor::visit(const FopenExpression* fe) {
+  fe->accept_arg(this);
+}
+
 void Visitor::visit(const Concatenation* c) {
   c->accept_exprs(this);
 }
@@ -280,8 +288,18 @@ void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Visitor::visit(const GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+}
+
 void Visitor::visit(const InfoStatement* is) {
   is->accept_args(this);
+}
+
+void Visitor::visit(const PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
 }
 
 void Visitor::visit(const RestartStatement* rs) {
@@ -294,6 +312,11 @@ void Visitor::visit(const RetargetStatement* rs) {
 
 void Visitor::visit(const SaveStatement* ss) {
   ss->accept_arg(this);
+}
+
+void Visitor::visit(const SeekStatement* ss) {
+  ss->accept_id(this);
+  ss->accept_pos(this);
 }
 
 void Visitor::visit(const WarningStatement* ws) {

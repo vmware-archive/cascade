@@ -42,6 +42,7 @@ class CaseItem : public Node {
   public:
     // Constructors:
     explicit CaseItem(Statement* stmt__);
+    explicit CaseItem(Expression* expr__, Statement* stmt__);
     template<typename ExprsItr>
     CaseItem(ExprsItr exprs_begin__, ExprsItr exprs_end__, Statement* stmt__);
     ~CaseItem() override;
@@ -63,6 +64,10 @@ inline CaseItem::CaseItem(Statement* stmt__) : Node(Node::Tag::case_item) {
   MANY_DEFAULT_SETUP(exprs);
   PTR_SETUP(stmt);
   parent_ = nullptr;
+}
+
+inline CaseItem::CaseItem(Expression* expr__, Statement* stmt__) : CaseItem(stmt__) {
+  push_back_exprs(expr__);
 }
 
 template <typename ExprsItr>

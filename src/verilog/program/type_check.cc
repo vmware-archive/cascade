@@ -327,6 +327,30 @@ void TypeCheck::multiple_def(const Node* n) {
   error("A variable with this name already appears in this scope", n);
 }
 
+void TypeCheck::visit(const Event* e) {
+  Visitor::visit(e);
+  if (!e->get_expr()->is(Node::Tag::identifier)) {
+    error("Cascade does not currently support expressions inside event controls", e);
+  }
+}
+
+void TypeCheck::visit(const EofExpression* ee) {
+  // RECURSE: arg
+  ee->accept_arg(this);
+
+  // EXIT: Can't continue checking if arg can't be resolved
+  const auto* r = Resolve().get_resolution(ee->get_arg());
+  if (r == nullptr) {
+    return;
+  }
+
+  // CHECK: Arg is a stream variable
+  ModuleInfo info(Resolve().get_parent(r));
+  if (!info.is_stream(r)) {
+    error("The argument of an $eof() expression must be a stream id", ee);
+  }
+}
+
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i = id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
@@ -412,7 +436,9 @@ void TypeCheck::visit(const Identifier* id) {
 
 void TypeCheck::visit(const String* s) {
   auto e = false;
-  if (s->get_parent()->is(Node::Tag::display_statement)) {
+  if (s->get_parent()->is(Node::Tag::fopen_expression)) {
+    // Nothing to do.
+  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
     auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
     if (ds->front_args() != s) {
       e = true;
@@ -726,8 +752,17 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   }
 }
 
+void TypeCheck::visit(const CaseStatement* cs) {
+  Visitor::visit(cs);
+}
+
+void TypeCheck::visit(const ConditionalStatement* cs) {
+  Visitor::visit(cs);
+}
+
 void TypeCheck::visit(const ForStatement* fs) {
-  error("Cascade does not currently support the use of for statements", fs);
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", fs);
+  Visitor::visit(fs);
 }
 
 void TypeCheck::visit(const ForeverStatement* fs) {
@@ -735,11 +770,13 @@ void TypeCheck::visit(const ForeverStatement* fs) {
 }
 
 void TypeCheck::visit(const RepeatStatement* rs) {
-  error("Cascade does not currently support the use of repeat statements", rs);
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", rs);
+  Visitor::visit(rs);
 }
 
 void TypeCheck::visit(const WhileStatement* ws) {
-  error("Cascade does not currently support the use of while statements", ws);
+  warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", ws);
+  Visitor::visit(ws);
 }
 
 void TypeCheck::visit(const DisplayStatement* ds) {
@@ -752,9 +789,51 @@ void TypeCheck::visit(const ErrorStatement* es) {
   check_printf(es->size_args(), es->begin_args(), es->end_args());
 }
 
+void TypeCheck::visit(const GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+  
+  // Can't continue checking if pointers are unresolvable
+  const auto* id = Resolve().get_resolution(gs->get_id());
+  const auto* var = Resolve().get_resolution(gs->get_var());
+  if ((id == nullptr) || (var == nullptr)) {
+    return;
+  }
+  
+  // CHECK: First arg is stream id, second arg is stateful variable
+  const auto* src = Resolve().get_parent(id);
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of a $get() statement must be a stream id", gs);
+  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
+    error("The second argument of a $get() statement must either be a variable of type reg or integer", gs);
+  } else if (info.is_stream(var)) {
+    error("The second argument of a $get() statement must not be a stream id", gs);
+  }
+}
+
 void TypeCheck::visit(const InfoStatement* is) {
   is->accept_args(this);
   check_printf(is->size_args(), is->begin_args(), is->end_args());
+}
+
+void TypeCheck::visit(const PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
+  
+  // Can't continue checking if pointers are unresolvable
+  const auto* id = Resolve().get_resolution(ps->get_id());
+  const auto* var = Resolve().get_resolution(ps->get_var());
+  if ((id == nullptr) || (var == nullptr)) {
+    return;
+  }
+
+  // CHECK: First arg is stream id, second arg is stateful variable
+  const auto* src = Resolve().get_parent(id);
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of a $put() statement must be a stream id", ps);
+  }
 }
 
 void TypeCheck::visit(const RestartStatement* rs) {
@@ -770,6 +849,23 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
+}
+
+void TypeCheck::visit(const SeekStatement* ss) {
+  Visitor::visit(ss);
+  
+  // Can't continue checking if arg is unreachable
+  const auto* id = Resolve().get_resolution(ss->get_id());
+  if (id == nullptr){
+    return;
+  }
+  
+  // CHECK: Arg is stream id
+  const auto* src = Resolve().get_parent(id);
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of a $seek() statement must be a stream id", ss);
+  } 
 }
 
 void TypeCheck::visit(const WarningStatement* ws) {

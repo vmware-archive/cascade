@@ -497,6 +497,8 @@
   friend class Event; \
   friend class BinaryExpression; \
   friend class ConditionalExpression; \
+  friend class EofExpression; \
+  friend class FopenExpression; \
   friend class Concatenation; \
   friend class Identifier; \
   friend class MultipleConcatenation; \
@@ -538,10 +540,13 @@
   friend class DisplayStatement; \
   friend class ErrorStatement; \
   friend class FinishStatement; \
+  friend class GetStatement; \
   friend class InfoStatement; \
+  friend class PutStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \
+  friend class SeekStatement; \
   friend class WarningStatement; \
   friend class WriteStatement; \
   friend class WaitStatement; \

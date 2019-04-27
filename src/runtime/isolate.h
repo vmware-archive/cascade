@@ -40,7 +40,19 @@
 
 namespace cascade {
 
-class DataPlane;
+// This class is responsible for transforming an instantiated module into a
+// stand-alone piece of code. This class also enforces useful invariants on the
+// form of that code for down-stream passes.
+//
+// 1. Module instantiations are promoted to top-level input/outputs
+// 2. Variables are given globally-unique non-hierarchical names 
+// 3. Declarations are moved to the top-most scope.
+// 4. Integer declarations are desugared to 32-bit register declarations.
+// 5. Generate regions are flattened into their enclosing scope.
+// 6. Generate constructs are flattened into their enclosing scope.
+// 7. Attribute annotations which appear inside the module are removed.
+// 8. The 'ignore' oldest initial blocks are deleted.
+// 9. fork/join blocks are replaced by begin/end blocks.
 
 class Isolate : public Builder {
   public:
@@ -73,8 +85,9 @@ class Isolate : public Builder {
     ModuleItem* build(const IntegerDeclaration* id) override;
     ModuleItem* build(const LocalparamDeclaration* ld) override;
     ModuleItem* build(const ParameterDeclaration* pd) override;
-    ModuleItem* build(const RegDeclaration* rd) override;
     ModuleItem* build(const PortDeclaration* pd) override;
+    Statement* build(const ParBlock* pb) override;
+    Statement* build(const SeqBlock* sb) override;
 
     // Returns a mangled identifier
     Identifier* to_mangled_id(const ModuleInstantiation* mi);

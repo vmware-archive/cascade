@@ -53,6 +53,8 @@ struct Builder {
   virtual Event* build(const Event* e);
   virtual Expression* build(const BinaryExpression* be);
   virtual Expression* build(const ConditionalExpression* ce);
+  virtual Expression* build(const EofExpression* ee);
+  virtual Expression* build(const FopenExpression* fe);
   virtual Expression* build(const Concatenation* c);
   virtual Expression* build(const Identifier* i);
   virtual Expression* build(const MultipleConcatenation* mc);
@@ -92,10 +94,13 @@ struct Builder {
   virtual Statement* build(const DisplayStatement* ds);
   virtual Statement* build(const ErrorStatement* es);
   virtual Statement* build(const FinishStatement* fs);
+  virtual Statement* build(const GetStatement* gs);
   virtual Statement* build(const InfoStatement* is);
+  virtual Statement* build(const PutStatement* ps);
   virtual Statement* build(const RestartStatement* rs);
   virtual Statement* build(const RetargetStatement* rs);
   virtual Statement* build(const SaveStatement* ss);
+  virtual Statement* build(const SeekStatement* ss);
   virtual Statement* build(const WarningStatement* ws);
   virtual Statement* build(const WriteStatement* ws);
   virtual Statement* build(const WaitStatement* ws);

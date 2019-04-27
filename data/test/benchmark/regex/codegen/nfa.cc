@@ -146,65 +146,58 @@ void Nfa::to_verilog(ostream& os) const {
     ids.insert(make_pair(s, ids.size()+1));
   }  
 
-  os << "wire[7:0] char;" << endl;
-  os << "wire empty;" << endl;
   os << "reg[31:0] count = 0;" << endl;
-  os << "reg done = 0;" << endl;
-  os << endl;
-  os << "(*__target=\"sw\",__file=\"data/test/benchmark/regex/iliad.hex\"*)" << endl;
-  os << "Fifo#(1,8) fifo(" << endl;
-  os << "  .clock(clock.val)," << endl;
-  os << "  .rreq(!empty)," << endl;
-  os << "  .rdata(char)," << endl;
-  os << "  .empty(empty)" << endl;
-  os << ");" << endl;
-  os << endl;
-  os << "always @(posedge clock.val) begin" << endl;
-  os << "  if (empty) begin" << endl;
-  os << "    done <= 1;" << endl;
-  os << "  end" << endl;
-  os << "  if (done) begin" << endl;
-  os << "    $write(count);" << endl;
-  os << "    $finish;" << endl;
-  os << "  end" << endl;
-  os << "end" << endl;
-  os << endl;
   os << "reg[31:0] state = 0;" << endl;
   os << "reg[31:0] i = 0;" << endl;
   os << "reg[31:0] ie = 0;" << endl;
+  os << "reg[7:0] char;" << endl;
+  os << endl;
+  os << "integer itr = 1;" << endl;
+  os << "stream s = $fopen(\"data/test/benchmark/regex/iliad.hex\");" << endl;
   os << endl;
   os << "always @(posedge clock.val) begin" << endl;
-  os << "  if (state > 0) begin" << endl;
-  os << "    ie <= ie + 1;" << endl;
-  os << "  end" << endl;
-  os << "  case (state)" << endl;
-  os << "    32'd0:" << endl;
-  os << "      state <= " << ids[entry_] << ";" << endl;
-  for (auto s : states_) {
-    os << "    32'd" << ids[s] << ": case(char) " << endl;
-    for (auto& t : s->ts) {
-      os << "      8'h" << hex << (int)t.first << dec << ": begin" << endl;
-      if (is_accept(*t.second.begin())) {
-        os << "        //$display(\"Match %d:%d\", i, ie);" << endl;
-        os << "        i <= ie + 1;" << endl;
-        os << "        count <= count + 1;" << endl;
-        os << "        state <= " << ids[entry_] << ";" << endl;
-      } else {
-        os << "        state <= " << ids[*t.second.begin()] << ";" << endl;
-      }
-      os << "      end" << endl;
-    }
-    os << "      default: begin" << endl;
-    os << "        i <= ie + 1;" << endl;
-    os << "        state <= " << ids[entry_] << ";" << endl;
-    os << "      end" << endl;
-    os << "    endcase" << endl; 
-  }
-  os << "    default: begin" << endl;
-  os << "      $display(\"Unrecognized state!\");" << endl;
-  os << "      $finish;" << endl;
+  os << "  $get(s, char);" << endl;
+  os << "  if ($eof(s)) begin" << endl;
+  os << "    if (itr == 1) begin" << endl;
+  os << "      $write(count);" << endl;
+  os << "      $finish(0);" << endl;
+  os << "    end else begin" << endl;
+  os << "      itr <= itr + 1;" << endl;
+  os << "      $seek(s, 0);" << endl;
   os << "    end" << endl;
-  os << "  endcase" << endl;
+  os << "  end else begin" << endl;
+  os << "    if (state > 0) begin" << endl;
+  os << "      ie <= ie + 1;" << endl;
+  os << "    end" << endl;
+  os << "    case (state)" << endl;
+  os << "      32'd0:" << endl;
+  os << "        state <= " << ids[entry_] << ";" << endl;
+  for (auto s : states_) {
+    os << "      32'd" << ids[s] << ": case(char) " << endl;
+    for (auto& t : s->ts) {
+      os << "        8'h" << hex << (int)t.first << dec << ": begin" << endl;
+      if (is_accept(*t.second.begin())) {
+        os << "          //$display(\"Match %d:%d\", i, ie);" << endl;
+        os << "          i <= ie + 1;" << endl;
+        os << "          count <= count + 1;" << endl;
+        os << "          state <= " << ids[entry_] << ";" << endl;
+      } else {
+        os << "          state <= " << ids[*t.second.begin()] << ";" << endl;
+      }
+      os << "        end" << endl;
+    }
+    os << "        default: begin" << endl;
+    os << "          i <= ie + 1;" << endl;
+    os << "          state <= " << ids[entry_] << ";" << endl;
+    os << "        end" << endl;
+    os << "      endcase" << endl; 
+  }
+  os << "      default: begin" << endl;
+  os << "        $display(\"Unrecognized state!\");" << endl;
+  os << "        $finish;" << endl;
+  os << "      end" << endl;
+  os << "    endcase" << endl;
+  os << "  end" << endl;
   os << "end";
 }
 

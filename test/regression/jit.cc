@@ -52,7 +52,7 @@ TEST(jit, mips32) {
   run_code("minimal_jit", "data/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(jit, nw) {
-  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1125");
+  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(jit, regex) {
   run_code("minimal_jit", "data/test/benchmark/regex/run_disjunct_1.v", "424");

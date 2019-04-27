@@ -43,6 +43,7 @@
 #include "src/verilog/analyze/resolve.h"
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/print/text/text_printer.h"
+#include "src/verilog/transform/delete_initial.h"
 
 using namespace std;
 
@@ -265,9 +266,12 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
-      Masker().mask(md2);
+      DeleteInitial().run(md2);
       auto* e_slow = compile(md2);
-      rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
+      // If compilation came back before the runtime was shutdown, we can swap
+      // it in place of the fast-pass compilation. Otherwise we need to delete
+      // it here.
+      const auto res = rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
         if ((this_version < version) || (e_slow == nullptr)) {
           rt->info("Aborted " + str);
         } else {
@@ -275,6 +279,12 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
           rt->info("Finished " + str);
         }
       });
+      // TODO(eschkufz) There's still a logic bug here. If this interrupt
+      // sneaks into the queue on the wrong side of a finish, the interrupt
+      // will never be handled and we'll leak this engine.
+      if (!res && (e_slow != nullptr)) {
+        delete e_slow;
+      }
     }));
   } else {
     delete md2;
@@ -324,14 +334,6 @@ void Compiler::StubCheck::visit(const FinishStatement* fs) {
 void Compiler::StubCheck::visit(const WriteStatement* ws) {
   (void) ws;
   stub_ = false;
-}
-
-void Compiler::Masker::mask(ModuleDeclaration* md) {
-  md->accept_items(this);
-}
-
-void Compiler::Masker::edit(InitialConstruct* ic) {
-  ic->get_attrs()->set_or_replace("__ignore", new String("true"));
 }
 
 } // namespace cascade

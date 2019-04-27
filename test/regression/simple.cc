@@ -129,24 +129,15 @@ TEST(simple, cond_1) {
 TEST(simple, fifo_1) {
   run_code("minimal","data/test/regression/simple/fifo_1.v", "1000000001100200300410");
 }
-TEST(simple, fifo_2) {
-  run_code("minimal","data/test/regression/simple/fifo_2.v", "1001110");
-}
-TEST(simple, fifo_3) {
-  run_code("minimal","data/test/regression/simple/fifo_3.v", "1001101201301410");
-}
-TEST(simple, fifo_4) {
-  run_code("minimal","data/test/regression/simple/fifo_4.v", "45");
-}
-TEST(simple, fifo_5) {
-  run_code("minimal","data/test/regression/simple/fifo_5.v", "90");
-}
 TEST(simple, finish_1) {
   run_code("minimal","data/test/regression/simple/finish_1.v", "Hello World");
 }
-//TEST(simple, for_1) {
-//  run_code("minimal","data/test/regression/simple/for_1.v", "333");
-//}
+TEST(simple, for_1) {
+  run_code("minimal","data/test/regression/simple/for_1.v", "333");
+}
+TEST(simple, for_2) {
+  run_code("minimal","data/test/regression/simple/for_2.v", "012458");
+}
 TEST(simple, generate_1) {
   run_code("minimal","data/test/regression/simple/generate_1.v", "01234567");
 }
@@ -176,6 +167,9 @@ TEST(simple, inst_2) {
 }
 TEST(simple, inst_3) {
   run_code("minimal","data/test/regression/simple/inst_3.v", "1");
+}
+TEST(simple, io_1) {
+  run_code("minimal","data/test/regression/simple/io_1.v", "1234512345");
 }
 TEST(simple, issue_20a) {
   run_code("minimal","data/test/regression/simple/issue_20a.v", "");
@@ -288,12 +282,15 @@ TEST(simple, reduce_xor) {
 TEST(simple, reduce_xnor) {
   run_code("minimal","data/test/regression/simple/reduce_xnor.v", "01");
 }
-//TEST(simple, repeat_1) {
-//  run_code("minimal","data/test/regression/simple/repeat_1.v", "122");
-//}
-//TEST(simple, repeat_2) {
-//  run_code("minimal","data/test/regression/simple/repeat_2.v", "666666");
-//}
+TEST(simple, repeat_1) {
+  run_code("minimal","data/test/regression/simple/repeat_1.v", "122");
+}
+TEST(simple, repeat_2) {
+  run_code("minimal","data/test/regression/simple/repeat_2.v", "666666");
+}
+TEST(simple, repeat_3) {
+  run_code("minimal","data/test/regression/simple/repeat_3.v", "999999999");
+}
 TEST(simple, seq_1) {
   run_code("minimal","data/test/regression/simple/seq_1.v", "12");
 }
@@ -306,6 +303,9 @@ TEST(simple, sign_2) {
 //TEST(simple, wait_1) {
 //  run_code("minimal","data/test/regression/simple/wait_1.v", "Hello World");
 //}
-//TEST(simple, while_1) {
-//  run_code("minimal","data/test/regression/simple/while_1.v", "333");
-//}
+TEST(simple, while_1) {
+  run_code("minimal","data/test/regression/simple/while_1.v", "333");
+}
+TEST(simple, while_2) {
+  run_code("minimal","data/test/regression/simple/while_2.v", "012345");
+}

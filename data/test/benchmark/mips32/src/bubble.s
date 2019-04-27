@@ -1,8 +1,14 @@
 ### CONSTANTS
 xor $15, $15, $15  
-addi $15, $15, 2048  # $15 (size) = The number of words in memory
+addi $15, $15, 128  # $15 (size) = The number of words in memory
 xor $14, $14, $14
-addi $14, $14, 2047  # $14 = size - 1
+addi $14, $14, 127  # $14 = size - 1
+xor $11, $11, $11
+addi $11, $11, 1024 # $11 (iterations) = The number of times to sort the input
+
+### OUTER-MOST LOOP
+xor $10, $10, $10
+outer:
 
 ### INITIALIZE MEMORY
 xor $1, $1, $1           # $1 (idx) = 0
@@ -45,6 +51,12 @@ loop:
 
   j loop
 done_loop:
+
+## END OUTER-MOST LOOP
+addi $10, $10, 1
+beq $10, $11, done_outer
+j outer
+done_outer:
 
 ### EPILOGUE
 xor $2, $2, $2 # $2 = 0

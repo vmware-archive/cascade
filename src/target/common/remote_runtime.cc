@@ -122,6 +122,7 @@ void RemoteRuntime::run_logic() {
         Rpc rpc;
         rpc.deserialize(*sock);
         switch (rpc.type_) {
+          // Compiler ABI:
           case Rpc::Type::COMPILE: {
             const Rpc::Id id = engines.size();
             rc->set_sock(sock);
@@ -136,6 +137,8 @@ void RemoteRuntime::run_logic() {
             }
             break;
           }
+
+          // Core ABI:
           case Rpc::Type::GET_STATE:
             get_state(sock, engines[rpc.id_]);
             break;
@@ -185,30 +188,38 @@ void RemoteRuntime::run_logic() {
             open_loop(sock, rpc.id_, engines[rpc.id_]);
             break;
 
+          // Teardown Codes:
           case Rpc::Type::ENGINE_TEARDOWN:
             delete engines[rpc.id_];
-            engines[rpc.id_] = nullptr;
+            Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
             sock->flush();
+            engines[rpc.id_] = nullptr;
             break;
           case Rpc::Type::CONNECTION_TEARDOWN:
-          default:
+            Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
+            sock->flush();
             delete sock;
             sock = nullptr;
             socks[i] = nullptr;
             FD_CLR(i, &master_set);
+            break;  
+
+          // Control reaches here innocuosly when fd is closed remotely after
+          // receiving confirmation that the connection was torn down.
+          default:
             break;
         }
       } while ((sock != nullptr) && (sock->rdbuf()->in_avail() > 0));
     }
   }
 
+  for (auto* e : engines) {
+    delete e;
+  }
   for (auto* s : socks) {
     if (s != nullptr) {
       delete s;
     }
-  }
-  for (auto* e : engines) {
-    delete e;
   }
 }
 

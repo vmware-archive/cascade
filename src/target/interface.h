@@ -44,14 +44,13 @@ class InterfaceCompiler;
 
 class Interface {
   public:
-    Interface();
     virtual ~Interface() = default;
 
     // These methods must perform whatever target-specific logic is necessary to
     // cause the corresponding system task calls to be invoked in the runtime.
     virtual void display(const std::string& s) = 0;
     virtual void error(const std::string& s) = 0;
-    virtual void finish(int arg) = 0;
+    virtual void finish(uint32_t arg) = 0;
     virtual void info(const std::string& s) = 0;
     virtual void restart(const std::string& s) = 0;
     virtual void retarget(const std::string& s) = 0;
@@ -59,28 +58,36 @@ class Interface {
     virtual void warning(const std::string& s) = 0;
     virtual void write(const std::string& s) = 0;
 
-    // These method must perform whatever target-specific logic is necessary to
+    // These methods must perform whatever target-specific logic is necessary to
     // communicate changes in the value of logic elements back to the runtime.
     virtual void write(VId id, const Bits* b) = 0;
-
     // Target-specific implementations may override this method if there is a
     // performance-specific advantage to doing so. This method may be invoked
     // whenever a write of a single-bit variable is required.
     virtual void write(VId id, bool b);
 
+    // These methods must perform whatever target-specific logic is necessary
+    // to cause the corresponding API calls to be invoked by the runtime.
+    virtual SId fopen(const std::string& path) = 0;
+    virtual int32_t in_avail(SId id) = 0;
+    virtual uint32_t pubseekoff(SId id, int32_t n, bool r) = 0;
+    virtual uint32_t pubseekpos(SId id, int32_t n, bool r) = 0;
+    virtual int32_t pubsync(SId id) = 0;
+    virtual int32_t sbumpc(SId id) = 0;
+    virtual int32_t sgetc(SId id) = 0;
+    virtual uint32_t sgetn(SId id, char* c, uint32_t n) = 0;
+    virtual int32_t sputc(SId id, char c) = 0;
+    virtual uint32_t sputn(SId id, const char* c, uint32_t n) = 0;
+
     // Target specific implementations may override this method to perform
     // last-minute cleanup in the compiler that created this interface.
     virtual void cleanup(InterfaceCompiler* ic);
-
-  private:
-    Bits temp_;
 };
 
-inline Interface::Interface() : temp_(1,0) { }
-
 inline void Interface::write(VId id, bool b) {
-  temp_.set(0, b ? 1 : 0);
-  write(id, &temp_);
+  Bits temp;
+  temp.set(0, b ? 1 : 0);
+  write(id, &temp);
 }
 
 inline void Interface::cleanup(InterfaceCompiler* ic) {

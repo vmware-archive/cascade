@@ -81,6 +81,16 @@ Expression* Rewriter::rewrite(ConditionalExpression* ce) {
   return ce;
 }
 
+Expression* Rewriter::rewrite(EofExpression* ee) {
+  ee->accept_arg(this);
+  return ee;
+}
+
+Expression* Rewriter::rewrite(FopenExpression* fe) {
+  fe->accept_arg(this);
+  return fe;
+}
+
 Expression* Rewriter::rewrite(Concatenation* c) {
   c->accept_exprs(this);
   return c;
@@ -325,9 +335,21 @@ Statement* Rewriter::rewrite(FinishStatement* fs) {
   return fs;
 }
 
+Statement* Rewriter::rewrite(GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+  return gs;
+}
+
 Statement* Rewriter::rewrite(InfoStatement* is) {
   is->accept_args(this);
   return is;
+}
+
+Statement* Rewriter::rewrite(PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
+  return ps;
 }
 
 Statement* Rewriter::rewrite(RestartStatement* rs) {
@@ -342,6 +364,12 @@ Statement* Rewriter::rewrite(RetargetStatement* rs) {
 
 Statement* Rewriter::rewrite(SaveStatement* ss) {
   ss->accept_arg(this);
+  return ss;
+}
+
+Statement* Rewriter::rewrite(SeekStatement* ss) {
+  ss->accept_id(this);
+  ss->accept_pos(this);
   return ss;
 }
 

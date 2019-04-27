@@ -123,6 +123,20 @@ void Printer::visit(const ConditionalExpression* ce) {
   *this << Color::RED << ")" << Color::RESET;
 }
 
+void Printer::visit(const EofExpression* ee) {
+  *this << Color::YELLOW << "$eof" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ee->accept_arg(this);
+  *this << Color::RED << ")" << Color::RESET;
+}
+
+void Printer::visit(const FopenExpression* fe) {
+  *this << Color::YELLOW << "$fopen" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  fe->accept_arg(this);
+  *this << Color::RED << ")" << Color::RESET;
+}
+
 void Printer::visit(const Concatenation* c) {
   *this << Color::RED << "{" << Color::RESET;
   int cnt = 0;
@@ -581,11 +595,29 @@ void Printer::visit(const FinishStatement* fs) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const GetStatement* gs) {
+  *this << Color::YELLOW << "$get" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  gs->accept_id(this);
+  *this << Color::RED << "," << Color::RESET;
+  gs->accept_var(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const InfoStatement* is) {
   *this << Color::YELLOW << "$info" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   int cnt = 0;
   is->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const PutStatement* ps) {
+  *this << Color::YELLOW << "$put" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ps->accept_id(this);
+  *this << Color::RED << "," << Color::RESET;
+  ps->accept_var(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 
@@ -607,6 +639,15 @@ void Printer::visit(const SaveStatement* ss) {
   *this << Color::YELLOW << "$save" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   ss->accept_arg(this);
+  *this << Color::RED << ");" << Color::RESET;
+}
+
+void Printer::visit(const SeekStatement* ss) {
+  *this << Color::YELLOW << "$seek" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ss->accept_id(this);
+  *this << Color::RED << "," << Color::RESET;
+  ss->accept_pos(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 

@@ -95,7 +95,7 @@ class Runtime : public Asynchronous {
     template <typename InputItr>
     void eval(InputItr begin, InputItr end);
 
-    // Display System Task Interface (Verilog 2005):
+    // System Task Interface:
     //
     // Print a newline-teriminated string to the view between this and the next
     // timestep. Returns immediately.
@@ -103,15 +103,9 @@ class Runtime : public Asynchronous {
     // Print a string to the view between this and the next timestep. Returns
     // immediately.
     void write(const std::string& s);
-
-    // Simulation Control System Task Interface (Verilog 2005):
-    //
     // Shutdown the runtime and print statistics if arg is non-zero between
     // this and the next timestep. Returns immediately.
-    void finish(int arg);
-
-    // Logging System Task Interface (System Verilog):
-    //
+    void finish(uint32_t arg);
     // Prints an error message between this and the next timestep. Returns
     // immediately.
     void error(const std::string& s);
@@ -121,9 +115,6 @@ class Runtime : public Asynchronous {
     // Prints an info message between this and the next timestep. Returns
     // immediately.
     void info(const std::string& s);
-
-    // Cascade-Specific System Task Interface (Cascade Only):
-    //
     // Loads the current state of the simulation from a file
     void restart(const std::string& path);
     // Schedules a recompilation of the current program to a new march target in
@@ -134,8 +125,10 @@ class Runtime : public Asynchronous {
 
     // Program-Logic Interface:
     //
-    // Schedules an intterupt on the interrupt queue
-    void schedule_interrupt(Interrupt int_);
+    // Schedules an interrupt on the interrupt queue. Returns false if the
+    // runtime is no longer active, meaning there is no hope of this interrupt
+    // ever being serviced.
+    bool schedule_interrupt(Interrupt int_);
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which
@@ -146,6 +139,29 @@ class Runtime : public Asynchronous {
     // general, the use of this method is probably best left to modules which
     // are going about their normal execution.
     void write(VId id, bool b);
+
+    // Stream I/O Interface:
+    //
+    // In contrast to the system task and program logic interfaces, these
+    // methods are scheduled immediately, regardless of the execution state of
+    // the runtime. From a design point of view, this interface is a thin
+    // wrapper around streambufs. Attempting to perform an operation on an
+    // unrecognized or closed stream id will result in undefined behavior.
+    // 
+    // Creates an entry in the stream table by calling new filebuf(path, in|out).
+    SId fopen(const std::string& path);
+    // streambuf operators: The boolean argument to pubseekoff/pos is used to
+    // select between read/write (true/false) pointers. pubseekoff assumes
+    // std::cur as its locator.
+    int32_t in_avail(SId id);
+    uint32_t pubseekoff(SId id, int32_t n, bool r);
+    uint32_t pubseekpos(SId id, int32_t n, bool r);
+    int32_t pubsync(SId id);
+    int32_t sbumpc(SId id);
+    int32_t sgetc(SId id);
+    uint32_t sgetn(SId id, char* c, uint32_t n);
+    int32_t sputc(SId id, char c);
+    uint32_t sputn(SId id, const char* c, uint32_t n);
 
     // Profiling Interface:
     //
@@ -203,6 +219,9 @@ class Runtime : public Asynchronous {
     time_t last_time_;
     uint64_t last_logical_time_;
     uint64_t logical_time_;
+
+    // Stream Table:
+    std::vector<std::streambuf*> stream_table_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.

@@ -45,7 +45,7 @@ class RemoteInterface : public Interface {
 
     void display(const std::string& s) override;
     void error(const std::string& s) override;
-    void finish(int arg) override;
+    void finish(uint32_t arg) override;
     void info(const std::string& s) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
@@ -54,6 +54,17 @@ class RemoteInterface : public Interface {
     void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
+
+    SId fopen(const std::string& path) override;
+    int32_t in_avail(SId id) override;
+    uint32_t pubseekoff(SId id, int32_t n, bool r) override;
+    uint32_t pubseekpos(SId id, int32_t n, bool r) override;
+    int32_t pubsync(SId id) override;
+    int32_t sbumpc(SId id) override;
+    int32_t sgetc(SId id) override;
+    uint32_t sgetn(SId id, char* c, uint32_t n) override;
+    int32_t sputc(SId id, char c) override;
+    uint32_t sputn(SId id, const char* c, uint32_t n) override;
       
   private:
     sockstream* sock_;
@@ -77,10 +88,9 @@ inline void RemoteInterface::error(const std::string& s) {
   sock_->put('\0');
 }
 
-inline void RemoteInterface::finish(int arg) {
+inline void RemoteInterface::finish(uint32_t arg) {
   Rpc(Rpc::Type::FINISH, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&arg), 4);
-  sock_->flush();
 }
 
 inline void RemoteInterface::info(const std::string& s) {
@@ -121,8 +131,118 @@ inline void RemoteInterface::write(const std::string& s) {
 
 inline void RemoteInterface::write(VId id, const Bits* b) {
   Rpc(Rpc::Type::WRITE_BITS, id_).serialize(*sock_);
-  sock_->write(reinterpret_cast<const char*>(&id), 4);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   b->serialize(*sock_);
+}
+
+inline SId RemoteInterface::fopen(const std::string& path) {
+  Rpc(Rpc::Type::FOPEN, id_).serialize(*sock_);
+  sock_->write(path.c_str(), path.length());
+  sock_->put('\0');
+  sock_->flush();
+
+  SId res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(SId));
+  return res;
+}
+
+inline int32_t RemoteInterface::in_avail(SId id) {
+  Rpc(Rpc::Type::IN_AVAIL, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->flush();
+
+  int32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline uint32_t RemoteInterface::pubseekoff(SId id, int32_t n, bool r) {
+  Rpc(Rpc::Type::PUBSEEKOFF, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
+  sock_->put(r ? 1 : 0);
+  sock_->flush();
+
+  uint32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline uint32_t RemoteInterface::pubseekpos(SId id, int32_t n, bool r) {
+  Rpc(Rpc::Type::PUBSEEKPOS, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
+  sock_->put(r ? 1 : 0);
+  sock_->flush();
+
+  uint32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline int32_t RemoteInterface::pubsync(SId id) {
+  Rpc(Rpc::Type::PUBSYNC, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->flush();
+
+  int32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline int32_t RemoteInterface::sbumpc(SId id) {
+  Rpc(Rpc::Type::SBUMPC, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->flush();
+
+  int32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline int32_t RemoteInterface::sgetc(SId id) {
+  Rpc(Rpc::Type::SGETC, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->flush();
+
+  int32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline uint32_t RemoteInterface::sgetn(SId id, char* c, uint32_t n) {
+  Rpc(Rpc::Type::SGETN, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
+  sock_->flush();
+
+  uint32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  sock_->read(c, res);
+  return res;
+}
+
+inline int32_t RemoteInterface::sputc(SId id, char c) {
+  Rpc(Rpc::Type::SPUTC, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->put(c);
+  sock_->flush();
+
+  int32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
+}
+
+inline uint32_t RemoteInterface::sputn(SId id, const char* c, uint32_t n) {
+  Rpc(Rpc::Type::SPUTN, id_).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
+  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
+  sock_->write(c, n);
+  sock_->flush();
+
+  uint32_t res;
+  sock_->read(reinterpret_cast<char*>(&res), sizeof(res));
+  return res;
 }
 
 } // namespace cascade

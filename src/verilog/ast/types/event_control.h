@@ -41,6 +41,7 @@ class EventControl : public TimingControl {
   public:
     // Constructors:
     EventControl();
+    EventControl(Event* e);
     template <typename EventsItr>
     EventControl(EventsItr events_begin__, EventsItr events_end__);
     ~EventControl() override;
@@ -58,6 +59,11 @@ class EventControl : public TimingControl {
 
 inline EventControl::EventControl() : TimingControl(Node::Tag::event_control) {
   MANY_DEFAULT_SETUP(events);
+  parent_ = nullptr;
+}
+
+inline EventControl::EventControl(Event* e) : EventControl() {
+  push_back_events(e);
   parent_ = nullptr;
 }
 

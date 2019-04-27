@@ -187,6 +187,12 @@ Expression* ConstantProp::rewrite(ConditionalExpression* ce) {
   return Rewriter::rewrite(ce);
 }
 
+Expression* ConstantProp::rewrite(FopenExpression* fe) {
+  // Does nothing. $fopen() expressions must be preserved through to 
+  // target-specific compilation.
+  return fe;
+}
+
 Expression* ConstantProp::rewrite(Concatenation* c) {
   if (RuntimeConstant(this).check(c)) {
     auto* res = new Number(Evaluate().get_value(c), Number::Format::HEX);

@@ -35,7 +35,7 @@
 #include <map>
 #include <unistd.h>
 #include "src/base/stream/sockstream.h"
-#include "src/target/core/de10/module_boxer.h"
+#include "src/target/core/de10/de10_rewrite.h"
 #include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/analyze/module_info.h"
 #include "src/verilog/ast/ast.h"
@@ -90,12 +90,14 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
   sock.put(static_cast<uint8_t>(id));
   sock.flush();
+  sock.get();
 }
 
 void De10Compiler::abort() {
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
   sock.flush();
+  sock.get();
 }
 
 De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
@@ -188,7 +190,9 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   auto* de = new De10Logic(interface, sid, md, addr);
 
   // Register inputs, state, and outputs. Invoke these methods
-  // lexicographically to ensure a deterministic variable table ordering.
+  // lexicographically to ensure a deterministic variable table ordering. The
+  // final invocation of index_tasks is lexicographic by construction, as it's
+  // based on a recursive descent of the AST.
   ModuleInfo info(md);
   map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
@@ -211,9 +215,22 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   for (const auto& o : os) {
     de->set_output(o.second, o.first);
   }
-  // Check size of variable table
+  de->index_tasks();
+
+  // Check table and index sizes. If this program uses too much state, we won't
+  // be able to uniquely name its elements using our current addressing scheme.
   if (de->open_loop_idx() >= 0x1000) {
-    error("Unable to compile module with more than 4096 entries in variable table");
+    error("Unable to compile a module with more than 4096 entries in variable table");
+    delete de;
+    return nullptr;
+  }
+  if (de->sys_task_size() > 32) {
+    error("Unable to compile a module with more than 32 system task invocations");
+    delete de;
+    return nullptr;
+  }
+  if (de->io_task_size() > 32) {
+    error("Unable to compile a module with more than 32 file i/o task invocations");
     delete de;
     return nullptr;
   }
@@ -223,7 +240,7 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   sockstream sock2(host_.c_str(), port_);
   sock2.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
   sock2.put(static_cast<uint8_t>(sid));
-  const auto text = ModuleBoxer().box(md, de);
+  const auto text = De10Rewrite().run(md, de, sid);
   sock2.write(text.c_str(), text.length());
   sock2.put('\0');
   sock2.flush();

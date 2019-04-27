@@ -69,8 +69,7 @@ class QuartusServer : public Asynchronous {
     enum class State : uint8_t {
       OPEN = 0,
       CURRENT,
-      WAITING,
-      ABORTED
+      WAITING
     };
 
     std::string cache_path_;
@@ -92,11 +91,12 @@ class QuartusServer : public Asynchronous {
     void init_versioning();
 
     void request_slot(sockstream* sock);
-    void return_slot(sockstream* sock);
-    void killall();
     void update_slot(sockstream* sock);
+    void return_slot(sockstream* sock);
+    void abort(sockstream* sock);
+
+    void killall();
     void recompile(size_t my_version);
-    void abort();
 
     void run_logic() override;
 };

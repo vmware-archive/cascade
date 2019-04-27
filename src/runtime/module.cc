@@ -46,9 +46,13 @@
 #include "src/verilog/ast/ast.h"
 #include "src/verilog/program/elaborate.h"
 #include "src/verilog/program/inline.h"
+#include "src/verilog/transform/block_flatten.h"
 #include "src/verilog/transform/constant_prop.h"
+#include "src/verilog/transform/control_merge.h"
 #include "src/verilog/transform/de_alias.h"
 #include "src/verilog/transform/dead_code_eliminate.h"
+#include "src/verilog/transform/event_expand.h"
+#include "src/verilog/transform/loop_unroll.h"
 
 using namespace std;
 
@@ -311,9 +315,13 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
     ModuleInfo(md).invalidate();
+    LoopUnroll().run(md);
     DeAlias().run(md);
     ConstantProp().run(md);
+    EventExpand().run(md);
+    ControlMerge().run(md);
     DeadCodeEliminate().run(md);
+    BlockFlatten().run(md);
   }
   return md;
 }

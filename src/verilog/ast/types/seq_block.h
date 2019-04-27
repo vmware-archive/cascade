@@ -44,6 +44,7 @@ class SeqBlock : public BlockStatement {
   public:
     // Constructors:
     SeqBlock();
+    explicit SeqBlock(Statement* stmt__);
     template <typename DeclsItr, typename StmtsItr>
     SeqBlock(Identifier* id__, DeclsItr decls_begin__, DeclsItr decls_end__, StmtsItr stmts_begin__, StmtsItr stmts_end__);
     ~SeqBlock() override;
@@ -70,6 +71,10 @@ inline SeqBlock::SeqBlock() : BlockStatement(Node::Tag::seq_block) {
   MANY_DEFAULT_SETUP(stmts);
   parent_ = nullptr;
   scope_idx_.next_supdate_ = 0;
+}
+
+inline SeqBlock::SeqBlock(Statement* stmt__) : SeqBlock() {
+  push_back_stmts(stmt__);
 }
 
 template <typename DeclsItr, typename StmtsItr>

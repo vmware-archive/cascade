@@ -92,6 +92,18 @@ Expression* Builder::build(const ConditionalExpression* ce) {
   );
 }
 
+Expression* Builder::build(const EofExpression* ee) {
+  return new EofExpression(
+    ee->accept_arg(this)
+  );
+}
+
+Expression* Builder::build(const FopenExpression* fe) {
+  return new FopenExpression(
+    fe->accept_arg(this)
+  );
+}
+
 Expression* Builder::build(const Concatenation* c) {
   auto* res = new Concatenation();
   c->accept_exprs(this, res->back_inserter_exprs());
@@ -390,10 +402,24 @@ Statement* Builder::build(const FinishStatement* fs) {
   );
 }
 
+Statement* Builder::build(const GetStatement* gs) {
+  return new GetStatement(
+    gs->accept_id(this),
+    gs->accept_var(this)
+  );
+}
+
 Statement* Builder::build(const InfoStatement* is) {
   auto* res = new InfoStatement();
   is->accept_args(this, res->back_inserter_args());
   return res;
+}
+
+Statement* Builder::build(const PutStatement* ps) {
+  return new PutStatement(
+    ps->accept_id(this),
+    ps->accept_var(this)
+  );
 }
 
 Statement* Builder::build(const RestartStatement* rs) {
@@ -411,6 +437,13 @@ Statement* Builder::build(const RetargetStatement* rs) {
 Statement* Builder::build(const SaveStatement* ss) {
   return new SaveStatement(
     ss->accept_arg(this)
+  );
+}
+
+Statement* Builder::build(const SeekStatement* ss) {
+  return new SeekStatement(
+    ss->accept_id(this),
+    ss->accept_pos(this)
   );
 }
 

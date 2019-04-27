@@ -28,70 +28,27 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_ANALYZE_PRINTF_H
-#define CASCADE_SRC_VERILOG_ANALYZE_PRINTF_H
+#ifndef CASCADE_SRC_VERILOG_TRANSFORM_EVENT_EXPAND_H
+#define CASCADE_SRC_VERILOG_TRANSFORM_EVENT_EXPAND_H
 
-#include <sstream>
-#include <string>
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "src/verilog/ast/visitors/editor.h"
 
 namespace cascade {
 
-struct Printf {
-  template <typename InputItr>
-  std::string format(InputItr begin, InputItr end);
+class EventExpand : public Editor {
+  public:
+    EventExpand();
+    ~EventExpand() override = default;
+
+    void run(ModuleDeclaration* md);
+
+  private:
+    void edit(TimingControlStatement* tcs) override;
 };
-
-template <typename InputItr>
-inline std::string Printf::format(InputItr begin, InputItr end) {
-  if (begin == end) {
-    return "";
-  }
-
-  std::stringstream ss;
-  auto a = begin;
-
-  if (!(*a)->is(Node::Tag::string)) {
-    Evaluate().get_value(*a).write(ss, 10);
-    return ss.str();
-  } 
-  auto* s = static_cast<const String*>(*a);
-
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == std::string::npos) {
-      break;
-    }
-    if (++a == end) {
-      continue;
-    }
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': 
-        Evaluate().get_value(*a).write(ss, 2);
-        break;
-      case 'd':
-      case 'D':
-        Evaluate().get_value(*a).write(ss, 10);
-        break;
-      case 'h':
-      case 'H': 
-        Evaluate().get_value(*a).write(ss, 16);
-        break;
-      case 'o':
-      case 'O': 
-        Evaluate().get_value(*a).write(ss, 8);
-        break;
-      default: 
-        assert(false);
-    }
-  }
-  return ss.str();
-}
 
 } // namespace cascade
 
 #endif
+
+
+

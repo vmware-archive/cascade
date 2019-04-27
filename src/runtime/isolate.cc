@@ -100,14 +100,9 @@ ModuleDeclaration* Isolate::build(const ModuleDeclaration* md) {
 }
 
 ModuleItem* Isolate::build(const InitialConstruct* ic) {
-  auto* attrs = ic->get_attrs()->accept(this);
-  if (ignore_ >= 0) {
-    attrs->set_or_replace("__ignore", new String("true"));
-  }
-  return new InitialConstruct (
-    attrs,
-    static_cast<Statement*>(ic->accept_stmt(this))
-  );
+  return (ignore_ >= 0) ?
+    nullptr :
+    new InitialConstruct(ic->accept_attrs(this), ic->accept_stmt(this));
 }
 
 ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
@@ -117,19 +112,13 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
 }
 
 ModuleItem* Isolate::build(const IntegerDeclaration* id) {
-  // Careful: We don't want what's on the rhs of the assignment, we want the
-  // value of the identifier, which may have different sign/size.
-  // Careful: We aren't allowed to have initial values for arrays
-  auto* res = new RegDeclaration(
+  return new RegDeclaration(
     id->get_attrs()->accept(this),
     id->accept_id(this),
     true,
-    new RangeExpression(32,0),
-    id->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(id->get_id()), Number::Format::HEX) :
-      nullptr
+    new RangeExpression(32, 0),
+    id->accept_val(this)
   );
-  return res;
 }
 
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
@@ -167,26 +156,24 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   return res;
 }
 
-ModuleItem* Isolate::build(const RegDeclaration* rd) {
-  // Careful: We don't want what's on the rhs of the assignment, we want the
-  // value of the identifier, which may have different sign/size.
-  // Careful: We aren't allowed to have initial values for arrays
-  auto* res = new RegDeclaration(
-    rd->get_attrs()->accept(this),
-    rd->accept_id(this),
-    rd->get_signed(),
-    rd->accept_dim(this),
-    rd->get_id()->empty_dim() ? 
-      new Number(Evaluate().get_value(rd->get_id()), Number::Format::HEX) :
-      nullptr
-  );
-  return res;
-}
-
 ModuleItem* Isolate::build(const PortDeclaration* pd) {
   // Does nothing. We emit declarations at the top level.
   (void) pd;
   return nullptr;
+}
+
+Statement* Isolate::build(const ParBlock* pb) {
+  // Until the day when we add support for delay statements, sequential
+  // execution is guaranteed to be a valid scheduling of a par block.
+  auto* res =  new SeqBlock();
+  pb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
+}
+
+Statement* Isolate::build(const SeqBlock* sb) {
+  auto* res = new SeqBlock();
+  sb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
 }
 
 Identifier* Isolate::to_mangled_id(const ModuleInstantiation* mi) {

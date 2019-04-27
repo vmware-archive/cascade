@@ -91,6 +91,8 @@ class TypeCheck : public Visitor {
     void multiple_def(const Node* n);
 
     // Visitor Interface:
+    void visit(const Event* e) override;
+    void visit(const EofExpression* ee) override;
     void visit(const Identifier* id) override;
     void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;
@@ -111,16 +113,21 @@ class TypeCheck : public Visitor {
     void visit(const NonblockingAssign* na) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
+    void visit(const CaseStatement* cs) override;
+    void visit(const ConditionalStatement* cs) override;
     void visit(const ForStatement* fs) override;
     void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
     void visit(const WhileStatement* ws) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
+    void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;

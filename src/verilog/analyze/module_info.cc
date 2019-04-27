@@ -54,6 +54,7 @@ void ModuleInfo::invalidate() {
   md_->inputs_.clear();
   md_->outputs_.clear();
   md_->stateful_.clear();
+  md_->streams_.clear();
   md_->reads_.clear();
   md_->writes_.clear();
   md_->named_params_.clear();
@@ -98,6 +99,12 @@ bool ModuleInfo::is_stateful(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
   return (r == nullptr) ? false : (md_->stateful_.find(r) != md_->stateful_.end());
+}
+
+bool ModuleInfo::is_stream(const Identifier* id) {
+  refresh();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->streams_.find(r) != md_->streams_.end());
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
@@ -148,6 +155,11 @@ const unordered_set<const Identifier*>& ModuleInfo::outputs() {
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
   refresh();
   return md_->stateful_;
+}
+
+const unordered_set<const Identifier*>& ModuleInfo::streams() {
+  refresh();
+  return md_->streams_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::externals() {
@@ -581,7 +593,18 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
 
 void ModuleInfo::visit(const IntegerDeclaration* id) {
   md_->locals_.insert(id->get_id());   
-  // Nothing external should reference this
+  record_external_use(id->get_id());
+  if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(id->get_id());
+    md_->streams_.insert(id->get_id());
+  }
+  for (auto i = Resolve().use_begin(id->get_id()), ie = Resolve().use_end(id->get_id()); i != ie; ++i) {
+    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
+        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
+      return;
+    }
+  }
+  md_->stateful_.insert(id->get_id());
 }
 
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
@@ -604,6 +627,17 @@ void ModuleInfo::visit(const ParameterDeclaration* pd) {
 void ModuleInfo::visit(const RegDeclaration* rd) {
   md_->locals_.insert(rd->get_id());   
   record_external_use(rd->get_id());
+  if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
+    md_->stateful_.insert(rd->get_id());
+    md_->streams_.insert(rd->get_id());
+  }
+  for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
+    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
+        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
+      return;
+    }
+  }
+  md_->stateful_.insert(rd->get_id());
 }
 
 void ModuleInfo::visit(const ModuleInstantiation* mi) {
@@ -682,6 +716,15 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
   if (md_->stateful_.find(r) != md_->stateful_.end()) {
     return;
   }
+  md_->stateful_.insert(r);
+}
+
+void ModuleInfo::visit(const GetStatement* gs) {
+  Visitor::visit(gs);
+
+  const auto* r = Resolve().get_resolution(gs->get_var());
+  assert(r != nullptr);
+
   md_->stateful_.insert(r);
 }
 

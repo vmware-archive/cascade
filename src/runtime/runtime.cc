@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <cctype>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -82,6 +83,9 @@ Runtime::Runtime(View* view) : Asynchronous() {
   begin_time_ = ::time(nullptr);
   last_time_ = ::time(nullptr);
   logical_time_ = 0;
+
+  // begin allocating stream ids from 1
+  stream_table_.push_back(nullptr);
 }
 
 Runtime::~Runtime() {
@@ -95,6 +99,12 @@ Runtime::~Runtime() {
   delete dp_;
   delete isolate_;
   delete compiler_;
+
+  for (auto s : stream_table_) {
+    if (s != nullptr) {
+      delete s;
+    }
+  }
 }
 
 Runtime& Runtime::set_compiler(Compiler* c) {
@@ -158,7 +168,7 @@ void Runtime::write(const string& s) {
   });
 }
 
-void Runtime::finish(int arg) {
+void Runtime::finish(uint32_t arg) {
   schedule_interrupt([this, arg]{
     if (arg > 0) {
       stringstream ss;
@@ -288,9 +298,10 @@ void Runtime::save(const string& path) {
   });
 }
 
-void Runtime::schedule_interrupt(Interrupt int_) {
+bool Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
   ints_.push_back(int_);
+  return !stop_requested();
 }
 
 void Runtime::write(VId id, const Bits* bits) {
@@ -299,6 +310,81 @@ void Runtime::write(VId id, const Bits* bits) {
 
 void Runtime::write(VId id, bool b) {
   dp_->write(id, b);
+}
+
+SId Runtime::fopen(const std::string& path) {
+  // Create a file if it doesn't already exist
+  ofstream temp(path, ios_base::app);
+  temp.close();
+
+  auto* fb = new filebuf();
+  fb->open(path.c_str(), (ios_base::in | ios_base::out));
+  stream_table_.push_back(fb);
+
+  return (stream_table_.size()-1);;
+}
+
+int32_t Runtime::in_avail(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->in_avail();
+}
+
+uint32_t Runtime::pubseekoff(SId id, int32_t n, bool r) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
+}
+
+uint32_t Runtime::pubseekpos(SId id, int32_t n, bool r) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->pubseekpos(n, r ? ios::in : ios::out);
+}
+
+int32_t Runtime::pubsync(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->pubsync();
+}
+
+int32_t Runtime::sbumpc(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sbumpc();
+}
+
+int32_t Runtime::sgetc(SId id) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sgetc();
+}
+
+uint32_t Runtime::sgetn(SId id, char* c, uint32_t n) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sgetn(c, n);
+}
+
+int32_t Runtime::sputc(SId id, char c) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sputc(c);
+}
+
+uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
+  assert(id < stream_table_.size());
+  assert(stream_table_[id] != nullptr);
+
+  return stream_table_[id]->sputn(c, n);
 }
 
 uint64_t Runtime::time() const {

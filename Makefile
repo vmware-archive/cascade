@@ -47,7 +47,11 @@ OBJ=\
 	src/target/compiler.o\
 	src/target/core/de10/de10_compiler.o\
 	src/target/core/de10/de10_logic.o\
-	src/target/core/de10/module_boxer.o\
+	src/target/core/de10/de10_rewrite.o\
+	src/target/core/de10/pass/finish_mangle.o\
+	src/target/core/de10/pass/machinify.o\
+	src/target/core/de10/pass/text_mangle.o\
+	src/target/core/de10/pass/trigger_reschedule.o\
 	src/target/core/de10/program_boxer.o\
 	src/target/core/de10/quartus_server.o\
 	src/target/core/proxy/proxy_compiler.o\
@@ -90,9 +94,14 @@ OBJ=\
 	src/verilog/program/program.o\
 	src/verilog/program/type_check.o\
 	\
+	src/verilog/transform/block_flatten.o\
 	src/verilog/transform/constant_prop.o\
+	src/verilog/transform/control_merge.o\
 	src/verilog/transform/de_alias.o\
-	src/verilog/transform/dead_code_eliminate.o
+	src/verilog/transform/dead_code_eliminate.o\
+	src/verilog/transform/delete_initial.o\
+	src/verilog/transform/event_expand.o\
+	src/verilog/transform/loop_unroll.o
 
 ### Header files
 HDR=\
@@ -101,6 +110,7 @@ HDR=\
 	src/base/log/log.h\
 	src/base/serial/serializable.h\
 	src/base/stream/bufstream.h\
+	src/base/stream/cachestream.h\
 	src/base/stream/fdstream.h\
 	src/base/stream/incstream.h\
 	src/base/stream/indstream.h\
@@ -130,16 +140,23 @@ HDR=\
 	src/target/input.h\
 	src/target/interface.h\
 	src/target/interface_compiler.h\
+	src/target/interface/remote/remote_interface.h\
 	src/target/state.h\
 	src/target/common/remote_runtime.h\
 	src/target/common/rpc.h\
+	src/target/core/common/interfacestream.h\
+	src/target/core/common/printf.h\
 	src/target/core/de10/de10_compiler.h\
 	src/target/core/de10/de10_gpio.h\
 	src/target/core/de10/de10_led.h\
 	src/target/core/de10/de10_logic.h\
 	src/target/core/de10/de10_pad.h\
 	src/target/core/de10/io.h\
-	src/target/core/de10/module_boxer.h\
+	src/target/core/de10/de10_rewrite.h\
+	src/target/core/de10/pass/finish_mangle.h\
+	src/target/core/de10/pass/machinify.h\
+	src/target/core/de10/pass/text_mangle.h\
+	src/target/core/de10/pass/trigger_reschedule.h\
 	src/target/core/de10/program_boxer.h\
 	src/target/core/de10/quartus_server.h\
 	src/target/core/proxy/proxy_compiler.h\
@@ -169,7 +186,6 @@ HDR=\
 	src/verilog/analyze/indices.h\
 	src/verilog/analyze/module_info.h\
 	src/verilog/analyze/navigate.h\
-	src/verilog/analyze/printf.h\
 	src/verilog/analyze/read_set.h\
 	src/verilog/analyze/resolve.h\
 	src/verilog/ast/ast.h\
@@ -195,12 +211,16 @@ HDR=\
 	src/verilog/ast/types/declaration.h\
 	src/verilog/ast/types/delay_control.h\
 	src/verilog/ast/types/display_statement.h\
+	src/verilog/ast/types/eof_expression.h\
+	src/verilog/ast/types/error_statement.h\
 	src/verilog/ast/types/event.h\
 	src/verilog/ast/types/event_control.h\
 	src/verilog/ast/types/expression.h\
+	src/verilog/ast/types/fopen_expression.h\
 	src/verilog/ast/types/finish_statement.h\
 	src/verilog/ast/types/for_statement.h\
 	src/verilog/ast/types/forever_statement.h\
+	src/verilog/ast/types/get_statement.h\
 	src/verilog/ast/types/generate_block.h\
 	src/verilog/ast/types/generate_construct.h\
 	src/verilog/ast/types/generate_region.h\
@@ -209,6 +229,7 @@ HDR=\
 	src/verilog/ast/types/identifier.h\
 	src/verilog/ast/types/if_generate_clause.h\
 	src/verilog/ast/types/if_generate_construct.h\
+	src/verilog/ast/types/info_statement.h\
 	src/verilog/ast/types/initial_construct.h\
 	src/verilog/ast/types/instantiation.h\
 	src/verilog/ast/types/integer_declaration.h\
@@ -226,12 +247,17 @@ HDR=\
 	src/verilog/ast/types/number.h\
 	src/verilog/ast/types/par_block.h\
 	src/verilog/ast/types/parameter_declaration.h\
+	src/verilog/ast/types/put_statement.h\
 	src/verilog/ast/types/port_declaration.h\
 	src/verilog/ast/types/primary.h\
 	src/verilog/ast/types/range_expression.h\
 	src/verilog/ast/types/reg_declaration.h\
 	src/verilog/ast/types/repeat_statement.h\
+	src/verilog/ast/types/restart_statement.h\
+	src/verilog/ast/types/retarget_statement.h\
+	src/verilog/ast/types/save_statement.h\
 	src/verilog/ast/types/scope.h\
+	src/verilog/ast/types/seek_statement.h\
 	src/verilog/ast/types/seq_block.h\
 	src/verilog/ast/types/statement.h\
 	src/verilog/ast/types/string.h\
@@ -241,6 +267,7 @@ HDR=\
 	src/verilog/ast/types/unary_expression.h\
 	src/verilog/ast/types/variable_assign.h\
 	src/verilog/ast/types/wait_statement.h\
+	src/verilog/ast/types/warning_statement.h\
 	src/verilog/ast/types/while_statement.h\
 	src/verilog/ast/types/write_statement.h\
 	\
@@ -290,6 +317,7 @@ BMARK_OBJ=\
 ### Tool binaries
 BIN=\
 	bin/cascade\
+	bin/de10_probe\
 	bin/quartus_server\
 	bin/sw_fpga
 

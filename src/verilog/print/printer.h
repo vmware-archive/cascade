@@ -53,6 +53,8 @@ class Printer : public Visitor {
     void visit(const Event* e) override;
     void visit(const BinaryExpression* be) override;
     void visit(const ConditionalExpression* ce) override;
+    void visit(const EofExpression* ee) override;
+    void visit(const FopenExpression* fe) override;
     void visit(const Concatenation* c) override;
     void visit(const Identifier* i) override;
     void visit(const MultipleConcatenation* mc) override;
@@ -92,10 +94,13 @@ class Printer : public Visitor {
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
+    void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
     void visit(const WaitStatement* ws) override;

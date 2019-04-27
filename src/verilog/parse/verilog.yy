@@ -145,19 +145,25 @@ bool is_null(const cascade::Expression* e) {
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
+%token STREAM      "stream"
 %token WAIT        "wait"
 %token WHILE       "while"
 %token WIRE        "wire"
 
 /* System Task Identifiers */
 %token SYS_DISPLAY  "$display"
+%token SYS_EOF      "$eof"
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
+%token SYS_FOPEN    "$fopen"
+%token SYS_GET      "$get"
 %token SYS_INFO     "$info"
+%token SYS_PUT      "$put"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_SAVE     "$save"
+%token SYS_SEEK     "$seek"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -335,6 +341,7 @@ bool is_null(const cascade::Expression* e) {
 
 /* A.8.3 Expressions */
 %type <ConditionalExpression*> conditional_expression
+%type <EofExpression*> eof_expression
 %type <Expression*> expression
 %type <Expression*> mintypmax_expression
 %type <Expression*> range_expression
@@ -648,7 +655,7 @@ parameter_declaration
   }
   ;
 parameter_type
-  : INTEGER 
+  : integer_L 
   ;
 /* A.2.1.2 Port Declarations */
 inout_declaration
@@ -791,6 +798,10 @@ variable_type
     $$ = new VariableAssign($1, $3); 
     parser->set_loc($$, $1);
   }
+  | identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5)); 
+    parser->set_loc($$, $1);
+  }
   ;
 
 /* A.2.2.3 Delays */
@@ -899,7 +910,7 @@ block_item_declaration
       delete $4;
     }
   }
-  | attribute_instance_S INTEGER list_of_block_variable_identifiers SCOLON { 
+  | attribute_instance_S integer_L list_of_block_variable_identifiers SCOLON { 
     for (auto id : $3) {
       $$.push_back(new IntegerDeclaration($1->clone(), id, nullptr));
     }
@@ -1357,15 +1368,15 @@ loop_statement
   }
   | REPEAT OPAREN expression CPAREN statement { 
     $$ = new RepeatStatement($3,$5); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   | WHILE OPAREN expression CPAREN statement { 
     $$ = new WhileStatement($3,$5); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   | FOR OPAREN variable_assignment SCOLON expression SCOLON variable_assignment CPAREN statement {
     $$ = new ForStatement($3,$5,$7,$9); 
-    parser->set_loc($$, $3);
+    parser->set_loc($$);
   }
   ;
 
@@ -1426,6 +1437,10 @@ system_task_enable
     $$ = new FinishStatement($3); 
     parser->set_loc($$);
   }
+  | SYS_GET OPAREN identifier COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, $5); 
+    parser->set_loc($$);
+  }
   | SYS_INFO SCOLON { 
     $$ = new InfoStatement(); 
     parser->set_loc($$);
@@ -1438,6 +1453,10 @@ system_task_enable
     $$ = new InfoStatement($3.begin(), $3.end()); 
     parser->set_loc($$);
   }
+  | SYS_PUT OPAREN identifier COMMA identifier CPAREN SCOLON {
+    $$ = new PutStatement($3, $5); 
+    parser->set_loc($$);
+  }
   | SYS_RESTART OPAREN string_ CPAREN SCOLON {
     $$ = new RestartStatement($3);
     parser->set_loc($$);
@@ -1448,6 +1467,10 @@ system_task_enable
   }
   | SYS_SAVE OPAREN string_ CPAREN SCOLON {
     $$ = new SaveStatement($3);
+    parser->set_loc($$);
+  }
+  | SYS_SEEK OPAREN identifier COMMA number CPAREN SCOLON {
+    $$ = new SeekStatement($3, $5);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
@@ -1490,6 +1513,11 @@ conditional_expression
     $$ = new ConditionalExpression($1, $3, $5);
   }
   ;
+eof_expression
+  : SYS_EOF OPAREN identifier CPAREN {
+    $$ = new EofExpression($3);
+    parser->set_loc($$);
+  }
 expression
   : primary { 
     $$ = $1; 
@@ -1570,6 +1598,7 @@ expression
     $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
+  | eof_expression { $$ = $1; }
   ;
 mintypmax_expression
   : expression { $$ = $1; }
@@ -1810,6 +1839,7 @@ generate_block_id_Q
   ;
 integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }
+  | STREAM { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
   : %empty { }

@@ -49,12 +49,12 @@ TEST(benchmark, array) {
 TEST(benchmark, bitcoin) {
   run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
 }
-//TEST(benchmark, mips32) {
-//  run_benchmark("data/test/benchmark/mips32/run_bubble_2048.v", "1");
-//}
-//TEST(benchmark, nw) {
-//  run_benchmark("data/test/benchmark/nw/run_16.v", "TODO...");
-//}
+TEST(benchmark, mips32) {
+  run_benchmark("data/test/benchmark/mips32/run_bubble_128_1024.v", "1");
+}
 TEST(benchmark, regex) {
-  run_benchmark("data/test/benchmark/regex/run_disjunct_16.v", "6784");
+  run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
+}
+TEST(benchmark, nw) {
+  run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
 }

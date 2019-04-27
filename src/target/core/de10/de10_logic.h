@@ -31,12 +31,15 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include "src/base/bits/bits.h"
 #include "src/base/container/vector.h"
 #include "src/target/core.h"
+#include "src/target/core/common/interfacestream.h"
 #include "src/target/core/de10/quartus_server.h"
+#include "src/verilog/analyze/evaluate.h"
 #include "src/verilog/ast/visitors/visitor.h"
 
 namespace cascade {
@@ -83,12 +86,14 @@ class De10Logic : public Logic, public Visitor {
     De10Logic& set_input(const Identifier* id, VId vid);
     De10Logic& set_state(const Identifier* id, VId vid);
     De10Logic& set_output(const Identifier* id, VId vid);
+    De10Logic& index_tasks();
 
     // Core Interface:
     State* get_state() override;
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
+    void finalize() override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;
@@ -109,21 +114,30 @@ class De10Logic : public Logic, public Visitor {
     table_iterator table_begin() const;
     table_iterator table_end() const;
 
-    // Variable table properties:
+    // Variable Table Properties:
     size_t table_size() const;
-    size_t live_idx() const;
     size_t there_are_updates_idx() const;
-    size_t update_idx() const;
+    size_t apply_update_idx() const;
+    size_t drop_update_idx() const;
     size_t sys_task_idx() const;
+    size_t io_task_idx() const;
+    size_t resume_idx() const;
+    size_t reset_idx() const;
+    size_t done_idx() const;
     size_t open_loop_idx() const;
+
+    // Task Index Properties:
+    size_t sys_task_size() const;
+    size_t io_task_size() const;
 
     // Optimization properties:
     bool open_loop_enabled() const;
     const Identifier* open_loop_clock() const;
 
   private:
-    // Program Source:
+    // Sourcei Management:
     ModuleDeclaration* src_;
+    std::vector<interfacestream*> streams_;
 
     // Quartus Server State:
     QuartusServer::Id id_;
@@ -139,17 +153,23 @@ class De10Logic : public Logic, public Visitor {
     std::unordered_map<const Identifier*, VId> var_map_;
     std::vector<VarInfo*> inputs_;
     std::vector<std::pair<VId, VarInfo*>> outputs_;
-    std::vector<const SystemTaskEnableStatement*> tasks_;
+    std::vector<const SystemTaskEnableStatement*> sys_tasks_;
+    std::unordered_map<const Identifier*, std::vector<const Identifier*>> eof_checks_;
+    std::vector<std::tuple<const SystemTaskEnableStatement*, interfacestream*, std::vector<VarInfo>>> io_tasks_; 
 
     // Execution State:
     bool there_were_tasks_;
 
     // Visitor Interface:
+    void visit(const EofExpression* ee) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const GetStatement* gs) override;
     void visit(const InfoStatement* is) override;
+    void visit(const PutStatement* ps) override;
     void visit(const RetargetStatement* rs) override;
+    void visit(const SeekStatement* ss) override;
     void visit(const WarningStatement* ws) override;
     void visit(const WriteStatement* ws) override;
 
@@ -163,8 +183,10 @@ class De10Logic : public Logic, public Visitor {
     void write_array(const VarInfo& vi, const Vector<Bits>& bs);
     
     // Evaluate / Update Helpers:
+    void wait_until_done();
     void handle_outputs();
-    void handle_tasks();
+    void handle_io_tasks();
+    void handle_sys_tasks();
 
     // Inserts the identifiers in an AST subtree into the variable table.
     struct Inserter : Visitor {

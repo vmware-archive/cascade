@@ -73,6 +73,14 @@ void Editor::edit(ConditionalExpression* ce) {
   ce->accept_rhs(this);
 }
 
+void Editor::edit(EofExpression* ee) {
+  ee->accept_arg(this);
+}
+
+void Editor::edit(FopenExpression* fe) {
+  fe->accept_arg(this);
+}
+
 void Editor::edit(Concatenation* c) {
   c->accept_exprs(this);
 }
@@ -280,8 +288,18 @@ void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Editor::edit(GetStatement* gs) {
+  gs->accept_id(this);
+  gs->accept_var(this);
+}
+
 void Editor::edit(InfoStatement* is) {
   is->accept_args(this);
+}
+
+void Editor::edit(PutStatement* ps) {
+  ps->accept_id(this);
+  ps->accept_var(this);
 }
 
 void Editor::edit(RestartStatement* rs) {
@@ -294,6 +312,11 @@ void Editor::edit(RetargetStatement* rs) {
 
 void Editor::edit(SaveStatement* ss) {
   ss->accept_arg(this);
+}
+
+void Editor::edit(SeekStatement* ss) {
+  ss->accept_id(this);
+  ss->accept_pos(this);
 }
 
 void Editor::edit(WarningStatement* ws) {
