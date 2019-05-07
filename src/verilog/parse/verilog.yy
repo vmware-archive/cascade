@@ -57,9 +57,12 @@ bool is_null(const cascade::Expression* e) {
 } // namespace 
 }
 
-/* Control tokens */
+/* Control Tokens */
 %token END_OF_FILE "<end_of_file>"
 %token UNPARSEABLE "<unparseable>"
+
+/* Compiler Directive Tokens */
+%token END_INCLUDE "<end_include>"
 
 /* Operators and Tokens */
 %token AAMP    "&&"
@@ -433,11 +436,11 @@ main
     YYACCEPT; 
   }
   | restore END_OF_FILE { 
-    if (parser->depth() == 1) {
-      parser->eof_ = true; 
-    } else {
-      parser->pop();
-    }
+    parser->eof_ = true; 
+    YYACCEPT;
+  }
+  | restore END_INCLUDE {  
+    parser->pop();
     YYACCEPT; 
   }
   ;

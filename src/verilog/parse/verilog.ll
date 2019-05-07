@@ -46,16 +46,18 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n);
     return yyParser::make_UNPARSEABLE(parser->get_loc());
   }
   std::string content((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+  content += "`__end_include";
   for (auto i = content.rbegin(), ie = content.rend(); i != ie; ++i) {
     unput(*i);
   }
-  parser->push(path);
 
-  if (parser->depth() > 15) {
+  if (parser->depth() == 15) {
     parser->log_->error("Exceeded maximum nesting depth (15) for include statements. Do you have a circular include?");
     return yyParser::make_UNPARSEABLE(parser->get_loc());
   }
+  parser->push(path);
 }
+"`__end_include" return yyParser::make_END_INCLUDE(parser->get_loc());
 
 "//"[^\n]* {
   YY_REC; 
