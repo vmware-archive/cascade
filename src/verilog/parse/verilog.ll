@@ -51,7 +51,7 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n);
   }
   parser->push(path);
 
-  if (parser->get_depth() > 15) {
+  if (parser->depth() > 15) {
     parser->log_->error("Exceeded maximum nesting depth (15) for include statements. Do you have a circular include?");
     return yyParser::make_UNPARSEABLE(parser->get_loc());
   }

@@ -61,13 +61,6 @@ class Parser : public Editor {
     // Attaches a new stream to the parser and sets the eof flag to false
     Parser& set_stream(std::istream& is);
 
-    // Location Tracking Interface:
-    //
-    // Pushes a new file path onto the parser's stack. 
-    void push(const std::string& path);
-    // Removes the last path from the parser's stack.
-    void pop();
-
     // Parser Interface:
     //
     // Parses the next element from the current stream.  Writes errors/warnings to log.
@@ -77,9 +70,7 @@ class Parser : public Editor {
     // Returns iterators over the results of the previous parse
     const_iterator begin() const;
     const_iterator end() const;
-    // Returns the path nesting depth of the parser stack
-    size_t get_depth() const;
-    // Returns the last string which was parsed.
+    // Returns the text of the last parse.
     const std::string& get_text() const;
     // Returns the file and line number for a node from the last parse.
     std::pair<std::string, size_t> get_loc(const Node* n) const;
@@ -110,6 +101,15 @@ class Parser : public Editor {
     // with a single null element with an empty list.
     void edit(ModuleDeclaration* md) override;
     void edit(ModuleInstantiation* mi) override;
+
+    // Including Stack Tracking Interface:
+    //
+    // Returns the current include nesting depth 
+    size_t depth() const;
+    // Pushes a new file path onto the parser's stack. 
+    void push(const std::string& path);
+    // Removes the last path from the parser's stack.
+    void pop();
 
     // Helper methods for tracking location information:
     //

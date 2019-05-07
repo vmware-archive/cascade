@@ -430,9 +430,8 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
 
     parser_->parse();
     const auto text = parser_->get_text();
-    const auto depth = parser_->get_depth();
-    schedule_interrupt([this, text, depth]{
-      view_->parse(logical_time_, depth, text);
+    schedule_interrupt([this, text]{
+      view_->parse(logical_time_, text);
     });
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.

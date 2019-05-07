@@ -433,7 +433,7 @@ main
     YYACCEPT; 
   }
   | restore END_OF_FILE { 
-    if (parser->get_depth() == 1) {
+    if (parser->depth() == 1) {
       parser->eof_ = true; 
     } else {
       parser->pop();

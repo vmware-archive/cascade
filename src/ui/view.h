@@ -66,9 +66,7 @@ class View {
     virtual void error(size_t t, const std::string& s);
 
     // A string was parsed
-    virtual void parse(size_t t, size_t d, const std::string& s);
-    // An include path was resolved
-    virtual void include(size_t t, const std::string& s);
+    virtual void parse(size_t t, const std::string& s);
     // A module declaration was successfully eval'ed.
     virtual void decl(size_t t, const Program* p, const ModuleDeclaration* md);
     // A module item was successfully eval'ed.
@@ -103,13 +101,7 @@ inline void View::error(size_t t, const std::string& s) {
   (void) s;
 }
 
-inline void View::parse(size_t t, size_t d, const std::string& s) {
-  (void) t;
-  (void) d;
-  (void) s;
-}
-
-inline void View::include(size_t t, const std::string& s) {
+inline void View::parse(size_t t, const std::string& s) {
   (void) t;
   (void) s;
 }

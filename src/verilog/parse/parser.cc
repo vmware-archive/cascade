@@ -54,15 +54,6 @@ Parser& Parser::set_stream(istream& is) {
   return *this;
 }
 
-void Parser::push(const string& path) {
-  stack_.push(make_pair(path, location()));
-  stack_.top().second.initialize();
-}
-
-void Parser::pop() {
-  stack_.pop();
-}
-
 void Parser::parse() {
   yyParser parser(this);
 
@@ -90,10 +81,6 @@ Parser::const_iterator Parser::begin() const {
 
 Parser::const_iterator Parser::end() const {
   return res_.end();
-}
-
-size_t Parser::get_depth() const {
-  return stack_.size();
 }
 
 const std::string& Parser::get_text() const {
@@ -126,6 +113,19 @@ void Parser::edit(ModuleInstantiation* mi) {
   if (mi->size_ports() == 1 && mi->front_ports()->is_null_imp()) {
     mi->purge_to_ports(0);
   } 
+}
+
+size_t Parser::depth() const {
+  return stack_.size();
+}
+
+void Parser::push(const string& path) {
+  stack_.push(make_pair(path, location()));
+  stack_.top().second.initialize();
+}
+
+void Parser::pop() {
+  stack_.pop();
 }
 
 string& Parser::get_path() {

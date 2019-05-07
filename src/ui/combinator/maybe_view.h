@@ -50,8 +50,7 @@ class MaybeView : public View {
     void warn(size_t t, const std::string& s) override;
     void error(size_t t, const std::string& s) override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
+    void parse(size_t t, const std::string& s) override;
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
@@ -112,15 +111,9 @@ inline void MaybeView::error(size_t t, const std::string& s) {
   }
 }
 
-inline void MaybeView::parse(size_t t, size_t d, const std::string & s) {
+inline void MaybeView::parse(size_t t, const std::string & s) {
   if (view_ != nullptr) {
-    view_->parse(t, d, s);
-  }
-}
-
-inline void MaybeView::include(size_t t, const std::string & s) {
-  if (view_ != nullptr) {
-    view_->include(t, s);
+    view_->parse(t, s);
   }
 }
 

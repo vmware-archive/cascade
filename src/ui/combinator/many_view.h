@@ -51,8 +51,7 @@ class ManyView : public View {
     void warn(size_t t, const std::string& s) override;
     void error(size_t t, const std::string& s) override;
 
-    void parse(size_t t, size_t d, const std::string& s) override;
-    void include(size_t t, const std::string& s) override;
+    void parse(size_t t, const std::string& s) override;
     void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
     void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
 
@@ -108,15 +107,9 @@ inline void ManyView::error(size_t t, const std::string& s) {
   }
 }
 
-inline void ManyView::parse(size_t t, size_t d, const std::string& s) {
+inline void ManyView::parse(size_t t, const std::string& s) {
   for (auto* v : views_) {
-    v->parse(t, d, s);
-  }
-}
-
-inline void ManyView::include(size_t t, const std::string& s) {
-  for (auto* v : views_) {
-    v->include(t, s);
+    v->parse(t, s);
   }
 }
 

@@ -65,13 +65,8 @@ void LogView::error(size_t t, const string& s) {
   os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
 }
 
-void LogView::parse(size_t t, size_t d, const string& s) {
-  (void) d;
+void LogView::parse(size_t t, const string& s) {
   os_ << "PARSE " << t << " " << time(nullptr) << endl << s << endl;
-}
-
-void LogView::include(size_t t, const string& s) {
-  os_ << "INCLUDE " << t << " " << time(nullptr) << endl << s << endl;
 }
 
 void LogView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
