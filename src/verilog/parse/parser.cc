@@ -75,6 +75,10 @@ bool Parser::eof() const {
   return eof_;
 }
 
+size_t Parser::depth() const {
+  return stack_.size();
+}
+
 Parser::const_iterator Parser::begin() const {
   return res_.begin();
 }
@@ -113,10 +117,6 @@ void Parser::edit(ModuleInstantiation* mi) {
   if (mi->size_ports() == 1 && mi->front_ports()->is_null_imp()) {
     mi->purge_to_ports(0);
   } 
-}
-
-size_t Parser::depth() const {
-  return stack_.size();
 }
 
 void Parser::push(const string& path) {

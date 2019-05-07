@@ -67,6 +67,8 @@ class Parser : public Editor {
     void parse();
     // Returns true if the last parse ended in an end-of-file
     bool eof() const;
+    // Returns the current include nesting depth 
+    size_t depth() const;
     // Returns iterators over the results of the previous parse
     const_iterator begin() const;
     const_iterator end() const;
@@ -102,17 +104,12 @@ class Parser : public Editor {
     void edit(ModuleDeclaration* md) override;
     void edit(ModuleInstantiation* mi) override;
 
-    // Including Stack Tracking Interface:
+    // Helper methods for tracking location information:
     //
-    // Returns the current include nesting depth 
-    size_t depth() const;
     // Pushes a new file path onto the parser's stack. 
     void push(const std::string& path);
     // Removes the last path from the parser's stack.
     void pop();
-
-    // Helper methods for tracking location information:
-    //
     // Returns the current path
     std::string& get_path();
     // Returns the current location

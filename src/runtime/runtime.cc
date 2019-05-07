@@ -450,9 +450,10 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
       }
       return res;
     }
-    // Eval the code we just parsed; if this is the term, don't loop
+    // Eval the code we just parsed; if this is the term, only loop for as
+    // long as we're inside of an include statement.
     res = eval_nodes(parser_->begin(), parser_->end());
-    if (is_term) {
+    if (is_term && (parser_->depth() == 1)) {
       return res;
     }
   }
