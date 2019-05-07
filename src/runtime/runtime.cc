@@ -58,7 +58,7 @@ Runtime::Runtime(View* view) : Asynchronous() {
   view_ = view;
 
   log_ = new Log();
-  parser_ = new Parser();
+  parser_ = new Parser(log_);
   dp_ = new DataPlane();
   isolate_ = new Isolate();
   compiler_ = new Compiler();
@@ -114,7 +114,7 @@ Runtime& Runtime::set_compiler(Compiler* c) {
 }
 
 Runtime& Runtime::set_include_dirs(const string& s) {
-  include_dirs_ = s;
+  parser_->set_include_dirs(s);
   return *this;
 }
 
@@ -422,11 +422,13 @@ void Runtime::run_logic() {
 }
 
 bool Runtime::eval_stream(istream& is, bool is_term) {
+  parser_->set_stream(is);
+
   auto res = true;
   while (res) {
     log_->clear();
 
-    parser_->parse(is, log_); 
+    parser_->parse();
     const auto text = parser_->get_text();
     const auto depth = parser_->get_depth();
     schedule_interrupt([this, text, depth]{
@@ -459,10 +461,7 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
 }
 
 bool Runtime::eval_node(Node* n) {
-  if (n->is(Node::Tag::string)) {
-    auto* s = static_cast<String*>(n);
-    return eval_include(s);
-  } else if (n->is(Node::Tag::module_declaration)) {
+  if (n->is(Node::Tag::module_declaration)) {
     auto* md = static_cast<ModuleDeclaration*>(n);
     return eval_decl(md);
   } else if (n->is_subclass_of(Node::Tag::module_item)) {
@@ -472,30 +471,6 @@ bool Runtime::eval_node(Node* n) {
     assert(false);
     return false;
   }
-}
-
-bool Runtime::eval_include(String* s) {
-  const auto& path = s->get_readable_val();
-  delete s;
-
-  incstream ifs(include_dirs_);
-  if (!ifs.open(path)) {
-    error("Unable to resolve include directive >>> include " + path + "; <<<");
-    error("  Check your filename or try adding additional include paths using the -I option.");
-    if (isspace(path.back())) {
-      error("  The filename you provided also has trailing whitespace. Did you mean to do that?");
-    }
-    return false;
-  }
-  schedule_interrupt([this, path]{
-    view_->include(logical_time_, path);
-  });
-
-  parser_->push(path);
-  const auto res = eval_stream(ifs, false);
-  parser_->pop();
-
-  return res;
 }
 
 bool Runtime::eval_decl(ModuleDeclaration* md) {

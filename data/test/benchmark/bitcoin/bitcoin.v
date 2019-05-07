@@ -1,6 +1,6 @@
-include data/test/benchmark/bitcoin/sha-256-functions.v;
-include data/test/benchmark/bitcoin/sha256_transform.v;
-include data/test/benchmark/bitcoin/fpgaminer_top.v;
+`include "data/test/benchmark/bitcoin/sha-256-functions.v"
+`include "data/test/benchmark/bitcoin/sha256_transform.v"
+`include "data/test/benchmark/bitcoin/fpgaminer_top.v"
 
 module Bitcoin();
 

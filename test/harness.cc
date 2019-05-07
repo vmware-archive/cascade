@@ -73,9 +73,10 @@ void run_parse(const string& path, bool expected) {
   ifstream ifs(path);
   ASSERT_TRUE(ifs.is_open());
 
-  Parser p;
   Log log;
-  p.parse(ifs, &log);
+  Parser p(&log);
+  p.set_stream(ifs);
+  p.parse();
   EXPECT_EQ(log.error(), expected);
 }
 
@@ -87,8 +88,8 @@ void run_typecheck(const string& march, const string& path, bool expected) {
   c.attach_view(new EView(ss));
   c.run();
 
-  c.eval("include data/march/" + march + ".v;\n" +
-         "include " + path + ";");
+  c.eval("`include \"data/march/" + march + ".v\"\n" +
+         "`include \"" + path + "\"");
   if (expected) {
     c.eval("initial $finish;");
   }
@@ -105,8 +106,8 @@ void run_code(const string& march, const string& path, const string& expected) {
   c.attach_view(new PView(ss));
   c.run();
 
-  c.eval("include data/march/" + march + ".v;\n" +
-         "include " + path + ";");
+  c.eval("`include \"data/march/" + march + ".v\"\n" +
+         "`include \"" + path + "\"");
 
   c.wait_for_stop();
   EXPECT_EQ(ss.str(), expected);
@@ -122,8 +123,8 @@ void run_benchmark(const string& path, const string& expected) {
   c.set_quartus_port(::quartus_port.value());
   c.run();
 
-  c.eval("include data/march/" + ::march.value() + ".v;\n" +
-         "include " + path + ";");
+  c.eval("`include \"data/march/" + ::march.value() + ".v\"\n" +
+         "`include \"" + path + "\"");
 
   c.wait_for_stop();
   EXPECT_EQ(ss.str(), expected);

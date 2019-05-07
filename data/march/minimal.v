@@ -2,7 +2,7 @@
 // cascade.  It instantiates the root and a single software-backed virtual
 // clock.
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 Root root();
 

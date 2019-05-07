@@ -1,7 +1,7 @@
-include data/test/benchmark/mips32/alu.v;
-include data/test/benchmark/mips32/alu_control.v;
-include data/test/benchmark/mips32/control.v;
-include data/test/benchmark/mips32/mem.v;
+`include "data/test/benchmark/mips32/alu.v"
+`include "data/test/benchmark/mips32/alu_control.v"
+`include "data/test/benchmark/mips32/control.v"
+`include "data/test/benchmark/mips32/mem.v"
 
 module Mips32(
   input  wire[31:0] instr,

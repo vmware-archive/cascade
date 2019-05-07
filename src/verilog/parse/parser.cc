@@ -36,20 +36,21 @@ using namespace std;
 
 namespace cascade {
 
-Parser::Parser() : Editor() { 
-  debug_lexer_ = false;
-  debug_parser_ = false;
+Parser::Parser(Log* log) : Editor() { 
+  include_dirs_ = "";
+  log_ = log;
   push("<top>");
   last_parse_ = "";
 }
 
-Parser& Parser::debug_lexer(bool debug) {
-  debug_lexer_ = debug;
+Parser& Parser::set_include_dirs(const string& s) {
+  include_dirs_ = s;
   return *this;
 }
 
-Parser& Parser::debug_parser(bool debug) {
-  debug_parser_ = debug;
+Parser& Parser::set_stream(istream& is) {
+  lexer_.switch_streams(&is);
+  eof_ = false;
   return *this;
 }
 
@@ -62,15 +63,12 @@ void Parser::pop() {
   stack_.pop();
 }
 
-void Parser::parse(istream& is, Log* log) {
-  lexer_.switch_streams(&is);
-  lexer_.set_debug(debug_lexer_);
-
+void Parser::parse() {
   yyParser parser(this);
-  parser.set_debug_level(debug_parser_);
 
-  log_ = log;
-  eof_ = false;
+  lexer_.set_debug(false);
+  parser.set_debug_level(false);
+
   res_.clear();
   last_parse_ = "";
   locs_.clear();
@@ -84,10 +82,6 @@ void Parser::parse(istream& is, Log* log) {
 
 bool Parser::eof() const {
   return eof_;
-}
-
-bool Parser::success() const {
-  return !res_.empty();
 }
 
 Parser::const_iterator Parser::begin() const {

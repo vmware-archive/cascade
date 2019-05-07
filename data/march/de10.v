@@ -1,6 +1,6 @@
 // This march file corresponds to the DE10 nano SoC.
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 Root root();
 

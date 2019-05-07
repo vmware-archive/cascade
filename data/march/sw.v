@@ -1,7 +1,7 @@
 // This march file corresponds to the software-simulated fpga that comes with
 // cascade.
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 Root root();
 

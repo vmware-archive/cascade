@@ -1,6 +1,7 @@
 %{ 
 #include <cctype>
 #include <string>
+#include "src/base/stream/incstream.h"
 #include "src/verilog/parse/verilog.tab.hh"
 #include "src/verilog/parse/lexer.h"
 #include "src/verilog/parse/parser.h"
@@ -20,8 +21,10 @@ using namespace cascade;
 #define YY_REC parser->last_parse_ += yytext;
 #define YY_USER_ACTION parser->get_loc().columns(yyleng);
 
+#undef YY_BUF_SIZE
+#define YY_BUF_SIZE 1024*1024
+
 std::pair<bool, std::string> strip_num(const char* c, size_t n);
-std::string strip_path(const char* c);
 %}
 
 %%
@@ -29,8 +32,42 @@ std::string strip_path(const char* c);
 [ \t]+     YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
 [\n]       YY_REC; parser->get_loc().lines(1); parser->get_loc().step();
 
-"//"[^\n]*                  YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
-"/*"([^*]|(\*+[^*/]))*\*+\/ YY_REC; for (size_t i = 0; i < yyleng; ++i) { if (yytext[i] == '\n') { parser->get_loc().lines(1); } else { parser->get_loc().columns(1); } } parser->get_loc().step();
+"`include"[ \t]+\"[^"\n]*\" {
+  YY_REC;
+
+  std::string s(yytext);
+  const auto begin = s.find_first_of('"');
+  const auto end = s.find_last_of('"');
+  const auto path = s.substr(begin+1, end-begin-1);
+
+  incstream is(parser->include_dirs_);
+  if (!is.open(path)) {
+    parser->log_->error("Unable to locate file " + path);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  }
+  std::string content((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+  for (auto i = content.rbegin(), ie = content.rend(); i != ie; ++i) {
+    unput(*i);
+  }
+  parser->push(path);
+}
+
+"//"[^\n]* {
+  YY_REC; 
+  parser->get_loc().columns(yyleng); 
+  parser->get_loc().step();
+}
+"/*"([^*]|(\*+[^*/]))*\*+\/ {
+  YY_REC; 
+  for (size_t i = 0; i < yyleng; ++i) { 
+    if (yytext[i] == '\n') { 
+      parser->get_loc().lines(1); 
+    } else { 
+      parser->get_loc().columns(1); 
+    } 
+  } 
+  parser->get_loc().step();
+}
 
 "&&"      YY_REC; return yyParser::make_AAMP(parser->get_loc());
 "&"       YY_REC; return yyParser::make_AMP(parser->get_loc());
@@ -137,8 +174,6 @@ std::string strip_path(const char* c);
 "$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 
-"include"[ \t\n]+[^;]+";" YY_REC; return yyParser::make_INCLUDE(strip_path(yytext), parser->get_loc());
-
 [0-9][0-9_]*                               YY_REC; return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
 '[sS]?[dD][ \t\n]*[0-9][0-9_]*             YY_REC; return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
 '[sS]?[bB][ \t\n]*[01][01_]*               YY_REC; return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
@@ -170,18 +205,6 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n) {
   }
 
   return std::make_pair(is_signed, s);
-}
-
-std::string strip_path(const char* c) {
-  size_t i = 7;
-  while (isspace(c[i++]));
-
-  std::string s;
-  for (--i; c[i] != ';'; ++i) {
-    s += c[i];
-  }
-
-  return s;
 }
 
 int yyFlexLexer::yylex() {

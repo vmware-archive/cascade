@@ -1,6 +1,6 @@
 // This march file enables jit compilation for the de10 nano backend. 
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 (*__target="sw;de10"*)
 Root root();

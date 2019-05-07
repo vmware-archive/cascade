@@ -51,33 +51,29 @@ class Parser : public Editor {
     typedef std::vector<Node*>::const_iterator const_iterator;
 
     // Constructors:
-    Parser();
+    Parser(Log* log);
     ~Parser() override = default;
 
     // Configuration Interface: 
     //
-    // Toggles terminal output from flex and bison, respectively. Outside of a
-    // debugging session, its best to keep these variables turned off, as their
-    // output isn't passed through the high-level cascade output pipeline.
-    Parser& debug_lexer(bool debug);
-    Parser& debug_parser(bool debug);
+    // Sets the search path for include directives
+    Parser& set_include_dirs(const std::string& s);
+    // Attaches a new stream to the parser and sets the eof flag to false
+    Parser& set_stream(std::istream& is);
 
     // Location Tracking Interface:
     //
-    // Pushes a new file onto the parser's stack. All subsequent parses will be
-    // tagged with this path.
+    // Pushes a new file path onto the parser's stack. 
     void push(const std::string& path);
     // Removes the last path from the parser's stack.
     void pop();
 
     // Parser Interface:
     //
-    // Parses the next element from an istream.  Writes errors/warnings to log.
-    void parse(std::istream& is, Log* log);
+    // Parses the next element from the current stream.  Writes errors/warnings to log.
+    void parse();
     // Returns true if the last parse ended in an end-of-file
     bool eof() const;
-    // Returns true if the last parse was successful
-    bool success() const;
     // Returns iterators over the results of the previous parse
     const_iterator begin() const;
     const_iterator end() const;
@@ -89,23 +85,20 @@ class Parser : public Editor {
     std::pair<std::string, size_t> get_loc(const Node* n) const;
 
   private:
-    // Lexer and debugging level:
-    bool debug_lexer_;
     friend class yyLexer;
-    yyLexer lexer_;
-    // Parser and debugging level:
-    bool debug_parser_;
     friend class yyParser;
+    yyLexer lexer_;
     
     // Location stack:
     std::stack<std::pair<std::string, location>> stack_;
 
     // State returned by the previous parse:
+    std::string include_dirs_;
+    Log* log_;
     std::vector<Node*> res_;
     bool eof_;
     std::string last_parse_;
     std::unordered_map<const Node*, std::pair<std::string, size_t>> locs_;
-    Log* log_;
 
     // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;

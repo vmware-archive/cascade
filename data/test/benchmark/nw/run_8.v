@@ -1,5 +1,5 @@
-include data/test/benchmark/nw/constants_8.v;
-include data/test/benchmark/nw/nw.v;
+`include "data/test/benchmark/nw/constants_8.v"
+`include "data/test/benchmark/nw/nw.v"
 
 // Read input pairs one line at a time. This is an artifact from when we used
 // to stream values with a cascade Fifo. This input structuring is no longer

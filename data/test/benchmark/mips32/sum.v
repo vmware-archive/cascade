@@ -1,4 +1,4 @@
-include data/test/benchmark/mips32/mips32.v;
+`include "data/test/benchmark/mips32/mips32.v"
 
 reg[31:0] imem[63:0];
 
