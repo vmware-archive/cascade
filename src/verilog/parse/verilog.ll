@@ -74,7 +74,9 @@ DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
   }
   parser->push(path);
 }
-"`define" {
+"`__end_include" parser->pop();
+
+"`define"{SPACE}+ {
   YY_REC; 
   BEGIN(DEFINE_NAME);
   return yyParser::make_DEFINE(parser->get_loc());
@@ -107,8 +109,6 @@ DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
   text.pop_back();
   return yyParser::make_DEFINE_TEXT(text, parser->get_loc());
 }
-
-"`__end_include" return yyParser::make_END_INCLUDE(parser->get_loc());
 
 {SL_COMMENT} {
   YY_REC; 

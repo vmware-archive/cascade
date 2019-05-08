@@ -445,12 +445,8 @@ main
     parser->eof_ = true; 
     YYACCEPT;
   }
-  | restore END_INCLUDE {  
-    parser->pop();
-    YYACCEPT; 
-  }
   | restore DEFINE SIMPLE_ID define_args DEFINE_TEXT {
-    std::cout << "DEFINE " << $3 << " = [" << $5 << "]" << std::endl;
+    parser->define($3, $4, $5);
     YYACCEPT;
   }
   ;

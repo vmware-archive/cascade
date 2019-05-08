@@ -96,6 +96,9 @@ class Parser : public Editor {
     // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;
 
+    // Macro definitions
+    std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
+
     // Visitor Interface:
     //
     // Collectively, these methods are responsible for fixing structural
@@ -120,6 +123,15 @@ class Parser : public Editor {
     void set_loc(const Node* n, size_t line);
     // Sets location to the current path and line 
     void set_loc(const Node* n);
+
+    // Helper methods for using compiler directives
+    //
+    // Overrides the current definition for name
+    void define(const std::string& name, const std::vector<std::string>& args, const std::string& text);
+    // Removes the current definition for name
+    void undefine(const std::string& name);
+    // Returns true if name is defined
+    bool is_defined(const std::string& name);
 };
 
 } // namespace cascade 

@@ -155,4 +155,18 @@ void Parser::set_loc(const Node* n) {
   locs_.insert(make_pair(n, make_pair(get_path(), get_loc().begin.line))); 
 }
 
+void Parser::define(const string& name, const vector<string>& args, const string& text) {
+  macros_[name] = make_pair(args, text);
+}
+
+void Parser::undefine(const string& name) {
+  const auto itr = macros_.find(name);
+  assert(itr != macros_.end());
+  macros_.erase(itr);
+}
+
+bool Parser::is_defined(const string& name) {
+  return macros_.find(name) != macros_.end();
+}
+
 } // namespace cascade
