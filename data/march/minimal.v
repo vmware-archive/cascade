@@ -1,5 +1,5 @@
-`ifndef __CASCADE_MARCH_MINIMAL_V
-`define __CASCADE_MARCH_MINIMAL_V
+`ifndef __CASCADE_DATA_MARCH_MINIMAL_V
+`define __CASCADE_DATA_MARCH_MINIMAL_V
 
 `include "data/stdlib/stdlib.v"
 
