@@ -27,12 +27,29 @@ using namespace cascade;
 std::pair<bool, std::string> strip_num(const char* c, size_t n);
 %}
 
+SPACE       ([ \t])
+WHITESPACE  ([ \t\n])
+NEWLINE     ([\n])
+SL_COMMENT  ("//"[^\n]*)
+ML_COMMENT  ("/*"([^*]|(\*+[^*/]))*\*+\/)
+QUOTED_STR  (\"[^"\n]*\")
+IDENTIFIER  ([a-zA-Z_][a-zA-Z0-9_]*)
+DECIMAL     ([0-9][0-9_]*)
+BINARY      ([01][01_]*)
+OCTAL       ([0-7][0-7_]*)
+HEX         ([0-9a-fA-F][0-9a-fA-F_]*) 
+DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
+
+%x DEFINE_NAME
+%s DEFINE_ARGS
+%x DEFINE_BODY
+
 %%
 
-[ \t]+     YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
-[\n]       YY_REC; parser->get_loc().lines(1); parser->get_loc().step();
+{SPACE}+    YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
+{NEWLINE}   YY_REC; parser->get_loc().lines(1); parser->get_loc().step();
 
-"`include"[ \t]+\"[^"\n]*\" {
+"`include"{SPACE}+{QUOTED_STR} {
   YY_REC;
 
   std::string s(yytext);
@@ -57,14 +74,48 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n);
   }
   parser->push(path);
 }
+"`define" {
+  YY_REC; 
+  BEGIN(DEFINE_NAME);
+  return yyParser::make_DEFINE(parser->get_loc());
+}
+<DEFINE_NAME>{IDENTIFIER}"(" {
+  YY_REC;
+  unput('(');
+  BEGIN(DEFINE_ARGS);
+  return yyParser::make_SIMPLE_ID(std::string(yytext, yyleng-1), parser->get_loc());
+}
+<DEFINE_NAME>{IDENTIFIER} {
+  YY_REC; 
+  BEGIN(DEFINE_BODY);
+  return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
+}
+<DEFINE_ARGS>")" {
+  YY_REC;
+  BEGIN(DEFINE_BODY);
+  return yyParser::make_CPAREN(parser->get_loc());
+}
+<DEFINE_BODY>{DEFINE_TEXT} {
+  YY_REC;
+  BEGIN(0);
+  std::string text = yytext;
+  for (auto& c : text) {
+    if ((c == '\\') || (c == '\n')) {
+      c = ' ';
+    }
+  }
+  text.pop_back();
+  return yyParser::make_DEFINE_TEXT(text, parser->get_loc());
+}
+
 "`__end_include" return yyParser::make_END_INCLUDE(parser->get_loc());
 
-"//"[^\n]* {
+{SL_COMMENT} {
   YY_REC; 
   parser->get_loc().columns(yyleng); 
   parser->get_loc().step();
 }
-"/*"([^*]|(\*+[^*/]))*\*+\/ {
+{ML_COMMENT} {
   YY_REC; 
   for (size_t i = 0; i < yyleng; ++i) { 
     if (yytext[i] == '\n') { 
@@ -181,14 +232,14 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n);
 "$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 
-[0-9][0-9_]*                               YY_REC; return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
-'[sS]?[dD][ \t\n]*[0-9][0-9_]*             YY_REC; return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[bB][ \t\n]*[01][01_]*               YY_REC; return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[oO][ \t\n]*[0-7][0-7_]*             YY_REC; return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[hH][ \t\n]*[0-9a-fA-F][0-9a-fA-F_]* YY_REC; return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+{DECIMAL}                        YY_REC; return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
+'[sS]?[dD]{WHITESPACE}*{DECIMAL} YY_REC; return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[bB]{WHITESPACE}*{BINARY}  YY_REC; return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[oO]{WHITESPACE}*{OCTAL}   YY_REC; return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[hH]{WHITESPACE}*{HEX}     YY_REC; return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
 
-[a-zA-Z_][a-zA-Z0-9_$]* YY_REC; return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-\"[^"\n]*\"             YY_REC; return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
+{IDENTIFIER} YY_REC; return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
+{QUOTED_STR} YY_REC; return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
 
 <<EOF>> return yyParser::make_END_OF_FILE(parser->get_loc());
 

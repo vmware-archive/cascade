@@ -61,9 +61,6 @@ bool is_null(const cascade::Expression* e) {
 %token END_OF_FILE "<end_of_file>"
 %token UNPARSEABLE "<unparseable>"
 
-/* Compiler Directive Tokens */
-%token END_INCLUDE "<end_include>"
-
 /* Operators and Tokens */
 %token AAMP    "&&"
 %token AMP     "&"
@@ -181,6 +178,11 @@ bool is_null(const cascade::Expression* e) {
 %token <SignedNumber> BINARY_VALUE
 %token <SignedNumber> OCTAL_VALUE
 %token <SignedNumber> HEX_VALUE
+
+/* Compiler Directive Tokens */
+%token END_INCLUDE "<end_include>"
+%token DEFINE "`define"
+%token<std::string> DEFINE_TEXT
 
 /* Operator Precedence */
 %right QMARK COLON
@@ -377,6 +379,10 @@ bool is_null(const cascade::Expression* e) {
 %type <Identifier*> hierarchical_identifier
 %type <Identifier*> identifier 
 
+/* Compiler Directives */
+%type <std::vector<std::string>> define_args
+%type <std::vector<std::string>> list_of_define_args
+
 /* Auxiliary Rules */
 %type <std::vector<AttrSpec*>> attr_spec_P
 %type <Attributes*> attribute_instance_S 
@@ -442,6 +448,10 @@ main
   | restore END_INCLUDE {  
     parser->pop();
     YYACCEPT; 
+  }
+  | restore DEFINE SIMPLE_ID define_args DEFINE_TEXT {
+    std::cout << "DEFINE " << $3 << " = [" << $5 << "]" << std::endl;
+    YYACCEPT;
   }
   ;
 
@@ -1753,7 +1763,19 @@ identifier
   }
   /* TODO | ESCAPED_ID */
   ;
-/* NOTE: Rules that delegate to these rules just add clutter */
+
+/* Compiler Directives */
+define_args
+  : %empty { }
+  | OPAREN list_of_define_args CPAREN { $$ = $2; }
+  ;
+list_of_define_args 
+  : SIMPLE_ID { $$.push_back($1); }
+  | list_of_define_args COMMA SIMPLE_ID {
+    $$ = $1;
+    $$.push_back($3);
+  }
+  ;
 
 /* Auxiliary Rules */
 attr_spec_P
