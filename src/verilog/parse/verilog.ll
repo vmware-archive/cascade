@@ -39,10 +39,16 @@ BINARY      ([01][01_]*)
 OCTAL       ([0-7][0-7_]*)
 HEX         ([0-9a-fA-F][0-9a-fA-F_]*) 
 DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
+IF_TEXT     ([^`]*)
 
 %x DEFINE_NAME
 %s DEFINE_ARGS
 %x DEFINE_BODY
+
+%x IFDEF_IF
+%x IFDEF_TRUE
+%x IFDEF_FALSE
+%x IFDEF_DONE
 
 %%
 
@@ -110,6 +116,71 @@ DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
   return yyParser::make_DEFINE_TEXT(text, parser->get_loc());
 }
 "`undef" YY_REC; return yyParser::make_UNDEF(parser->get_loc());
+
+"`ifdef" {
+  YY_REC;
+  parser->polarity_ = true;
+  BEGIN(IFDEF_IF);
+}
+"`ifndef" {
+  YY_REC;
+  parser->polarity_ = false;
+  BEGIN(IFDEF_IF);
+}
+<IFDEF_IF>{SPACE}+{IDENTIFIER} {
+  YY_REC;
+  
+  std::string name = yytext;
+  name = name.substr(name.find_first_not_of(" \n\t"));
+  const auto isdef = parser->is_defined(name);
+
+  if ((isdef && parser->polarity_) || (!isdef && !parser->polarity_)) {
+    BEGIN(IFDEF_TRUE);
+  } else {
+    BEGIN(IFDEF_FALSE);
+  }
+  parser->polarity_ = true;
+}
+<IFDEF_TRUE>{IF_TEXT}"`else" {
+  YY_REC;
+  parser->text_ = yytext;
+  parser->text_.resize(parser->text_.length()-5);
+  BEGIN(IFDEF_DONE);
+}
+<IFDEF_TRUE>{IF_TEXT}"`elsif" {
+  YY_REC;
+  parser->text_ = yytext;
+  parser->text_.resize(parser->text_.length()-6);
+  BEGIN(IFDEF_DONE);
+}
+<IFDEF_TRUE>{IF_TEXT}"`endif" {
+  YY_REC;
+  parser->text_ = yytext;
+  parser->text_.resize(parser->text_.length()-6);
+  for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+    unput(*i);
+  }
+  BEGIN(0);
+}
+<IFDEF_FALSE>{IF_TEXT}"`else" {
+  YY_REC;
+  BEGIN(IFDEF_TRUE);
+}
+<IFDEF_FALSE>{IF_TEXT}"`elsif" {
+  YY_REC;
+  BEGIN(IFDEF_IF);
+}
+<IFDEF_FALSE>{IF_TEXT}"`endif" {
+  YY_REC;
+  BEGIN(0);
+}
+<IFDEF_DONE>{IF_TEXT}"`endif" {
+  YY_REC;
+  for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+    unput(*i);
+  }
+  BEGIN(0);
+}
 
 {SL_COMMENT} {
   YY_REC; 

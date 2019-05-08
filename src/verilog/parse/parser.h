@@ -82,12 +82,14 @@ class Parser : public Editor {
     friend class yyParser;
     yyLexer lexer_;
     
+    // Configuration State:
+    std::string include_dirs_;
+    Log* log_;
+
     // Location stack:
     std::stack<std::pair<std::string, location>> stack_;
 
     // State returned by the previous parse:
-    std::string include_dirs_;
-    Log* log_;
     std::vector<Node*> res_;
     bool eof_;
     std::string last_parse_;
@@ -98,6 +100,10 @@ class Parser : public Editor {
 
     // Macro definitions
     std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
+
+    // Preprocessor buffer
+    bool polarity_;
+    std::string text_;
 
     // Visitor Interface:
     //
