@@ -99,6 +99,7 @@ class Parser : public Editor {
     yyParser::symbol_type backup_;
 
     // Macro definitions
+    std::string current_;
     std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
 
     // Preprocessor buffer

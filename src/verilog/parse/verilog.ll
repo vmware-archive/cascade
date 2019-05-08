@@ -41,7 +41,6 @@ HEX         ([0-9a-fA-F][0-9a-fA-F_]*)
 DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
 IF_TEXT     ((.|\n)*)
 
-%x DEFINE_NAME
 %s DEFINE_ARGS
 %x DEFINE_BODY
 
@@ -82,26 +81,33 @@ IF_TEXT     ((.|\n)*)
 }
 "`__end_include" parser->pop();
 
-"`define"{SPACE}+ {
+"`define"{SPACE}+{IDENTIFIER} {
   YY_REC; 
-  BEGIN(DEFINE_NAME);
-  return yyParser::make_DEFINE(parser->get_loc());
+  parser->current_ = yytext;
+  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 7));
+  BEGIN(DEFINE_BODY);
 }
-<DEFINE_NAME>{IDENTIFIER}"(" {
-  YY_REC;
-  unput('(');
+"`define"{SPACE}+{IDENTIFIER}"(" {
+  YY_REC; 
+  parser->current_ = yytext;
+  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 7));
+  parser->current_.pop_back();
   BEGIN(DEFINE_ARGS);
-  return yyParser::make_SIMPLE_ID(std::string(yytext, yyleng-1), parser->get_loc());
 }
-<DEFINE_NAME>{IDENTIFIER} {
-  YY_REC; 
-  BEGIN(DEFINE_BODY);
-  return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-}
-<DEFINE_ARGS>")" {
+<DEFINE_ARGS>{SPACE}+{IDENTIFIER}{SPACE}+"," {
   YY_REC;
+  std::string arg = yytext;
+  arg = arg.substr(arg.find_first_not_of(" \n\t"));
+  arg = arg.substr(0, arg.find_first_of(" \n\t")-1);
+  parser->macros_[parser->current_].first.push_back(arg);
+}
+<DEFINE_ARGS>{SPACE}+{IDENTIFIER}{SPACE}+")" {
+  YY_REC;
+  std::string arg = yytext;
+  arg = arg.substr(arg.find_first_not_of(" \n\t"));
+  arg = arg.substr(0, arg.find_first_of(" \n\t)")-1);
+  parser->macros_[parser->current_].first.push_back(arg);
   BEGIN(DEFINE_BODY);
-  return yyParser::make_CPAREN(parser->get_loc());
 }
 <DEFINE_BODY>{DEFINE_TEXT} {
   YY_REC;
@@ -113,9 +119,16 @@ IF_TEXT     ((.|\n)*)
     }
   }
   text.pop_back();
-  return yyParser::make_DEFINE_TEXT(text, parser->get_loc());
+  parser->macros_[parser->current_].second = text;
 }
-"`undef" YY_REC; return yyParser::make_UNDEF(parser->get_loc());
+"`undef"{SPACE}+{IDENTIFIER} {
+  YY_REC;
+  parser->current_ = yytext;
+  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 6));
+  if (parser->is_defined(parser->current_)) {
+    parser->undefine(parser->current_);
+  }
+} 
 
 "`ifdef" {
   YY_REC;

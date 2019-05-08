@@ -181,9 +181,6 @@ bool is_null(const cascade::Expression* e) {
 
 /* Compiler Directive Tokens */
 %token END_INCLUDE "<end_include>"
-%token DEFINE "`define"
-%token<std::string> DEFINE_TEXT
-%token UNDEF "`undef"
 
 /* Operator Precedence */
 %right QMARK COLON
@@ -380,10 +377,6 @@ bool is_null(const cascade::Expression* e) {
 %type <Identifier*> hierarchical_identifier
 %type <Identifier*> identifier 
 
-/* Compiler Directives */
-%type <std::vector<std::string>> define_args
-%type <std::vector<std::string>> list_of_define_args
-
 /* Auxiliary Rules */
 %type <std::vector<AttrSpec*>> attr_spec_P
 %type <Attributes*> attribute_instance_S 
@@ -444,16 +437,6 @@ main
   }
   | restore END_OF_FILE { 
     parser->eof_ = true; 
-    YYACCEPT;
-  }
-  | restore DEFINE SIMPLE_ID define_args DEFINE_TEXT {
-    parser->define($3, $4, $5);
-    YYACCEPT;
-  }
-  | restore UNDEF SIMPLE_ID {
-    if (parser->is_defined($3)) {
-      parser->undefine($3);
-    }
     YYACCEPT;
   }
   ;
@@ -1765,19 +1748,6 @@ identifier
     parser->set_loc($$, $1.first);
   }
   /* TODO | ESCAPED_ID */
-  ;
-
-/* Compiler Directives */
-define_args
-  : %empty { }
-  | OPAREN list_of_define_args CPAREN { $$ = $2; }
-  ;
-list_of_define_args 
-  : SIMPLE_ID { $$.push_back($1); }
-  | list_of_define_args COMMA SIMPLE_ID {
-    $$ = $1;
-    $$.push_back($3);
-  }
   ;
 
 /* Auxiliary Rules */
