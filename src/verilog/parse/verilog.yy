@@ -183,6 +183,7 @@ bool is_null(const cascade::Expression* e) {
 %token END_INCLUDE "<end_include>"
 %token DEFINE "`define"
 %token<std::string> DEFINE_TEXT
+%token UNDEF "`undef"
 
 /* Operator Precedence */
 %right QMARK COLON
@@ -447,6 +448,12 @@ main
   }
   | restore DEFINE SIMPLE_ID define_args DEFINE_TEXT {
     parser->define($3, $4, $5);
+    YYACCEPT;
+  }
+  | restore UNDEF SIMPLE_ID {
+    if (parser->is_defined($3)) {
+      parser->undefine($3);
+    }
     YYACCEPT;
   }
   ;

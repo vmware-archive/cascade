@@ -56,7 +56,6 @@ Parser& Parser::set_stream(istream& is) {
 
 void Parser::parse() {
   yyParser parser(this);
-
   lexer_.set_debug(false);
   parser.set_debug_level(false);
 

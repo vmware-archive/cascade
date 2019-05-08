@@ -109,6 +109,7 @@ DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
   text.pop_back();
   return yyParser::make_DEFINE_TEXT(text, parser->get_loc());
 }
+"`undef" YY_REC; return yyParser::make_UNDEF(parser->get_loc());
 
 {SL_COMMENT} {
   YY_REC; 
