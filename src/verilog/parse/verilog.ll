@@ -39,7 +39,7 @@ BINARY      ([01][01_]*)
 OCTAL       ([0-7][0-7_]*)
 HEX         ([0-9a-fA-F][0-9a-fA-F_]*) 
 DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
-IF_TEXT     ([^`]*)
+IF_TEXT     ((.|\n)*)
 
 %x DEFINE_NAME
 %s DEFINE_ARGS

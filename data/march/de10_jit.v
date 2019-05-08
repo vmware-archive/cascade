@@ -1,4 +1,5 @@
-// This march file enables jit compilation for the de10 nano backend. 
+`ifndef __CASCADE_MARCH_DE10_JIT_V
+`define __CASCADE_MARCH_DE10_JIT_V
 
 `include "data/stdlib/stdlib.v"
 
@@ -15,3 +16,5 @@ Led#(8) led();
 
 (*__target="de10"*)
 Gpio#(8) gpio();
+
+`endif

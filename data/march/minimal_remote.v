@@ -1,5 +1,5 @@
-// This march file is intended for debugging purposes only. It exercises remote
-// functionality for generic program logic.
+`ifndef __CASCADE_MARCH_MINIMAL_REMOTE_V
+`define __CASCADE_MARCH_MINIMAL_REMOTE_V
 
 `include "data/stdlib/stdlib.v"
 
@@ -7,3 +7,5 @@
 Root root();
 
 Clock clock();
+
+`endif

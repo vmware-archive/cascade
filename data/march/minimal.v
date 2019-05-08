@@ -1,9 +1,10 @@
-// This march file represents the smallest possible runtime interface for
-// cascade.  It instantiates the root and a single software-backed virtual
-// clock.
+`ifndef __CASCADE_MARCH_MINIMAL_V
+`define __CASCADE_MARCH_MINIMAL_V
 
 `include "data/stdlib/stdlib.v"
 
 Root root();
 
 Clock clock();
+
+`endif

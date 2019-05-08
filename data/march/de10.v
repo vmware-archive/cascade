@@ -1,4 +1,5 @@
-// This march file corresponds to the DE10 nano SoC.
+`ifndef __CASCADE_MARCH_DE10_V
+`define __CASCADE_MARCH_DE10_V
 
 `include "data/stdlib/stdlib.v"
 
@@ -14,3 +15,5 @@ Led#(8) led();
 
 (*__target="de10"*)
 Gpio#(8) gpio();
+
+`endif
