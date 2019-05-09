@@ -41,6 +41,7 @@ Parser::Parser(Log* log) : Editor() {
   log_ = log;
   push("<top>");
   last_parse_ = "";
+  nesting_ = 0;
 }
 
 Parser& Parser::set_include_dirs(const string& s) {

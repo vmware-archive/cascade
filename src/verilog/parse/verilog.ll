@@ -39,7 +39,7 @@ BINARY      ([01][01_]*)
 OCTAL       ([0-7][0-7_]*)
 HEX         ([0-9a-fA-F][0-9a-fA-F_]*) 
 DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
-IF_TEXT     ((.|\n)*)
+IF_TEXT     ([^`]*)
 
 %s DEFINE_ARGS
 %x DEFINE_BODY
@@ -133,11 +133,13 @@ IF_TEXT     ((.|\n)*)
 "`ifdef" {
   YY_REC;
   parser->polarity_ = true;
+  ++parser->nesting_;
   BEGIN(IFDEF_IF);
 }
 "`ifndef" {
   YY_REC;
   parser->polarity_ = false;
+  ++parser->nesting_;
   BEGIN(IFDEF_IF);
 }
 <IFDEF_IF>{SPACE}+{IDENTIFIER} {
@@ -154,45 +156,138 @@ IF_TEXT     ((.|\n)*)
   }
   parser->polarity_ = true;
 }
-<IFDEF_TRUE>{IF_TEXT}"`else" {
+<IFDEF_TRUE>{IF_TEXT} {
   YY_REC;
-  parser->text_ = yytext;
-  parser->text_.resize(parser->text_.length()-5);
-  BEGIN(IFDEF_DONE);
+  yymore();
 }
-<IFDEF_TRUE>{IF_TEXT}"`elsif" {
+<IFDEF_TRUE>"`ifdef" {
   YY_REC;
-  parser->text_ = yytext;
-  parser->text_.resize(parser->text_.length()-6);
-  BEGIN(IFDEF_DONE);
+  yymore();
+  ++parser->nesting_;
 }
-<IFDEF_TRUE>{IF_TEXT}"`endif" {
+<IFDEF_TRUE>"`ifndef" {
   YY_REC;
-  parser->text_ = yytext;
-  parser->text_.resize(parser->text_.length()-6);
-  for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
-    unput(*i);
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_TRUE>"`else" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-5);
+    BEGIN(IFDEF_DONE);
+  } else {
+    yymore();
   }
-  BEGIN(0);
 }
-<IFDEF_FALSE>{IF_TEXT}"`else" {
+<IFDEF_TRUE>"`elsif" {
   YY_REC;
-  BEGIN(IFDEF_TRUE);
-}
-<IFDEF_FALSE>{IF_TEXT}"`elsif" {
-  YY_REC;
-  BEGIN(IFDEF_IF);
-}
-<IFDEF_FALSE>{IF_TEXT}"`endif" {
-  YY_REC;
-  BEGIN(0);
-}
-<IFDEF_DONE>{IF_TEXT}"`endif" {
-  YY_REC;
-  for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
-    unput(*i);
+  if (parser->nesting_ == 1) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-6);
+    BEGIN(IFDEF_DONE);
+  } else {
+    yymore();
   }
-  BEGIN(0);
+}
+<IFDEF_TRUE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-6);
+    for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_TRUE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_FALSE>{IF_TEXT} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_FALSE>"`ifdef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_FALSE>"`ifndef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_FALSE>"`else" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    BEGIN(IFDEF_TRUE);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`elsif" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    BEGIN(IFDEF_IF);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>{IF_TEXT} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`ifdef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_DONE>"`ifndef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_DONE>"`else" {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`elsif" {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_DONE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
 }
 
 {SL_COMMENT} {

@@ -159,6 +159,9 @@ TEST(simple, hello_2) {
 TEST(simple, hello_3) {
   run_code("minimal","data/test/regression/simple/hello_3.v", "Hello World");
 }
+TEST(simple, ifdef_1) {
+  run_code("minimal","data/test/regression/simple/ifdef_1.v", "1234567");
+}
 TEST(simple, include_1) {
   run_code("minimal","data/test/regression/simple/include_1.v", "once");
 }

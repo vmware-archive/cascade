@@ -102,8 +102,9 @@ class Parser : public Editor {
     std::string current_;
     std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
 
-    // Preprocessor buffer
+    // Preprocessor state
     bool polarity_;
+    size_t nesting_;
     std::string text_;
 
     // Visitor Interface:
