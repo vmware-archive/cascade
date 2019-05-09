@@ -98,12 +98,15 @@ class Parser : public Editor {
     // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;
 
-    // Macro definitions
-    std::string current_;
+    // Preprocessor Macro State:
+    std::string name_;
+    std::vector<std::string> args_;
     std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
 
-    // Preprocessor state
+    // Preprocessor Ifdef State:
     bool polarity_;
+
+    // Preprocessor Scratch State:
     size_t nesting_;
     std::string text_;
 
@@ -139,7 +142,11 @@ class Parser : public Editor {
     // Removes the current definition for name
     void undefine(const std::string& name);
     // Returns true if name is defined
-    bool is_defined(const std::string& name);
+    bool is_defined(const std::string& name) const;
+    // Returns the arity of this macro
+    size_t arity(const std::string& name) const;
+    // Performs macro substitution
+    std::string replace(const std::string& name, const std::vector<std::string>& args) const;
 };
 
 } // namespace cascade 

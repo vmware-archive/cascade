@@ -41,13 +41,15 @@ HEX         ([0-9a-fA-F][0-9a-fA-F_]*)
 DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
 IF_TEXT     ([^`]*)
 
-%s DEFINE_ARGS
+%x DEFINE_ARGS
 %x DEFINE_BODY
 
 %x IFDEF_IF
 %x IFDEF_TRUE
 %x IFDEF_FALSE
 %x IFDEF_DONE
+
+%x MACRO_ARGS
 
 %%
 
@@ -83,30 +85,32 @@ IF_TEXT     ([^`]*)
 
 "`define"{SPACE}+{IDENTIFIER} {
   YY_REC; 
-  parser->current_ = yytext;
-  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 7));
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 7));
   BEGIN(DEFINE_BODY);
 }
 "`define"{SPACE}+{IDENTIFIER}"(" {
   YY_REC; 
-  parser->current_ = yytext;
-  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 7));
-  parser->current_.pop_back();
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 7));
+  parser->name_.pop_back();
   BEGIN(DEFINE_ARGS);
 }
-<DEFINE_ARGS>{SPACE}+{IDENTIFIER}{SPACE}+"," {
+<DEFINE_ARGS>{SPACE}*{IDENTIFIER}{SPACE}*"," {
   YY_REC;
   std::string arg = yytext;
+  arg.pop_back();
   arg = arg.substr(arg.find_first_not_of(" \n\t"));
   arg = arg.substr(0, arg.find_first_of(" \n\t")-1);
-  parser->macros_[parser->current_].first.push_back(arg);
+  parser->macros_[parser->name_].first.push_back(arg);
 }
-<DEFINE_ARGS>{SPACE}+{IDENTIFIER}{SPACE}+")" {
+<DEFINE_ARGS>{SPACE}*{IDENTIFIER}{SPACE}*")" {
   YY_REC;
   std::string arg = yytext;
+  arg.pop_back();
   arg = arg.substr(arg.find_first_not_of(" \n\t"));
   arg = arg.substr(0, arg.find_first_of(" \n\t)")-1);
-  parser->macros_[parser->current_].first.push_back(arg);
+  parser->macros_[parser->name_].first.push_back(arg);
   BEGIN(DEFINE_BODY);
 }
 <DEFINE_BODY>{DEFINE_TEXT} {
@@ -119,14 +123,14 @@ IF_TEXT     ([^`]*)
     }
   }
   text.pop_back();
-  parser->macros_[parser->current_].second = text;
+  parser->macros_[parser->name_].second = text;
 }
 "`undef"{SPACE}+{IDENTIFIER} {
   YY_REC;
-  parser->current_ = yytext;
-  parser->current_ = parser->current_.substr(parser->current_.find_first_not_of(" \n\t", 6));
-  if (parser->is_defined(parser->current_)) {
-    parser->undefine(parser->current_);
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 6));
+  if (parser->is_defined(parser->name_)) {
+    parser->undefine(parser->name_);
   }
 } 
 
@@ -288,6 +292,82 @@ IF_TEXT     ([^`]*)
 <IFDEF_DONE>"`"{IDENTIFIER} {
   YY_REC;
   yymore();
+}
+
+"`"{IDENTIFIER} {
+  YY_REC;
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(1);
+  parser->args_.clear();
+
+  if (!parser->is_defined(parser->name_)) {
+    parser->log_->error("Reference to unrecognized macro " + parser->name_);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  } else if (parser->arity(parser->name_) > 0) {
+    BEGIN(MACRO_ARGS);
+  } else if (parser->arity(parser->name_) != parser->args_.size()) {
+    parser->log_->error("Usage error for macro named " + parser->name_);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  } else {
+    const auto text = parser->replace(parser->name_, parser->args_);
+    for (auto i = text.rbegin(), ie = text.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  }
+}
+<MACRO_ARGS>{SPACE}*"(" {
+  YY_REC;
+  ++parser->nesting_;
+  if (parser->nesting_ > 1) {
+    yymore();
+  }
+}
+<MACRO_ARGS>{SPACE}*")" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ > 0) {
+    yymore();
+  } else {
+    std::string arg = yytext;
+    arg.pop_back();
+    parser->args_.push_back(arg);
+
+    if (parser->arity(parser->name_) != parser->args_.size()) {
+      parser->log_->error("Usage error for macro named " + parser->name_);
+      return yyParser::make_UNPARSEABLE(parser->get_loc());
+    } else {
+      const auto text = parser->replace(parser->name_, parser->args_);
+      for (auto i = text.rbegin(), ie = text.rend(); i != ie; ++i) {
+        unput(*i);
+      }
+      BEGIN(0);
+    }
+  }
+}
+<MACRO_ARGS>{SPACE}*"{" {
+  YY_REC;
+  ++parser->nesting_;
+  yymore();
+}
+<MACRO_ARGS>{SPACE}*"}" {
+  YY_REC;
+  --parser->nesting_;
+  yymore();
+}
+<MACRO_ARGS>{SPACE}*[^(){},]* {
+  YY_REC;
+  yymore();
+}
+<MACRO_ARGS>"," {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    std::string arg = yytext;
+    arg.pop_back();
+    parser->args_.push_back(arg);
+  } else {
+    yymore();
+  }
 }
 
 {SL_COMMENT} {

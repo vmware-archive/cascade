@@ -30,6 +30,7 @@
 
 #include "src/verilog/parse/parser.h"
 
+#include <regex>
 #include "src/base/log/log.h"
 
 using namespace std;
@@ -160,13 +161,32 @@ void Parser::define(const string& name, const vector<string>& args, const string
 }
 
 void Parser::undefine(const string& name) {
-  const auto itr = macros_.find(name);
-  assert(itr != macros_.end());
-  macros_.erase(itr);
+  assert(is_defined(name));
+  macros_.erase(name);
 }
 
-bool Parser::is_defined(const string& name) {
+bool Parser::is_defined(const string& name) const {
   return macros_.find(name) != macros_.end();
+}
+
+size_t Parser::arity(const string& name) const {
+  assert(is_defined(name));
+  return macros_.find(name)->second.first.size(); 
+}
+
+string Parser::replace(const string& name, const vector<string>& args) const {
+  assert(is_defined(name));
+  const auto itr = macros_.find(name);
+
+  const auto& formal_args = itr->second.first;
+  auto res = itr->second.second;
+  assert(formal_args.size() == args.size());
+
+  for (size_t i = 0, ie = args.size(); i < ie; ++i) {
+    regex re("\\b" + formal_args[i] + "\\b");
+    res = regex_replace(res, re, args[i]);
+  }
+  return res.substr(1, res.length()-1);
 }
 
 } // namespace cascade

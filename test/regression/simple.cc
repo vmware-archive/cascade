@@ -126,6 +126,9 @@ TEST(simple, concat_3) {
 TEST(simple, cond_1) {
   run_code("minimal","data/test/regression/simple/cond_1.v", "123");
 }
+TEST(simple, define_1) {
+  run_code("minimal","data/test/regression/simple/define_1.v", "22");
+}
 TEST(simple, fifo_1) {
   run_code("minimal","data/test/regression/simple/fifo_1.v", "1000000001100200300410");
 }
