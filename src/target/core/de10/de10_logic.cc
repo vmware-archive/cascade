@@ -279,7 +279,7 @@ void De10Logic::finalize() {
     // var info for those check in the index as well, so we can quickly(*ish*) update those
     // values whenever we interact with this stream
     const auto itr = eof_checks_.find(r);
-    assert(itr != eof_check_.end());
+    assert(itr != eof_checks_.end());
     for (auto* i : itr->second) {
       const auto titr = table_find(i);
       assert(titr != table_end());
