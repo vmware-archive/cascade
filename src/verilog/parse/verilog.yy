@@ -551,7 +551,6 @@ module_or_generate_item
   /* TODO | attribute_instance_S udp_instantiation */
   | attribute_instance_S module_instantiation { 
     for (auto mi : $2) {
-      assert(pd->is(Node::Tag::port_declaration));
       static_cast<ModuleInstantiation*>(mi)->replace_attrs($1->clone());
     }
     delete $1;
