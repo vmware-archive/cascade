@@ -16,10 +16,10 @@ matrix:
         - cmake
         - flex
         - bison
-        - libncurses-dev
         - g++-8
-    env:
-      - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+    before_install:
+      - update-alternatives --set gcc '/usr/bin/gcc-8'
+      - update-alternatives --set g++ '/usr/bin/g++-8'
   - os: linux
     dist: xenial
     compiler: clang
@@ -35,8 +35,9 @@ matrix:
         - bison
         - libncurses-dev
         - clang-8
-    env:
-      - MATRIX_EVAL="CC=clang-8.0 && CXX=clang++-8.0"
+    before_install:
+      - update-alternatives --set clang '/usr/bin/clang-8'
+      - update-alternatives --set clang++ '/usr/bin/clang++-8'
   - os: linux
     dist: xenial
     addons:
@@ -55,10 +56,10 @@ matrix:
       sonarcloud:
         organization: cascade
     before_install:
-      - "pip install --user scan-build"
+      - update-alternatives --set clang '/usr/bin/clang-8'
+      - update-alternatives --set clang++ '/usr/bin/clang++-8'
     env:
     - COVERAGE="1"
-    - MATRIX_EVAL="CC=clang-8.0 && CXX=clang++-8.0"
   - os: osx
     osx_image: xcode10.1
     compiler: clang
@@ -70,12 +71,7 @@ matrix:
         - flex
         - bison
     env:
-    - LDFLAGS="-L/usr/local/opt/flex/lib -L/usr/local/opt/bison/lib"
-    - CPPFLAGS="-I/usr/local/opt/flex/include"
-    - CXXFLAGS="-I/usr/local/opt/flex/include"
-    - CFLAGS="-I/usr/local/opt/flex/include"
-    before_install:
-    - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
+    - 'CMAKE_OPTIONS=-DFLEX_EXECUTABLE /usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE /usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR /usr/local/opt/flex/include'
 script:
 - export "${MATRIX_EVAL}"
 - mkdir -p build
