@@ -27,16 +27,6 @@ pmm(
 include(CTest)
 enable_testing()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/.travis/cmake)
-
-if (CMAKE_BUILD_TYPE STREQUAL "COVERAGE")
-include(CodeCoverage)
-setup_target_for_coverage(${PROJECT_NAME}_coverage runUnitTests coverage)
-
-SET(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-SET(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-endif()
-
 set(CASCADE_INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CASCADE_INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
 set(CASCADE_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
