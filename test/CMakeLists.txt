@@ -28,14 +28,3 @@ add_test(NAME regression
 add_test(NAME benchmark
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/benchmark
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis/cmake)
-
-if (COVERAGE STREQUAL "TRUE")
-include(CodeCoverage)
-setup_target_for_coverage(${PROJECT_NAME}_coverage regression coverage)
-
-SET(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-SET(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-endif()
