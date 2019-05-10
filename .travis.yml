@@ -50,6 +50,7 @@ matrix:
         - cmake
         - flex
         - bison
+        - lcov
         - libncurses-dev
         - g++-8
         - clang-8
