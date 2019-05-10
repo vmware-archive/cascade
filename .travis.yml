@@ -76,7 +76,8 @@ matrix:
     - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
     - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
-    - eval "${MATRIX_EVAL}"
+before_install:
+- eval "${MATRIX_EVAL}"
 script:
 - mkdir -p build
 - cd build
