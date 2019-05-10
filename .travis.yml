@@ -76,9 +76,9 @@ script:
 - mkdir -p ~/.conan && cp .travis/conan_settings.yml ~/.conan/settings.yml
 - mkdir -p build && cd build
 - "[ $COVERAGE = 1 ] && cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=TRUE -DBUILD_TESTS=ON .. || cmake ${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=${CXX_FLAGS} .." 
-- make
-- make cascade_coverage
-- ctest
+- make -j $(getconf _NPROCESSORS_ONLN) 
+- "[ $COVERAGE = 1 ] && make cascade_coverage || true"
+- "[ $COVERAGE = 1 ] && ctest || true"
 after_success:
 - "[ $COVERAGE = 1 ] && bash <(curl -s https://codecov.io/bash) && sonar-scanner -Dsonar.projectKey=cascade
   -Dsonar.organization=cascade -Dsonar.sources=. -Dsonar.cfamily.build-wrapper-output=bw-output
