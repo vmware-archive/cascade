@@ -17,8 +17,9 @@ matrix:
         - flex
         - bison
         - libncurses-dev
-        - gcc-8
         - g++-8
+    env:
+      - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
   - os: linux
     dist: xenial
     compiler: clang
@@ -34,6 +35,8 @@ matrix:
         - bison
         - libncurses-dev
         - clang-8
+    env:
+      - MATRIX_EVAL="CC=clang-8.0 && CXX=clang++-8.0"
   - os: linux
     dist: xenial
     addons:
@@ -55,6 +58,7 @@ matrix:
       - "pip install --user scan-build"
     env:
     - COVERAGE="1"
+    - MATRIX_EVAL="CC=clang-8.0 && CXX=clang++-8.0"
   - os: osx
     osx_image: xcode10.1
     compiler: clang
@@ -72,6 +76,7 @@ matrix:
     - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
     - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
+    - eval "${MATRIX_EVAL}"
 script:
 - mkdir -p build
 - cd build

@@ -9,5 +9,9 @@ target_link_libraries(de10_probe PRIVATE libcascade mongoose)
 add_executable(quartus_server quartus_server quartus_server.cc)
 target_link_libraries(quartus_server PRIVATE libcascade mongoose)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 add_executable(swfpga sw_fpga.cc)
 target_link_libraries(swfpga PRIVATE libcascade mongoose CONAN_PKG::ncurses)
+target_link_libraries(swfpga threads::Threads)
