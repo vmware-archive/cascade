@@ -6,7 +6,6 @@ matrix:
   include:
   - os: linux
     dist: xenial
-    compiler: gcc
     addons:
       apt:
         sources:
@@ -22,7 +21,6 @@ matrix:
       - CXX="/usr/bin/g++-8"
   - os: linux
     dist: xenial
-    compiler: clang
     addons:
       apt:
         sources:
