@@ -13,4 +13,4 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_executable(swfpga sw_fpga.cc)
-target_link_libraries(swfpga PRIVATE libcascade mongoose CONAN_PKG::ncurses threads::Threads)
+target_link_libraries(swfpga PRIVATE libcascade mongoose CONAN_PKG::ncurses Threads::Threads)
