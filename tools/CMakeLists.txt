@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-add_executable(cascade cascade.cc)
-target_link_libraries(cascade PRIVATE libcascade mongoose)
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+
+add_executable(cascade cascade.cc)
+target_link_libraries(cascade PRIVATE libcascade mongoose Threads::Threads)
 
 add_executable(de10_probe de10_probe.cc)
 target_link_libraries(de10_probe PRIVATE libcascade Threads::Threads)
