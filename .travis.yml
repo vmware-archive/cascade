@@ -57,6 +57,7 @@ matrix:
     - COVERAGE="1"
   - os: osx
     osx_image: xcode10.1
+    compiler: clang
     addons:
       homebrew:
         packages:
