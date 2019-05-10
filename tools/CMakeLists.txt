@@ -10,7 +10,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_executable(quartus_server quartus_server quartus_server.cc)
-target_link_libraries(quartus_server PRIVATE libcascade Thread::Threads)
+target_link_libraries(quartus_server PRIVATE libcascade Threads::Threads)
 
 add_executable(swfpga sw_fpga.cc)
 target_link_libraries(swfpga PRIVATE libcascade CONAN_PKG::ncurses Threads::Threads)
