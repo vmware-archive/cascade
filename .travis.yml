@@ -5,6 +5,7 @@ matrix:
   fast_finish: true
   include:
   - os: linux
+    compiler: gcc
     dist: xenial
     addons:
       apt:
@@ -16,9 +17,9 @@ matrix:
         - flex
         - bison
         - g++-8
-    env:
-      - CC="/usr/bin/gcc-8"
-      - CXX="/usr/bin/g++-8"
+    before_install:
+      - export CC="/usr/bin/gcc-8"
+      - export CXX="/usr/bin/g++-8"
   - os: linux
     dist: xenial
     addons:
@@ -33,9 +34,9 @@ matrix:
         - bison
         - libncurses-dev
         - clang-8
-    env:
-      - CC="/usr/bin/clang-8"
-      - CXX="/usr/bin/clang++-8"
+    before_install:
+      - export CC="/usr/bin/clang-8"
+      - export CXX="/usr/bin/clang++-8"
   - os: linux
     dist: xenial
     addons:
@@ -54,9 +55,10 @@ matrix:
       sonarcloud:
         organization: cascade
     env:
-    - COVERAGE="1"
-    - CC="/usr/bin/clang-8"
-    - CXX="/usr/bin/clang++-8"
+      - COVERAGE="1"
+    before_install:
+      - export CC="/usr/bin/clang-8"
+      - export CXX="/usr/bin/clang++-8"
   - os: osx
     osx_image: xcode10.1
     compiler: clang
@@ -70,7 +72,6 @@ matrix:
     env:
     - CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
 script:
-- export "${MATRIX_EVAL}"
 - mkdir -p build
 - cd build
 - "[ $COVERAGE = 1 ] && cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=TRUE -DBUILD_TESTS=ON .. || cmake ${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=${CXX_FLAGS} .." 
