@@ -76,9 +76,8 @@ matrix:
     - CFLAGS="-I/usr/local/opt/flex/include"
     before_install:
     - export PATH=/usr/local/opt/bison/bin:/usr/local/opt/flex/bin:$PATH
-before_install:
-- eval "${MATRIX_EVAL}"
 script:
+- export "${MATRIX_EVAL}"
 - mkdir -p build
 - cd build
 - "[ $COVERAGE = 1 ] && cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=TRUE -DBUILD_TESTS=ON .. || cmake ${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=${CXX_FLAGS} .." 
