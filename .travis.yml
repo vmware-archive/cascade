@@ -17,7 +17,7 @@ matrix:
         - flex
         - bison
         - g++-8
-    before_install:
+    env:
       - CC="/usr/bin/gcc-8"
       - CXX="/usr/bin/g++-8"
   - os: linux
@@ -35,7 +35,7 @@ matrix:
         - bison
         - libncurses-dev
         - clang-8
-    before_install:
+    env:
       - CC="/usr/bin/clang-8"
       - CXX="/usr/bin/clang++-8"
   - os: linux
@@ -55,9 +55,6 @@ matrix:
         - clang-8
       sonarcloud:
         organization: cascade
-    before_install:
-      - update-alternatives --set clang '/usr/bin/clang-8'
-      - update-alternatives --set clang++ '/usr/bin/clang++-8'
     env:
     - COVERAGE="1"
     - CC="/usr/bin/clang-8"
