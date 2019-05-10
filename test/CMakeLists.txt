@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(cascade-test)
 
-find_package(gtest)
-
 file (GLOB_RECURSE REGRESSION_DIR "regression/*.cc")
 file (GLOB_RECURSE BENCHMARK_DIR "benchmark/*.cc")
 
@@ -32,7 +30,7 @@ add_test(NAME benchmark
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/.travis/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis/cmake)
 
 if (COVERAGE STREQUAL "TRUE")
 include(CodeCoverage)
