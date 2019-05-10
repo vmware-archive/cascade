@@ -33,15 +33,15 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "src/base/container/vector.h"
-#include "src/verilog/analyze/indices.h"
-#include "src/verilog/ast/types/arg_assign.h"
-#include "src/verilog/ast/types/attributes.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/module_item.h"
-#include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/scope.h"
+#include "base/container/vector.h"
+#include "verilog/analyze/indices.h"
+#include "verilog/ast/types/arg_assign.h"
+#include "verilog/ast/types/attributes.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/module_item.h"
+#include "verilog/ast/types/node.h"
+#include "verilog/ast/types/scope.h"
 
 namespace cascade {
 

@@ -32,8 +32,8 @@
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
 #include <sstream>
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
 
 namespace cascade {
 

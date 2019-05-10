@@ -31,10 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CASE_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_CASE_GENERATE_CONSTRUCT_H
 
-#include "src/verilog/ast/types/case_generate_item.h"
-#include "src/verilog/ast/types/conditional_generate_construct.h"
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
+#include "verilog/ast/types/case_generate_item.h"
+#include "verilog/ast/types/conditional_generate_construct.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
 
 namespace cascade {
 

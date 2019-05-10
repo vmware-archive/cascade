@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_INTERFACE_H
 
 #include <string>
-#include "src/base/bits/bits.h"
-#include "src/runtime/ids.h"
+#include "base/bits/bits.h"
+#include "runtime/ids.h"
 
 namespace cascade {
 

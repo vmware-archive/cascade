@@ -31,20 +31,20 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include "lib/cascade.h"
-#include "src/runtime/runtime.h"
-#include "src/target/common/remote_runtime.h"
-#include "src/target/compiler.h"
-#include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/proxy/proxy_compiler.h"
-#include "src/target/core/sw/sw_compiler.h"
-#include "src/target/interface/local/local_compiler.h"
-#include "src/ui/combinator/many_view.h"
-#include "src/ui/combinator/maybe_view.h"
-#include "src/ui/log/log_view.h"
-#include "src/ui/term/term_controller.h"
-#include "src/ui/term/term_view.h"
-#include "src/ui/web/web_ui.h"
+#include "cascade.h"
+#include "runtime/runtime.h"
+#include "target/common/remote_runtime.h"
+#include "target/compiler.h"
+#include "target/core/de10/de10_compiler.h"
+#include "target/core/proxy/proxy_compiler.h"
+#include "target/core/sw/sw_compiler.h"
+#include "target/interface/local/local_compiler.h"
+#include "ui/combinator/many_view.h"
+#include "ui/combinator/maybe_view.h"
+#include "ui/log/log_view.h"
+#include "ui/term/term_controller.h"
+#include "ui/term/term_view.h"
+#include "ui/web/web_ui.h"
 
 using namespace std;
 

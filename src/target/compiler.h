@@ -33,10 +33,10 @@
 
 #include <mutex>
 #include <string>
-#include "src/base/thread/thread_pool.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/thread/thread_pool.h"
+#include "verilog/ast/ast_fwd.h"
+#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_PRINT_TEXT_TEXT_PRINTER_H
 #define CASCADE_SRC_VERILOG_PRINT_TEXT_TEXT_PRINTER_H
 
-#include "src/verilog/print/printer.h"
+#include "verilog/print/printer.h"
 
 namespace cascade {
 

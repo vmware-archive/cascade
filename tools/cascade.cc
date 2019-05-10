@@ -30,9 +30,9 @@
 
 #include <cstring>
 #include <signal.h>
-#include "ext/cl/include/cl.h"
-#include "src/base/system/system.h"
-#include "lib/cascade.h"
+#include "cl.h"
+#include "base/system/system.h"
+#include "cascade.h"
 
 using namespace cl;
 using namespace cascade;

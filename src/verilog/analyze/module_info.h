@@ -33,9 +33,9 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "src/base/container/vector.h"
-#include "src/verilog/analyze/indices.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/container/vector.h"
+#include "verilog/analyze/indices.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

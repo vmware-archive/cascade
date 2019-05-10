@@ -28,18 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/ui/web/web_ui.h"
+#include "ui/web/web_ui.h"
 
 #include <iostream>
 #include <sstream>
-#include "src/base/system/system.h"
-#include "src/runtime/runtime.h"
-#include "src/ui/term/term_view.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/print/debug/debug_printer.h"
-#include "src/verilog/print/html/html_printer.h"
-#include "src/verilog/program/program.h"
+#include "base/system/system.h"
+#include "runtime/runtime.h"
+#include "ui/term/term_view.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/print/debug/debug_printer.h"
+#include "verilog/print/html/html_printer.h"
+#include "verilog/program/program.h"
 
 using namespace std;
 

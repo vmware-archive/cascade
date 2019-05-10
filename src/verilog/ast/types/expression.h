@@ -31,10 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 
-#include "src/base/bits/bits.h"
-#include "src/base/container/vector.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/node.h"
+#include "base/bits/bits.h"
+#include "base/container/vector.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/node.h"
 
 namespace cascade {
 

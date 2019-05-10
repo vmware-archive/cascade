@@ -28,17 +28,17 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/de10_compiler.h"
+#include "target/core/de10/de10_compiler.h"
 
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <map>
 #include <unistd.h>
-#include "src/base/stream/sockstream.h"
-#include "src/target/core/de10/de10_rewrite.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/ast/ast.h"
+#include "base/stream/sockstream.h"
+#include "target/core/de10/de10_rewrite.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/ast/ast.h"
 
 using namespace std;
 

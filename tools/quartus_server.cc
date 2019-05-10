@@ -32,8 +32,8 @@
 #include <iostream>
 #include <signal.h>
 #include <string>
-#include "ext/cl/include/cl.h"
-#include "src/target/core/de10/quartus_server.h"
+#include "cl.h"
+#include "target/core/de10/quartus_server.h"
 
 using namespace cl;
 using namespace cascade;

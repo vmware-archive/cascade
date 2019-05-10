@@ -32,11 +32,11 @@
 #include <mutex>
 #include <ncurses.h>
 #include <string>
-#include "ext/cl/include/cl.h"
-#include "src/base/bits/bits.h"
-#include "src/target/common/remote_runtime.h"
-#include "src/target/compiler.h"
-#include "src/target/core/sw/sw_compiler.h"
+#include "cl.h"
+#include "base/bits/bits.h"
+#include "target/common/remote_runtime.h"
+#include "target/compiler.h"
+#include "target/core/sw/sw_compiler.h"
 
 using namespace cl;
 using namespace cascade;

@@ -32,10 +32,10 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_NAVIGATE_H
 
 #include <unordered_map>
-#include "src/base/token/tokenize.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/scope.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/token/tokenize.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/scope.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

@@ -30,7 +30,7 @@
 
 #include <fstream>
 #include <string>
-#include "src/base/thread/asynchronous.h"
+#include "base/thread/asynchronous.h"
 
 namespace cascade {
 

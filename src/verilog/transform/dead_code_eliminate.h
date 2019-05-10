@@ -32,8 +32,8 @@
 #define CASCADE_SRC_VERILOG_TRANSFORM_DEAD_CODE_ELIMINATE_H
 
 #include <unordered_set>
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

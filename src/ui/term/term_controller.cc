@@ -28,13 +28,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/ui/term/term_controller.h"
+#include "ui/term/term_controller.h"
 
 #include <cctype>
 #include <iostream>
 #include <sys/select.h>
 #include <unistd.h>
-#include "src/runtime/runtime.h"
+#include "runtime/runtime.h"
 
 using namespace std;
 

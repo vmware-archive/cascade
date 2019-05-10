@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/runtime/runtime.h"
+#include "runtime/runtime.h"
 
 #include <cassert>
 #include <cctype>
@@ -36,19 +36,19 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include "src/base/stream/incstream.h"
-#include "src/base/stream/indstream.h"
-#include "src/base/system/system.h"
-#include "src/runtime/data_plane.h"
-#include "src/runtime/isolate.h"
-#include "src/runtime/module.h"
-#include "src/target/compiler.h"
-#include "src/target/engine.h"
-#include "src/ui/view.h"
-#include "src/verilog/parse/parser.h"
-#include "src/verilog/print/debug/debug_printer.h"
-#include "src/verilog/program/inline.h"
-#include "src/verilog/program/program.h"
+#include "base/stream/incstream.h"
+#include "base/stream/indstream.h"
+#include "base/system/system.h"
+#include "runtime/data_plane.h"
+#include "runtime/isolate.h"
+#include "runtime/module.h"
+#include "target/compiler.h"
+#include "target/engine.h"
+#include "ui/view.h"
+#include "verilog/parse/parser.h"
+#include "verilog/print/debug/debug_printer.h"
+#include "verilog/program/inline.h"
+#include "verilog/program/program.h"
 
 using namespace std;
 

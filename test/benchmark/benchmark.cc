@@ -29,9 +29,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
-#include "ext/cl/include/cl.h"
+#include "cl.h"
 #include "gtest/gtest.h"
-#include "test/harness.h"
+#include "harness.h"
 
 using namespace cascade;
 using namespace cl;

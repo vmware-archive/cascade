@@ -28,13 +28,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/quartus_server.h"
+#include "target/core/de10/quartus_server.h"
 
 #include <fstream>
 #include <sstream>
-#include "src/base/stream/sockstream.h"
-#include "src/base/system/system.h"
-#include "src/target/core/de10/program_boxer.h"
+#include "base/stream/sockstream.h"
+#include "base/system/system.h"
+#include "target/core/de10/program_boxer.h"
 
 using namespace std;
 

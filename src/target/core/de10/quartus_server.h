@@ -36,8 +36,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "src/base/thread/asynchronous.h"
-#include "src/base/thread/thread_pool.h"
+#include "base/thread/asynchronous.h"
+#include "base/thread/thread_pool.h"
 
 namespace cascade {
 

@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_TRANSFORM_BLOCK_FLATTEN_H
 #define CASCADE_SRC_VERILOG_TRANSFORM_BLOCK_FLATTEN_H
 
-#include "src/verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

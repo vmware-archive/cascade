@@ -32,15 +32,15 @@
 #define CASCADE_SRC_TARGET_ENGINE_H
 
 #include <cassert>
-#include "src/runtime/ids.h"
-#include "src/target/core/stub/stub_core.h"
-#include "src/target/core/sw/sw_clock.h"
-#include "src/target/core.h"
-#include "src/target/core_compiler.h"
-#include "src/target/interface/stub/stub_interface.h"
-#include "src/target/interface.h"
-#include "src/target/interface_compiler.h"
-#include "src/target/state.h"
+#include "runtime/ids.h"
+#include "target/core/stub/stub_core.h"
+#include "target/core/sw/sw_clock.h"
+#include "target/core.h"
+#include "target/core_compiler.h"
+#include "target/interface/stub/stub_interface.h"
+#include "target/interface.h"
+#include "target/interface_compiler.h"
+#include "target/state.h"
 
 namespace cascade {
 

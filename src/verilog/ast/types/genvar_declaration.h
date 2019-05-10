@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENVAR_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_GENVAR_DECLARATION_H
 
-#include "src/verilog/ast/types/declaration.h"
-#include "src/verilog/ast/types/macro.h"
+#include "verilog/ast/types/declaration.h"
+#include "verilog/ast/types/macro.h"
 
 namespace cascade {
 

@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_LED_H
 
 #include <mutex>
-#include "src/base/bits/bits.h"
-#include "src/target/core.h"
+#include "base/bits/bits.h"
+#include "target/core.h"
 
 namespace cascade {
 

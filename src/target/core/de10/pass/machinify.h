@@ -34,8 +34,8 @@
 #include <stddef.h>
 #include <utility>
 #include <vector>
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

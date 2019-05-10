@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_STUB_STUB_INTERFACE_H
 #define CASCADE_SRC_TARGET_INTERFACE_STUB_STUB_INTERFACE_H
 
-#include "src/target/interface.h"
+#include "target/interface.h"
 
 namespace cascade {
 

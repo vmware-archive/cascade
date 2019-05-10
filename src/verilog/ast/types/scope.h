@@ -32,10 +32,10 @@
 #define CASCADE_SRC_VERILOG_AST_TYPES_SCOPE_H
 
 #include <unordered_map>
-#include "src/verilog/ast/types/id.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/analyze/indices.h"
+#include "verilog/ast/types/id.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/analyze/indices.h"
 
 namespace cascade {
 

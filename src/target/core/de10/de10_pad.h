@@ -32,11 +32,11 @@
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_PAD_H
 
 #include <cassert>
-#include "src/base/bits/bits.h"
-#include "src/target/core.h"
-#include "src/target/core/de10/io.h"
-#include "src/target/input.h"
-#include "src/target/interface.h"
+#include "base/bits/bits.h"
+#include "target/core.h"
+#include "target/core/de10/io.h"
+#include "target/input.h"
+#include "target/interface.h"
 
 namespace cascade {
 

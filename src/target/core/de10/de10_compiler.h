@@ -33,12 +33,12 @@
 
 #include <stdint.h>
 #include <string>
-#include "src/target/core_compiler.h"
-#include "src/target/core/de10/de10_gpio.h"
-#include "src/target/core/de10/de10_led.h"
-#include "src/target/core/de10/de10_logic.h"
-#include "src/target/core/de10/de10_pad.h"
-#include "src/target/core/de10/quartus_server.h"
+#include "target/core_compiler.h"
+#include "target/core/de10/de10_gpio.h"
+#include "target/core/de10/de10_led.h"
+#include "target/core/de10/de10_logic.h"
+#include "target/core/de10/de10_pad.h"
+#include "target/core/de10/quartus_server.h"
 
 namespace cascade {
 

@@ -33,7 +33,7 @@
 
 #include <iostream>
 #include <uuid/uuid.h>
-#include "src/base/serial/serializable.h"
+#include "base/serial/serializable.h"
 
 namespace cascade {
 

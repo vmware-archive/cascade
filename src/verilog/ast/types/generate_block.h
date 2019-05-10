@@ -31,11 +31,11 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 #define CASCADE_SRC_VERILOG_AST_GENERATE_BLOCK_H
 
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/module_item.h"
-#include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/scope.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/module_item.h"
+#include "verilog/ast/types/node.h"
+#include "verilog/ast/types/scope.h"
 
 namespace cascade {
 

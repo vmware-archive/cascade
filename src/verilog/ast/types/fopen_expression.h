@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_FOPEN_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_FOPEN_EXPRESSION_H
 
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/string.h"
-#include "src/verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/string.h"
+#include "verilog/ast/types/expression.h"
 
 namespace cascade {
 

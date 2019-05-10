@@ -1,10 +1,10 @@
 %{ 
 #include <cctype>
 #include <string>
-#include "src/base/stream/incstream.h"
-#include "src/verilog/parse/verilog.tab.hh"
-#include "src/verilog/parse/lexer.h"
-#include "src/verilog/parse/parser.h"
+#include "base/stream/incstream.h"
+#include "verilog/parse/verilog.tab.hh"
+#include "verilog/parse/lexer.h"
+#include "verilog/parse/parser.h"
 
 using namespace cascade;
 %}

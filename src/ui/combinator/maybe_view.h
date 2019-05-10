@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_UI_COMBINATOR_MAYBE_VIEW_H
 #define CASCADE_SRC_UI_COMBINATOR_MAYBE_VIEW_H
 
-#include "src/ui/view.h"
+#include "ui/view.h"
 
 namespace cascade {
 

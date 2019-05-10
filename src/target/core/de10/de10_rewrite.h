@@ -34,12 +34,12 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "src/target/core/de10/quartus_server.h"
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "target/core/de10/quartus_server.h"
+#include "verilog/ast/ast_fwd.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/rewriter.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

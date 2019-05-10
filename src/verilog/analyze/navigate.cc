@@ -28,12 +28,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/analyze/navigate.h"
+#include "verilog/analyze/navigate.h"
 
 #include <cassert>
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/program/elaborate.h"
-#include "src/verilog/program/inline.h"
+#include "verilog/ast/ast.h"
+#include "verilog/program/elaborate.h"
+#include "verilog/program/inline.h"
 
 using namespace std;
 

@@ -31,10 +31,10 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 
-#include "src/verilog/ast/types/delay_control.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/module_item.h"
-#include "src/verilog/ast/types/variable_assign.h"
+#include "verilog/ast/types/delay_control.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/module_item.h"
+#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 
