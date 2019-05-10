@@ -30,47 +30,37 @@
 
 #include "src/verilog/parse/parser.h"
 
+#include <regex>
 #include "src/base/log/log.h"
 
 using namespace std;
 
 namespace cascade {
 
-Parser::Parser() : Editor() { 
-  debug_lexer_ = false;
-  debug_parser_ = false;
+Parser::Parser(Log* log) : Editor() { 
+  include_dirs_ = "";
+  log_ = log;
   push("<top>");
   last_parse_ = "";
+  nesting_ = 0;
 }
 
-Parser& Parser::debug_lexer(bool debug) {
-  debug_lexer_ = debug;
+Parser& Parser::set_include_dirs(const string& s) {
+  include_dirs_ = s;
   return *this;
 }
 
-Parser& Parser::debug_parser(bool debug) {
-  debug_parser_ = debug;
-  return *this;
-}
-
-void Parser::push(const string& path) {
-  stack_.push(make_pair(path, location()));
-  stack_.top().second.initialize();
-}
-
-void Parser::pop() {
-  stack_.pop();
-}
-
-void Parser::parse(istream& is, Log* log) {
+Parser& Parser::set_stream(istream& is) {
   lexer_.switch_streams(&is);
-  lexer_.set_debug(debug_lexer_);
-
-  yyParser parser(this);
-  parser.set_debug_level(debug_parser_);
-
-  log_ = log;
   eof_ = false;
+  return *this;
+}
+
+void Parser::parse() {
+  yyParser parser(this);
+  lexer_.set_debug(false);
+  parser.set_debug_level(false);
+
   res_.clear();
   last_parse_ = "";
   locs_.clear();
@@ -86,8 +76,8 @@ bool Parser::eof() const {
   return eof_;
 }
 
-bool Parser::success() const {
-  return !res_.empty();
+size_t Parser::depth() const {
+  return stack_.size();
 }
 
 Parser::const_iterator Parser::begin() const {
@@ -96,10 +86,6 @@ Parser::const_iterator Parser::begin() const {
 
 Parser::const_iterator Parser::end() const {
   return res_.end();
-}
-
-size_t Parser::get_depth() const {
-  return stack_.size();
 }
 
 const std::string& Parser::get_text() const {
@@ -134,6 +120,15 @@ void Parser::edit(ModuleInstantiation* mi) {
   } 
 }
 
+void Parser::push(const string& path) {
+  stack_.push(make_pair(path, location()));
+  stack_.top().second.initialize();
+}
+
+void Parser::pop() {
+  stack_.pop();
+}
+
 string& Parser::get_path() {
   assert(!stack_.empty());
   return stack_.top().first;
@@ -159,6 +154,39 @@ void Parser::set_loc(const Node* n, size_t line) {
 
 void Parser::set_loc(const Node* n) {
   locs_.insert(make_pair(n, make_pair(get_path(), get_loc().begin.line))); 
+}
+
+void Parser::define(const string& name, const vector<string>& args, const string& text) {
+  macros_[name] = make_pair(args, text);
+}
+
+void Parser::undefine(const string& name) {
+  assert(is_defined(name));
+  macros_.erase(name);
+}
+
+bool Parser::is_defined(const string& name) const {
+  return macros_.find(name) != macros_.end();
+}
+
+size_t Parser::arity(const string& name) const {
+  assert(is_defined(name));
+  return macros_.find(name)->second.first.size(); 
+}
+
+string Parser::replace(const string& name, const vector<string>& args) const {
+  assert(is_defined(name));
+  const auto itr = macros_.find(name);
+
+  const auto& formal_args = itr->second.first;
+  auto res = itr->second.second;
+  assert(formal_args.size() == args.size());
+
+  for (size_t i = 0, ie = args.size(); i < ie; ++i) {
+    regex re("\\b" + formal_args[i] + "\\b");
+    res = regex_replace(res, re, args[i]);
+  }
+  return res.substr(1, res.length()-1);
 }
 
 } // namespace cascade

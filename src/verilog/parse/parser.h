@@ -51,52 +51,41 @@ class Parser : public Editor {
     typedef std::vector<Node*>::const_iterator const_iterator;
 
     // Constructors:
-    Parser();
+    Parser(Log* log);
     ~Parser() override = default;
 
     // Configuration Interface: 
     //
-    // Toggles terminal output from flex and bison, respectively. Outside of a
-    // debugging session, its best to keep these variables turned off, as their
-    // output isn't passed through the high-level cascade output pipeline.
-    Parser& debug_lexer(bool debug);
-    Parser& debug_parser(bool debug);
-
-    // Location Tracking Interface:
-    //
-    // Pushes a new file onto the parser's stack. All subsequent parses will be
-    // tagged with this path.
-    void push(const std::string& path);
-    // Removes the last path from the parser's stack.
-    void pop();
+    // Sets the search path for include directives
+    Parser& set_include_dirs(const std::string& s);
+    // Attaches a new stream to the parser and sets the eof flag to false
+    Parser& set_stream(std::istream& is);
 
     // Parser Interface:
     //
-    // Parses the next element from an istream.  Writes errors/warnings to log.
-    void parse(std::istream& is, Log* log);
+    // Parses the next element from the current stream.  Writes errors/warnings to log.
+    void parse();
     // Returns true if the last parse ended in an end-of-file
     bool eof() const;
-    // Returns true if the last parse was successful
-    bool success() const;
+    // Returns the current include nesting depth 
+    size_t depth() const;
     // Returns iterators over the results of the previous parse
     const_iterator begin() const;
     const_iterator end() const;
-    // Returns the path nesting depth of the parser stack
-    size_t get_depth() const;
-    // Returns the last string which was parsed.
+    // Returns the text of the last parse.
     const std::string& get_text() const;
     // Returns the file and line number for a node from the last parse.
     std::pair<std::string, size_t> get_loc(const Node* n) const;
 
   private:
-    // Lexer and debugging level:
-    bool debug_lexer_;
     friend class yyLexer;
-    yyLexer lexer_;
-    // Parser and debugging level:
-    bool debug_parser_;
     friend class yyParser;
+    yyLexer lexer_;
     
+    // Configuration State:
+    std::string include_dirs_;
+    Log* log_;
+
     // Location stack:
     std::stack<std::pair<std::string, location>> stack_;
 
@@ -105,10 +94,21 @@ class Parser : public Editor {
     bool eof_;
     std::string last_parse_;
     std::unordered_map<const Node*, std::pair<std::string, size_t>> locs_;
-    Log* log_;
 
     // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;
+
+    // Preprocessor Macro State:
+    std::string name_;
+    std::vector<std::string> args_;
+    std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
+
+    // Preprocessor Ifdef State:
+    bool polarity_;
+
+    // Preprocessor Scratch State:
+    size_t nesting_;
+    std::string text_;
 
     // Visitor Interface:
     //
@@ -120,6 +120,10 @@ class Parser : public Editor {
 
     // Helper methods for tracking location information:
     //
+    // Pushes a new file path onto the parser's stack. 
+    void push(const std::string& path);
+    // Removes the last path from the parser's stack.
+    void pop();
     // Returns the current path
     std::string& get_path();
     // Returns the current location
@@ -130,6 +134,19 @@ class Parser : public Editor {
     void set_loc(const Node* n, size_t line);
     // Sets location to the current path and line 
     void set_loc(const Node* n);
+
+    // Helper methods for using compiler directives
+    //
+    // Overrides the current definition for name
+    void define(const std::string& name, const std::vector<std::string>& args, const std::string& text);
+    // Removes the current definition for name
+    void undefine(const std::string& name);
+    // Returns true if name is defined
+    bool is_defined(const std::string& name) const;
+    // Returns the arity of this macro
+    size_t arity(const std::string& name) const;
+    // Performs macro substitution
+    std::string replace(const std::string& name, const std::vector<std::string>& args) const;
 };
 
 } // namespace cascade 

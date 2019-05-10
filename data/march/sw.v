@@ -1,7 +1,7 @@
-// This march file corresponds to the software-simulated fpga that comes with
-// cascade.
+`ifndef __CASCADE_DATA_MARCH_SW_V
+`define __CASCADE_DATA_MARCH_SW_V
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 Root root();
 
@@ -15,3 +15,5 @@ Pad#(4) pad();
 
 (*__loc="/tmp/fpga_socket"*)
 Led#(8) led();
+
+`endif

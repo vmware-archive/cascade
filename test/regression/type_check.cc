@@ -203,6 +203,9 @@ TEST(type_check, fail_generate_4) {
 TEST(type_check, fail_hierarchical_1) {
   run_typecheck("minimal", "data/test/regression/type_check/fail/hierarchical_1.v", true);
 }
+TEST(type_check, fail_include_1) {
+  run_typecheck("minimal", "data/test/regression/type_check/fail/include_1.v", true);
+}
 TEST(type_check, fail_instantiation_1) {
   run_typecheck("minimal", "data/test/regression/type_check/fail/instantiation_1.v", true);
 }

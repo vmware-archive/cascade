@@ -70,23 +70,9 @@ void TermView::error(size_t t, const string& s) {
   cout.flush();
 }
 
-void TermView::parse(size_t t, size_t d, const string& s) {
+void TermView::parse(size_t t, const string& s) {
   (void) t;
   (void) s;
-  lock_guard<mutex> lg(lock_);
-  if ((d == 1) && (s != "")) {
-    cout << ">>> ";
-    cout.flush();
-  }
-}
-
-void TermView::include(size_t t, const string& s) {
-  (void) t;
-  (void) s;
-  lock_guard<mutex> lg(lock_);
-  TermPrinter(cout) << Color::GREEN << "INCL OK" << Color::RESET << "\n";
-  cout << ">>> ";
-  cout.flush();
 }
 
 void TermView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {

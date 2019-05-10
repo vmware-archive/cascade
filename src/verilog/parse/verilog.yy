@@ -57,8 +57,9 @@ bool is_null(const cascade::Expression* e) {
 } // namespace 
 }
 
-/* Ctrl-D */
-%token END_OF_FILE 0 
+/* Control Tokens */
+%token END_OF_FILE "<end_of_file>"
+%token UNPARSEABLE "<unparseable>"
 
 /* Operators and Tokens */
 %token AAMP    "&&"
@@ -168,7 +169,6 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_WRITE    "$write"
 
 /* Identifiers and Strings */
-%token <std::string> INCLUDE
 %token <std::string> SIMPLE_ID
 %token <std::string> STRING
 
@@ -178,6 +178,9 @@ bool is_null(const cascade::Expression* e) {
 %token <SignedNumber> BINARY_VALUE
 %token <SignedNumber> OCTAL_VALUE
 %token <SignedNumber> HEX_VALUE
+
+/* Compiler Directive Tokens */
+%token END_INCLUDE "<end_include>"
 
 /* Operator Precedence */
 %right QMARK COLON
@@ -199,9 +202,6 @@ bool is_null(const cascade::Expression* e) {
 
 /* If Else Precedence */
 %right THEN ELSE
-
-/* A.1.1 Library Source Text */
-%type <String*> include_statement
 
 /* A.1.2 Verilog Source Text */
 %type <ModuleDeclaration*> module_declaration
@@ -427,10 +427,18 @@ bool is_null(const cascade::Expression* e) {
 %%
 
 main 
-  : restore include_statement { parser->res_.push_back($2); YYACCEPT; }
-  | restore module_declaration { parser->res_.push_back($2); YYACCEPT; }
-  | restore non_port_module_item backup { parser->res_.insert(parser->res_.end(), $2.begin(), $2.end()); YYACCEPT; }
-  | restore END_OF_FILE { parser->eof_ = true; YYACCEPT; }
+  : restore module_declaration { 
+    parser->res_.push_back($2); 
+    YYACCEPT; 
+  }
+  | restore non_port_module_item backup { 
+    parser->res_.insert(parser->res_.end(), $2.begin(), $2.end()); 
+    YYACCEPT; 
+  }
+  | restore END_OF_FILE { 
+    parser->eof_ = true; 
+    YYACCEPT;
+  }
   ;
 
 backup : %empty {
@@ -444,11 +452,6 @@ restore : %empty {
     yyla.move(parser->backup_);
   }
 }
-
-/* A.1.1 Library Source Text */
-include_statement 
-  : INCLUDE { $$ = new String($1); }
-  ;
 
 /* A.1.2 Verilog Source Text */
 module_declaration
@@ -1745,7 +1748,6 @@ identifier
   }
   /* TODO | ESCAPED_ID */
   ;
-/* NOTE: Rules that delegate to these rules just add clutter */
 
 /* Auxiliary Rules */
 attr_spec_P

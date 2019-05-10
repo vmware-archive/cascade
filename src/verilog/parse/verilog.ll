@@ -1,6 +1,7 @@
 %{ 
 #include <cctype>
 #include <string>
+#include "src/base/stream/incstream.h"
 #include "src/verilog/parse/verilog.tab.hh"
 #include "src/verilog/parse/lexer.h"
 #include "src/verilog/parse/parser.h"
@@ -20,17 +21,371 @@ using namespace cascade;
 #define YY_REC parser->last_parse_ += yytext;
 #define YY_USER_ACTION parser->get_loc().columns(yyleng);
 
+#undef YY_BUF_SIZE
+#define YY_BUF_SIZE 1024*1024
+
 std::pair<bool, std::string> strip_num(const char* c, size_t n);
-std::string strip_path(const char* c);
 %}
+
+SPACE       ([ \t])
+WHITESPACE  ([ \t\n])
+NEWLINE     ([\n])
+SL_COMMENT  ("//"[^\n]*)
+ML_COMMENT  ("/*"([^*]|(\*+[^*/]))*\*+\/)
+QUOTED_STR  (\"[^"\n]*\")
+IDENTIFIER  ([a-zA-Z_][a-zA-Z0-9_]*)
+DECIMAL     ([0-9][0-9_]*)
+BINARY      ([01][01_]*)
+OCTAL       ([0-7][0-7_]*)
+HEX         ([0-9a-fA-F][0-9a-fA-F_]*) 
+DEFINE_TEXT ((([^\\\n]*\\\n)*)[^\\\n]*\n)
+IF_TEXT     ([^`]*)
+
+%x DEFINE_ARGS
+%x DEFINE_BODY
+
+%x IFDEF_IF
+%x IFDEF_TRUE
+%x IFDEF_FALSE
+%x IFDEF_DONE
+
+%x MACRO_ARGS
 
 %%
 
-[ \t]+     YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
-[\n]       YY_REC; parser->get_loc().lines(1); parser->get_loc().step();
+{SPACE}+    YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
+{NEWLINE}   YY_REC; parser->get_loc().lines(1); parser->get_loc().step();
 
-"//"[^\n]*                  YY_REC; parser->get_loc().columns(yyleng); parser->get_loc().step();
-"/*"([^*]|(\*+[^*/]))*\*+\/ YY_REC; for (size_t i = 0; i < yyleng; ++i) { if (yytext[i] == '\n') { parser->get_loc().lines(1); } else { parser->get_loc().columns(1); } } parser->get_loc().step();
+"`include"{SPACE}+{QUOTED_STR} {
+  YY_REC;
+
+  std::string s(yytext);
+  const auto begin = s.find_first_of('"');
+  const auto end = s.find_last_of('"');
+  const auto path = s.substr(begin+1, end-begin-1);
+
+  incstream is(parser->include_dirs_);
+  if (!is.open(path)) {
+    parser->log_->error("Unable to locate file " + path);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  }
+  std::string content((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+  content += "`__end_include";
+  for (auto i = content.rbegin(), ie = content.rend(); i != ie; ++i) {
+    unput(*i);
+  }
+
+  if (parser->depth() == 15) {
+    parser->log_->error("Exceeded maximum nesting depth (15) for include statements. Do you have a circular include?");
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  }
+  parser->push(path);
+}
+"`__end_include" parser->pop();
+
+"`define"{SPACE}+{IDENTIFIER} {
+  YY_REC; 
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 7));
+  BEGIN(DEFINE_BODY);
+}
+"`define"{SPACE}+{IDENTIFIER}"(" {
+  YY_REC; 
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 7));
+  parser->name_.pop_back();
+  BEGIN(DEFINE_ARGS);
+}
+<DEFINE_ARGS>{SPACE}*{IDENTIFIER}{SPACE}*"," {
+  YY_REC;
+  std::string arg = yytext;
+  arg.pop_back();
+  arg = arg.substr(arg.find_first_not_of(" \n\t"));
+  arg = arg.substr(0, arg.find_first_of(" \n\t")-1);
+  parser->macros_[parser->name_].first.push_back(arg);
+}
+<DEFINE_ARGS>{SPACE}*{IDENTIFIER}{SPACE}*")" {
+  YY_REC;
+  std::string arg = yytext;
+  arg.pop_back();
+  arg = arg.substr(arg.find_first_not_of(" \n\t"));
+  arg = arg.substr(0, arg.find_first_of(" \n\t)")-1);
+  parser->macros_[parser->name_].first.push_back(arg);
+  BEGIN(DEFINE_BODY);
+}
+<DEFINE_BODY>{DEFINE_TEXT} {
+  YY_REC;
+  BEGIN(0);
+  std::string text = yytext;
+  for (auto& c : text) {
+    if ((c == '\\') || (c == '\n')) {
+      c = ' ';
+    }
+  }
+  text.pop_back();
+  parser->macros_[parser->name_].second = text;
+}
+"`undef"{SPACE}+{IDENTIFIER} {
+  YY_REC;
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(parser->name_.find_first_not_of(" \n\t", 6));
+  if (parser->is_defined(parser->name_)) {
+    parser->undefine(parser->name_);
+  }
+} 
+
+"`ifdef" {
+  YY_REC;
+  parser->polarity_ = true;
+  ++parser->nesting_;
+  BEGIN(IFDEF_IF);
+}
+"`ifndef" {
+  YY_REC;
+  parser->polarity_ = false;
+  ++parser->nesting_;
+  BEGIN(IFDEF_IF);
+}
+<IFDEF_IF>{SPACE}+{IDENTIFIER} {
+  YY_REC;
+  
+  std::string name = yytext;
+  name = name.substr(name.find_first_not_of(" \n\t"));
+  const auto isdef = parser->is_defined(name);
+
+  if ((isdef && parser->polarity_) || (!isdef && !parser->polarity_)) {
+    BEGIN(IFDEF_TRUE);
+  } else {
+    BEGIN(IFDEF_FALSE);
+  }
+  parser->polarity_ = true;
+}
+<IFDEF_TRUE>{IF_TEXT} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_TRUE>"`ifdef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_TRUE>"`ifndef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_TRUE>"`else" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-5);
+    BEGIN(IFDEF_DONE);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_TRUE>"`elsif" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-6);
+    BEGIN(IFDEF_DONE);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_TRUE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    parser->text_ = yytext;
+    parser->text_.resize(parser->text_.length()-6);
+    for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_TRUE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_FALSE>{IF_TEXT} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_FALSE>"`ifdef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_FALSE>"`ifndef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_FALSE>"`else" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    BEGIN(IFDEF_TRUE);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`elsif" {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    BEGIN(IFDEF_IF);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_FALSE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>{IF_TEXT} {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`ifdef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_DONE>"`ifndef" {
+  YY_REC;
+  yymore();
+  ++parser->nesting_;
+}
+<IFDEF_DONE>"`else" {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`elsif" {
+  YY_REC;
+  yymore();
+}
+<IFDEF_DONE>"`endif" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ == 0) {
+    for (auto i = parser->text_.rbegin(), ie = parser->text_.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  } else {
+    yymore();
+  }
+}
+<IFDEF_DONE>"`"{IDENTIFIER} {
+  YY_REC;
+  yymore();
+}
+
+"`"{IDENTIFIER} {
+  YY_REC;
+  parser->name_ = yytext;
+  parser->name_ = parser->name_.substr(1);
+  parser->args_.clear();
+
+  if (!parser->is_defined(parser->name_)) {
+    parser->log_->error("Reference to unrecognized macro " + parser->name_);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  } else if (parser->arity(parser->name_) > 0) {
+    BEGIN(MACRO_ARGS);
+  } else if (parser->arity(parser->name_) != parser->args_.size()) {
+    parser->log_->error("Usage error for macro named " + parser->name_);
+    return yyParser::make_UNPARSEABLE(parser->get_loc());
+  } else {
+    const auto text = parser->replace(parser->name_, parser->args_);
+    for (auto i = text.rbegin(), ie = text.rend(); i != ie; ++i) {
+      unput(*i);
+    }
+    BEGIN(0);
+  }
+}
+<MACRO_ARGS>{SPACE}*"(" {
+  YY_REC;
+  ++parser->nesting_;
+  if (parser->nesting_ > 1) {
+    yymore();
+  }
+}
+<MACRO_ARGS>{SPACE}*")" {
+  YY_REC;
+  --parser->nesting_;
+  if (parser->nesting_ > 0) {
+    yymore();
+  } else {
+    std::string arg = yytext;
+    arg.pop_back();
+    parser->args_.push_back(arg);
+
+    if (parser->arity(parser->name_) != parser->args_.size()) {
+      parser->log_->error("Usage error for macro named " + parser->name_);
+      return yyParser::make_UNPARSEABLE(parser->get_loc());
+    } else {
+      const auto text = parser->replace(parser->name_, parser->args_);
+      for (auto i = text.rbegin(), ie = text.rend(); i != ie; ++i) {
+        unput(*i);
+      }
+      BEGIN(0);
+    }
+  }
+}
+<MACRO_ARGS>{SPACE}*"{" {
+  YY_REC;
+  ++parser->nesting_;
+  yymore();
+}
+<MACRO_ARGS>{SPACE}*"}" {
+  YY_REC;
+  --parser->nesting_;
+  yymore();
+}
+<MACRO_ARGS>{SPACE}*[^(){},]* {
+  YY_REC;
+  yymore();
+}
+<MACRO_ARGS>"," {
+  YY_REC;
+  if (parser->nesting_ == 1) {
+    std::string arg = yytext;
+    arg.pop_back();
+    parser->args_.push_back(arg);
+  } else {
+    yymore();
+  }
+}
+
+{SL_COMMENT} {
+  YY_REC; 
+  parser->get_loc().columns(yyleng); 
+  parser->get_loc().step();
+}
+{ML_COMMENT} {
+  YY_REC; 
+  for (size_t i = 0; i < yyleng; ++i) { 
+    if (yytext[i] == '\n') { 
+      parser->get_loc().lines(1); 
+    } else { 
+      parser->get_loc().columns(1); 
+    } 
+  } 
+  parser->get_loc().step();
+}
 
 "&&"      YY_REC; return yyParser::make_AAMP(parser->get_loc());
 "&"       YY_REC; return yyParser::make_AMP(parser->get_loc());
@@ -137,16 +492,14 @@ std::string strip_path(const char* c);
 "$warning"  YY_REC; return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    YY_REC; return yyParser::make_SYS_WRITE(parser->get_loc());
 
-"include"[ \t\n]+[^;]+";" YY_REC; return yyParser::make_INCLUDE(strip_path(yytext), parser->get_loc());
+{DECIMAL}                        YY_REC; return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
+'[sS]?[dD]{WHITESPACE}*{DECIMAL} YY_REC; return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[bB]{WHITESPACE}*{BINARY}  YY_REC; return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[oO]{WHITESPACE}*{OCTAL}   YY_REC; return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+'[sS]?[hH]{WHITESPACE}*{HEX}     YY_REC; return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
 
-[0-9][0-9_]*                               YY_REC; return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
-'[sS]?[dD][ \t\n]*[0-9][0-9_]*             YY_REC; return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[bB][ \t\n]*[01][01_]*               YY_REC; return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[oO][ \t\n]*[0-7][0-7_]*             YY_REC; return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[hH][ \t\n]*[0-9a-fA-F][0-9a-fA-F_]* YY_REC; return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-
-[a-zA-Z_][a-zA-Z0-9_$]* YY_REC; return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-\"[^"\n]*\"             YY_REC; return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
+{IDENTIFIER} YY_REC; return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
+{QUOTED_STR} YY_REC; return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
 
 <<EOF>> return yyParser::make_END_OF_FILE(parser->get_loc());
 
@@ -170,18 +523,6 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n) {
   }
 
   return std::make_pair(is_signed, s);
-}
-
-std::string strip_path(const char* c) {
-  size_t i = 7;
-  while (isspace(c[i++]));
-
-  std::string s;
-  for (--i; c[i] != ';'; ++i) {
-    s += c[i];
-  }
-
-  return s;
 }
 
 int yyFlexLexer::yylex() {

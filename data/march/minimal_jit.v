@@ -1,10 +1,11 @@
-// This march file is intended for debugging purposes only. It enables jit
-// functionality but uses the same backend for both passes. The only value of
-// using this march file in testing whether jit compilation works correctly.
+`ifndef __CASCADE_DATA_MARCH_MINIMAL_JIT_V
+`define __CASCADE_DATA_MARCH_MINIMAL_JIT_V
 
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 (*__target="sw;sw"*)
 Root root();
 
 Clock clock();
+
+`endif

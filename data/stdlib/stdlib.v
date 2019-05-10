@@ -1,3 +1,6 @@
+`ifndef __CASCADE_DATA_STDLIB_STDLIB_V
+`define __CASCADE_DATA_STDLIB_STDLIB_V
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // This file contains declarations for the cascade standard library.  The names
@@ -163,3 +166,7 @@ module Fifo#(
   output wire full
 );
 endmodule
+
+///////////////////////////////////////////////////////////////////////////////
+
+`endif

@@ -187,10 +187,10 @@ int main(int argc, char** argv) {
   cascade_->run();
   if (!::slave.value()) {
     if (::input_path.value() != "") {
-      cascade_->eval("include data/march/" + ::march.value() + ".v;\n" +
-                     "include " + ::input_path.value() + ";");
+      cascade_->eval("`include \"data/march/" + ::march.value() + ".v\"\n" +
+                     "`include \"" + ::input_path.value() + "\"");
     } else {
-      cascade_->eval("include data/march/" + ::march.value() + ".v;");
+      cascade_->eval("`include \"data/march/" + ::march.value() + ".v\"");
     }
   }
   cascade_->wait_for_stop();

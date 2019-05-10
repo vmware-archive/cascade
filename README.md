@@ -366,6 +366,14 @@ impression of what Cascade is capable of.
 
 | Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
 |:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
+| Compiler Directives   | `define                   |  x        |             |                  |
+|                       | `undef                    |  x        |             |                  |
+|                       | `ifdef                    |  x        |             |                  |
+|                       | `ifndef                   |  x        |             |                  |
+|                       | `elsif                    |  x        |             |                  |
+|                       | `else                     |  x        |             |                  |
+|                       | `endif                    |  x        |             |                  |
+|                       | `include                  |  x        |             |                  |
 | Primitive Types       | Net Declarations          |  x        |             |                  |
 |                       | Reg Declarations          |  x        |             |                  |
 |                       | Integer Declarations      |  x        |             |                  |
@@ -699,10 +707,11 @@ so, you can run Cascade with the ```--march my_backend``` flag. An example is
 shown below.
 
 ```verilog
-// data/march/my_backend.v
+`ifndef __MY_BACKEND_V
+`define __MY_BACKEND_V
 
 // An --march file must first include the declarations in the Standard Library
-include data/stdlib/stdlib.v;
+`include "data/stdlib/stdlib.v"
 
 // Next, an --march file must instantiate the root module. The __target annotation is 
 // used to pass information to the Cascade compiler about how to compile the user's code. 
@@ -753,6 +762,8 @@ initial begin
   $info(" Supports the following Standard Library Components: Clock, Led");
   $info(" Supports the following Target-Specific Components: Pci");
 end
+
+`endif
 ```
 
 Next, you'll need to create a compiler for your backend. Take a look at the ```CoreCompiler``` class which is defined in ```src/target/core_compiler.h```. Your compiler must be a subclass of this type, and be able to code user logic as well as instantiations of any of the Standard Library components you introduced in your ```--march``` file. For the example shown above, this means that you would need to override the following methods:
