@@ -21,6 +21,7 @@ matrix:
       - export CC="/usr/bin/gcc-8"
       - export CXX="/usr/bin/g++-8"
   - os: linux
+    compiler: clang
     dist: xenial
     addons:
       apt:
@@ -71,9 +72,10 @@ matrix:
         - bison
     env:
     - CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
+before_install:
+- mkdir -p ~/.conan && cp .travis/conan_settings.yml ~/.conan/settings.yml
 script:
-- mkdir -p build
-- cd build
+- mkdir -p build && cd build
 - "[ $COVERAGE = 1 ] && cmake ${CMAKE_OPTIONS} -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DCMAKE_BUILD_TYPE=Debug -DCOVERAGE=TRUE -DBUILD_TESTS=ON .. || cmake ${CMAKE_OPTIONS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=${CXX_FLAGS} .." 
 - make
 - make cascade_coverage
