@@ -40,6 +40,7 @@ matrix:
     before_install:
       - export CC="/usr/bin/clang-8"
       - export CXX="/usr/bin/clang++-8"
+      - export CCXFLAGS="-isystem\ /usr/include/libcxxabi/"
   - os: linux
     dist: xenial
     addons:
@@ -65,6 +66,7 @@ matrix:
     before_install:
       - export CC="/usr/bin/clang-8"
       - export CXX="/usr/bin/clang++-8"
+      - export CCXFLAGS="-isystem\ /usr/include/libcxxabi/"
   - os: osx
     osx_image: xcode10.1
     compiler: clang
