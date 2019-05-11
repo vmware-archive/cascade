@@ -19,10 +19,10 @@ endif()
 
 include(${CMAKE_BINARY_DIR}/pmm.cmake)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    set(cxxlib libstdc++11)
-else ()
+if (APPLE)
     set(cxxlib libc++)
+else ()
+    set(cxxlib libstdc++11)
 endif()
 
 pmm(
