@@ -35,6 +35,7 @@ matrix:
         - bison
         - libncurses-dev
         - clang-8
+        - libc++-dev
     before_install:
       - export CC="/usr/bin/clang-8"
       - export CXX="/usr/bin/clang++-8"
@@ -54,6 +55,7 @@ matrix:
         - libncurses-dev
         - g++-8
         - clang-8
+        - libc++-dev
       sonarcloud:
         organization: cascade
     env:
