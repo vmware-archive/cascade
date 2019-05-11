@@ -36,6 +36,7 @@ matrix:
         - libncurses-dev
         - clang-8
         - libc++-dev
+        - libc++abi-dev
     before_install:
       - export CC="/usr/bin/clang-8"
       - export CXX="/usr/bin/clang++-8"
@@ -56,6 +57,7 @@ matrix:
         - g++-8
         - clang-8
         - libc++-dev
+        - libc++abi-dev
       sonarcloud:
         organization: cascade
     env:
