@@ -46,26 +46,20 @@ matrix:
       apt:
         sources:
         - ubuntu-toolchain-r-test
-        - llvm-toolchain-xenial-8
         packages:
         - ccache
         - cmake
         - flex
         - bison
         - lcov
-        - libncurses-dev
         - g++-8
-        - clang-8
-        - libc++-dev
-        - libc++abi-dev
       sonarcloud:
         organization: cascade
     env:
       - COVERAGE="1"
     before_install:
-      - export CC="/usr/bin/clang-8"
-      - export CXX="/usr/bin/clang++-8"
-      - sudo ln -s /usr/include/libcxxabi/__cxxabi_config.h /usr/include/c++/v1/__cxxabi_config.h
+      - export CC="/usr/bin/gcc-8"
+      - export CXX="/usr/bin/g++-8"
   - os: osx
     osx_image: xcode10.1
     compiler: clang
