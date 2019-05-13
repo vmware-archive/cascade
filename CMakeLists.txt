@@ -40,7 +40,7 @@ if (COVERAGE STREQUAL "TRUE")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis/cmake)
 include(CodeCoverage)
 setup_target_for_coverage_lcov(NAME cascade_coverage 
-EXECUTABLE regression 
+EXECUTABLE ${PROJECT_BINARY_DIR}/test/regression 
 DEPENDENCIES regression)
 
 set(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
