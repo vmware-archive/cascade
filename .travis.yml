@@ -16,6 +16,9 @@ matrix:
         - flex
         - bison
         - g++-8
+    cache:
+      directories:
+      - $HOME/.conan/data
     before_install:
       - export CC="/usr/bin/gcc-8"
       - export CXX="/usr/bin/g++-8"
@@ -35,6 +38,9 @@ matrix:
         - clang-8
         - libc++-dev
         - libc++abi-dev
+    cache:
+      directories:
+      - $HOME/.conan/data
     before_install:
       - export CC="/usr/bin/clang-8"
       - export CXX="/usr/bin/clang++-8"
@@ -53,6 +59,9 @@ matrix:
         - g++-8
       sonarcloud:
         organization: cascade
+    cache:
+      directories:
+      - $HOME/.conan/data
     env:
       - COVERAGE="1"
     before_install:
@@ -72,6 +81,11 @@ matrix:
         - cmake
         - flex
         - bison
+    cache:
+      directories:
+      - $HOME/.conan/data
+      - $HOME/.pyenv/versions/2.7.10/
+      - /usr/local/Homebrew
     env:
     - CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
 script:
@@ -88,6 +102,3 @@ env:
   global:
   - secure: HCmvfaRvj3TmSB+KJA3zbIaLEBXKpv3ED4vnayNg93FTBaLtLw0W8XXk8Sa7pOU+u00rE+2tkC52nKdMikscJlcYZm3KBR2Zqh4Br/hnMVIeXCFs9LTrA6UZDBVs1AeXYYV1KwetcG03o5YZDYNvS8tRZs8Fwl7pZzlfms8wdFyqnG59MNY0znG6RC18eO/dFCu78f4urjYW9UrmEQzU5YyGFYhHH9SylXV5o8cL1+XHoIUlqhyYswZ/PgdBQTUGLvts5IeV+gsO1GD9ibxO5iAlJ4M9OpnFuAxWojKqNcA+GxoC3XH+6Uga09UV/5qXn6gkEnKtMJMoGTI8sWkYlJ8yp5XJqCJOCIfQ11yagp2e9pYogxLNfiC7OZ63q3CHnwNU3PRSJemhX9HwBvp2ZFa1NkQTmwk5tdLYCel0d8uGNqJgyNp7JpLMxA1Fo3yuvVDoRjB2RgT8SSH2CbSmMhsbqdaDtuOsW6JcV/GxnvqCj8KRM2HJNIkCZMY1lX8E0z/QnWcCWt3gKCQ6FzSsjUWZIXsvSPcgbUm7NMY6UXbPY4IkOQZ5+0cCM21s5NAozk8ln86pdjxRwlrpxjAn50jGgy29ZSxxaGvXKtdJ6NrUkZgtNC5AtVQE/NItEwF5KKvm9vqG9ug4IOldSjXEHExH8Z28hU1KhEV2K+JAjE0=
   - secure: gfurwSBGbAB1DJDRXlNWzC0aWYq5GlxQ7c3F0b1PYFifOWBt5q6HfrIi5AjHaPL7Jl0ntxGbPeGWru70r5AMx2FUDJ+7gkD2yQCHjYvultcjfWI3Z5rGhxEcsWsEszPIVBCPwd5zUHqICNxzGHtmnvAzhrbSeZTLhGrijv8ldrMHRwMgq0B3zrtGT7VNqX95K9ECwg3/U0DkueKvRTLGwF6S3Bfd8mXgesFEKxVaOPti2Np/qRIevuQYbAW8U9qiQKX8DIOFMol2Qt6QuQ90AXAn40uwXICfODRuCYJxJyVqsCHsD29VhXWzwzqLb0RbgwwszyT3Ch8ib+uep+ecWgEesx7KvcTKN8tgtBlIuFJHEwpjmt37hSgSvu3oooMtKXFICoo8ikIxcGrZiSR0TZmJ6Nn9bWg7wE+T0dWaXySCGOYrwLqvecjYnv5Jb4/G5cEIP6ufFQFaQnaRigRz6ZOtN1zqZWBIpTzGFCLBIhTRVCXRZNbx21r+87J55X3oHXnMd9uN9gMxCbgrbucXMvAvTBh20SeUsHzoK9G6f6hyl/QBuHWmpW+CmPzxIu/8J9XrS6dVmXBxvbRkzTjmzB199sNyCBlmZ8DUV+Vub4et2tfezdmEmDPkCdXDlYOZubWUB5BEaMYXXj9Hjn+mzDyVCbcjIWT5NHWsDNaqEFo=
-cache:
-  directories:
-    - $HOME/.conan/data
