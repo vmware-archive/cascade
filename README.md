@@ -57,7 +57,7 @@ Third-party dependencies can be retrieved from the command line using either
 ```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```brew``` (OSX). Note that
 on most platforms, this will require administrator privileges.
 ```
-*NIX $ sudo (apt-get|opkg|brew) install cmake flex bison
+*NIX $ sudo (apt-get|opkg|brew) install cmake flex bison python3-venv
 ```
 
 Building Cascade
