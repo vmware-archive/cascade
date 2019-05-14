@@ -2,7 +2,7 @@
 #include <cctype>
 #include <string>
 #include "base/stream/incstream.h"
-#include "verilog/parse/verilog.tab.hh"
+#include "verilog_parser.hh"
 #include "verilog/parse/lexer.h"
 #include "verilog/parse/parser.h"
 

@@ -228,7 +228,7 @@ Engine* RemoteRuntime::compile(sockstream* sock) {
   Parser p(&log);
   p.set_stream(*sock);
   p.parse();
-  assert(p.success());
+  assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
