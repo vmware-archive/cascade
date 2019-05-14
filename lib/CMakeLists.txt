@@ -15,6 +15,7 @@ flex_target(verilog_lexer ../src/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 
 add_library(libcascade SHARED STATIC ${SOURCE_FILES} ${SOURCE_DIRECTORY} ${BISON_verilog_parser_OUTPUTS} ${FLEX_verilog_lexer_OUTPUTS})
+set_target_properties(libcascade PROPERTIES PREFIX "")
 
 # build mongoose (TODO: remove from source)
 add_library(mongoose SHARED STATIC ../ext/mongoose/mongoose.c)
