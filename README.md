@@ -54,10 +54,10 @@ Dependencies
 =====
 Cascade should build successfully on OSX and most Linux distributions.
 Third-party dependencies can be retrieved from the command line using either
-```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```port``` (OSX). Note that
+```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```brew``` (OSX). Note that
 on most platforms, this will require administrator privileges.
 ```
-*NIX $ sudo (apt-get|opkg|port) install ccache cmake flex bison libncurses-dev
+*NIX $ sudo (apt-get|opkg|brew) install cmake flex bison
 ```
 
 Building Cascade
@@ -67,18 +67,38 @@ Building Cascade
 *NIX $ git clone --recursive https://github.com/vmware/cascade cascade
 ```
 
-2. Build the code (this process has been tested on OSX 10.12/10.14, Ubuntu 16.04, and Angstrom v2017.12)
+2. Configure the project using cmake and build.
+
+On MacOS, you need to use the versions of flex and bison provided by homebrew
+instead of the system versions, which are out of date. Before running the commands
+below, set:
+```bash
+// On MacOS
+export CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
 ```
+
+Replace NUM_PROCESSORS with the number of processors in your system to parallelize the build.
+```bash
 *NIX $ cd cascade/
-*NIX $ make
+*NIX $ mkdir build
+*NIX $ cd build
+*NIX $ cmake ${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
+*NIX $ make -j ${NUM_PROCESSORS}
 ```
 If the build fails (probably you didn't use the ```--recursive``` flag) try
 starting over with a fresh clone of the repository.
 
-3. Check that your build works correctly (all tests should pass)
+3. To check that your build works correctly (all tests should pass)
 ```
 *NIX $ make test
 ```
+
+4. Install cascade.
+```
+*NIX $ sudo make install
+```
+
+Cascade should now be acessible by just typing ```cascade```.
 
 Using Cascade
 =====
@@ -87,7 +107,7 @@ Using Cascade
 
 Start Cascade by typing
 ```
-*NIX $ ./bin/cascade
+*NIX $ cascade
 ```
 This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed
 here is appended to the source of the (initially empty) top-level (root) module
