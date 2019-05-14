@@ -32,7 +32,6 @@ matrix:
         - cmake
         - flex
         - bison
-        - libncurses-dev
         - clang-8
         - libc++-dev
         - libc++abi-dev
