@@ -82,7 +82,7 @@ script:
 - make -j $(getconf _NPROCESSORS_ONLN) 
 - "[ $COVERAGE = 1 ] && cd /home/travis/build/vmware/cascade/build && make cascade_coverage || true"
 after_success:
-- "[ $COVERAGE = 1 ] && bash <(curl -s https://codecov.io/bash) && sonar-scanner -Dsonar.projectKey=cascade
+- "[ $COVERAGE = 1 ] && curl -L https://codecov.io/bash -o codecov.sh; bash codecov.sh -x gcov 2>&1 | grep -v "has arcs to entry block" | grep -v "has arcs from exit block" && sonar-scanner -Dsonar.projectKey=cascade
   -Dsonar.organization=cascade -Dsonar.sources=. -Dsonar.cfamily.build-wrapper-output=bw-output
   -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=ext/**,src/verilog/parse/lex.yy.cc,src/verilog/parse/verilog.tab.hh,src/verilog/parse/verilog.tab.cc,src/verilog/parse/location.hh,src/verilog/parse/position.hh,,src/verilog/parse/stack.hh || true"
 env:
