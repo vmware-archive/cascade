@@ -60,7 +60,7 @@ matrix:
     before_install:
       - export CC="/usr/bin/gcc-8"
       - export CXX="/usr/bin/g++-8"
-      - sudo ln -s /usr/bin/gcov-8 /usr/bin/gcov 
+      - sudo ln -sf /usr/bin/gcov-8 /usr/bin/gcov 
   - os: osx
     osx_image: xcode10.1
     compiler: clang
