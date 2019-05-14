@@ -19,7 +19,3 @@ target_link_libraries(benchmark libcascade verilog)
 add_test(NAME regression 
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/regression 
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-add_test(NAME benchmark
-        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/benchmark
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
