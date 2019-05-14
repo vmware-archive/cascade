@@ -1,6 +1,3 @@
-[submodule "ext/googletest"]
-	path = ext/googletest
-	url = https://github.com/google/googletest
 [submodule "ext/cl"]
 	path = ext/cl
 	url = https://github.com/eschkufz/cl
