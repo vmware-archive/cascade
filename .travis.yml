@@ -62,7 +62,7 @@ matrix:
       - sudo ln -sf /usr/bin/gcov-8 /usr/bin/gcov 
       - wget http://downloads.sourceforge.net/ltp/lcov-1.14.tar.gz
       - tar xvfz lcov-1.14.tar.gz
-      - cd lcov-1.14; make; sudo make install
+      - cd lcov-1.14; make; sudo make install; cd ..
   - os: osx
     osx_image: xcode10.1
     compiler: clang
