@@ -32,8 +32,8 @@
 
 #include "cl.h"
 #include "gtest/gtest.h"
-#include "cascade.h"
 #include "base/system/system.h"
+#include "cascade/cascade.h"
 #include "ui/view.h"
 #include "verilog/parse/parser.h"
 

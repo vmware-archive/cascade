@@ -12,6 +12,8 @@ target_link_libraries(de10_probe PRIVATE libcascade Threads::Threads)
 
 add_executable(quartus_server quartus_server quartus_server.cc)
 target_link_libraries(quartus_server PRIVATE libcascade Threads::Threads)
+install(TARGETS quartus_server RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-add_executable(swfpga sw_fpga.cc)
-target_link_libraries(swfpga PRIVATE libcascade CONAN_PKG::ncurses Threads::Threads)
+add_executable(sw_fpga sw_fpga.cc)
+target_link_libraries(sw_fpga PRIVATE libcascade CONAN_PKG::ncurses Threads::Threads)
+install(TARGETS sw_fpga RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

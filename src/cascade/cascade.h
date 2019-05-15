@@ -28,6 +28,9 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#ifndef CASCADE_SRC_CASCADE_CASCADE_H
+#define CASCADE_SRC_CASCADE_CASCADE_H
+
 #include <fstream>
 #include <string>
 #include "base/thread/asynchronous.h"
@@ -154,3 +157,5 @@ class Cascade {
 };
 
 } // namespace cascade
+
+#endif
