@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
 #define CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
 
-#include "src/ui/controller.h"
+#include "ui/controller.h"
 
 namespace cascade {
 

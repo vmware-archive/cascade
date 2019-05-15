@@ -32,7 +32,7 @@
 #define CASCADE_SRC_UI_TERM_TERM_VIEW_H
 
 #include <mutex>
-#include "src/ui/view.h"
+#include "ui/view.h"
 
 namespace cascade {
 

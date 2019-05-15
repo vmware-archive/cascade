@@ -38,7 +38,7 @@
 #include <stack>
 #include <thread>
 #include <vector>
-#include "src/base/thread/asynchronous.h"
+#include "base/thread/asynchronous.h"
 
 namespace cascade {
 

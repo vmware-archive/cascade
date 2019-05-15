@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_PROGRAM_INLINE_H
 #define CASCADE_SRC_VERILOG_PROGRAM_INLINE_H
 
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

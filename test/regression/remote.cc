@@ -29,8 +29,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "lib/cascade.h"
-#include "test/harness.h"
+#include "cascade.h"
+#include "harness.h"
 
 using namespace cascade;
 

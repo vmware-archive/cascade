@@ -32,8 +32,8 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_TYPE_CHECK_H
 
 #include <string>
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/ast.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

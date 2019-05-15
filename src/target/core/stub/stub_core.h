@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_TARGET_CORE_STUB_STUB_CORE_H
 #define CASCADE_SRC_TARGET_CORE_STUB_STUB_CORE_H
 
-#include "src/target/core.h"
-#include "src/target/input.h"
-#include "src/target/state.h"
+#include "target/core.h"
+#include "target/input.h"
+#include "target/state.h"
 
 namespace cascade {
 

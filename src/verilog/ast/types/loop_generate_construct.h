@@ -31,13 +31,13 @@
 #ifndef CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 
-#include "src/base/container/vector.h"
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/generate_block.h"
-#include "src/verilog/ast/types/generate_construct.h"
-#include "src/verilog/ast/types/loop_statement.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/variable_assign.h"
+#include "base/container/vector.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/generate_block.h"
+#include "verilog/ast/types/generate_construct.h"
+#include "verilog/ast/types/loop_statement.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 

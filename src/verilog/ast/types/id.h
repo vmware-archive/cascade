@@ -32,11 +32,11 @@
 #define CASCADE_SRC_VERILOG_AST_ID_H
 
 #include <string>
-#include "src/base/token/tokenize.h"
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/string.h"
+#include "base/token/tokenize.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/node.h"
+#include "verilog/ast/types/string.h"
 
 namespace cascade {
 

@@ -34,10 +34,10 @@
 #include <mutex>
 #include <string>
 #include <vector>
-#include "ext/mongoose/mongoose.h"
-#include "src/ui/controller.h"
-#include "src/ui/view.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "mongoose.h"
+#include "ui/controller.h"
+#include "ui/view.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

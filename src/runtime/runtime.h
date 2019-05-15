@@ -37,11 +37,11 @@
 #include <mutex>
 #include <string>
 #include <vector>
-#include "src/base/bits/bits.h"
-#include "src/base/thread/asynchronous.h"
-#include "src/base/log/log.h"
-#include "src/runtime/ids.h"
-#include "src/verilog/ast/ast_fwd.h"
+#include "base/bits/bits.h"
+#include "base/thread/asynchronous.h"
+#include "base/log/log.h"
+#include "runtime/ids.h"
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 

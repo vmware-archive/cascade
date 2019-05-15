@@ -33,10 +33,10 @@
 
 #include <unordered_map>
 #include <vector>
-#include "src/runtime/ids.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/program/inline.h"
+#include "runtime/ids.h"
+#include "verilog/ast/ast.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/program/inline.h"
 
 namespace cascade {
 

@@ -31,12 +31,12 @@
 #ifndef CASCADE_SRC_VERILOG_AST_SEQ_BLOCK_H
 #define CASCADE_SRC_VERILOG_AST_SEQ_BLOCK_H
 
-#include "src/verilog/ast/types/block_statement.h"
-#include "src/verilog/ast/types/declaration.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/scope.h"
-#include "src/verilog/ast/types/statement.h"
+#include "verilog/ast/types/block_statement.h"
+#include "verilog/ast/types/declaration.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/scope.h"
+#include "verilog/ast/types/statement.h"
 
 namespace cascade {
 

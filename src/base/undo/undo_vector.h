@@ -32,7 +32,7 @@
 #define CASCADE_SRC_BASE_UNDO_UNDO_VECTOR_H
 
 #include <vector>
-#include "src/base/undo/undoable.h"
+#include "base/undo/undoable.h"
 
 namespace cascade {
 

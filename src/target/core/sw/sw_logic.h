@@ -35,12 +35,12 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "src/base/bits/bits.h"
-#include "src/target/core.h"
-#include "src/target/input.h"
-#include "src/target/state.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/bits/bits.h"
+#include "target/core.h"
+#include "target/input.h"
+#include "target/state.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

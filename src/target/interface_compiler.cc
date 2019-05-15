@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/compiler.h"
-#include "src/target/interface_compiler.h"
+#include "target/compiler.h"
+#include "target/interface_compiler.h"
 
 using namespace std;
 

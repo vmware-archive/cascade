@@ -31,14 +31,14 @@
 #ifndef CASCADE_SRC_VERILOG_AST_MODULE_INSTANTIATION_H
 #define CASCADE_SRC_VERILOG_AST_MODULE_INSTANTIATION_H
 
-#include "src/verilog/ast/types/arg_assign.h"
-#include "src/verilog/ast/types/attributes.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/if_generate_construct.h"
-#include "src/verilog/ast/types/instantiation.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/module_declaration.h"
-#include "src/verilog/ast/types/range_expression.h"
+#include "verilog/ast/types/arg_assign.h"
+#include "verilog/ast/types/attributes.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/if_generate_construct.h"
+#include "verilog/ast/types/instantiation.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/module_declaration.h"
+#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 

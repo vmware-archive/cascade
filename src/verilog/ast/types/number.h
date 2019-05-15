@@ -34,8 +34,8 @@
 #include <cassert>
 #include <sstream>
 #include <string>
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/primary.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/primary.h"
 
 namespace cascade {
 

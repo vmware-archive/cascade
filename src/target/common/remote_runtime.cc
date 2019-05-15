@@ -28,19 +28,19 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/common/remote_runtime.h"
+#include "target/common/remote_runtime.h"
 
 #include <cassert>
 #include <vector>
-#include "src/base/log/log.h"
-#include "src/base/stream/sockstream.h"
-#include "src/target/compiler.h"
-#include "src/target/engine.h"
-#include "src/target/interface/remote/remote_compiler.h"
-#include "src/target/interface/remote/remote_interface.h"
-#include "src/target/state.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/parse/parser.h"
+#include "base/log/log.h"
+#include "base/stream/sockstream.h"
+#include "target/compiler.h"
+#include "target/engine.h"
+#include "target/interface/remote/remote_compiler.h"
+#include "target/interface/remote/remote_interface.h"
+#include "target/state.h"
+#include "verilog/ast/ast.h"
+#include "verilog/parse/parser.h"
 
 using namespace std;
 
@@ -228,7 +228,7 @@ Engine* RemoteRuntime::compile(sockstream* sock) {
   Parser p(&log);
   p.set_stream(*sock);
   p.parse();
-  assert(p.success());
+  assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());

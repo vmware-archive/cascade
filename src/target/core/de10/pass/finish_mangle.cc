@@ -28,11 +28,11 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/pass/finish_mangle.h"
+#include "target/core/de10/pass/finish_mangle.h"
 
-#include "src/target/core/de10/pass/text_mangle.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/ast.h"
+#include "target/core/de10/pass/text_mangle.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/ast.h"
 
 namespace cascade {
 

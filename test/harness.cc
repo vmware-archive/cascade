@@ -28,14 +28,14 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "test/harness.h"
+#include "harness.h"
 
-#include "ext/cl/include/cl.h"
+#include "cl.h"
 #include "gtest/gtest.h"
-#include "lib/cascade.h"
-#include "src/base/system/system.h"
-#include "src/ui/view.h"
-#include "src/verilog/parse/parser.h"
+#include "cascade.h"
+#include "base/system/system.h"
+#include "ui/view.h"
+#include "verilog/parse/parser.h"
 
 using namespace cascade;
 using namespace cl;

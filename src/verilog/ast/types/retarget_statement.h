@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RETARGET_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_RETARGET_STATEMENT_H
 
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/string.h"
-#include "src/verilog/ast/types/system_task_enable_statement.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/string.h"
+#include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 

@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONDITIONAL_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_CONDITIONAL_EXPRESSION_H
 
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
 
 namespace cascade {
 

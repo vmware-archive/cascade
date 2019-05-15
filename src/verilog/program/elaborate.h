@@ -32,8 +32,8 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_ELABORATE_H
 
 #include <stddef.h>
-#include "src/base/container/vector.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/container/vector.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

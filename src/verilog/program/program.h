@@ -32,9 +32,9 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_PROGRAM_H
 
 #include <vector>
-#include "src/base/undo/undo_map.h"
-#include "src/verilog/analyze/indices.h"
-#include "src/verilog/ast/visitors/editor.h"
+#include "base/undo/undo_map.h"
+#include "verilog/analyze/indices.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

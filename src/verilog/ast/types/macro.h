@@ -34,7 +34,7 @@
 #include <cassert>
 #include <functional>
 #include <iterator>
-#include "src/base/container/vector.h"
+#include "base/container/vector.h"
 
 // Naming Helpers:
 //

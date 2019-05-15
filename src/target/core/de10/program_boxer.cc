@@ -28,10 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/program_boxer.h"
+#include "target/core/de10/program_boxer.h"
 
 #include <sstream>
-#include "src/base/stream/indstream.h"
+#include "base/stream/indstream.h"
 
 using namespace std;
 

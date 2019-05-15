@@ -34,10 +34,10 @@
 #include <cassert>
 #include <iostream>
 #include <streambuf>
-#include "src/base/stream/cachestream.h"
-#include "src/runtime/runtime.h"
-#include "src/target/interface.h"
-#include "src/target/interface/remote/remote_interface.h"
+#include "base/stream/cachestream.h"
+#include "runtime/runtime.h"
+#include "target/interface.h"
+#include "target/interface/remote/remote_interface.h"
 
 namespace cascade {
 

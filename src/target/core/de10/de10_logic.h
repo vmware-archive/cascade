@@ -34,13 +34,13 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "src/base/bits/bits.h"
-#include "src/base/container/vector.h"
-#include "src/target/core.h"
-#include "src/target/core/common/interfacestream.h"
-#include "src/target/core/de10/quartus_server.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "base/bits/bits.h"
+#include "base/container/vector.h"
+#include "target/core.h"
+#include "target/core/common/interfacestream.h"
+#include "target/core/de10/quartus_server.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

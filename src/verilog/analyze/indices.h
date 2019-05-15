@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_INDICES_H
 
 #include <stddef.h>
-#include "src/verilog/ast/ast_fwd.h"
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 

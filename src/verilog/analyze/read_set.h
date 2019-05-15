@@ -32,8 +32,8 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_READ_SET_H
 
 #include <unordered_set>
-#include "src/verilog/ast/ast_fwd.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/ast_fwd.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

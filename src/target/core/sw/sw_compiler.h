@@ -33,14 +33,14 @@
 
 #include <mutex>
 #include <string>
-#include "src/target/core/sw/sw_clock.h"
-#include "src/target/core/sw/sw_fifo.h"
-#include "src/target/core/sw/sw_led.h"
-#include "src/target/core/sw/sw_logic.h"
-#include "src/target/core/sw/sw_memory.h"
-#include "src/target/core/sw/sw_pad.h"
-#include "src/target/core/sw/sw_reset.h"
-#include "src/target/core_compiler.h"
+#include "target/core/sw/sw_clock.h"
+#include "target/core/sw/sw_fifo.h"
+#include "target/core/sw/sw_led.h"
+#include "target/core/sw/sw_logic.h"
+#include "target/core/sw/sw_memory.h"
+#include "target/core/sw/sw_pad.h"
+#include "target/core/sw/sw_reset.h"
+#include "target/core_compiler.h"
 
 namespace cascade {
 

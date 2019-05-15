@@ -28,20 +28,20 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/sw/sw_logic.h"
+#include "target/core/sw/sw_logic.h"
 
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include "src/target/core/common/interfacestream.h"
-#include "src/target/core/common/printf.h"
-#include "src/target/core/sw/monitor.h"
-#include "src/target/input.h"
-#include "src/target/interface.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "target/core/common/interfacestream.h"
+#include "target/core/common/printf.h"
+#include "target/core/sw/monitor.h"
+#include "target/input.h"
+#include "target/interface.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 

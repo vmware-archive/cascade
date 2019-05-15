@@ -38,7 +38,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include "src/base/stream/fdstream.h"
+#include "base/stream/fdstream.h"
 
 namespace cascade {
 

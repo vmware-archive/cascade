@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
 
-#include "src/verilog/ast/types/loop_statement.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/statement.h"
+#include "verilog/ast/types/loop_statement.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/statement.h"
 
 namespace cascade {
 

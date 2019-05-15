@@ -33,9 +33,9 @@
 
 #include <sstream>
 #include <string>
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
 
 namespace cascade {
 

@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_TRANSFORM_LOOP_UNROLL_H
 #define CASCADE_SRC_VERILOG_TRANSFORM_LOOP_UNROLL_H
 
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/ast/visitors/rewriter.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

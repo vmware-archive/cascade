@@ -28,19 +28,19 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/de10_logic.h"
+#include "target/core/de10/de10_logic.h"
 
 #include <cassert>
-#include "src/target/core/common/printf.h"
-#include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/de10/io.h"
-#include "src/target/input.h"
-#include "src/target/interface.h"
-#include "src/target/state.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "target/core/common/printf.h"
+#include "target/core/de10/de10_compiler.h"
+#include "target/core/de10/io.h"
+#include "target/input.h"
+#include "target/interface.h"
+#include "target/state.h"
+#include "verilog/ast/ast.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 

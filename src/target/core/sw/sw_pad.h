@@ -33,8 +33,8 @@
 
 #include <cassert>
 #include <mutex>
-#include "src/base/bits/bits.h"
-#include "src/target/core.h"
+#include "base/bits/bits.h"
+#include "target/core.h"
 
 namespace cascade {
 

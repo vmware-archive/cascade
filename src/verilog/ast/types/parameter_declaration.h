@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_PARAMETER_DECLARATION_H
 
-#include "src/verilog/ast/types/declaration.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/range_expression.h"
+#include "verilog/ast/types/declaration.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
