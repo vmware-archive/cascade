@@ -52,12 +52,13 @@ Index
 
 Dependencies
 =====
-Cascade should build successfully on OSX and most Linux distributions.
-Third-party dependencies can be retrieved from the command line using either
+Cascade should build successfully on OSX and most Linux distributions. 
+Third-party dependencies should all be available from the command line using either
 ```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```brew``` (OSX). Note that
 on most platforms, this will require administrator privileges.
 ```
-*NIX $ sudo (apt-get|opkg|brew) install cmake flex bison python3-venv
+ OSX $ brew install cmake flex bison
+*NIX $ (opkg|apt-get) install g++ cmake flex bison python3-venv
 ```
 
 Building Cascade
@@ -67,17 +68,31 @@ Building Cascade
 *NIX $ git clone --recursive https://github.com/vmware/cascade cascade
 ```
 
-2. Configure the project using cmake and build.
+2. Configure your directory with cmake and build.
 
-On MacOS, you need to use the versions of flex and bison provided by homebrew
-instead of the system versions, which are out of date. Before running the commands
-below, set:
+On OSX, you may need to use the versions of flex and bison provided by 
+homebrew rather than the system versions. Before running the commands
+below, type:
 ```bash
-// On MacOS
 export CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
 ```
 
-Replace NUM_PROCESSORS with the number of processors in your system to parallelize the build.
+On OSX you'll also need to install a copy of XCode from the AppStore, and 
+then install command line tools by typing:
+```bash
+OSX $ sudo xcode-select --install
+```
+
+In some cases, the installation may fail to set up parts of your environment
+correctly. If the variable ```CPP``` is undefined, add the following.
+And if the directory ```/usr/include``` does not exist, follow the directions
+[here](https://forums.developer.apple.com/thread/104296) to configure the directory
+appropriately.
+```bash
+OSX $ export CPP="g++ -E"
+```
+
+On all platforms, replace ```NUM_PROCESSORS``` with the number of processors in your system to parallelize the build.
 ```bash
 *NIX $ cd cascade/
 *NIX $ mkdir build
@@ -174,7 +189,7 @@ If you don't want to type your entire program into the REPL you can use the
 include statement, where ```path/``` is assumed to be relative to your current
 working directory.
 ```verilog
->>> include path/to/file.v;
+>>> `include "path/to/file.v"
 ```
 If you'd like to use additional search paths, you can start Cascade using the
 ```-I``` flag and provide a list of semicolon-separated alternatives. Cascade
