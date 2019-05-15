@@ -59,12 +59,6 @@ class Cascade {
     // Term UI Options:
     Cascade& attach_term_ui();
 
-    // Web UI Options:
-    Cascade& attach_web_ui();
-    Cascade& set_web_ui_port(size_t port);
-    Cascade& set_web_ui_buffer(size_t buffer);
-    Cascade& set_web_ui_debug(bool debug);
-
     // Log Dump Options:
     Cascade& attach_logfile();
 

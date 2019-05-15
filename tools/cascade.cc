@@ -53,21 +53,9 @@ auto& input_path = StrArg<string>::create("-e")
   .usage("path/to/file.v")
   .description("Read input from file");
 auto& ui = StrArg<string>::create("--ui")
-  .usage("term|web|batch")
+  .usage("term|batch")
   .description("UI interface")
   .initial("term");
-
-__attribute__((unused)) auto& g2 = Group::create("Web UI Options"); 
-auto& web_ui_port = StrArg<size_t>::create("--web_ui_port")
-  .usage("<int>")
-  .description("Port to run web ui on")
-  .initial(11111);
-auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
-  .usage("<int>")
-  .description("Maximum number of log messages to buffer per refresh")
-  .initial(128);
-auto& web_ui_debug = FlagArg::create("--web_ui_debug")
-  .description("Print debug information to web ui");
 
 __attribute__((unused)) auto& g3 = Group::create("Quartus Server Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
@@ -157,12 +145,6 @@ int main(int argc, char** argv) {
   if (::ui.value() == "term") {
     cascade_->attach_term_ui();
   } 
-  else if (::ui.value() == "web") {
-    cascade_->attach_web_ui();
-    cascade_->set_web_ui_port(::web_ui_port.value());
-    cascade_->set_web_ui_buffer(::web_ui_buffer.value());
-    cascade_->set_web_ui_debug(::web_ui_debug.value());
-  }
   if (::enable_logging.value()) {
     cascade_->attach_logfile();
   }

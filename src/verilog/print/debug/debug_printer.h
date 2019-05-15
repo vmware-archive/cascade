@@ -39,7 +39,6 @@
 #include "verilog/ast/ast.h"
 #include "verilog/print/term/term_printer.h"
 #include "verilog/print/text/text_printer.h"
-#include "verilog/print/html/html_printer.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/inline.h"
 
@@ -73,7 +72,6 @@ class DebugPrinter : public T {
 
 using DebugTermPrinter = DebugPrinter<TermPrinter>;
 using DebugTextPrinter = DebugPrinter<TextPrinter>;
-using DebugHtmlPrinter = DebugPrinter<HtmlPrinter>;
 
 template <typename T>
 inline DebugPrinter<T>::DebugPrinter(std::ostream& os, bool gen, bool inl) : T(os) { 

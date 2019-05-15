@@ -44,7 +44,6 @@
 #include "ui/log/log_view.h"
 #include "ui/term/term_controller.h"
 #include "ui/term/term_view.h"
-#include "ui/web/web_ui.h"
 
 using namespace std;
 
@@ -61,13 +60,8 @@ Cascade::Cascade() {
   set_include_path(".");
 
   term_ui_ = false;
-  web_ui_ = false;
   user_view_ = nullptr;
   log_ = false;
-
-  set_web_ui_port(11111);
-  set_web_ui_buffer(1024);
-  set_web_ui_debug(false);
 
   enable_profile(0);
   enable_info(false);
@@ -96,42 +90,15 @@ Cascade& Cascade::set_include_path(const string& path) {
 
 Cascade& Cascade::attach_term_ui() {
   term_ui_ = true;
-  web_ui_ = false;
   if (user_view_ != nullptr) {
     delete user_view_;
     user_view_ = nullptr;
   }
-  return *this;
-}
-
-Cascade& Cascade::attach_web_ui() {
-  term_ui_ = false;
-  web_ui_ = true;
-  if (user_view_ != nullptr) {
-    delete user_view_;
-    user_view_ = nullptr;
-  }
-  return *this;
-}
-
-Cascade& Cascade::set_web_ui_port(size_t port) {
-  web_ui_port_ = port;
-  return *this;
-}
-
-Cascade& Cascade::set_web_ui_buffer(size_t buffer) {
-  web_ui_buffer_ = buffer;
-  return *this;
-}
-
-Cascade& Cascade::set_web_ui_debug(bool debug) {
-  web_ui_debug_ = debug;
   return *this;
 }
 
 Cascade& Cascade::attach_view(View* v) {
   term_ui_ = false;
-  web_ui_ = false;
   if (user_view_ != nullptr) {
     delete user_view_;
   }
@@ -216,16 +183,7 @@ Cascade& Cascade::run() {
   if (!slave_) {
     view_ = new ManyView();
     runtime_ = new Runtime(view_);
-    if (web_ui_) {
-      auto* mv = new MaybeView();
-      auto* wui = new WebUi(runtime_);
-      wui->set_port(web_ui_port_);
-      wui->set_buffer(web_ui_buffer_);
-      wui->set_debug(web_ui_debug_);
-      controller_ = wui;
-      mv->attach(dynamic_cast<View*>(wui));
-      view_->attach(mv);
-    } else if (term_ui_) {
+    if (term_ui_) {
       view_->attach(new TermView());
       controller_ = new TermController(runtime_);
     }
@@ -297,7 +255,7 @@ Cascade& Cascade::wait_for_stop() {
       profiler_->stop_now();
       delete profiler_;
     }
-    if ((view_ != nullptr) && !web_ui_) {
+    if (view_ != nullptr) {
       delete view_;
     }
     if (logfile_ != nullptr) {
