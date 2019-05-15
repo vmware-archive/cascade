@@ -32,9 +32,9 @@
 #define CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
 
 #include <string>
-#include "src/base/bits/bits.h"
-#include "src/base/thread/asynchronous.h"
-#include "src/target/common/rpc.h"
+#include "base/bits/bits.h"
+#include "base/thread/asynchronous.h"
+#include "target/common/rpc.h"
 
 namespace cascade {
 

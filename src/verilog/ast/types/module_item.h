@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_MODULE_ITEM_H
 #define CASCADE_SRC_VERILOG_AST_MODULE_ITEM_H
 
-#include "src/verilog/ast/types/node.h"
+#include "verilog/ast/types/node.h"
 
 namespace cascade {
 

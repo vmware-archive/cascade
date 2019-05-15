@@ -35,7 +35,7 @@
 #include <FlexLexer.h>
 #endif
 #include <iosfwd>
-#include "src/verilog/parse/verilog.tab.hh"
+#include "verilog_parser.hh"
 
 namespace cascade {
 

@@ -36,11 +36,11 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include "src/base/bits/bits.h"
-#include "src/base/container/vector.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/editor.h"
+#include "base/bits/bits.h"
+#include "base/container/vector.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_COMPILER_H
 #define CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_COMPILER_H
 
-#include "src/target/interface_compiler.h"
-#include "src/target/interface/local/local_interface.h"
+#include "target/interface_compiler.h"
+#include "target/interface/local/local_interface.h"
 
 namespace cascade {
 

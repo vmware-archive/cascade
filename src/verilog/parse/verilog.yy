@@ -14,8 +14,8 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include "src/base/log/log.h"
-#include "src/verilog/ast/ast.h"
+#include "base/log/log.h"
+#include "verilog/ast/ast.h"
 
 namespace cascade {
 
@@ -39,7 +39,7 @@ typedef std::pair<size_t, std::string> IdList;
 
 %code 
 {
-#include "src/verilog/parse/parser.h"
+#include "verilog/parse/parser.h"
 
 #undef yylex
 #define yylex parser->lexer_.yylex

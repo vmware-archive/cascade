@@ -33,12 +33,12 @@
 
 #include <string>
 #include <unordered_map>
-#include "src/base/stream/sockstream.h"
-#include "src/target/common/rpc.h"
-#include "src/target/core_compiler.h"
-#include "src/target/core/proxy/proxy_core.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "base/stream/sockstream.h"
+#include "target/common/rpc.h"
+#include "target/core_compiler.h"
+#include "target/core/proxy/proxy_core.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
 
 namespace cascade {
 

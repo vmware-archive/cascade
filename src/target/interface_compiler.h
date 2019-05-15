@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
 
 #include <string>
-#include "src/verilog/ast/ast_fwd.h"
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 

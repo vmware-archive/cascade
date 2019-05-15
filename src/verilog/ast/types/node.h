@@ -31,11 +31,11 @@
 #ifndef CASCADE_SRC_VERILOG_AST_NODE_H
 #define CASCADE_SRC_VERILOG_AST_NODE_H
 
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/editor.h"
-#include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/rewriter.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

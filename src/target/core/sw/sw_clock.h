@@ -32,11 +32,11 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_CLOCK_H
 
 #include <cassert>
-#include "src/base/bits/bits.h"
-#include "src/target/core.h"
-#include "src/target/input.h"
-#include "src/target/interface.h"
-#include "src/target/state.h"
+#include "base/bits/bits.h"
+#include "target/core.h"
+#include "target/input.h"
+#include "target/interface.h"
+#include "target/state.h"
 
 namespace cascade {
 

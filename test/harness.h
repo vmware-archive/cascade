@@ -33,7 +33,7 @@
 
 #include <iostream>
 #include <string>
-#include "src/ui/view.h"
+#include "ui/view.h"
 
 namespace cascade {
 

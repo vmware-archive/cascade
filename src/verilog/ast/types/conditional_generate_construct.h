@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONDITIONAL_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_CONDITIONAL_GENERATE_CONSTRUCT_H
 
-#include "src/verilog/ast/types/generate_construct.h"
-#include "src/verilog/ast/types/generate_block.h"
+#include "verilog/ast/types/generate_construct.h"
+#include "verilog/ast/types/generate_block.h"
 
 namespace cascade {
 

@@ -28,22 +28,22 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/compiler.h"
+#include "target/compiler.h"
 
 #include <cassert>
-#include "src/runtime/data_plane.h"
-#include "src/runtime/runtime.h"
-#include "src/target/core/de10/de10_compiler.h"
-#include "src/target/core/proxy/proxy_compiler.h"
-#include "src/target/core/sw/sw_compiler.h"
-#include "src/target/engine.h"
-#include "src/target/interface/local/local_compiler.h"
-#include "src/target/interface/remote/remote_compiler.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
-#include "src/verilog/transform/delete_initial.h"
+#include "runtime/data_plane.h"
+#include "runtime/runtime.h"
+#include "target/core/de10/de10_compiler.h"
+#include "target/core/proxy/proxy_compiler.h"
+#include "target/core/sw/sw_compiler.h"
+#include "target/engine.h"
+#include "target/interface/local/local_compiler.h"
+#include "target/interface/remote/remote_compiler.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
+#include "verilog/transform/delete_initial.h"
 
 using namespace std;
 

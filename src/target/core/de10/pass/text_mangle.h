@@ -33,8 +33,8 @@
 
 #include <stddef.h>
 #include <vector>
-#include "src/verilog/ast/visitors/builder.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/visitors/builder.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

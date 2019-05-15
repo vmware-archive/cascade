@@ -34,9 +34,9 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
-#include "src/base/stream/indstream.h"
-#include "src/verilog/ast/visitors/visitor.h"
-#include "src/verilog/print/color.h"
+#include "base/stream/indstream.h"
+#include "verilog/ast/visitors/visitor.h"
+#include "verilog/print/color.h"
 
 namespace cascade {
 

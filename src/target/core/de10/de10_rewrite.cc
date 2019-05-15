@@ -28,18 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/target/core/de10/de10_rewrite.h"
+#include "target/core/de10/de10_rewrite.h"
 
 #include <sstream>
-#include "src/target/core/de10/de10_logic.h"
-#include "src/target/core/de10/pass/finish_mangle.h"
-#include "src/target/core/de10/pass/machinify.h"
-#include "src/target/core/de10/pass/text_mangle.h"
-#include "src/target/core/de10/pass/trigger_reschedule.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "target/core/de10/de10_logic.h"
+#include "target/core/de10/pass/finish_mangle.h"
+#include "target/core/de10/pass/machinify.h"
+#include "target/core/de10/pass/text_mangle.h"
+#include "target/core/de10/pass/trigger_reschedule.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 

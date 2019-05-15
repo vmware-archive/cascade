@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_ANALYZE_CONSTANT_H
 #define CASCADE_SRC_VERILOG_ANALYZE_CONSTANT_H
 
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/ast.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

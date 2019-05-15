@@ -32,7 +32,7 @@
 #define CASCADE_SRC_UI_LOG_LOG_VIEW_H
 
 #include <iostream>
-#include "src/ui/view.h"
+#include "ui/view.h"
 
 namespace cascade {
 

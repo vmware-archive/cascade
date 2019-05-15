@@ -28,10 +28,9 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/parse/parser.h"
-
 #include <regex>
-#include "src/base/log/log.h"
+#include "verilog/parse/parser.h"
+#include "base/log/log.h"
 
 using namespace std;
 

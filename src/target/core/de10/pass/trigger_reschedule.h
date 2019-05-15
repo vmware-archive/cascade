@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TRIGGER_RESCHEDULE_H
 #define CASCADE_SRC_TARGET_CORE_DE10_PASS_TRIGGER_RESCHEDULE_H
 
-#include "src/verilog/ast/visitors/editor.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

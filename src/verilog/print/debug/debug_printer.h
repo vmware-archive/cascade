@@ -33,15 +33,15 @@
 
 #include <cassert>
 #include <unordered_map>
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/navigate.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/term/term_printer.h"
-#include "src/verilog/print/text/text_printer.h"
-#include "src/verilog/print/html/html_printer.h"
-#include "src/verilog/program/elaborate.h"
-#include "src/verilog/program/inline.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/navigate.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/term/term_printer.h"
+#include "verilog/print/text/text_printer.h"
+#include "verilog/print/html/html_printer.h"
+#include "verilog/program/elaborate.h"
+#include "verilog/program/inline.h"
 
 namespace cascade {
 

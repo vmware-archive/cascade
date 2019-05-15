@@ -28,21 +28,21 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/program/type_check.h"
+#include "verilog/program/type_check.h"
 
 #include <sstream>
-#include "src/base/log/log.h"
-#include "src/verilog/analyze/constant.h"
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/navigate.h"
-#include "src/verilog/analyze/read_set.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/parse/parser.h"
-#include "src/verilog/print/text/text_printer.h"
-#include "src/verilog/program/elaborate.h"
-#include "src/verilog/program/program.h"
+#include "base/log/log.h"
+#include "verilog/analyze/constant.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/navigate.h"
+#include "verilog/analyze/read_set.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/parse/parser.h"
+#include "verilog/print/text/text_printer.h"
+#include "verilog/program/elaborate.h"
+#include "verilog/program/program.h"
 
 using namespace std;
 

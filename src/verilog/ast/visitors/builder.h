@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_VISITORS_BUILDER_H
 #define CASCADE_SRC_VERILOG_AST_VISITORS_BUILDER_H
 
-#include "src/verilog/ast/ast_fwd.h"
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 

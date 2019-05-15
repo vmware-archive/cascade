@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EVENT_H
 #define CASCADE_SRC_VERILOG_AST_EVENT_H
 
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/node.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/node.h"
 
 namespace cascade {
 

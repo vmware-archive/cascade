@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_FINISH_MANGLE_H
 #define CASCADE_SRC_TARGET_CORE_DE10_PASS_FINISH_MANGLE_H
 
-#include "src/verilog/ast/visitors/rewriter.h"
+#include "verilog/ast/visitors/rewriter.h"
 
 namespace cascade {
 

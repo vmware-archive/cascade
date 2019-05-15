@@ -31,11 +31,11 @@
 #ifndef CASCADE_SRC_VERILOG_AST_IF_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_IF_GENERATE_CONSTRUCT_H
 
-#include "src/verilog/ast/types/attributes.h"
-#include "src/verilog/ast/types/conditional_generate_construct.h"
-#include "src/verilog/ast/types/if_generate_clause.h"
-#include "src/verilog/ast/types/generate_block.h"
-#include "src/verilog/ast/types/macro.h"
+#include "verilog/ast/types/attributes.h"
+#include "verilog/ast/types/conditional_generate_construct.h"
+#include "verilog/ast/types/if_generate_clause.h"
+#include "verilog/ast/types/generate_block.h"
+#include "verilog/ast/types/macro.h"
 
 namespace cascade {
 

@@ -32,10 +32,10 @@
 #define CASCADE_SRC_TARGET_CORE_SW_MONITOR_H
 
 #include <cassert>
-#include "src/verilog/analyze/read_set.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/ast/visitors/editor.h"
+#include "verilog/analyze/read_set.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
 

@@ -28,10 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/analyze/indices.h"
+#include "verilog/analyze/indices.h"
 
-#include "src/verilog/analyze/evaluate.h"
-#include "src/verilog/ast/ast.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/ast.h"
 
 using namespace std;
 

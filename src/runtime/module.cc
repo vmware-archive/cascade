@@ -28,31 +28,31 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/runtime/module.h"
+#include "runtime/module.h"
 
 #include <cassert>
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
-#include "src/runtime/data_plane.h"
-#include "src/runtime/isolate.h"
-#include "src/runtime/runtime.h"
-#include "src/target/compiler.h"
-#include "src/target/engine.h"
-#include "src/target/state.h"
-#include "src/verilog/analyze/module_info.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/program/elaborate.h"
-#include "src/verilog/program/inline.h"
-#include "src/verilog/transform/block_flatten.h"
-#include "src/verilog/transform/constant_prop.h"
-#include "src/verilog/transform/control_merge.h"
-#include "src/verilog/transform/de_alias.h"
-#include "src/verilog/transform/dead_code_eliminate.h"
-#include "src/verilog/transform/event_expand.h"
-#include "src/verilog/transform/loop_unroll.h"
+#include "runtime/data_plane.h"
+#include "runtime/isolate.h"
+#include "runtime/runtime.h"
+#include "target/compiler.h"
+#include "target/engine.h"
+#include "target/state.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/program/elaborate.h"
+#include "verilog/program/inline.h"
+#include "verilog/transform/block_flatten.h"
+#include "verilog/transform/constant_prop.h"
+#include "verilog/transform/control_merge.h"
+#include "verilog/transform/de_alias.h"
+#include "verilog/transform/dead_code_eliminate.h"
+#include "verilog/transform/event_expand.h"
+#include "verilog/transform/loop_unroll.h"
 
 using namespace std;
 

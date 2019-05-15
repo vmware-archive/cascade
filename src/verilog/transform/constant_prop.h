@@ -33,8 +33,8 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "src/verilog/ast/visitors/rewriter.h"
-#include "src/verilog/ast/visitors/visitor.h"
+#include "verilog/ast/visitors/rewriter.h"
+#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 

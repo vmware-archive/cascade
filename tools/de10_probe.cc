@@ -34,8 +34,8 @@
 #include <string>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "ext/cl/include/cl.h"
-#include "src/target/core/de10/quartus_server.h"
+#include "cl.h"
+#include "target/core/de10/quartus_server.h"
 
 using namespace cascade;
 using namespace cl;

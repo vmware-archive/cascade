@@ -31,12 +31,12 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_DECLARATION_H
 
-#include "src/base/container/vector.h"
-#include "src/verilog/ast/types/attributes.h"
-#include "src/verilog/ast/types/expression.h"
-#include "src/verilog/ast/types/identifier.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/module_item.h"
+#include "base/container/vector.h"
+#include "verilog/ast/types/attributes.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/module_item.h"
 
 namespace cascade {
 

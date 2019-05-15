@@ -32,11 +32,11 @@
 #define CASCADE_SRC_VERILOG_AST_ATTRIBUTES_H
 
 #include <string>
-#include "src/verilog/analyze/indices.h"
-#include "src/verilog/ast/types/attr_spec.h"
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/node.h"
-#include "src/verilog/ast/types/string.h"
+#include "verilog/analyze/indices.h"
+#include "verilog/ast/types/attr_spec.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/node.h"
+#include "verilog/ast/types/string.h"
 
 namespace cascade {
 

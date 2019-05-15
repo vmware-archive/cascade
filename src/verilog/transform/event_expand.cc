@@ -28,15 +28,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/verilog/transform/event_expand.h"
+#include "verilog/transform/event_expand.h"
 
 #include <map>
 #include <sstream>
 #include <string>
-#include "src/verilog/analyze/read_set.h"
-#include "src/verilog/analyze/resolve.h"
-#include "src/verilog/ast/ast.h"
-#include "src/verilog/print/text/text_printer.h"
+#include "verilog/analyze/read_set.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/ast/ast.h"
+#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 

@@ -33,9 +33,9 @@
 
 #include <stddef.h>
 #include <string>
-#include "src/runtime/ids.h"
-#include "src/target/core.h"
-#include "src/verilog/ast/ast_fwd.h"
+#include "runtime/ids.h"
+#include "target/core.h"
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 

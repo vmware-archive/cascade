@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
 #define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
 
-#include "src/target/common/rpc.h"
-#include "src/target/interface/remote/remote_interface.h"
-#include "src/target/interface_compiler.h"
+#include "target/common/rpc.h"
+#include "target/interface/remote/remote_interface.h"
+#include "target/interface_compiler.h"
 
 namespace cascade {
 

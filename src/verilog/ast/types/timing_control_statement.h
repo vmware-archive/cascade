@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_VERILOG_AST_TIMING_CONTROL_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_TIMING_CONTROL_STATEMENT_H
 
-#include "src/verilog/ast/types/macro.h"
-#include "src/verilog/ast/types/timing_control.h"
-#include "src/verilog/ast/types/statement.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/timing_control.h"
+#include "verilog/ast/types/statement.h"
 
 namespace cascade {
 

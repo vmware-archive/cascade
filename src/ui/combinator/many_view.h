@@ -32,7 +32,7 @@
 #define CASCADE_SRC_UI_COMBINATOR_MANY_VIEW_H
 
 #include <vector>
-#include "src/ui/view.h"
+#include "ui/view.h"
 
 namespace cascade {
 

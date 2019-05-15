@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_BASE_UNDO_UNDO_VAL_H
 #define CASCADE_SRC_BASE_UNDO_UNDO_VAL_H
 
-#include "src/base/undo/undoable.h"
+#include "base/undo/undoable.h"
 
 namespace cascade {
 

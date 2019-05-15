@@ -28,11 +28,11 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "src/ui/term/term_view.h"
+#include "ui/term/term_view.h"
 
 #include <iostream>
-#include "src/verilog/print/term/term_printer.h"
-#include "src/verilog/program/program.h"
+#include "verilog/print/term/term_printer.h"
+#include "verilog/program/program.h"
 
 using namespace std;
 

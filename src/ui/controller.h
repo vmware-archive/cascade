@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_UI_CONTROLLER_H
 #define CASCADE_SRC_UI_CONTROLLER_H
 
-#include "src/runtime/runtime.h"
+#include "runtime/runtime.h"
 
 namespace cascade {
 

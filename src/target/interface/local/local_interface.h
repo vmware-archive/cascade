@@ -31,9 +31,9 @@
 #ifndef CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_INTERFACE_H
 #define CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_INTERFACE_H
 
-#include "src/runtime/data_plane.h"
-#include "src/runtime/runtime.h"
-#include "src/target/interface.h"
+#include "runtime/data_plane.h"
+#include "runtime/runtime.h"
+#include "target/interface.h"
 
 namespace cascade {
 

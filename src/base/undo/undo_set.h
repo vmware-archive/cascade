@@ -33,7 +33,7 @@
 
 #include <cassert>
 #include <unordered_set>
-#include "src/base/undo/undoable.h"
+#include "base/undo/undoable.h"
 
 namespace cascade {
 

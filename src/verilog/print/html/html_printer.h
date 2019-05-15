@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_PRINT_HTML_HTML_PRINTER_H
 #define CASCADE_SRC_VERILOG_PRINT_HTML_HTML_PRINTER_H
 
-#include "src/base/stream/substream.h"
-#include "src/verilog/print/printer.h"
+#include "base/stream/substream.h"
+#include "verilog/print/printer.h"
 
 namespace cascade {
 
