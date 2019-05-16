@@ -62,9 +62,9 @@ on most platforms, this will require administrator privileges.
 
 Building Cascade
 =====
-1. Clone this repository (make sure to use the ```--recursive``` flag)
+1. Clone this repository 
 ```
-*NIX $ git clone --recursive https://github.com/vmware/cascade cascade
+*NIX $ git clone https://github.com/vmware/cascade cascade
 ```
 
 2. Configure the project using cmake and build.
@@ -85,8 +85,6 @@ Replace NUM_PROCESSORS with the number of processors in your system to paralleli
 *NIX $ cmake ${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
 *NIX $ make -j ${NUM_PROCESSORS}
 ```
-If the build fails (probably you didn't use the ```--recursive``` flag) try
-starting over with a fresh clone of the repository.
 
 3. To check that your build works correctly (all tests should pass)
 ```
