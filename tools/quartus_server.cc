@@ -32,11 +32,11 @@
 #include <iostream>
 #include <signal.h>
 #include <string>
-#include "cl.h"
+#include "cl/cl.h"
 #include "target/core/de10/quartus_server.h"
 
-using namespace cl;
 using namespace cascade;
+using namespace cascade::cl;
 using namespace std;
 
 namespace {

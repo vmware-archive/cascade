@@ -30,15 +30,15 @@
 
 #include "harness.h"
 
-#include "cl.h"
-#include "gtest/gtest.h"
 #include "base/system/system.h"
 #include "cascade/cascade.h"
+#include "cl/cl.h"
+#include "gtest/gtest.h"
 #include "ui/view.h"
 #include "verilog/parse/parser.h"
 
 using namespace cascade;
-using namespace cl;
+using namespace cascade::cl;
 using namespace std;
 
 namespace {

@@ -29,12 +29,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
-#include "cl.h"
+#include "cl/cl.h"
 #include "gtest/gtest.h"
 #include "harness.h"
 
 using namespace cascade;
-using namespace cl;
+using namespace cascade::cl;
 using namespace std;
 
 int main(int argc, char** argv) {

@@ -53,8 +53,6 @@ set(CASCADE_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(..)
 include_directories(src)
-include_directories(ext/cl/include)
-include_directories(ext/cl)
 include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

@@ -30,12 +30,12 @@
 
 #include <cstring>
 #include <signal.h>
-#include "cl.h"
+#include "cl/cl.h"
 #include "base/system/system.h"
 #include "cascade/cascade.h"
 
-using namespace cl;
 using namespace cascade;
+using namespace cascade::cl;
 using namespace std;
 
 namespace {
