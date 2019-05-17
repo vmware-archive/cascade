@@ -325,66 +325,66 @@ SId Runtime::fopen(const std::string& path) {
 }
 
 int32_t Runtime::in_avail(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->in_avail();
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->in_avail();
 }
 
 uint32_t Runtime::pubseekoff(SId id, int32_t n, bool r) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
 uint32_t Runtime::pubseekpos(SId id, int32_t n, bool r) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->pubseekpos(n, r ? ios::in : ios::out);
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->pubseekpos(n, r ? ios::in : ios::out);
 }
 
 int32_t Runtime::pubsync(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->pubsync();
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->pubsync();
 }
 
 int32_t Runtime::sbumpc(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->sbumpc();
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->sbumpc();
 }
 
 int32_t Runtime::sgetc(SId id) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->sgetc();
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->sgetc();
 }
 
 uint32_t Runtime::sgetn(SId id, char* c, uint32_t n) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->sgetn(c, n);
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->sgetn(c, n);
 }
 
 int32_t Runtime::sputc(SId id, char c) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->sputc(c);
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->sputc(c);
 }
 
 uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
-  assert(id < stream_table_.size());
-  assert(stream_table_[id] != nullptr);
-
-  return stream_table_[id]->sputn(c, n);
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < stream_table_.size());
+  assert(stream_table_[sid] != nullptr);
+  return stream_table_[sid]->sputn(c, n);
 }
 
 uint64_t Runtime::time() const {
@@ -500,11 +500,12 @@ bool Runtime::eval_item(ModuleItem* mi) {
     view_->item(logical_time_, program_, program_->root_elab()->second);
   });
 
-  // If the root is empty, we just instantiated it. Otherwise, count this as an
-  // item instantiated within the root.
+  // If the root has the standard six definitions, we just instantiated it.
+  // Otherwise, count this as an item instantiated within the root.
   const auto* src = program_->root_elab()->second;
-  if (src->empty_items()) {
+  if (src->size_items() == 6) {
     root_ = new Module(src, this, dp_, isolate_, compiler_);
+    item_evals_ = 6;
   } else {
     ++item_evals_;
   }
