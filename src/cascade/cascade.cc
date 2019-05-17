@@ -281,9 +281,8 @@ Cascade& Cascade::stop_now() {
   return *this;
 }
 
-Cascade& Cascade::eval(const string& s) {
-  runtime_->eval(s);
-  return *this;
+evalstream Cascade::eval() {
+  return evalstream(runtime_);
 }
 
 Cascade& Cascade::finish(size_t arg) {

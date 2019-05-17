@@ -34,6 +34,7 @@
 #include <fstream>
 #include <string>
 #include "base/thread/asynchronous.h"
+#include "cascade/evalstream.h"
 
 namespace cascade {
 
@@ -91,7 +92,7 @@ class Cascade {
     Cascade& stop_now();
 
     // Eval Methods:
-    Cascade& eval(const std::string& s);
+    evalstream eval();
 
     // System Task Interface:
     Cascade& finish(size_t arg);
