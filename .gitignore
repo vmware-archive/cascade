@@ -38,3 +38,6 @@
 *stack.hh
 *.output
 *.tab.*
+
+#cmake build directory
+build
