@@ -6,8 +6,6 @@ cmake_policy(SET CMP0057 NEW)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
-
 find_package(FLEX 2.6.0)
 find_package(BISON)
 
@@ -21,8 +19,10 @@ include(${CMAKE_BINARY_DIR}/pmm.cmake)
 
 if (APPLE)
     set(cxxlib libc++)
+    set(force_compiler "compiler=apple-clang")
 else ()
     set(cxxlib libstdc++11)
+    set(force_compiler "")
 endif()
 
 pmm(
@@ -30,7 +30,7 @@ pmm(
         BUILD missing
         BINCRAFTERS
         COMMUNITY
-        SETTINGS compiler.libcxx=${cxxlib}
+        SETTINGS compiler.libcxx=${cxxlib} ${force_compiler}
     )
 
 include(CTest)

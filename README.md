@@ -52,13 +52,7 @@ Index
 
 Dependencies
 =====
-Cascade should build successfully on OSX and most Linux distributions.
-Third-party dependencies can be retrieved from the command line using either
-```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```brew``` (OSX). Note that
-on most platforms, this will require administrator privileges.
-```
-*NIX $ sudo (apt-get|opkg|brew) install cmake flex bison python3-venv
-```
+Cascade should build successfully on OSX and most Linux distributions. 
 
 Building Cascade
 =====
@@ -67,36 +61,17 @@ Building Cascade
 *NIX $ git clone https://github.com/vmware/cascade cascade
 ```
 
-2. Configure the project using cmake and build.
+2. Run the setup script
 
-On MacOS, you need to use the versions of flex and bison provided by homebrew
-instead of the system versions, which are out of date. Before running the commands
-below, set:
 ```bash
-// On MacOS
-export CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
+*NIX $ cd cascade
+*NIX $ ./setup
 ```
 
-Replace NUM_PROCESSORS with the number of processors in your system to parallelize the build.
-```bash
-*NIX $ cd cascade/
-*NIX $ mkdir build
-*NIX $ cd build
-*NIX $ cmake ${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
-*NIX $ make -j ${NUM_PROCESSORS}
-```
+The setup script should guide you through installing dependencies, as
+well as configuring, building and testing Cascade.
 
-3. To check that your build works correctly (all tests should pass)
-```
-*NIX $ make test
-```
-
-4. Install cascade.
-```
-*NIX $ sudo make install
-```
-
-Cascade should now be acessible by just typing ```cascade```.
+Once installed, cascade should now be accessible by just typing ```cascade```.
 
 Using Cascade
 =====
@@ -172,7 +147,7 @@ If you don't want to type your entire program into the REPL you can use the
 include statement, where ```path/``` is assumed to be relative to your current
 working directory.
 ```verilog
->>> include path/to/file.v;
+>>> `include "path/to/file.v"
 ```
 If you'd like to use additional search paths, you can start Cascade using the
 ```-I``` flag and provide a list of semicolon-separated alternatives. Cascade
