@@ -91,7 +91,7 @@ matrix:
       - /usr/local/Homebrew
 script:
 - mkdir -p ~/.conan && cp .travis/conan_settings.yml ~/.conan/settings.yml
-- ./setup --silent --ci --coverage=${COVERAGE}
+- ./setup --silent --ci --coverage=$COVERAGE
 after_success:
 - "[ $COVERAGE = 1 ] && curl -L https://codecov.io/bash -o codecov.sh; bash codecov.sh -x gcov 2>&1 | grep -v 'has arcs to entry block' | grep -v 'has arcs from exit block' && cd .. && sonar-scanner -Dsonar.projectKey=cascade
   -Dsonar.organization=cascade -Dsonar.sources=lib,src,tools -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build

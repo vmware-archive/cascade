@@ -53,13 +53,6 @@ Index
 Dependencies
 =====
 Cascade should build successfully on OSX and most Linux distributions. 
-Third-party dependencies should all be available from the command line using either
-```apt-get``` (Ubuntu), ```opkg``` (Angstrom), or ```brew``` (OSX). Note that
-on most platforms, this will require administrator privileges.
-```
- OSX $ brew install cmake flex bison
-*NIX $ (opkg|apt-get) install g++ cmake flex bison python3-venv
-```
 
 Building Cascade
 =====
@@ -68,52 +61,17 @@ Building Cascade
 *NIX $ git clone --recursive https://github.com/vmware/cascade cascade
 ```
 
-2. Configure your directory with cmake and build.
+2. Run the setup script
 
-On OSX, you may need to use the versions of flex and bison provided by 
-homebrew rather than the system versions. Before running the commands
-below, type:
 ```bash
-export CMAKE_OPTIONS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
+*NIX $ cd cascade
+*NIX $ ./setup
 ```
 
-On OSX you'll also need to install a copy of XCode from the AppStore, and 
-then install command line tools by typing:
-```bash
-OSX $ sudo xcode-select --install
-```
+The setup script should guide you through installing dependencies, as
+well as configuring, building and testing Cascade.
 
-In some cases, the installation may fail to set up parts of your environment
-correctly. If the variable ```CPP``` is undefined, add the following.
-And if the directory ```/usr/include``` does not exist, follow the directions
-[here](https://forums.developer.apple.com/thread/104296) to configure the directory
-appropriately.
-```bash
-OSX $ export CPP="g++ -E"
-```
-
-On all platforms, replace ```NUM_PROCESSORS``` with the number of processors in your system to parallelize the build.
-```bash
-*NIX $ cd cascade/
-*NIX $ mkdir build
-*NIX $ cd build
-*NIX $ cmake ${CMAKE_OPTIONS} -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
-*NIX $ make -j ${NUM_PROCESSORS}
-```
-If the build fails (probably you didn't use the ```--recursive``` flag) try
-starting over with a fresh clone of the repository.
-
-3. To check that your build works correctly (all tests should pass)
-```
-*NIX $ make test
-```
-
-4. Install cascade.
-```
-*NIX $ sudo make install
-```
-
-Cascade should now be acessible by just typing ```cascade```.
+Once installed, cascade should now be accessible by just typing ```cascade```.
 
 Using Cascade
 =====
