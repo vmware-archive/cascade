@@ -98,7 +98,7 @@ check_homebrew() {
 
 check_dpkg() {
     printf '%.20s %s' "$1..................................";
-    if $(dpkg-query -W -f='${Status}' $1 2>/dev/null | grep -c "ok installed"); then
+    if dpkg-query -W -f='${Status}' $1 2>/dev/null | grep -c "ok installed"; then
         echo -e "${GREEN}present${NC}"
         return 1
     else
@@ -237,6 +237,20 @@ case "${unameOut}" in
                         case $yn in
                             Yes ) brew install ${MISSING_LIST}; break;;
                             No ) echo "Please install these packages manually, then run this script again.";
+                            exit 1;;
+                        esac
+                    done
+                fi
+                if type xcode-select >&- && xpath=$( xcode-select --print-path ) && test -d "${xpath}" && test -x "${xpath}" ; then
+                    echo -e "xcode is ${GREEN}installed${NC}."
+                else
+                    echo -e "xcode is ${RED}not installed${NC}."
+                    echo "xcode must be installed in order to build Cascade"
+                    echo "Would you like us to install xcode for you?"
+                    select yn in "Yes" "No"; do
+                        case $yn in
+                            Yes ) xcode-select --install; break;;
+                            No ) echo "Please install xcode manually, then run this script again.";
                             exit 1;;
                         esac
                     done
