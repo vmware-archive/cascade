@@ -174,7 +174,7 @@ build_cascade() {
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)     echo -e "Detected Linux.";
-                if ! [ -x "$(command -v dpkg)" ]; then
+                if ! [ -x "$(command -v dpkg-query)" ]; then
                     echo -e "This is not a dpkg/apt managed system."
                     echo -e "We can't check if packages are installed for you."
                     echo -e "If building fails, you should make sure you have the packages"
