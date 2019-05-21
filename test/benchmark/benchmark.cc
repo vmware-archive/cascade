@@ -30,31 +30,51 @@
 
 #include <string>
 #include "cl.h"
-#include "gtest/gtest.h"
 #include "harness.h"
+#include "benchmark/benchmark.h"
 
 using namespace cascade;
 using namespace cl;
 using namespace std;
 
-int main(int argc, char** argv) {
-  Simple::read(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+BENCHMARK_MAIN();
 
-TEST(benchmark, array) {
-  run_benchmark("data/test/benchmark/array/run_7.v", "268435457\n");
+static void BM_Array(benchmark::State& state) 
+{
+  for(auto _ : state) {
+    run_benchmark("data/test/benchmark/array/run_7.v", "268435457\n");
+  }
 }
-TEST(benchmark, bitcoin) {
-  run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
+BENCHMARK(BM_Array)->Unit(benchmark::kMillisecond);
+
+static void BM_Bitcoin(benchmark::State& state) 
+{
+  for(auto _ : state) {
+    run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
+  }
 }
-TEST(benchmark, mips32) {
-  run_benchmark("data/test/benchmark/mips32/run_bubble_128_1024.v", "1");
+BENCHMARK(BM_Bitcoin)->Unit(benchmark::kMillisecond);
+
+static void BM_Mips32(benchmark::State& state) 
+{
+  for(auto _ : state) {
+    run_benchmark("data/test/benchmark/mips32/run_bubble_128_1024.v", "1");
+  }
 }
-TEST(benchmark, regex) {
-  run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
+BENCHMARK(BM_Mips32)->Unit(benchmark::kMillisecond);
+
+static void BM_Regex(benchmark::State& state) 
+{
+  for(auto _ : state) {
+    run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
+  }
 }
-TEST(benchmark, nw) {
-  run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
+BENCHMARK(BM_Regex)->Unit(benchmark::kMillisecond);
+
+static void BM_Nw(benchmark::State& state) 
+{
+  for(auto _ : state) {
+    run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
+  }
 }
+BENCHMARK(BM_Nw)->Unit(benchmark::kMillisecond);
