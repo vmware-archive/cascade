@@ -42,6 +42,7 @@
 #include "runtime/data_plane.h"
 #include "runtime/isolate.h"
 #include "runtime/module.h"
+#include "runtime/nullbuf.h"
 #include "target/compiler.h"
 #include "target/engine.h"
 #include "ui/view.h"
@@ -84,8 +85,11 @@ Runtime::Runtime(View* view) : Asynchronous() {
   last_time_ = ::time(nullptr);
   logical_time_ = 0;
 
-  // begin allocating stream ids from 1
+  // Allocate standard streams (reserve 0 for cascade)
   stream_table_.push_back(nullptr);
+  for (size_t i = 0; i < 6; ++i) {
+    stream_table_.push_back(new nullbuf());
+  }
 }
 
 Runtime::~Runtime() {

@@ -31,6 +31,7 @@ pmm(
         BINCRAFTERS
         COMMUNITY
         SETTINGS compiler.libcxx=${cxxlib} ${force_compiler}
+        REMOTES mpusz https://api.bintray.com/conan/mpusz/conan-mpusz
     )
 
 include(CTest)
