@@ -31,18 +31,12 @@
 #ifndef CASCADE_SRC_CASCADE_CASCADE_H
 #define CASCADE_SRC_CASCADE_CASCADE_H
 
-#include <fstream>
 #include <string>
-#include "base/thread/asynchronous.h"
 #include "cascade/evalstream.h"
 
 namespace cascade {
 
-class Controller;
-class ManyView;
-class RemoteRuntime;
 class Runtime;
-class View;
 
 class Cascade {
   public:
@@ -54,36 +48,17 @@ class Cascade {
     Cascade& operator=(Cascade&& rhs) = delete;
     ~Cascade();
 
-    // Path Resolution Options:
-    Cascade& set_include_path(const std::string& path);
-
-    // Term UI Options:
-    Cascade& attach_term_ui();
-
-    // Log Dump Options:
-    Cascade& attach_logfile();
-
-    // User-Defined View Options:
-    Cascade& attach_view(View* v);
-
-    // Logging Options:
-    Cascade& enable_profile(size_t n);
-    Cascade& enable_info(bool enable);
-    Cascade& enable_warning(bool enable);
-    Cascade& enable_error(bool enable);
-
-    // Optimization Options:
-    Cascade& enable_inlining(bool enable);
+    // Configuration Methods:
+    Cascade& set_include_dirs(const std::string& path);
+    Cascade& set_enable_inlining(bool enable);
     Cascade& set_open_loop_target(size_t n);
-
-    // Quartus Server Options:
-    Cascade& set_quartus_host(const std::string& host);
-    Cascade& set_quartus_port(size_t port);
-
-    // Slave Runtime Options:
-    Cascade& set_slave_mode(bool slave);
-    Cascade& set_slave_port(size_t port);
-    Cascade& set_slave_path(const std::string& path);
+    Cascade& set_quartus_server(const std::string& host, size_t port);
+    Cascade& set_stdin(std::streambuf* sb);
+    Cascade& set_stdout(std::streambuf* sb);
+    Cascade& set_stderr(std::streambuf* sb);
+    Cascade& set_stdwarn(std::streambuf* sb);
+    Cascade& set_stdinfo(std::streambuf* sb);
+    Cascade& set_stdlog(std::streambuf* sb);
 
     // Start/Stop Methods:
     Cascade& run();
@@ -94,61 +69,8 @@ class Cascade {
     // Eval Methods:
     evalstream eval();
 
-    // System Task Interface:
-    Cascade& finish(size_t arg);
-    Cascade& error(const std::string& s);
-
   private:
-    // Profiler Helper Class:
-    class Profiler : public Asynchronous {
-      public:
-        explicit Profiler(Runtime* rt, size_t interval);
-        ~Profiler() = default;
-
-      private:
-        void run_logic() override;
-        Runtime* rt_;
-        size_t interval_;
-    };
-  
-    // Master-Mode Components:
-    ManyView* view_;
     Runtime* runtime_;
-    Controller* controller_;
-
-    // Slave-Mode Components:
-    RemoteRuntime* remote_runtime_;
-
-    // Logging Components:
-    std::ofstream* logfile_;
-    Profiler* profiler_;
-
-    // Configuration Options:
-    std::string include_path_;
-
-    bool term_ui_;
-    bool web_ui_;
-    View* user_view_;
-    bool log_;
-
-    size_t web_ui_port_;
-    size_t web_ui_buffer_;
-    bool web_ui_debug_;
-
-    size_t enable_profile_;
-    bool enable_info_;
-    bool enable_warning_;
-    bool enable_error_;
-
-    bool enable_inlining_;
-    bool open_loop_target_;
-
-    std::string quartus_host_;
-    size_t quartus_port_;
-
-    bool slave_;
-    size_t slave_port_;
-    std::string slave_path_;
 };
 
 } // namespace cascade

@@ -31,37 +31,10 @@
 #ifndef CASCADE_TEST_HARNESS_H
 #define CASCADE_TEST_HARNESS_H
 
-#include <iostream>
 #include <string>
-#include "ui/view.h"
 
 namespace cascade {
 
-// A stripped-down view; filters everything other than print messages
-class PView : public View {
-  public:
-    PView(std::ostream& os);
-    ~PView() override = default;
-
-    void print(size_t t, const std::string& s) override;
-
-  private:
-    std::ostream& os_;
-};
-
-// Another stripped-down view; filters everything other than error messages
-class EView : public View {
-  public:
-    EView(std::ostream& os);
-    ~EView() override = default;
-
-    void error(size_t t, const std::string& s) override;
-
-  private:
-    std::ostream& os_;
-};
-
-// Harnesses for major components:
 void run_parse(const std::string& path, bool expected);
 void run_typecheck(const std::string& march, const std::string& path, bool expected);
 void run_code(const std::string& march, const std::string& path, const std::string& expected);

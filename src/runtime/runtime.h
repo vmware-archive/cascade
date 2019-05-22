@@ -52,13 +52,6 @@ class Log;
 class Module;
 class Parser;
 class Program;
-class View;
-
-// At the top level, FPGA-JIT is organized according to the MVC design pattern.
-// The user interacts with the program through the controller, observes the
-// results of those interactions through the view, and all major state is
-// stored in the runtime (ie the model). The runtime is one of two major
-// threads of control, the other being the controller.
 
 class Runtime : public Asynchronous {
   public:
@@ -66,7 +59,7 @@ class Runtime : public Asynchronous {
     typedef std::function<void()> Interrupt;
 
     // Constructors:
-    explicit Runtime(View* view);
+    explicit Runtime();
     ~Runtime() override;
 
     // Configuration Interface:
@@ -74,9 +67,6 @@ class Runtime : public Asynchronous {
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& disable_inlining(bool di);
-    Runtime& enable_info(bool ei);
-    Runtime& disable_warning(bool dw);
-    Runtime& disable_error(bool de);
 
     // Controller Interface:
     // 
@@ -91,23 +81,18 @@ class Runtime : public Asynchronous {
 
     // System Task Interface:
     //
-    // Print a newline-teriminated string to the view between this and the next
-    // timestep. Returns immediately.
+    // Print a newline-teriminated string between this and the next timestep.
     void display(const std::string& s);
-    // Print a string to the view between this and the next timestep. Returns
-    // immediately.
+    // Print a string between this and the next timestep. 
     void write(const std::string& s);
     // Shutdown the runtime and print statistics if arg is non-zero between
-    // this and the next timestep. Returns immediately.
+    // this and the next timestep. 
     void finish(uint32_t arg);
-    // Prints an error message between this and the next timestep. Returns
-    // immediately.
+    // Prints an error message between this and the next timestep. 
     void error(const std::string& s);
-    // Prints a warning message between this and the next timestep. Returns
-    // immediately.
+    // Prints a warning message between this and the next timestep. 
     void warning(const std::string& s);
-    // Prints an info message between this and the next timestep. Returns
-    // immediately.
+    // Prints an info message between this and the next timestep. 
     void info(const std::string& s);
     // Loads the current state of the simulation from a file
     void restart(const std::string& path);
@@ -138,13 +123,17 @@ class Runtime : public Asynchronous {
     //
     // In contrast to the system task and program logic interfaces, these
     // methods are scheduled immediately, regardless of the execution state of
-    // the runtime. From a design point of view, this interface is a thin
-    // wrapper around streambufs. Attempting to perform an operation on an
-    // unrecognized or closed stream id will result in undefined behavior.
+    // the runtime. From a design perspective, this interface is a thin wrapper
+    // around streambufs. Attempting to perform an operation on an unrecognized
+    // or closed stream id will result in undefined behavior.
     // 
     // Creates an entry in the stream table by calling new filebuf(path, in|out).
     SId fopen(const std::string& path);
-    // streambuf operators: The boolean argument to pubseekoff/pos is used to
+    // Returns an entry in the stream table
+    std::streambuf* rdbuf(SId id) const;
+    // Replaces an entry in the stream table and returns its previous value
+    std::streambuf* rdbuf(SId id, std::streambuf* sb);
+    // Streambuf operators: The boolean argument to pubseekoff/pos is used to
     // select between read/write (true/false) pointers. pubseekoff assumes
     // std::cur as its locator.
     int32_t in_avail(SId id);
@@ -170,9 +159,13 @@ class Runtime : public Asynchronous {
     std::string overall_frequency() const;
 
   private:
-    // MVC State:
-    View* view_;
-    
+    static constexpr uint32_t stdin_ = 0x8000'0000;
+    static constexpr uint32_t stdout_ = 0x8000'0001;
+    static constexpr uint32_t stderr_ = 0x8000'0002;
+    static constexpr uint32_t stdwarn_ = 0x8000'0003;
+    static constexpr uint32_t stdinfo_ = 0x8000'0004;
+    static constexpr uint32_t stdlog_ = 0x8000'0005;
+
     // Major Components:
     Log* log_;
     Parser* parser_;
@@ -189,9 +182,6 @@ class Runtime : public Asynchronous {
     bool enable_open_loop_;
     size_t open_loop_itrs_;
     size_t open_loop_target_;
-    bool enable_info_;
-    bool disable_warning_;
-    bool disable_error_;
 
     // Interrupt Queue:
     size_t item_evals_;
@@ -214,7 +204,7 @@ class Runtime : public Asynchronous {
     uint64_t logical_time_;
 
     // Stream Table:
-    std::vector<std::streambuf*> stream_table_;
+    std::vector<std::streambuf*> streambufs_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.

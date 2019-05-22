@@ -45,7 +45,6 @@
 #include "runtime/nullbuf.h"
 #include "target/compiler.h"
 #include "target/engine.h"
-#include "ui/view.h"
 #include "verilog/parse/parser.h"
 #include "verilog/print/debug/debug_printer.h"
 #include "verilog/program/inline.h"
@@ -55,9 +54,7 @@ using namespace std;
 
 namespace cascade {
 
-Runtime::Runtime(View* view) : Asynchronous() {
-  view_ = view;
-
+Runtime::Runtime() : Asynchronous() {
   log_ = new Log();
   parser_ = new Parser(log_);
   dp_ = new DataPlane();
@@ -71,9 +68,6 @@ Runtime::Runtime(View* view) : Asynchronous() {
   open_loop_itrs_ = 2;
   open_loop_target_ = 1;
   disable_inlining_ = false;
-  enable_info_ = false;
-  disable_warning_ = false;
-  disable_error_ = false;
 
   item_evals_ = 0;
 
@@ -85,10 +79,9 @@ Runtime::Runtime(View* view) : Asynchronous() {
   last_time_ = ::time(nullptr);
   logical_time_ = 0;
 
-  // Allocate standard streams (reserve 0 for cascade)
-  stream_table_.push_back(nullptr);
+  // Allocate standard streams 
   for (size_t i = 0; i < 6; ++i) {
-    stream_table_.push_back(new nullbuf());
+    rdbuf(i, nullptr);
   }
 }
 
@@ -104,10 +97,8 @@ Runtime::~Runtime() {
   delete isolate_;
   delete compiler_;
 
-  for (auto s : stream_table_) {
-    if (s != nullptr) {
-      delete s;
-    }
+  for (auto* s : streambufs_) {
+    delete s;
   }
 }
 
@@ -132,21 +123,6 @@ Runtime& Runtime::disable_inlining(bool di) {
   return *this;
 }
 
-Runtime& Runtime::enable_info(bool ei) {
-  enable_info_ = ei;
-  return *this;
-}
-
-Runtime& Runtime::disable_warning(bool dw) {
-  disable_warning_ = dw;
-  return *this;
-}
-
-Runtime& Runtime::disable_error(bool de) {
-  disable_error_ = de;
-  return *this;
-}
-
 void Runtime::eval(const string& s) {
   schedule_interrupt([this, s]{
     stringstream ss(s);
@@ -162,51 +138,45 @@ void Runtime::eval(istream& is, bool is_term) {
 
 void Runtime::display(const string& s) {
   schedule_interrupt([this, s]{
-    view_->print(logical_time_, s + "\n");
+    ostream(rdbuf(stdout_)) << s << endl;
   });
 }
 
 void Runtime::write(const string& s) {
   schedule_interrupt([this, s]{
-    view_->print(logical_time_, s);
+    ostream(rdbuf(stdout_)) << s;
+    ostream(rdbuf(stdout_)).flush();
   });
 }
 
 void Runtime::finish(uint32_t arg) {
   schedule_interrupt([this, arg]{
     if (arg > 0) {
-      stringstream ss;
-      ss << "Simulation Time: " << time() << endl;
-      ss << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << endl;
-      ss << "Clock Frequency: " << overall_frequency() << endl;
-      view_->print(logical_time_, ss.str());
+      ostream(rdbuf(stdout_)) 
+        << "Simulation Time: " << time() << "\n"
+        << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << "\n"
+        << "Clock Frequency: " << overall_frequency() << endl;
     } 
     request_stop();
   });
 }
 
 void Runtime::error(const string& s) {
-  if (!disable_error_) {
-    schedule_interrupt([this, s]{
-      view_->error(logical_time_, s);
-    });
-  }
+  schedule_interrupt([this, s]{
+    ostream(rdbuf(stderr_)) << s << endl;
+  });
 }
 
 void Runtime::warning(const string& s) {
-  if (!disable_warning_) {
-    schedule_interrupt([this, s]{
-      view_->warn(logical_time_, s);
-    });
-  }
+  schedule_interrupt([this, s]{
+    ostream(rdbuf(stdwarn_)) << s << endl;
+  });
 }
 
 void Runtime::info(const string& s) {
-  if (enable_info_) {
-    schedule_interrupt([this, s]{
-      view_->info(logical_time_, s);
-    });
-  }
+  schedule_interrupt([this, s]{
+    ostream(rdbuf(stdinfo_)) << s << endl;
+  });
 }
 
 void Runtime::restart(const string& path) {
@@ -323,72 +293,65 @@ SId Runtime::fopen(const std::string& path) {
 
   auto* fb = new filebuf();
   fb->open(path.c_str(), (ios_base::in | ios_base::out));
-  stream_table_.push_back(fb);
+  streambufs_.push_back(fb);
 
-  return (stream_table_.size()-1);;
+  return (streambufs_.size()-1);;
+}
+
+streambuf* Runtime::rdbuf(SId id) const {
+  const auto sid = id & 0x7fff'ffff;
+  assert(sid < streambufs_.size());
+  assert(streambufs_[sid] != nullptr);
+
+  return streambufs_[sid];
+}
+
+streambuf* Runtime::rdbuf(SId id, streambuf* sb) {
+  const auto sid = id & 0x7fff'ffff;
+  while (sid >= streambufs_.size()) {
+    streambufs_.push_back(new nullbuf());
+  }
+  auto* res =  streambufs_[sid];
+  if (sb != nullptr) {
+    streambufs_[sid] = sb;
+  }
+  return res;
 }
 
 int32_t Runtime::in_avail(SId id) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->in_avail();
+  return rdbuf(id)->in_avail();
 }
 
 uint32_t Runtime::pubseekoff(SId id, int32_t n, bool r) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
+  return rdbuf(id)->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
 uint32_t Runtime::pubseekpos(SId id, int32_t n, bool r) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->pubseekpos(n, r ? ios::in : ios::out);
+  return rdbuf(id)->pubseekpos(n, r ? ios::in : ios::out);
 }
 
 int32_t Runtime::pubsync(SId id) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->pubsync();
+  return rdbuf(id)->pubsync();
 }
 
 int32_t Runtime::sbumpc(SId id) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->sbumpc();
+  return rdbuf(id)->sbumpc();
 }
 
 int32_t Runtime::sgetc(SId id) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->sgetc();
+  return rdbuf(id)->sgetc();
 }
 
 uint32_t Runtime::sgetn(SId id, char* c, uint32_t n) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->sgetn(c, n);
+  return rdbuf(id)->sgetn(c, n);
 }
 
 int32_t Runtime::sputc(SId id, char c) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->sputc(c);
+  return rdbuf(id)->sputc(c);
 }
 
 uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < stream_table_.size());
-  assert(stream_table_[sid] != nullptr);
-  return stream_table_[sid]->sputn(c, n);
+  return rdbuf(id)->sputn(c, n);
 }
 
 uint64_t Runtime::time() const {
@@ -413,7 +376,7 @@ string Runtime::overall_frequency() const {
 }
 
 void Runtime::run_logic() {
-  view_->startup(logical_time_);
+  //view_->startup(logical_time_);
   while (!stop_requested()) {
     if (enable_open_loop_ && !schedule_all_) {
       open_loop_scheduler();
@@ -422,7 +385,7 @@ void Runtime::run_logic() {
     }
   }
   done_simulation();
-  view_->shutdown(logical_time_);
+  //view_->shutdown(logical_time_);
 }
 
 bool Runtime::eval_stream(istream& is, bool is_term) {
@@ -435,7 +398,7 @@ bool Runtime::eval_stream(istream& is, bool is_term) {
     parser_->parse();
     const auto text = parser_->get_text();
     schedule_interrupt([this, text]{
-      view_->parse(logical_time_, text);
+      //view_->parse(logical_time_, text);
     });
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
@@ -488,7 +451,7 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
     md->get_attrs()->set_or_replace("__no_inline", new String("true"));
   }
   schedule_interrupt([this, md]{
-    view_->decl(logical_time_, program_, md);
+    //view_->decl(logical_time_, program_, md);
   });
   return true;
 }
@@ -501,7 +464,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
     return false;
   }
   schedule_interrupt([this]{
-    view_->item(logical_time_, program_, program_->root_elab()->second);
+    //view_->item(logical_time_, program_, program_->root_elab()->second);
   });
 
   // If the root has the standard six definitions, we just instantiated it.

@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "cascade/cascade.h"
+#include "cascade/cascade_slave.h"
 #include "gtest/gtest.h"
 #include "harness.h"
 
@@ -42,9 +42,8 @@ int main(int argc, char** argv) {
   // enters its accept loop, but if there's anything in between here and
   // the first remote test, it makes it *excepptionally unlikely* that it
   // will ever happen.
-  Cascade slave;
-  slave.set_slave_mode(true);
-  slave.set_slave_path("/tmp/fpga_socket");
+  CascadeSlave slave;
+  slave.set_listeners("/tmp/fpga_socket", 8800);
   slave.run();
 
   return RUN_ALL_TESTS();

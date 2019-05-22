@@ -28,14 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "harness.h"
-
-#include <sstream>
-#include "base/system/system.h"
-#include "cascade/cascade.h"
+#include <cstring>
+#include <signal.h>
+#include "cascade/cascade_slave.h"
 #include "cl/cl.h"
-#include "gtest/gtest.h"
-#include "verilog/parse/parser.h"
 
 using namespace cascade;
 using namespace cascade::cl;
@@ -43,75 +39,67 @@ using namespace std;
 
 namespace {
 
-auto& march = StrArg<string>::create("--march")
-  .initial("minimal");
+__attribute__((unused)) auto& g1 = Group::create("Cascade Slave Options");
+auto& slave_port = StrArg<size_t>::create("--slave_port")
+  .usage("<int>")
+  .description("Port to listen for slave connections on")
+  .initial(8800);
+auto& slave_path = StrArg<string>::create("--slave_path")
+  .usage("<path/to/socket>")
+  .description("Path to listen for slave_connections on")
+  .initial("/tmp/fpga_socket");
+
+__attribute__((unused)) auto& g2 = Group::create("Quartus Server Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
+  .usage("<host>")
+  .description("Location of quartus server")
   .initial("localhost");
 auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
+  .usage("<port>")
+  .description("Location of quartus server")
   .initial(9900);
+
+CascadeSlave* slave_ = nullptr;
+
+void int_handler(int sig) {
+  (void) sig;
+  ::slave_->request_stop();
+}
+
+void segv_handler(int sig) {
+  (void) sig;
+  cout << "CASCADE SLAVE SHUTDOWN UNEXPECTEDLY" << endl;
+  cout << "Please rerun with --enable_log and forward log file to developers" << endl;
+  exit(1);
+}
 
 } // namespace
 
-namespace cascade {
+int main(int argc, char** argv) {
+  // Parse command line
+  Simple::read(argc, argv);
 
-void run_parse(const string& path, bool expected) {
-  ifstream ifs(path);
-  ASSERT_TRUE(ifs.is_open());
-
-  Log log;
-  Parser p(&log);
-  p.set_stream(ifs);
-  p.parse();
-  EXPECT_EQ(log.error(), expected);
-}
-
-void run_typecheck(const string& march, const string& path, bool expected) {
-  auto* sb = new stringbuf();
-
-  Cascade c;
-  c.set_include_dirs(System::src_root());
-  c.set_stderr(sb);
-  c.run();
-
-  c.eval() << "`include \"data/march/" << march << ".v\"\n" 
-           << "`include \"" << path << "\"" << endl;
-  if (expected) {
-    c.eval() << "initial $finish;" << endl;
+  // Attach signal handlers
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = ::segv_handler;
+    sigaction(SIGSEGV, &action, nullptr);
+  }
+  { struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = ::int_handler;
+    sigaction(SIGINT, &action, nullptr);
   }
 
-  c.wait_for_stop();
-  EXPECT_EQ((sb->str() != ""), expected);
+  slave_ = new CascadeSlave();
+  slave_->set_listeners(::slave_path.value(), ::slave_port.value());
+  slave_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+
+  slave_->run();
+  slave_->wait_for_stop();
+
+  delete slave_;
+  cout << "Goodbye!" << endl;
+
+  return 0;
 }
-
-void run_code(const string& march, const string& path, const string& expected) {
-  auto* sb = new stringbuf();
-
-  Cascade c;
-  c.set_include_dirs(System::src_root());
-  c.set_stdout(sb);
-  c.run();
-
-  c.eval() << "`include \"data/march/" << march << ".v\"\n"
-           << "`include \"" << path << "\"" << endl;
-
-  c.wait_for_stop();
-  EXPECT_EQ(sb->str(), expected);
-}
-
-void run_benchmark(const string& path, const string& expected) {
-  auto* sb = new stringbuf();
-
-  Cascade c;
-  c.set_include_dirs(System::src_root());
-  c.set_stdout(sb);
-  c.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
-  c.run();
-
-  c.eval() << "`include \"data/march/" << ::march.value() << ".v\"\n" 
-           << "`include \"" << path << "\"" << endl;
-
-  c.wait_for_stop();
-  EXPECT_EQ(sb->str(), expected);
-}
-
-} // namespace cascade

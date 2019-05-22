@@ -28,35 +28,66 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_LOG_LOG_VIEW_H
-#define CASCADE_SRC_UI_LOG_LOG_VIEW_H
+#include "cascade/cascade_slave.h"
+#include "target/common/remote_runtime.h"
+#include "target/compiler.h"
+#include "target/core/de10/de10_compiler.h"
+#include "target/core/proxy/proxy_compiler.h"
+#include "target/core/sw/sw_compiler.h"
 
-#include <iostream>
-#include "ui/view.h"
+using namespace std;
 
 namespace cascade {
 
-class LogView : public View {
-  public:
-    explicit LogView(std::ostream& os);
-    ~LogView() override = default;
+CascadeSlave::CascadeSlave() {
+  remote_runtime_ = new RemoteRuntime();
+  set_listeners("./cascade_sock", 8800);
+  set_quartus_server("localhost", 9900);
+}
 
-    void startup(size_t t) override;
-    void shutdown(size_t t) override;
+CascadeSlave::~CascadeSlave() {
+  stop_now();
+  delete remote_runtime_;
+}
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
+  remote_runtime_->set_path(path);
+  remote_runtime_->set_port(port);
+  return *this;
+}
 
-    void parse(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
+CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
+  auto* dc = new De10Compiler();
+    dc->set_host(host);
+    dc->set_port(port);
+  auto* pc = new ProxyCompiler();
+  auto* sc = new SwCompiler();
+  auto* c = new Compiler();
+    c->set_de10_compiler(dc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+  remote_runtime_->set_compiler(c);
+  return *this;
+}
 
-  private:
-    std::ostream& os_;
-};
+CascadeSlave& CascadeSlave::run() {
+  remote_runtime_->run();
+  return *this;
+}
+
+CascadeSlave& CascadeSlave::request_stop() {
+  remote_runtime_->request_stop();
+  return *this;
+}
+
+CascadeSlave& CascadeSlave::wait_for_stop() {
+  remote_runtime_->wait_for_stop();
+  return *this;
+}
+
+CascadeSlave& CascadeSlave::stop_now() {
+  remote_runtime_->stop_now();
+  return *this;
+}
 
 } // namespace cascade
-
-#endif

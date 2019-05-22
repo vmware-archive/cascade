@@ -28,24 +28,40 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
-#define CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
+#ifndef CASCADE_SRC_CASCADE_CASCADE_SLAVE_H
+#define CASCADE_SRC_CASCADE_CASCADE_SLAVE_H
 
-#include "ui/controller.h"
+#include <string>
 
 namespace cascade {
 
-class Runtime;
+class RemoteRuntime;
 
-class TermController : public Controller {
+class CascadeSlave {
   public:
-    explicit TermController(Runtime* rt);
-    ~TermController() override = default;
+    // Constructors:
+    CascadeSlave();
+    CascadeSlave(const CascadeSlave& rhs) = delete;
+    CascadeSlave(CascadeSlave&& rhs) = delete;
+    CascadeSlave& operator=(const CascadeSlave& rhs) = delete;
+    CascadeSlave& operator=(CascadeSlave&& rhs) = delete;
+    ~CascadeSlave();
 
-  protected:
-    void run_logic() override;
+    // Configuration Methods:
+    CascadeSlave& set_listeners(const std::string& path, size_t port);
+    CascadeSlave& set_quartus_server(const std::string& host, size_t port);
+
+    // Start/Stop Methods:
+    CascadeSlave& run();
+    CascadeSlave& request_stop();
+    CascadeSlave& wait_for_stop();
+    CascadeSlave& stop_now();
+
+  private:
+    RemoteRuntime* remote_runtime_;
 };
 
 } // namespace cascade
 
 #endif
+

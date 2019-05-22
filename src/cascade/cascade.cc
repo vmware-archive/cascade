@@ -28,285 +28,116 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include "cascade.h"
+#include "cascade/cascade.h"
 #include "runtime/runtime.h"
-#include "target/common/remote_runtime.h"
 #include "target/compiler.h"
 #include "target/core/de10/de10_compiler.h"
 #include "target/core/proxy/proxy_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 #include "target/interface/local/local_compiler.h"
-#include "ui/combinator/many_view.h"
-#include "ui/combinator/maybe_view.h"
-#include "ui/log/log_view.h"
-#include "ui/term/term_controller.h"
-#include "ui/term/term_view.h"
 
 using namespace std;
 
 namespace cascade {
 
 Cascade::Cascade() {
-  view_ = nullptr;
-  runtime_ = nullptr;
-  controller_ = nullptr;
-  remote_runtime_ = nullptr;
-  logfile_ = nullptr;
-  profiler_ = nullptr;
-
-  set_include_path(".");
-
-  term_ui_ = false;
-  user_view_ = nullptr;
-  log_ = false;
-
-  enable_profile(0);
-  enable_info(false);
-  enable_warning(true);
-  enable_error(true);
-
-  enable_inlining(true);
+  runtime_ = new Runtime();
+  set_enable_inlining(true);
   set_open_loop_target(1);
-
-  set_quartus_host("localhost");
-  set_quartus_port(9900);
-
-  set_slave_mode(false);
-  set_slave_port(8800);
-  set_slave_path("./cascade_sock");
+  set_quartus_server("localhost", 9900);
 }
 
 Cascade::~Cascade() {
   stop_now();
+  delete runtime_;
 }
 
-Cascade& Cascade::set_include_path(const string& path) {
-  include_path_ = path;
+Cascade& Cascade::set_include_dirs(const string& path) {
+  runtime_->set_include_dirs(path);
   return *this;
 }
 
-Cascade& Cascade::attach_term_ui() {
-  term_ui_ = true;
-  if (user_view_ != nullptr) {
-    delete user_view_;
-    user_view_ = nullptr;
-  }
-  return *this;
-}
-
-Cascade& Cascade::attach_view(View* v) {
-  term_ui_ = false;
-  if (user_view_ != nullptr) {
-    delete user_view_;
-  }
-  user_view_ = v;
-  return *this;
-}
-
-Cascade& Cascade::attach_logfile() {
-  log_ = true;
-  return *this;
-}
-
-Cascade& Cascade::enable_profile(size_t n) {
-  enable_profile_ = n;
-  return *this;
-}
-
-Cascade& Cascade::enable_info(bool enable) {
-  enable_info_ = enable;
-  return *this;
-}
-
-Cascade& Cascade::enable_warning(bool enable) {
-  enable_warning_ = enable;
-  return *this;
-}
-
-Cascade& Cascade::enable_error(bool enable) {
-  enable_error_ = enable;
-  return *this;
-}
-
-Cascade& Cascade::enable_inlining(bool enable) {
-  enable_inlining_ = enable;
+Cascade& Cascade::set_enable_inlining(bool enable) {
+  runtime_->disable_inlining(!enable);
   return *this;
 }
 
 Cascade& Cascade::set_open_loop_target(size_t n) {
-  open_loop_target_ = n;
+  runtime_->set_open_loop_target(n);
   return *this;
 }
 
-Cascade& Cascade::set_quartus_host(const string& host) {
-  quartus_host_ = host;
+Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
+  auto* dc = new De10Compiler();
+    dc->set_host(host);
+    dc->set_port(port);
+  auto* lc = new LocalCompiler();
+    lc->set_runtime(runtime_);
+  auto* pc = new ProxyCompiler();
+  auto* sc = new SwCompiler();
+//    sc->set_include_dirs(include_path_);
+// TODO(eschkufz) fix this!!!
+  auto* c = new Compiler();
+    c->set_de10_compiler(dc);
+    c->set_local_compiler(lc);
+    c->set_proxy_compiler(pc);
+    c->set_sw_compiler(sc);
+  runtime_->set_compiler(c);
   return *this;
 }
 
-Cascade& Cascade::set_quartus_port(size_t port) {
-  quartus_port_ = port;
+Cascade& Cascade::set_stdin(streambuf* sb) {
+  delete runtime_->rdbuf(0, sb);
   return *this;
 }
 
-Cascade& Cascade::set_slave_mode(bool slave) {
-  slave_ = slave;
+Cascade& Cascade::set_stdout(streambuf* sb) {
+  delete runtime_->rdbuf(1, sb);
   return *this;
 }
 
-Cascade& Cascade::set_slave_port(size_t port) {
-  slave_port_ = port;
+Cascade& Cascade::set_stderr(streambuf* sb) {
+  delete runtime_->rdbuf(2, sb);
   return *this;
 }
 
-Cascade& Cascade::set_slave_path(const string& path) {
-  slave_path_ = path;
+Cascade& Cascade::set_stdwarn(streambuf* sb) {
+  delete runtime_->rdbuf(3, sb);
+  return *this;
+}
+
+Cascade& Cascade::set_stdinfo(streambuf* sb) {
+  delete runtime_->rdbuf(4, sb);
+  return *this;
+}
+
+Cascade& Cascade::set_stdlog(streambuf* sb) {
+  delete runtime_->rdbuf(5, sb);
   return *this;
 }
 
 Cascade& Cascade::run() {
-  // Setup Compiler State
-  auto* dc = new De10Compiler();
-    dc->set_host(quartus_host_);
-    dc->set_port(quartus_port_);
-  auto* pc = new ProxyCompiler();
-  auto* sc = new SwCompiler();
-    sc->set_include_dirs(include_path_);
-  auto* c = new Compiler();
-    c->set_de10_compiler(dc);
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-
-  // Setup Global MVC State if running in Master-Mode
-  if (!slave_) {
-    view_ = new ManyView();
-    runtime_ = new Runtime(view_);
-    if (term_ui_) {
-      view_->attach(new TermView());
-      controller_ = new TermController(runtime_);
-    }
-    if (log_) {
-      logfile_ = new ofstream("cascade.log", ofstream::app);
-      view_->attach(new LogView(*logfile_));
-    }
-    if (user_view_ != nullptr) {
-      view_->attach(user_view_);
-    }
-    auto* lc = new LocalCompiler();
-      lc->set_runtime(runtime_);
-      c->set_local_compiler(lc);
-  }
-  // Otherwise setup slave state
-  else {
-    remote_runtime_ = new RemoteRuntime();
-  }
-
-  // Master mode execution path
-  if (!slave_) {
-    // Start the runtime
-    runtime_->set_compiler(c);
-      runtime_->set_include_dirs(include_path_);
-      runtime_->set_open_loop_target(open_loop_target_);
-      runtime_->disable_inlining(!enable_inlining_);
-      runtime_->enable_info(enable_info_);
-      runtime_->disable_warning(!enable_warning_);
-      runtime_->disable_error(!enable_error_);
-    runtime_->run();
-
-    if (controller_ != nullptr) {
-      controller_->run();
-    }
-    if (enable_profile_ > 0) {
-      profiler_ = new Profiler(runtime_, enable_profile_);
-      profiler_->run();
-    }
-  }
-  // Slave mode execution path
-  else {
-    remote_runtime_->set_compiler(c);
-    remote_runtime_->set_path(slave_path_);
-    remote_runtime_->set_port(slave_port_);
-    remote_runtime_->run();
-  }
-
+  runtime_->run();
   return *this;
 }
 
 Cascade& Cascade::request_stop() {
-  if (runtime_ != nullptr) {
-    runtime_->request_stop();
-  } else if (remote_runtime_ != nullptr) {
-    remote_runtime_->request_stop();
-  }
+  runtime_->request_stop();
   return *this;
 }
 
 Cascade& Cascade::wait_for_stop() {
-  if (runtime_ != nullptr) {
-    runtime_->wait_for_stop();
-    delete runtime_;
-    if (controller_ != nullptr) {
-      controller_->stop_now();
-      delete controller_;
-    }
-    if (profiler_ != nullptr) {
-      profiler_->stop_now();
-      delete profiler_;
-    }
-    if (view_ != nullptr) {
-      delete view_;
-    }
-    if (logfile_ != nullptr) {
-      delete logfile_;
-    }
-    view_ = nullptr;
-    runtime_ = nullptr;
-    controller_ = nullptr;
-    remote_runtime_ = nullptr;
-    logfile_ = nullptr;
-    profiler_ = nullptr;
-  } else if (remote_runtime_ != nullptr) {
-    remote_runtime_->wait_for_stop();
-    delete remote_runtime_;
-    remote_runtime_ = nullptr;
-  }
+  runtime_->wait_for_stop();
   return *this;
 }
 
 Cascade& Cascade::stop_now() {
-  request_stop();
-  wait_for_stop();
+  runtime_->stop_now();
   return *this;
 }
 
 evalstream Cascade::eval() {
   return evalstream(runtime_);
-}
-
-Cascade& Cascade::finish(size_t arg) {
-  runtime_->finish(arg);
-  return *this;
-}
-
-Cascade& Cascade::error(const string& s) {
-  runtime_->error(s);
-  return *this;
-}
-
-Cascade::Profiler::Profiler(Runtime* rt, size_t interval) : Asynchronous() {
-  rt_ = rt;
-  interval_ = interval;
-}
-
-void Cascade::Profiler::run_logic() {
-  while (!stop_requested()) {
-    stringstream ss;
-    ss << "time / freq = " << setw(10) << time(nullptr) << " / " << setw(7) << rt_->current_frequency();
-    rt_->info(ss.str());
-    sleep_for(1000*interval_);        
-  }
 }
 
 } // namespace cascade
