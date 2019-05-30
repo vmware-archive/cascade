@@ -221,7 +221,7 @@ void Cascade::EvalLoop::generic_loop() {
 
   for (auto one_more = true; !cascade_->runtime_.is_finished() && (!stop_requested() || one_more); one_more = !stop_requested()) {
     cascade_->runtime_.eval_all(*cascade_);
-    sleep_for(100);
+    wait_for(100);
   }
 }
 
@@ -252,7 +252,9 @@ void Cascade::halt_eval() {
   // all inputs have been processed.
   else {
     flush();
-    eval_.stop_now();
+    eval_.request_stop();
+    eval_.notify();
+    eval_.wait_for_stop();
   }
 }
 
