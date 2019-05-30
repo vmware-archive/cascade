@@ -51,8 +51,7 @@ static void BM_Parser(benchmark::State& state, string code) {
   for(auto _ : state) {
     ss.clear();
     ss.str(code);
-    p.set_stream(ss);
-    p.parse();
+    p.parse(ss);
   }
 }
 
@@ -106,8 +105,7 @@ static void BM_Code(benchmark::State& state, string code) {
     Cascade c;
     c.set_include_dirs(System::src_root());
     c.run();
-
-    c.eval() << "`include \"data/march/minimal.v\"\n" << code << endl;
+    c << "`include \"data/march/minimal.v\"\n" << code << endl;
     c.wait_for_stop();
   }
 }
@@ -150,8 +148,7 @@ static void BM_CodeArray(benchmark::State& state) {
     Cascade c;
     c.set_include_dirs(System::src_root());
     c.run();
-
-    c.eval() << "`include \"data/march/minimal.v\"\n" << array_code << instantiation_code << endl;
+    c << "`include \"data/march/minimal.v\"\n" << array_code << instantiation_code << endl;
     c.wait_for_stop();
   }
 }

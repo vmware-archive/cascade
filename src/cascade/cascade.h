@@ -31,14 +31,15 @@
 #ifndef CASCADE_SRC_CASCADE_CASCADE_H
 #define CASCADE_SRC_CASCADE_CASCADE_H
 
+#include <iostream>
+#include <sstream>
 #include <string>
-#include "cascade/evalstream.h"
+#include "base/thread/asynchronous.h"
+#include "runtime/runtime.h"
 
 namespace cascade {
 
-class Runtime;
-
-class Cascade {
+class Cascade : public std::iostream {
   public:
     // Constructors:
     Cascade();
@@ -60,17 +61,35 @@ class Cascade {
     Cascade& set_stdinfo(std::streambuf* sb);
     Cascade& set_stdlog(std::streambuf* sb);
 
-    // Start/Stop Methods:
+    // Concurrency Methods:
     Cascade& run();
     Cascade& request_stop();
     Cascade& wait_for_stop();
     Cascade& stop_now();
 
-    // Eval Methods:
-    evalstream eval();
+    // Execution State:
+    bool is_running() const;
+    bool is_finished() const;
 
   private:
-    Runtime* runtime_;
+    class EvalLoop : public Asynchronous {
+      public:
+        EvalLoop(Cascade* cascade);
+        ~EvalLoop() override = default;
+      private:
+        Cascade* cascade_;
+        void run_logic() override;
+        void cin_loop();
+        void generic_loop();
+    };
+
+    Runtime runtime_;
+    EvalLoop eval_;
+    std::stringbuf sb_;
+    bool is_running_;
+
+    bool is_cin() const;
+    void halt_eval();
 };
 
 } // namespace cascade

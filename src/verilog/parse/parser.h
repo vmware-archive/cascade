@@ -58,13 +58,11 @@ class Parser : public Editor {
     //
     // Sets the search path for include directives
     Parser& set_include_dirs(const std::string& s);
-    // Attaches a new stream to the parser and sets the eof flag to false
-    Parser& set_stream(std::istream& is);
 
     // Parser Interface:
     //
     // Parses the next element from the current stream.  Writes errors/warnings to log.
-    void parse();
+    void parse(std::istream& is);
     // Returns true if the last parse ended in an end-of-file
     bool eof() const;
     // Returns the current include nesting depth 
@@ -80,6 +78,7 @@ class Parser : public Editor {
   private:
     friend class yyLexer;
     friend class yyParser;
+    std::streambuf* buf_;
     yyLexer lexer_;
     
     // Configuration State:

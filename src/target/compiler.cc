@@ -268,23 +268,21 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
 
       DeleteInitial().run(md2);
       auto* e_slow = compile(md2);
-      // If compilation came back before the runtime was shutdown, we can swap
-      // it in place of the fast-pass compilation. Otherwise we need to delete
-      // it here.
-      const auto res = rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
+      // If compilation came back before the runtime is shutdown, we can swap
+      // it in place of the fast-pass compilation. Otherwise we delete it.
+      rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
         if ((this_version < version) || (e_slow == nullptr)) {
           rt->info("Aborted " + str);
         } else {
           e->replace_with(e_slow);
           rt->info("Finished " + str);
         }
+      },
+      [e_slow] {
+        if (e_slow != nullptr) {
+          delete e_slow;
+        }
       });
-      // TODO(eschkufz) There's still a logic bug here. If this interrupt
-      // sneaks into the queue on the wrong side of a finish, the interrupt
-      // will never be handled and we'll leak this engine.
-      if (!res && (e_slow != nullptr)) {
-        delete e_slow;
-      }
     }));
   } else {
     delete md2;

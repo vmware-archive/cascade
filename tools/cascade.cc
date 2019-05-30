@@ -88,47 +88,6 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
-class Prompt : public Asynchronous {
-  public:
-    explicit Prompt(Cascade* cascade);
-    ~Prompt() override = default;
-
-  private:
-    Cascade* cascade_;
-    void run_logic() override;
-};
-
-Prompt::Prompt(Cascade* cascade) : Asynchronous() {
-  cascade_ = cascade;
-}
-
-void Prompt::run_logic() {
-  while (!stop_requested()) {
-    cout << ">>> ";
-    cout.flush();
-
-    fd_set read_set;
-    FD_ZERO(&read_set);
-    struct timeval tv = {0, 1000};
-
-    while (!FD_ISSET(STDIN_FILENO, &read_set)) {
-      FD_SET(STDIN_FILENO, &read_set);
-      select(STDIN_FILENO+1, &read_set, nullptr, nullptr, &tv);
-      if (stop_requested()) {
-        return;
-      }
-    }
-
-    while (!stop_requested() && isspace(cin.peek())) {
-      cin.get();
-    }
-
-    string line = "";
-    getline(cin, line);
-    cascade_->eval() << line << endl;
-  }
-}
-
 class termbuf : public std::streambuf {
   public:
     typedef streambuf::char_type char_type;
@@ -169,6 +128,20 @@ termbuf::int_type termbuf::sync() {
   return 0;
 }
 
+Cascade cascade_;
+
+void int_handler(int sig) {
+  (void) sig;
+  ::cascade_.request_stop();
+}
+
+void segv_handler(int sig) {
+  (void) sig;
+  cerr << "\033[31mCASCADE SHUTDOWN UNEXPECTEDLY\033[00m" << endl;
+  cerr << "\033[31mPlease rerun with --enable_log and forward log file to developers\033[00m" << endl;
+  exit(1);
+}
+
 /*
 class Profiler : public Asynchronous {
   public:
@@ -196,21 +169,6 @@ void Profiler::run_logic() {
 }
 */
 
-Cascade* cascade_ = nullptr;
-Prompt* prompt_ = nullptr;
-
-void int_handler(int sig) {
-  (void) sig;
-  ::cascade_->eval() << "initial $fatal(0, \"Caught Ctrl-C.\");" << endl;
-}
-
-void segv_handler(int sig) {
-  (void) sig;
-  cout << "CASCADE SHUTDOWN UNEXPECTEDLY" << endl;
-  cout << "Please rerun with --enable_log and forward log file to developers" << endl;
-  exit(1);
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
@@ -229,44 +187,42 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
-  cascade_ = new Cascade();
-  cascade_->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-  cascade_->set_enable_inlining(!::disable_inlining.value());
-  cascade_->set_open_loop_target(::open_loop_target.value());
-  cascade_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+  ::cascade_.set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  ::cascade_.set_enable_inlining(!::disable_inlining.value());
+  ::cascade_.set_open_loop_target(::open_loop_target.value());
+  ::cascade_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
 
-  cascade_->set_stdout(new termbuf(cout.rdbuf()));
+  ::cascade_.set_stdout(new termbuf(cout.rdbuf()));
   if (!::disable_error.value()) {
-    cascade_->set_stderr(new termbuf(cerr.rdbuf(), "\033[31m"));
+    ::cascade_.set_stderr(new termbuf(cerr.rdbuf(), "\033[31m"));
   }
   if (!::disable_warning.value()) {
-    cascade_->set_stdwarn(new termbuf(cerr.rdbuf(), "\033[33m"));
+    ::cascade_.set_stdwarn(new termbuf(cerr.rdbuf(), "\033[33m"));
   }
   if (::enable_info.value()) {
-    cascade_->set_stdinfo(new termbuf(clog.rdbuf(), "\033[37m"));
+    ::cascade_.set_stdinfo(new termbuf(clog.rdbuf(), "\033[37m"));
   }
   if (::enable_log.value()) {
     auto* fb = new filebuf();
     fb->open("cascade.log", ios_base::app);
-    cascade_->set_stdlog(new termbuf(fb));
+    ::cascade_.set_stdlog(new termbuf(fb));
   }
 
-  cascade_->run();
+  ::cascade_.run();
   if (::input_path.value() != "") {
-    cascade_->eval() << "`include \"data/march/" << ::march.value() << ".v\"\n"
-                     << "`include \"" << ::input_path.value() <<  "\"" << endl;
+    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
+               << "`include \"" << ::input_path.value() <<  "\"" << endl;
   } else {
-    cascade_->eval() << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
+    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
   }
+  ::cascade_.stop_now();
+  ::cascade_.rdbuf(cin.rdbuf());
+  ::cascade_.run();
+  ::cascade_.wait_for_stop();
 
-  prompt_ = new Prompt(cascade_);
-  prompt_->run();
-
-  cascade_->wait_for_stop();
-  prompt_->stop_now();
-
-  delete cascade_;
-  delete prompt_;
+  if (!::cascade_.is_finished()) {
+    cerr << "\033[31mCaught Signal\033[00m" << endl;
+  }
   cout << "Goodbye!" << endl;
 
   return 0;

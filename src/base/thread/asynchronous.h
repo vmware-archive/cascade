@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
 #define CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
 
+#include <cassert>
 #include <chrono>
 #include <thread>
 
@@ -61,6 +62,14 @@ class Asynchronous {
     void run_to_completion();
     // Convenience method; invokves request_stop(), and wait_for_stop().
     void stop_now();
+
+    // The nuclear option. Detaches the underlying thread and invokes its
+    // destructor. No state is released, memory is leaked, fire and brimstone.
+    // Any further interaction with this object is undefined and will almost
+    // certainly have disasterous effect.
+    void terminate();
+    // Returns true is terminate() was called. 
+    bool was_terminated() const;
       
   protected:
     // An arbitrary compute task. This method must halt execution in a
@@ -80,10 +89,12 @@ class Asynchronous {
   private:
     std::thread thread_;
     bool stop_requested_;
+    bool was_terminated_;
 };
 
 inline Asynchronous::Asynchronous() : thread_() {
   stop_requested_ = true;
+  was_terminated_ = false;
 }
 
 inline Asynchronous::~Asynchronous() {
@@ -116,6 +127,19 @@ inline void Asynchronous::run_to_completion() {
 inline void Asynchronous::stop_now() {
   request_stop();
   wait_for_stop();
+}
+
+inline void Asynchronous::terminate() {
+  assert(!was_terminated());
+  if (thread_.get_id() != std::thread::id()) {
+    thread_.detach();
+    thread_.~thread();
+    was_terminated_ = true;
+  }
+}
+
+inline bool Asynchronous::was_terminated() const {
+  return was_terminated_;
 }
 
 inline void Asynchronous::run_logic() {

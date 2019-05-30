@@ -69,6 +69,7 @@ Runtime::Runtime() : Asynchronous() {
   open_loop_target_ = 1;
   disable_inlining_ = false;
 
+  finished_ = false;
   item_evals_ = 0;
 
   schedule_all_ = false;
@@ -118,21 +119,36 @@ Runtime& Runtime::set_open_loop_target(size_t olt) {
   return *this;
 }
 
-Runtime& Runtime::disable_inlining(bool di) {
+Runtime& Runtime::set_disable_inlining(bool di) {
   disable_inlining_ = di;
   return *this;
 }
 
-void Runtime::eval(const string& s) {
-  schedule_interrupt([this, s]{
-    stringstream ss(s);
-    eval_stream(ss, false);
-  });
+bool Runtime::eval(istream& is) {
+  log_->clear();
+  parser_->parse(is);
+
+  if (log_->error()) {
+    log_parse_errors();
+  } else {
+    schedule_blocking_interrupt([this, &is]{
+      eval_nodes(parser_->begin(), parser_->end());
+    });
+  }
+  return parser_->eof();
 }
 
-void Runtime::eval(istream& is, bool is_term) {
-  schedule_interrupt([this, &is, is_term]{
-    eval_stream(is, is_term);
+void Runtime::eval_all(istream& is) {
+  schedule_blocking_interrupt([this, &is]{
+    for (auto eof = false; !eof; eof = parser_->eof()) {
+      log_->clear();
+      parser_->parse(is);
+      if (log_->error()) {
+        log_parse_errors();
+      } else {
+        eval_nodes(parser_->begin(), parser_->end());
+      }
+    }
   });
 }
 
@@ -158,6 +174,7 @@ void Runtime::finish(uint32_t arg) {
         << "Clock Frequency: " << overall_frequency() << endl;
     } 
     request_stop();
+    finished_ = true;
   });
 }
 
@@ -221,7 +238,7 @@ void Runtime::retarget(const string& s) {
     program_ = new Program();
     auto* backup_root = root_;
     root_ = nullptr;
-    eval_stream(ifs, false);
+    eval_stream(ifs);
     assert(!log_->error());
     std::swap(march, program_);
     std::swap(backup_root, root_);
@@ -272,10 +289,51 @@ void Runtime::save(const string& path) {
   });
 }
 
+bool Runtime::is_finished() const {
+  return finished_;
+}
+
 bool Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
-  ints_.push_back(int_);
-  return !stop_requested();
+  if (finished_) {
+    return false;
+  }
+  ints_.push_back([this, int_]{
+    if (!finished_) {
+      int_();
+    }    
+  });
+  return true;
+}
+
+bool Runtime::schedule_interrupt(Interrupt int_, Interrupt alt) {
+  lock_guard<recursive_mutex> lg(int_lock_);
+  if (finished_) {
+    alt();
+    return false;
+  }
+  ints_.push_back([this, int_, alt]{
+    if (!finished_) {
+      int_();
+    } else {
+      alt();  
+    }
+  });
+  return true;
+}
+
+void Runtime::schedule_blocking_interrupt(Interrupt int_) {
+  unique_lock<mutex> lg(block_lock_);
+  if (schedule_interrupt(int_)) {
+    block_cv_.wait(lg);
+  }
+}
+
+void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
+  unique_lock<mutex> lg(block_lock_);
+  if (schedule_interrupt(int_, alt)) {
+    block_cv_.wait(lg);
+  }
 }
 
 void Runtime::write(VId id, const Bits* bits) {
@@ -376,55 +434,42 @@ string Runtime::overall_frequency() const {
 }
 
 void Runtime::run_logic() {
-  //view_->startup(logical_time_);
-  while (!stop_requested()) {
+  if (finished_) {
+    return;
+  }
+  while (!stop_requested() && !finished_) {
     if (enable_open_loop_ && !schedule_all_) {
       open_loop_scheduler();
     } else {
       reference_scheduler();
     }
   }
-  done_simulation();
-  //view_->shutdown(logical_time_);
+  if (finished_) {
+    done_simulation();
+  }
 }
 
-bool Runtime::eval_stream(istream& is, bool is_term) {
-  parser_->set_stream(is);
-
-  auto res = true;
-  while (res) {
+void Runtime::eval_stream(istream& is) {
+  for (auto res = true; res; ) {
     log_->clear();
 
-    parser_->parse();
+    parser_->parse(is);
     const auto text = parser_->get_text();
-    schedule_interrupt([this, text]{
-      //view_->parse(logical_time_, text);
-    });
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (log_->error()) {
-      if (is_term) {
-        is.ignore(numeric_limits<streamsize>::max(), '\n');
-      }
       log_parse_errors();
-      return false;
+      return;
     } 
     // An eof marks end of stream, return the last result, and trigger finish
     // if the eof appeared on the term
     if (parser_->eof()) {
-      if (is_term) {
-        log_ctrl_d();
-      }
-      return res;
+      return;
     }
     // Eval the code we just parsed; if this is the term, only loop for as
     // long as we're inside of an include statement.
     res = eval_nodes(parser_->begin(), parser_->end());
-    if (is_term && (parser_->depth() == 1)) {
-      return res;
-    }
   }
-  return res;
 }
 
 bool Runtime::eval_node(Node* n) {
@@ -450,9 +495,6 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
   if (disable_inlining_) {
     md->get_attrs()->set_or_replace("__no_inline", new String("true"));
   }
-  schedule_interrupt([this, md]{
-    //view_->decl(logical_time_, program_, md);
-  });
   return true;
 }
 
@@ -463,9 +505,6 @@ bool Runtime::eval_item(ModuleItem* mi) {
     log_checker_errors();
     return false;
   }
-  schedule_interrupt([this]{
-    //view_->item(logical_time_, program_, program_->root_elab()->second);
-  });
 
   // If the root has the standard six definitions, we just instantiated it.
   // Otherwise, count this as an item instantiated within the root.
@@ -569,50 +608,37 @@ void Runtime::done_step() {
   }
 }
 
-void Runtime::drain_interrupts() {
-  // Performance Note:
-  // This is an inner loop method, so we shouldn't be grabbing a lock here
-  // unless we absolutely have to. This method is only ever called between
-  // logical time steps, so there's no reason to worry about an engine
-  // scheduling a system task interrupt here. What we do have to worry about
-  // are things like asynchronous jit handoffs.
-  
-  // Fast Path: 
-  // Leave immediately if there are no interrupts scheduled. This isn't thread
-  // safe, but the only asynchronous events we need to consider here are jit
-  // handoffs or evals. Since the only thing we risk is a false negative, and
-  // whether we handle the event now or during next timestep doesn't really
-  // matter, this is fine. 
-  if (ints_.empty()) {
-    return;
-  }
-
-  // Slow Path: 
-  // We have at least one interrupt. System tasks are benign, but what could be
-  // here is an eval event (which will require a code rebuild) or a jit handoff
-  // (which in addition to the eval event, could trigger a fatal compiler
-  // error). Since we're already on the slow path here, schedule a call at the
-  // very end of the interrupt queue to first check whether the compiler is in
-  // a sound state (ie, jit handoff hasn't failed) and then to rebuild the
-  // codebase.
-  lock_guard<recursive_mutex> lg(int_lock_);
-  schedule_interrupt([this]{
-    rebuild();
-  });
-  for (size_t i = 0; i < ints_.size() && !stop_requested(); ++i) {
-    ints_[i]();
-  }
-  ints_.clear();
-}
-
 void Runtime::done_simulation() {
   for (auto* m : logic_) {
     m->engine()->done_simulation();
   }
 }
 
+void Runtime::drain_interrupts() {
+  lock_guard<recursive_mutex> lg(int_lock_);
+
+  // Fast Path: No interrupts
+  if (ints_.empty()) {
+    return;
+  }
+  // Slow Path: 
+  // We have at least one interrupt.  which could be an eval event (which will
+  // require a code rebuild) or a jit handoff.  Schedule a call at the very end
+  // of the interrupt queue to first check whether the compiler is in a sound
+  // state (ie, jit handoff hasn't failed) and then to rebuild the codebase.
+  schedule_interrupt([this]{
+    rebuild();
+  });
+  for (size_t i = 0; i < ints_.size(); ++i) {
+    ints_[i]();
+  }
+  ints_.clear();
+  block_cv_.notify_all();
+}
+
 void Runtime::open_loop_scheduler() {
-  // Record the current time, go open loop, and then record how long we were gone for
+  // Record the current time, go open loop, and then record how long we were
+  // gone for.  
   const size_t then = ::time(nullptr);
   const auto val = clock_->engine()->get_bit(1);
   const auto itrs = inlined_logic_->engine()->open_loop(1, val, open_loop_itrs_);

@@ -37,6 +37,7 @@ using namespace std;
 namespace cascade {
 
 Parser::Parser(Log* log) : Editor() { 
+  buf_ = nullptr;
   include_dirs_ = "";
   log_ = log;
   push("<top>");
@@ -49,13 +50,12 @@ Parser& Parser::set_include_dirs(const string& s) {
   return *this;
 }
 
-Parser& Parser::set_stream(istream& is) {
-  lexer_.switch_streams(&is);
-  eof_ = false;
-  return *this;
-}
-
-void Parser::parse() {
+void Parser::parse(istream& is) {
+  if (is.rdbuf() != buf_) {
+    buf_ = is.rdbuf();
+    lexer_.switch_streams(&is);
+    eof_ = false;
+  }
   yyParser parser(this);
   lexer_.set_debug(false);
   parser.set_debug_level(false);

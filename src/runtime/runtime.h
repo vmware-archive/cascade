@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_RUNTIME_RUNTIME_H
 #define CASCADE_SRC_RUNTIME_RUNTIME_H
 
+#include <condition_variable>
 #include <ctime>
 #include <functional>
 #include <iosfwd>
@@ -66,18 +67,18 @@ class Runtime : public Asynchronous {
     Runtime& set_compiler(Compiler* c);
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
-    Runtime& disable_inlining(bool di);
+    Runtime& set_disable_inlining(bool di);
 
-    // Controller Interface:
-    // 
-    // Invokes eval_stream() on this string in the gap between this and the
-    // next timestep.  Returns immediately. Code which is successfully eval'ed
-    // will begin execution at the beginning of the following timestep.
-    void eval(const std::string& s);
-    // Invokes eval_stream() in the gap between this and the next timestep.
-    // Returns immediately. Code which is successfully eval'ed will begin
-    // execution at the beginning of the following timestep.
-    void eval(std::istream& is, bool is_term);
+    // Eval Interface:
+    //
+    // Evaluates the next element from an input stream after the end of the
+    // current time step. This method blocks until completion and returns true
+    // if the stream has reached the end of file. 
+    bool eval(std::istream& is);
+    // Evaluates elements from an input stream until an end of file is
+    // encountered after the end of the current time step. This method blocks
+    // until completion.
+    void eval_all(std::istream& is);
 
     // System Task Interface:
     //
@@ -102,12 +103,26 @@ class Runtime : public Asynchronous {
     // Saves the current state of the simulation to a file
     void save(const std::string& path);
 
-    // Program-Logic Interface:
+    // Scheduling Interface:
     //
-    // Schedules an interrupt on the interrupt queue. Returns false if the
-    // runtime is no longer active, meaning there is no hope of this interrupt
-    // ever being serviced.
+    // Returns true if the runtime has executed a finish statement.
+    bool is_finished() const;
+    // Schedules an interrupt to run between this and the next time step.
+    // Interrupts which would execute after a call to finish() will fizzle.
+    // This method is non-blocking and returns false if a call to finish() has
+    // already executed, meaning the interrupt is guaranteed to fizzle.  Note
+    // that returning true does not guarantee that it won't.
     bool schedule_interrupt(Interrupt int_);
+    // Identical to the single argument form, but alt is executed instead of
+    // int_ if the call to int_ fizzles.
+    bool schedule_interrupt(Interrupt int_, Interrupt alt);
+    // Identical to the single argument form, but blocks until the interrupt
+    // completes execution or fizzles.
+    void schedule_blocking_interrupt(Interrupt int_);
+    // Identical to the two argument form, but blocks until the interrupt
+    // completes execution or alt is executed in its place.
+    void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
+
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which
@@ -184,9 +199,12 @@ class Runtime : public Asynchronous {
     size_t open_loop_target_;
 
     // Interrupt Queue:
+    bool finished_;
     size_t item_evals_;
     std::vector<Interrupt> ints_;
     std::recursive_mutex int_lock_;
+    std::mutex block_lock_;
+    std::condition_variable block_cv_;
 
     // Generic Scheduling State:
     std::vector<Module*> logic_;
@@ -214,7 +232,7 @@ class Runtime : public Asynchronous {
     //
     // Repeatedly parses and then invokes eval_nodes() on the contents of an
     // istream until either an error occurs or end of file is encountered.
-    bool eval_stream(std::istream& is, bool is_term);
+    void eval_stream(std::istream& is);
     // Invokes eval_node() on each of the elements in an iterator range.
     // Deletes elements in the range which follow a failed eval.
     template <typename InputItr>
@@ -241,10 +259,10 @@ class Runtime : public Asynchronous {
     bool drain_updates();
     // Invokes done_step on every module, completing the logical simulation step
     void done_step();
-    // Drains the interrupt queue
-    void drain_interrupts();
     // Invokes done_simulation on every module, completing the simulation
     void done_simulation();
+    // Drains the interrupt queue
+    void drain_interrupts();
 
     // Runs in open loop until timeout or a system task is triggered
     void open_loop_scheduler();
