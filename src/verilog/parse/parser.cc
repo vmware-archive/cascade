@@ -41,7 +41,6 @@ Parser::Parser(Log* log) : Editor() {
   include_dirs_ = "";
   log_ = log;
   push("<top>");
-  last_parse_ = "";
   nesting_ = 0;
 }
 
@@ -50,7 +49,7 @@ Parser& Parser::set_include_dirs(const string& s) {
   return *this;
 }
 
-void Parser::parse(istream& is) {
+bool Parser::parse(istream& is) {
   if (is.rdbuf() != buf_) {
     buf_ = is.rdbuf();
     lexer_.switch_streams(&is);
@@ -61,7 +60,6 @@ void Parser::parse(istream& is) {
   parser.set_debug_level(false);
 
   res_.clear();
-  last_parse_ = "";
   locs_.clear();
 
   get_loc().step();
@@ -69,14 +67,8 @@ void Parser::parse(istream& is) {
   for (auto* n : res_) {
     n->accept(this);
   }
-}
 
-bool Parser::eof() const {
   return eof_;
-}
-
-size_t Parser::depth() const {
-  return stack_.size();
 }
 
 Parser::const_iterator Parser::begin() const {
@@ -85,10 +77,6 @@ Parser::const_iterator Parser::begin() const {
 
 Parser::const_iterator Parser::end() const {
   return res_.end();
-}
-
-const std::string& Parser::get_text() const {
-  return last_parse_;
 }
 
 pair<string, size_t> Parser::get_loc(const Node* n) const {
@@ -136,6 +124,10 @@ string& Parser::get_path() {
 location& Parser::get_loc() {
   assert(!stack_.empty());
   return stack_.top().second;
+}
+
+size_t Parser::get_depth() const {
+  return stack_.size();
 }
 
 void Parser::set_loc(const Node* n1, const Node* n2) {

@@ -132,7 +132,7 @@ Runtime& Runtime::set_profile_interval(size_t n) {
 
 bool Runtime::eval(istream& is) {
   log_->clear();
-  parser_->parse(is);
+  const auto eof = parser_->parse(is);
 
   if (log_->error()) {
     log_parse_errors();
@@ -141,14 +141,14 @@ bool Runtime::eval(istream& is) {
       eval_nodes(parser_->begin(), parser_->end());
     });
   }
-  return parser_->eof();
+  return eof;
 }
 
 void Runtime::eval_all(istream& is) {
   schedule_blocking_interrupt([this, &is]{
-    for (auto eof = false; !eof; eof = parser_->eof()) {
+    for (auto eof = false; !eof; ) {
       log_->clear();
-      parser_->parse(is);
+      eof = parser_->parse(is);
       if (log_->error()) {
         log_parse_errors();
       } else {
@@ -295,10 +295,6 @@ void Runtime::save(const string& path) {
   });
 }
 
-bool Runtime::is_finished() const {
-  return finished_;
-}
-
 bool Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
   if (finished_) {
@@ -340,6 +336,10 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
   if (schedule_interrupt(int_, alt)) {
     block_cv_.wait(lg);
   }
+}
+
+bool Runtime::is_finished() const {
+  return finished_;
 }
 
 void Runtime::write(VId id, const Bits* bits) {
@@ -463,9 +463,7 @@ void Runtime::run_logic() {
 void Runtime::eval_stream(istream& is) {
   for (auto res = true; res; ) {
     log_->clear();
-
-    parser_->parse(is);
-    const auto text = parser_->get_text();
+    const auto eof = parser_->parse(is);
 
     // Stop eval'ing as soon as we enounter a parse error, and return false.
     if (log_->error()) {
@@ -474,7 +472,7 @@ void Runtime::eval_stream(istream& is) {
     } 
     // An eof marks end of stream, return the last result, and trigger finish
     // if the eof appeared on the term
-    if (parser_->eof()) {
+    if (eof) {
       return;
     }
     // Eval the code we just parsed; if this is the term, only loop for as

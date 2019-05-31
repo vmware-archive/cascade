@@ -32,10 +32,9 @@
 #define CASCADE_SRC_CASCADE_CASCADE_SLAVE_H
 
 #include <string>
+#include "target/common/remote_runtime.h"
 
 namespace cascade {
-
-class RemoteRuntime;
 
 class CascadeSlave {
   public:
@@ -58,7 +57,7 @@ class CascadeSlave {
     CascadeSlave& stop_now();
 
   private:
-    RemoteRuntime* remote_runtime_;
+    RemoteRuntime remote_runtime_;
 };
 
 } // namespace cascade

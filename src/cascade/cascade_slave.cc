@@ -29,7 +29,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cascade/cascade_slave.h"
-#include "target/common/remote_runtime.h"
 #include "target/compiler.h"
 #include "target/core/de10/de10_compiler.h"
 #include "target/core/proxy/proxy_compiler.h"
@@ -40,19 +39,17 @@ using namespace std;
 namespace cascade {
 
 CascadeSlave::CascadeSlave() {
-  remote_runtime_ = new RemoteRuntime();
   set_listeners("./cascade_sock", 8800);
   set_quartus_server("localhost", 9900);
 }
 
 CascadeSlave::~CascadeSlave() {
   stop_now();
-  delete remote_runtime_;
 }
 
 CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
-  remote_runtime_->set_path(path);
-  remote_runtime_->set_port(port);
+  remote_runtime_.set_path(path);
+  remote_runtime_.set_port(port);
   return *this;
 }
 
@@ -66,27 +63,27 @@ CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) 
     c->set_de10_compiler(dc);
     c->set_proxy_compiler(pc);
     c->set_sw_compiler(sc);
-  remote_runtime_->set_compiler(c);
+  remote_runtime_.set_compiler(c);
   return *this;
 }
 
 CascadeSlave& CascadeSlave::run() {
-  remote_runtime_->run();
+  remote_runtime_.run();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::request_stop() {
-  remote_runtime_->request_stop();
+  remote_runtime_.request_stop();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::wait_for_stop() {
-  remote_runtime_->wait_for_stop();
+  remote_runtime_.wait_for_stop();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::stop_now() {
-  remote_runtime_->stop_now();
+  remote_runtime_.stop_now();
   return *this;
 }
 

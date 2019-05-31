@@ -106,8 +106,6 @@ class Runtime : public Asynchronous {
 
     // Scheduling Interface:
     //
-    // Returns true if the runtime has executed a finish statement.
-    bool is_finished() const;
     // Schedules an interrupt to run between this and the next time step.
     // Interrupts which would execute after a call to finish() will fizzle.
     // This method is non-blocking and returns false if a call to finish() has
@@ -123,6 +121,8 @@ class Runtime : public Asynchronous {
     // Identical to the two argument form, but blocks until the interrupt
     // completes execution or alt is executed in its place.
     void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
+    // Returns true if the runtime has executed a finish statement.
+    bool is_finished() const;
 
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
@@ -272,7 +272,7 @@ class Runtime : public Asynchronous {
     // Runs a single iteration of the reference scheduling algoirthm
     void reference_scheduler();
 
-    // Loggin Helpers
+    // Logging Helpers
     //
     // Dumps parse errors to stderr
     void log_parse_errors();
