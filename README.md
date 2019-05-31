@@ -340,10 +340,11 @@ You can now start Cascade's JIT server by typing the following, where the
 ```
 Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
 ```
-DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile 10
+DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile 10 --enable_log
 ```
 Providing the ```--profile``` flag will cause cascade to periodically (every
-10s) print the current time and Cascade's virtual clock frequency. Over time as
+10s) print the current time and Cascade's virtual clock frequency to the log
+(providing the ```---enable_log``` flag dumps this log to a file). Over time as
 the JIT compilation runs to completion, and the program transitions from
 software to hardware, you should see this value transition from O(10 KHz) to
 O(10 MHz). If at any point you modify a program which is mid-compilation, that

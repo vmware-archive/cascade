@@ -59,17 +59,17 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .description("Location of quartus server")
   .initial(9900);
 
-CascadeSlave* slave_ = nullptr;
+CascadeSlave slave_;
 
 void int_handler(int sig) {
   (void) sig;
-  ::slave_->request_stop();
+  ::slave_.request_stop();
 }
 
 void segv_handler(int sig) {
   (void) sig;
-  cout << "CASCADE SLAVE SHUTDOWN UNEXPECTEDLY" << endl;
-  cout << "Please rerun with --enable_log and forward log file to developers" << endl;
+  cerr << "\033[31mCASCADE SLAVE SHUTDOWN UNEXPECTEDLY\033[00m" << endl;
+  cerr << "\033[31mPlease rerun with --enable_log and forward log file to developers\033[00m" << endl;
   exit(1);
 }
 
@@ -91,14 +91,10 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
-  slave_ = new CascadeSlave();
-  slave_->set_listeners(::slave_path.value(), ::slave_port.value());
-  slave_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
-
-  slave_->run();
-  slave_->wait_for_stop();
-
-  delete slave_;
+  slave_.set_listeners(::slave_path.value(), ::slave_port.value());
+  slave_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+  slave_.run();
+  slave_.wait_for_stop();
   cout << "Goodbye!" << endl;
 
   return 0;

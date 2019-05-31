@@ -46,7 +46,7 @@
 #include "target/compiler.h"
 #include "target/engine.h"
 #include "verilog/parse/parser.h"
-#include "verilog/print/debug/debug_printer.h"
+#include "verilog/print/text/text_printer.h"
 #include "verilog/program/inline.h"
 #include "verilog/program/program.h"
 
@@ -121,6 +121,12 @@ Runtime& Runtime::set_open_loop_target(size_t olt) {
 
 Runtime& Runtime::set_disable_inlining(bool di) {
   disable_inlining_ = di;
+  return *this;
+}
+
+Runtime& Runtime::set_profile_interval(size_t n) {
+  profile_interval_ = n;
+  last_check_ = ::time(nullptr);
   return *this;
 }
 
@@ -434,6 +440,9 @@ string Runtime::overall_frequency() const {
 }
 
 void Runtime::run_logic() {
+  if (logical_time_ == 0) {
+    log_event("BEGIN");
+  }
   if (finished_) {
     return;
   }
@@ -443,9 +452,11 @@ void Runtime::run_logic() {
     } else {
       reference_scheduler();
     }
+    log_freq();
   }
   if (finished_) {
     done_simulation();
+    log_event("END");
   }
 }
 
@@ -473,6 +484,7 @@ void Runtime::eval_stream(istream& is) {
 }
 
 bool Runtime::eval_node(Node* n) {
+  log_event("PARSE", n);
   if (n->is(Node::Tag::module_declaration)) {
     auto* md = static_cast<ModuleDeclaration*>(n);
     return eval_decl(md);
@@ -495,6 +507,8 @@ bool Runtime::eval_decl(ModuleDeclaration* md) {
   if (disable_inlining_) {
     md->get_attrs()->set_or_replace("__no_inline", new String("true"));
   }
+
+  log_event("DECL_OK");
   return true;
 }
 
@@ -515,6 +529,8 @@ bool Runtime::eval_item(ModuleItem* mi) {
   } else {
     ++item_evals_;
   }
+
+  log_event("ITEM_OK");
   return true;
 }
 
@@ -726,9 +742,32 @@ void Runtime::log_compiler_errors() {
   finish(0);
 }
 
-void Runtime::log_ctrl_d() {
-  error("User Interrupt:\n  > Caught Ctrl-D.");
-  finish(0);
+void Runtime::log_event(const string& type, Node* n) {
+  stringstream ss;
+  ss << "*** " << type << " @ " << time();
+  if (n != nullptr) {
+    TextPrinter(ss) << "\n" << n;  
+  }
+  auto s = ss.str();
+
+  auto event = [this, s]{
+    ostream(rdbuf(5)) << s << endl;
+  };
+  schedule_interrupt(event, event);
+}
+
+void Runtime::log_freq() {
+  if (profile_interval_ == 0) {
+    return;
+  }
+  if ((::time(nullptr) - last_check_) < profile_interval_) {
+    return;
+  }
+  auto event = [this]{
+    last_check_ = ::time(nullptr);
+    ostream(rdbuf(5)) << "*** PROF @ " << time() << "\n" << current_frequency() << endl;
+  };
+  schedule_interrupt(event, event);
 }
 
 string Runtime::format_freq(uint64_t f) const {

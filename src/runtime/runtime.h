@@ -68,6 +68,7 @@ class Runtime : public Asynchronous {
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& set_disable_inlining(bool di);
+    Runtime& set_profile_interval(size_t n);
 
     // Eval Interface:
     //
@@ -197,6 +198,7 @@ class Runtime : public Asynchronous {
     bool enable_open_loop_;
     size_t open_loop_itrs_;
     size_t open_loop_target_;
+    size_t profile_interval_;
 
     // Interrupt Queue:
     bool finished_;
@@ -218,6 +220,7 @@ class Runtime : public Asynchronous {
     // Time Keeping:
     time_t begin_time_;
     time_t last_time_;
+    time_t last_check_;
     uint64_t last_logical_time_;
     uint64_t logical_time_;
 
@@ -269,18 +272,20 @@ class Runtime : public Asynchronous {
     // Runs a single iteration of the reference scheduling algoirthm
     void reference_scheduler();
 
-    // Logging Helpers
+    // Loggin Helpers
     //
-    // Dumps parse errors to the console
+    // Dumps parse errors to stderr
     void log_parse_errors();
-    // Dumps typechecking warnings to the console
+    // Dumps typechecking warnings to stdwarn
     void log_checker_warns();
-    // Dumps typechecking errors to the console
+    // Dumps typechecking errors to stderr
     void log_checker_errors();
-    // Dumps compilation errors to the console
+    // Dumps compilation errors to stderr
     void log_compiler_errors();
-    // Dumps ctrl-d intercept
-    void log_ctrl_d();
+    // Dumps an event notification to stdlog
+    void log_event(const std::string& type, Node* n = nullptr);
+    // Dumps the current virtual clock frequency to stdlog
+    void log_freq();
 
     // Time Keeping Helpers:
     //

@@ -54,6 +54,7 @@ class Cascade : public std::iostream {
     Cascade& set_enable_inlining(bool enable);
     Cascade& set_open_loop_target(size_t n);
     Cascade& set_quartus_server(const std::string& host, size_t port);
+    Cascade& set_profile_interval(size_t n);
     Cascade& set_stdin(std::streambuf* sb);
     Cascade& set_stdout(std::streambuf* sb);
     Cascade& set_stderr(std::streambuf* sb);

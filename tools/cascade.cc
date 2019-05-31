@@ -33,7 +33,6 @@
 #include <fstream>
 #include <sstream>
 #include "base/system/system.h"
-#include "base/thread/asynchronous.h"
 #include "cascade/cascade.h"
 #include "cl/cl.h"
 
@@ -69,7 +68,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 __attribute__((unused)) auto& g3 = Group::create("Logging Options");
 auto& profile = StrArg<int>::create("--profile")
   .usage("<n>")
-  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_info")
+  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_log")
   .initial(0);
 auto& enable_info = FlagArg::create("--enable_info")
   .description("Turn on info messages");
@@ -128,6 +127,41 @@ termbuf::int_type termbuf::sync() {
   return 0;
 }
 
+class logbuf : public std::streambuf {
+  public:
+    typedef streambuf::char_type char_type;
+    typedef streambuf::traits_type traits_type;
+    typedef streambuf::int_type int_type;
+    typedef streambuf::pos_type pos_type;
+    typedef streambuf::off_type off_type;
+
+    logbuf(bool verbose);
+    ~logbuf() override = default;
+
+  private:
+    filebuf fb_;
+
+    int_type overflow(int_type c = traits_type::eof()) override;
+    int_type sync() override;
+};
+
+logbuf::logbuf(bool verbose) : streambuf() {
+  if (verbose) {
+    fb_.open("cascade.log", ios::app);
+  }
+}
+
+logbuf::int_type logbuf::overflow(int_type c) {
+  fb_.sputc(c);
+  return c;
+}
+
+logbuf::int_type logbuf::sync() {
+  fb_.pubsync();
+  cout << ">>> ";
+  return 0;
+}
+
 Cascade cascade_;
 
 void int_handler(int sig) {
@@ -142,40 +176,12 @@ void segv_handler(int sig) {
   exit(1);
 }
 
-/*
-class Profiler : public Asynchronous {
-  public:
-    explicit Profiler(Runtime* rt, size_t interval);
-    ~Profiler() = default;
-
-  private:
-    void run_logic() override;
-    Runtime* rt_;
-    size_t interval_;
-};
-
-Profiler::Profiler(Runtime* rt, size_t interval) : Asynchronous() {
-  rt_ = rt;
-  interval_ = interval;
-}
-
-void Profiler::run_logic() {
-  while (!stop_requested()) {
-    stringstream ss;
-    ss << "time / freq = " << setw(10) << time(nullptr) << " / " << setw(7) << rt_->current_frequency();
-    rt_->info(ss.str());
-    sleep_for(1000*interval_);        
-  }
-}
-*/
-
 } // namespace
 
 int main(int argc, char** argv) {
   // Parse command line
   Simple::read(argc, argv);
 
-  // Attach signal handlers
   { struct sigaction action;
     memset(&action, 0, sizeof(action));
     action.sa_handler = ::segv_handler;
@@ -191,6 +197,7 @@ int main(int argc, char** argv) {
   ::cascade_.set_enable_inlining(!::disable_inlining.value());
   ::cascade_.set_open_loop_target(::open_loop_target.value());
   ::cascade_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+  ::cascade_.set_profile_interval(::profile.value());
 
   ::cascade_.set_stdout(new termbuf(cout.rdbuf()));
   if (!::disable_error.value()) {
@@ -202,11 +209,7 @@ int main(int argc, char** argv) {
   if (::enable_info.value()) {
     ::cascade_.set_stdinfo(new termbuf(clog.rdbuf(), "\033[37m"));
   }
-  if (::enable_log.value()) {
-    auto* fb = new filebuf();
-    fb->open("cascade.log", ios_base::app);
-    ::cascade_.set_stdlog(new termbuf(fb));
-  }
+  ::cascade_.set_stdlog(new logbuf(::enable_log.value()));
 
   ::cascade_.run();
   if (::input_path.value() != "") {

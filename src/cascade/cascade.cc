@@ -91,6 +91,12 @@ Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
   return *this;
 }
 
+Cascade& Cascade::set_profile_interval(size_t n) {
+  assert(!is_running_);
+  runtime_.set_profile_interval(n);
+  return *this;
+}
+
 Cascade& Cascade::set_stdin(streambuf* sb) {
   assert(!is_running_);
   delete runtime_.rdbuf(0, sb);
