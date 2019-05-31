@@ -201,16 +201,21 @@ void Cascade::EvalLoop::cin_loop() {
   // indefinitely until either the runtime shuts down through a call to
   // finish(), cin closed via ctrl-d, or the eval thread is terminated via a
   // call to request_stop().
-  auto eof = false;
-  while (!eof && !cascade_->runtime_.is_finished()) {
-    eof = cascade_->runtime_.eval(*cascade_);
+  while (!cascade_->eof() && !cascade_->runtime_.is_finished()) {
+    const auto res = cascade_->runtime_.eval(*cascade_);
+    if (res.first) {
+      cascade_->setstate(ios::eofbit);
+    }
+    if (res.second) {
+      cascade_->setstate(ios::badbit);
+    }
   }
 
   // If control reaches here via eof, the runtime may still be running, and a
   // call to wait_for_stop will hang forever. Submit a stop_request so that
   // calls to wait_for_stop() will return, and set Cascade's failbit. It will
   // never accept input again.
-  if (eof) { 
+  if (cascade_->eof()) { 
     cascade_->runtime_.request_stop();
     cascade_->setstate(ios::failbit);
   }
@@ -225,9 +230,17 @@ void Cascade::EvalLoop::generic_loop() {
   // when a stop is requested guarantees we don't miss any inputs due to a race
   // condition on the check against stop_requested().
 
-  for (auto one_more = true; !cascade_->runtime_.is_finished() && (!stop_requested() || one_more); one_more = !stop_requested()) {
-    cascade_->runtime_.eval_all(*cascade_);
-    wait_for(100);
+  for (auto one_more = true; !cascade_->runtime_.is_finished() && !cascade_->bad() && (!stop_requested() || one_more); one_more = !stop_requested()) {
+    const auto res = cascade_->runtime_.eval_all(*cascade_);
+    if (res.first) {
+      cascade_->setstate(ios::eofbit);
+    }
+    if (res.second) {
+      cascade_->setstate(ios::badbit);
+    }
+    if (!stop_requested()) {
+      wait_for(100);
+    }
   }
 }
 

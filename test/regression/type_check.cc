@@ -37,8 +37,8 @@ TEST(type_check, pass_array_1) {
   run_typecheck("minimal", "data/test/regression/type_check/pass/array_1.v", false);
 }
 TEST(type_check, pass_array_2) {
-// TODO: UNCOMMENT THIS WHEN WE ACTIVATE SUPPORT FOR INSTANTIATION ARRAYS
-//  run_typecheck("minimal", "data/test/regression/type_check/pass/array_2.v", false);
+  // TODO(eschkufz) Uncomment this when we activate support for instantiation arrays
+  // run_typecheck("minimal", "data/test/regression/type_check/pass/array_2.v", false);
 }
 TEST(type_check, pass_array_3) {
   run_typecheck("minimal", "data/test/regression/type_check/pass/array_3.v", false);

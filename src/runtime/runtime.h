@@ -72,14 +72,13 @@ class Runtime : public Asynchronous {
 
     // Eval Interface:
     //
-    // Evaluates the next element from an input stream after the end of the
-    // current time step. This method blocks until completion and returns true
-    // if the stream has reached the end of file. 
-    bool eval(std::istream& is);
-    // Evaluates elements from an input stream until an end of file is
-    // encountered after the end of the current time step. This method blocks
-    // until completion.
-    void eval_all(std::istream& is);
+    // Evaluates the next element from an input stream at the end of the
+    // current time step. Blocks until completion. Returns a pair indicating
+    // whether the end-of-file was reached and whether an error occurred.
+    std::pair<bool, bool> eval(std::istream& is);
+    // Identical to eval(), but loops until either an end-of-file was reached
+    // or an error occurs.
+    std::pair<bool, bool> eval_all(std::istream& is);
 
     // System Task Interface:
     //

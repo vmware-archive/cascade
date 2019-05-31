@@ -130,32 +130,37 @@ Runtime& Runtime::set_profile_interval(size_t n) {
   return *this;
 }
 
-bool Runtime::eval(istream& is) {
+pair<bool, bool> Runtime::eval(istream& is) {
   log_->clear();
   const auto eof = parser_->parse(is);
+  auto err = log_->error();
 
-  if (log_->error()) {
+  if (err) {
     log_parse_errors();
   } else {
-    schedule_blocking_interrupt([this, &is]{
-      eval_nodes(parser_->begin(), parser_->end());
+    schedule_blocking_interrupt([this, &is, &err]{
+      err = !eval_nodes(parser_->begin(), parser_->end());
     });
   }
-  return eof;
+  return make_pair(eof, err);
 }
 
-void Runtime::eval_all(istream& is) {
-  schedule_blocking_interrupt([this, &is]{
-    for (auto eof = false; !eof; ) {
+pair<bool, bool> Runtime::eval_all(istream& is) {
+  auto eof = false;
+  auto err = false;
+  schedule_blocking_interrupt([this, &is, &eof, &err]{
+    while (!eof && !err) {
       log_->clear();
       eof = parser_->parse(is);
-      if (log_->error()) {
+      err = log_->error();
+      if (err) {
         log_parse_errors();
       } else {
-        eval_nodes(parser_->begin(), parser_->end());
+        err = !eval_nodes(parser_->begin(), parser_->end());
       }
     }
   });
+  return make_pair(eof, err);
 }
 
 void Runtime::display(const string& s) {

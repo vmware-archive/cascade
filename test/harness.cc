@@ -65,21 +65,15 @@ void run_parse(const string& path, bool expected) {
 }
 
 void run_typecheck(const string& march, const string& path, bool expected) {
-  auto* sb = new stringbuf();
-
   Cascade c;
   c.set_include_dirs(System::src_root());
-  c.set_stderr(sb);
   c.run();
 
   c << "`include \"data/march/" << march << ".v\"\n" 
     << "`include \"" << path << "\"" << endl;
-  if (expected) {
-    c << "initial $finish;" << endl;
-  }
 
-  c.wait_for_stop();
-  EXPECT_EQ((sb->str() != ""), expected);
+  c.stop_now();
+  EXPECT_EQ(c.bad(), expected);
 }
 
 void run_code(const string& march, const string& path, const string& expected) {
@@ -93,6 +87,10 @@ void run_code(const string& march, const string& path, const string& expected) {
   c << "`include \"data/march/" << march << ".v\"\n"
     << "`include \"" << path << "\"" << endl;
 
+  c.stop_now();
+  ASSERT_FALSE(c.bad());
+
+  c.run();
   c.wait_for_stop();
   EXPECT_EQ(sb->str(), expected);
 }
@@ -108,6 +106,9 @@ void run_benchmark(const string& path, const string& expected) {
 
   c << "`include \"data/march/" << ::march.value() << ".v\"\n" 
     << "`include \"" << path << "\"" << endl;
+
+  c.stop_now();
+  ASSERT_FALSE(c.bad());
 
   c.wait_for_stop();
   EXPECT_EQ(sb->str(), expected);
