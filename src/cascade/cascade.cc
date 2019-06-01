@@ -80,8 +80,9 @@ Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
     lc->set_runtime(&runtime_);
   auto* pc = new ProxyCompiler();
   auto* sc = new SwCompiler();
-//    sc->set_include_dirs(include_path_);
-// TODO(eschkufz) fix this!!!
+  // TODO(eschkufz) Fix this... we shouldn't need to remember this or
+  // reset every compiler just because we have a new quartus server
+  // sc->set_include_dirs(include_path_);
   auto* c = new Compiler();
     c->set_de10_compiler(dc);
     c->set_local_compiler(lc);
