@@ -55,7 +55,7 @@ IF_TEXT     ([^`]*)
 {SPACE}+    parser->get_loc().columns(yyleng); parser->get_loc().step();
 {NEWLINE}   parser->get_loc().lines(1); parser->get_loc().step();
 
-"`include"{SPACE}+{QUOTED_STR} {
+"`include"{SPACE}+{QUOTED_STR}{SPACE}*{NEWLINE}? {
   std::string s(yytext);
   const auto begin = s.find_first_of('"');
   const auto end = s.find_last_of('"');
@@ -384,7 +384,7 @@ IF_TEXT     ([^`]*)
 "+"       return yyParser::make_PLUS(parser->get_loc());
 "#"       return yyParser::make_POUND(parser->get_loc());
 "?"       return yyParser::make_QMARK(parser->get_loc());
-";"       return yyParser::make_SCOLON(parser->get_loc());
+";"{SPACE}*{NEWLINE}? return yyParser::make_SCOLON(parser->get_loc());
 "(*)"     return yyParser::make_STAR(parser->get_loc());
 "~&"      return yyParser::make_TAMP(parser->get_loc());
 "~^"      return yyParser::make_TCARAT(parser->get_loc());
@@ -403,10 +403,10 @@ IF_TEXT     ([^`]*)
 "default"     return yyParser::make_DEFAULT(parser->get_loc());
 "disable"     return yyParser::make_DISABLE(parser->get_loc());
 "else"        return yyParser::make_ELSE(parser->get_loc());
-"end"         return yyParser::make_END(parser->get_loc());
+"end"{SPACE}*{NEWLINE}? return yyParser::make_END(parser->get_loc());
 "endcase"     return yyParser::make_ENDCASE(parser->get_loc());
 "endgenerate" return yyParser::make_ENDGENERATE(parser->get_loc());
-"endmodule"   return yyParser::make_ENDMODULE(parser->get_loc());
+"endmodule"{SPACE}*{NEWLINE}? return yyParser::make_ENDMODULE(parser->get_loc());
 "for"         return yyParser::make_FOR(parser->get_loc());
 "fork"        return yyParser::make_FORK(parser->get_loc());
 "forever"     return yyParser::make_FOREVER(parser->get_loc());
@@ -417,7 +417,7 @@ IF_TEXT     ([^`]*)
 "inout"       return yyParser::make_INOUT(parser->get_loc());
 "input"       return yyParser::make_INPUT(parser->get_loc());
 "integer"     return yyParser::make_INTEGER(parser->get_loc());
-"join"        return yyParser::make_JOIN(parser->get_loc());
+"join"{SPACE}*{NEWLINE}? return yyParser::make_JOIN(parser->get_loc());
 "localparam"  return yyParser::make_LOCALPARAM(parser->get_loc());
 "macromodule" return yyParser::make_MACROMODULE(parser->get_loc());
 "module"      return yyParser::make_MODULE(parser->get_loc());

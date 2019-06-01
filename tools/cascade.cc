@@ -87,80 +87,53 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
-class termbuf : public std::streambuf {
+class inbuf : public streambuf {
   public:
-    typedef streambuf::char_type char_type;
-    typedef streambuf::traits_type traits_type;
-    typedef streambuf::int_type int_type;
-    typedef streambuf::pos_type pos_type;
-    typedef streambuf::off_type off_type;
-
-    termbuf(streambuf* target, const string& color = "");
-    ~termbuf() override = default;
+    inbuf(streambuf* sb) : streambuf() { 
+      sb_ = sb;
+    }
+    ~inbuf() override = default;
 
   private:
-    streambuf* target_;
+    streambuf* sb_;
+    int sync() override {
+      return sb_->pubsync();
+    }
+    int_type uflow() override {
+      const auto res =  sb_->sbumpc();
+      if (res == '\n') {
+        cout << ">>> ";
+        cout.flush();
+      }
+      return res;
+    }
+};
+
+class outbuf : public streambuf {
+  public:
+    outbuf(const string& color = "") : streambuf() {
+      color_ = color;
+    }
+    ~outbuf() override = default;
+
+  private:
     string color_;
     stringstream ss_;
 
-    int_type overflow(int_type c = traits_type::eof()) override;
-    int_type sync() override;
+    int_type overflow(int_type c = traits_type::eof()) override {
+      ss_.put(c);
+      if (c == '\n') {
+        ss_ << ((color_ != "") ? "\033[00m" : "") << ">>> " << color_;
+      }
+      return c;
+    }
+    int_type sync() override {
+      cout << color_ << ss_.str() << ((color_ != "") ? "\033[00m" : "");
+      cout.flush();
+      ss_.str(string());
+      return 0;
+    }
 };
-
-termbuf::termbuf(streambuf* target, const string& color) : streambuf() {
-  target_ = target;
-  color_ = color;
-}
-
-termbuf::int_type termbuf::overflow(int_type c) {
-  ss_.put(c);
-  if (c == '\n') {
-    ss_ << ((color_ != "") ? "\033[00m" : "") << ">>> " << color_;
-  }
-  return c;
-}
-
-termbuf::int_type termbuf::sync() {
-  ostream(target_) << color_ << ss_.str() << ((color_ != "") ? "\033[00m" : "");
-  ostream(target_).flush();
-  ss_.str(string());
-  return 0;
-}
-
-class logbuf : public std::streambuf {
-  public:
-    typedef streambuf::char_type char_type;
-    typedef streambuf::traits_type traits_type;
-    typedef streambuf::int_type int_type;
-    typedef streambuf::pos_type pos_type;
-    typedef streambuf::off_type off_type;
-
-    logbuf(bool verbose);
-    ~logbuf() override = default;
-
-  private:
-    filebuf fb_;
-
-    int_type overflow(int_type c = traits_type::eof()) override;
-    int_type sync() override;
-};
-
-logbuf::logbuf(bool verbose) : streambuf() {
-  if (verbose) {
-    fb_.open("cascade.log", ios::app);
-  }
-}
-
-logbuf::int_type logbuf::overflow(int_type c) {
-  fb_.sputc(c);
-  return c;
-}
-
-logbuf::int_type logbuf::sync() {
-  fb_.pubsync();
-  cout << ">>> ";
-  return 0;
-}
 
 Cascade cascade_;
 
@@ -182,6 +155,11 @@ int main(int argc, char** argv) {
   // Parse command line
   Simple::read(argc, argv);
 
+  // Wrap cin in inbuf (re-prints the prompt when the user types \n)
+  inbuf ib(cin.rdbuf());
+  cin.rdbuf(&ib);
+
+  // Install signal handlers
   { struct sigaction action;
     memset(&action, 0, sizeof(action));
     action.sa_handler = ::segv_handler;
@@ -193,24 +171,33 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
+  // Set command line flags
   ::cascade_.set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
   ::cascade_.set_enable_inlining(!::disable_inlining.value());
   ::cascade_.set_open_loop_target(::open_loop_target.value());
   ::cascade_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
   ::cascade_.set_profile_interval(::profile.value());
 
-  ::cascade_.set_stdout(new termbuf(cout.rdbuf()));
+  // Map standard streams to colored outbufs
+  ::cascade_.set_stdout(new outbuf());
   if (!::disable_error.value()) {
-    ::cascade_.set_stderr(new termbuf(cerr.rdbuf(), "\033[31m"));
+    ::cascade_.set_stderr(new outbuf("\033[31m"));
   }
   if (!::disable_warning.value()) {
-    ::cascade_.set_stdwarn(new termbuf(cerr.rdbuf(), "\033[33m"));
+    ::cascade_.set_stdwarn(new outbuf("\033[33m"));
   }
   if (::enable_info.value()) {
-    ::cascade_.set_stdinfo(new termbuf(clog.rdbuf(), "\033[37m"));
+    ::cascade_.set_stdinfo(new outbuf("\033[37m"));
   }
-  ::cascade_.set_stdlog(new logbuf(::enable_log.value()));
+  auto* fb = new filebuf();
+  if (::enable_log.value()) {
+    fb->open("cascade.log", ios::app);
+  }
+  ::cascade_.set_stdlog(fb);
 
+  // Print the initial prompt, start cascade, and read the march file and -e
+  // file (if provided)
+  cout << ">>> ";
   ::cascade_.run();
   if (::input_path.value() != "") {
     ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
@@ -219,10 +206,13 @@ int main(int argc, char** argv) {
     ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
   }
   ::cascade_.stop_now();
+
+  // Switch to reading from cin
   ::cascade_.rdbuf(cin.rdbuf());
   ::cascade_.run();
   ::cascade_.wait_for_stop();
 
+  // If cascade isn't finished by now, it's because we've caught a signal.
   if (!::cascade_.is_finished()) {
     cerr << "\033[31mCaught Signal\033[00m" << endl;
   }

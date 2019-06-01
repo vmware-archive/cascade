@@ -180,7 +180,7 @@ void Runtime::finish(uint32_t arg) {
   schedule_interrupt([this, arg]{
     if (arg > 0) {
       ostream(rdbuf(stdout_)) 
-        << "Simulation Time: " << time() << "\n"
+        << "Simulation Time: " << logical_time_ << "\n"
         << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << "\n"
         << "Clock Frequency: " << overall_frequency() << endl;
     } 
@@ -421,27 +421,6 @@ int32_t Runtime::sputc(SId id, char c) {
 
 uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
   return rdbuf(id)->sputn(c, n);
-}
-
-uint64_t Runtime::time() const {
-  return logical_time_;
-}
-
-string Runtime::current_frequency() const {
-  const auto now = ::time(nullptr);
-  const auto den = (now == last_time_) ? 1 : (now - last_time_);
-  const auto res = (logical_time_ - last_logical_time_) / 2 / den; 
-
-  *const_cast<time_t*>(&last_time_) = now;
-  *const_cast<uint64_t*>(&last_logical_time_) = logical_time_;
-
-  return format_freq(res);
-}
-
-string Runtime::overall_frequency() const {
-  const auto now = ::time(nullptr);
-  const auto den = (now == begin_time_) ? 1 : (now - begin_time_);
-  return format_freq(logical_time_ / 2 / den); 
 }
 
 void Runtime::run_logic() {
@@ -747,7 +726,7 @@ void Runtime::log_compiler_errors() {
 
 void Runtime::log_event(const string& type, Node* n) {
   stringstream ss;
-  ss << "*** " << type << " @ " << time();
+  ss << "*** " << type << " @ " << logical_time_;
   if (n != nullptr) {
     TextPrinter(ss) << "\n" << n;  
   }
@@ -768,9 +747,26 @@ void Runtime::log_freq() {
   }
   auto event = [this]{
     last_check_ = ::time(nullptr);
-    ostream(rdbuf(5)) << "*** PROF @ " << time() << "\n" << current_frequency() << endl;
+    ostream(rdbuf(5)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
   };
   schedule_interrupt(event, event);
+}
+
+string Runtime::current_frequency() const {
+  const auto now = ::time(nullptr);
+  const auto den = (now == last_time_) ? 1 : (now - last_time_);
+  const auto res = (logical_time_ - last_logical_time_) / 2 / den; 
+
+  *const_cast<time_t*>(&last_time_) = now;
+  *const_cast<uint64_t*>(&last_logical_time_) = logical_time_;
+
+  return format_freq(res);
+}
+
+string Runtime::overall_frequency() const {
+  const auto now = ::time(nullptr);
+  const auto den = (now == begin_time_) ? 1 : (now - begin_time_);
+  return format_freq(logical_time_ / 2 / den); 
 }
 
 string Runtime::format_freq(uint64_t f) const {

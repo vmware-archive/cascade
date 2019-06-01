@@ -161,18 +161,6 @@ class Runtime : public Asynchronous {
     int32_t sputc(SId id, char c);
     uint32_t sputn(SId id, const char* c, uint32_t n);
 
-    // Profiling Interface:
-    //
-    // Returns the logical simulation time. This method is thread-safe and can
-    // be invoked at any time.
-    uint64_t time() const;
-    // Returns the current rate at which the runtime executes the simulation loop.
-    // This method is thread-safe and can be invoked at any time.
-    std::string current_frequency() const;
-    // Returns the overall rate at which the runtime executed the simulation loop.
-    // This method is thread-safe and can be invoked at any time.
-    std::string overall_frequency() const;
-
   private:
     static constexpr uint32_t stdin_ = 0x8000'0000;
     static constexpr uint32_t stdout_ = 0x8000'0001;
@@ -288,6 +276,10 @@ class Runtime : public Asynchronous {
 
     // Time Keeping Helpers:
     //
+    // Returns the current virtual clock frequency.
+    std::string current_frequency() const;
+    // Returns the overall virtual clock frequency.
+    std::string overall_frequency() const;
     // Prints a frequency in either MHz, KHz, or Hz. No GHz. We wish.
     std::string format_freq(uint64_t f) const;
 };
