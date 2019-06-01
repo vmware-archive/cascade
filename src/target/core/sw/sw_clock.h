@@ -58,6 +58,10 @@ class SwClock : public Clock {
     bool there_are_updates() const override;
     void update() override;
 
+    VId get_id() const;
+    bool get_val() const;
+    void set_val(bool v);
+
   private:
     VId out_;
     bool val_; 
@@ -121,6 +125,18 @@ inline void SwClock::update() {
   there_are_updates_ = false; 
   val_ = !val_;
   interface()->write(out_, val_);
+}
+
+inline VId SwClock::get_id() const {
+  return out_;
+}
+
+inline bool SwClock::get_val() const {
+  return val_;
+}
+
+inline void SwClock::set_val(bool v) {
+  val_ = v;
 }
 
 } // namespace cascade

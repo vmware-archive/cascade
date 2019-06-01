@@ -638,13 +638,14 @@ void Runtime::open_loop_scheduler() {
   // Record the current time, go open loop, and then record how long we were
   // gone for.  
   const size_t then = ::time(nullptr);
-  const auto val = clock_->engine()->get_bit(1);
-  const auto itrs = inlined_logic_->engine()->open_loop(1, val, open_loop_itrs_);
+  const auto id = clock_->engine()->get_clock_id();
+  const auto val = clock_->engine()->get_clock_val();
+  const auto itrs = inlined_logic_->engine()->open_loop(id, val, open_loop_itrs_);
   const size_t now = ::time(nullptr);
 
   // If we ran for an odd number of iterations, flip the clock
   if (itrs % 2) {
-    clock_->engine()->set_bit(1, !val);
+    clock_->engine()->set_clock_val(!val);
   }
   // Drain the interrupt queue and fix up the logical time
   drain_interrupts();
