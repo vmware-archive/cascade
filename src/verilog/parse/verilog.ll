@@ -67,7 +67,7 @@ IF_TEXT     ([^`]*)
     return yyParser::make_UNPARSEABLE(parser->get_loc());
   }
   std::string content((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
-  content += "`__end_include";
+  content += "`__end_include ";
   for (auto i = content.rbegin(), ie = content.rend(); i != ie; ++i) {
     unput(*i);
   }
