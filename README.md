@@ -37,7 +37,7 @@ Index
 1. [Building Cascade](#building-cascade)
 2. [Using Cascade](#using-cascade)
     1. [Command Line Interface](#command-line-interface)
-    2. [Other Interfaces](#other-interfaces)
+    2. [C++ API](#c++-api)
 3. [Environments](#environments)
     1. [Minimal Environment](#minimal-environment)
     2. [Software Backend](#software-backend)
@@ -170,22 +170,108 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 >>> module Foo(); wir... I give up... arg... ^C
 ```
 
-### Other Interfaces
-If you prefer a GUI, Cascade has a frontend which runs in the browser. Note
-however that this interface is work in intermitent progress, and may suffer
-from bit-rot from time to time.
+### C++ API
+
+Cascade can also be called directly from C++ code. Cascade's command line interface
+is nothing more than a thin-wrapper around a small set of functions. A minimal example 
+is shown below. Further dicussion of the concepts in this example appears in subsequent
+sections of this README.
+
+```c++
+#include <cassert>
+#include <iostream>
+#include <sstream>
+#include "path/to/install/dir/cascade.h"
+
+using namespace cascade;
+using namespace std;
+
+int main() {
+    // Create an instance of Cascade.
+    Cascade cascade;
+    
+    // Configuration options. These methods should all be called before
+    // cascade starts running.
+    cascade.set_include_dirs(...);
+    cascade.set_enable_inlining(...);
+    cascade.set_open_loop_target(...);
+    cascade.set_quartus_server(...);
+    cascade.set_profile_interval(...);
+
+    // Cascade exposes its six i/o streams (the standard STDIN, STDOUT, and
+    // STDERR, along with  three additional STDWARN, STDINFO, STDLOG) as
+    // C++ streambufs. These are initially mapped to nullptr. Changes to this
+    // mapping should also be made before cascade starts running.
+    cascade.set_stdin(cin.rdbuf());
+    cascade.set_stdout(cout.rdbuf());
+    cascade.set_stderr(cerr.rdbuf());
+    cascade.set_stdwarn(cerr.rdbuf());
+    cascade.set_stdinfo(clog.rdbuf());
+    cascade.set_stdlog(...);
+    
+    // Start cascade. This method returns immediately.
+    cascade.run();
+    
+    // Cascade will run until the user's program invokes the $finish() task or the 
+    // user requests that it stop running. The request_stop() method returns immediately. 
+    // The wait_for_stop() method will block until either of the above conditions
+    // is satisified.
+    cascade.request_stop();
+    cascade.wait_for_stop();
+    
+    // Stopping cascade only pauses its execution. All previous state is retained.
+    // To continue running, call run() again.
+    cascade.run();
+    
+    // Cascade is a c++ ostream. While it is running, any text provided to it
+    // via the << operator, will be eval'ed. Since every program must begin with an
+    // march file, you can use an include statement to eval one.
+    cascade << "`include \"path/to/march.v\"";
+    
+    // Because cascade runs asynchronously, it has no way of knowing when user input
+    // has ended. The user can force this by using the flush() method, or passing 
+    // cascade a c++ endl. Be careful with using endl to separate multi-line inputs.
+    // This may cause cascade to prematurely evaluate user input. When in doubt, prefer '\n'.
+    cascade.flush(); 
+    cascade << endl;
+    
+    // The results of the eval statements which have taken place since the previous
+    // flush are available through ostream status bits. Cascade is placed in
+    // in the eof state when it encounters an eof character, and in the bad state when
+    // an eval results in a parse or type error. Because cascade runs asynchronously, the 
+    // only way to make sure an eval has run to completion is to request a stop. The standard
+    // mechanism for clearing an ostream's state bits is to use the clear() method.
+    
+    assert(!cascade.bad()); // Not guaranteed to see the result of the previous eval.
+    cascade.stop_now(); // Syntactic sugar for request_stop(); wait_for_stop();
+    assert(!cascade.bad()); // Both guaranteed to see the result of the previous eval.
+    assert(!cascade.eof()); 
+    cascade.clear(); // Clears eof and bad bits.
+    
+    // While cascade is stopped, it is safe to replace its rdbuf. For example:
+    stringstream ss("wire x; initial $display("Hello, world!"));
+    cascade.rdbuf(ss.rdbuf());
+    cascade.run();
+    
+    // Note however, that most c++ implementations assign non-standard semantics to
+    // cin. It's safe to switch cascade's rdbuf to cin. But once this is done, it is
+    // no longer safe to change it again.
+    cascade.stop_now();
+    cascade.rdbuf(cin.rdbuf());
+    cascade.rdbuf(ss.rdbuf()); // UNDEFINED!
+    cascade.run();
+    
+    // Block until the user's program invokes the $finish() task.
+    cascade.wait_for_stop();
+
+    return 0;
+}
 ```
-*NIX $ ./bin/cascade --ui web
->>> Running server out of /Users/you/Desktop/cascade/bin/../src/ui/web/
->>> Server started on port 11111
+
+To build a program that uses Cascade as a library, statically link against libcascade.
+
 ```
-```
-*NIX $ (firefox|chrome|...) localhost:11111
-```
-If something on your machine is using port 11111, you can request that Cascade
-use a different port using the ```web-ui-port``` flag.
-```
-*NIX $ ./bin/cascade --ui web --web-ui-port 22222
+$ g++ -Lpath/to/install/dir/ my_program.cc -lcascade
 ```
 
 Environments
