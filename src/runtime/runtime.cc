@@ -355,7 +355,7 @@ void Runtime::write(VId id, bool b) {
   dp_->write(id, b);
 }
 
-SId Runtime::fopen(const std::string& path) {
+FId Runtime::fopen(const std::string& path) {
   // Create a file if it doesn't already exist
   ofstream temp(path, ios_base::app);
   temp.close();
@@ -367,59 +367,59 @@ SId Runtime::fopen(const std::string& path) {
   return (streambufs_.size()-1);;
 }
 
-streambuf* Runtime::rdbuf(SId id) const {
-  const auto sid = id & 0x7fff'ffff;
-  assert(sid < streambufs_.size());
-  assert(streambufs_[sid] != nullptr);
+streambuf* Runtime::rdbuf(FId id) const {
+  const auto fid = id & 0x7fff'ffff;
+  assert(fid < streambufs_.size());
+  assert(streambufs_[fid] != nullptr);
 
-  return streambufs_[sid];
+  return streambufs_[fid];
 }
 
-streambuf* Runtime::rdbuf(SId id, streambuf* sb) {
-  const auto sid = id & 0x7fff'ffff;
-  while (sid >= streambufs_.size()) {
+streambuf* Runtime::rdbuf(FId id, streambuf* sb) {
+  const auto fid = id & 0x7fff'ffff;
+  while (fid >= streambufs_.size()) {
     streambufs_.push_back(new nullbuf());
   }
-  auto* res =  streambufs_[sid];
+  auto* res =  streambufs_[fid];
   if (sb != nullptr) {
-    streambufs_[sid] = sb;
+    streambufs_[fid] = sb;
   }
   return res;
 }
 
-int32_t Runtime::in_avail(SId id) {
+int32_t Runtime::in_avail(FId id) {
   return rdbuf(id)->in_avail();
 }
 
-uint32_t Runtime::pubseekoff(SId id, int32_t n, bool r) {
+uint32_t Runtime::pubseekoff(FId id, int32_t n, bool r) {
   return rdbuf(id)->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
 }
 
-uint32_t Runtime::pubseekpos(SId id, int32_t n, bool r) {
+uint32_t Runtime::pubseekpos(FId id, int32_t n, bool r) {
   return rdbuf(id)->pubseekpos(n, r ? ios::in : ios::out);
 }
 
-int32_t Runtime::pubsync(SId id) {
+int32_t Runtime::pubsync(FId id) {
   return rdbuf(id)->pubsync();
 }
 
-int32_t Runtime::sbumpc(SId id) {
+int32_t Runtime::sbumpc(FId id) {
   return rdbuf(id)->sbumpc();
 }
 
-int32_t Runtime::sgetc(SId id) {
+int32_t Runtime::sgetc(FId id) {
   return rdbuf(id)->sgetc();
 }
 
-uint32_t Runtime::sgetn(SId id, char* c, uint32_t n) {
+uint32_t Runtime::sgetn(FId id, char* c, uint32_t n) {
   return rdbuf(id)->sgetn(c, n);
 }
 
-int32_t Runtime::sputc(SId id, char c) {
+int32_t Runtime::sputc(FId id, char c) {
   return rdbuf(id)->sputc(c);
 }
 
-uint32_t Runtime::sputn(SId id, const char* c, uint32_t n) {
+uint32_t Runtime::sputn(FId id, const char* c, uint32_t n) {
   return rdbuf(id)->sputn(c, n);
 }
 

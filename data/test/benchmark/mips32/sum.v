@@ -2,7 +2,7 @@
 
 reg[31:0] imem[63:0];
 
-stream s = $fopen("data/test/benchmark/mips32/sum.hex");
+integer s = $fopen("data/test/benchmark/mips32/sum.hex");
 integer i = 0;
 reg[31:0] val = 0;
 initial begin

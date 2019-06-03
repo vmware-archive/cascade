@@ -35,14 +35,14 @@
 
 namespace cascade {
 
+// Globally unique file identifier
+typedef uint32_t FId;
+
 // Globally unique module identifier
 typedef uint32_t MId;
 
 // Globally unique value identifier
 typedef uint32_t VId;
-
-// Globally unique stream identifier
-typedef uint32_t SId;
 
 // Bottom element for module and value ids
 constexpr VId nullid() {

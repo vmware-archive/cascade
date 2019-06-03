@@ -5,7 +5,7 @@ reg[31:0] ie = 0;
 reg[7:0] char;
 
 integer itr = 1;
-stream s = $fopen("data/test/benchmark/regex/iliad.hex");
+integer s = $fopen("data/test/benchmark/regex/iliad.hex");
 
 always @(posedge clock.val) begin
   $get(s, char);

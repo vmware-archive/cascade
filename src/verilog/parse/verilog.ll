@@ -429,7 +429,6 @@ IF_TEXT     ([^`]*)
 "reg"         return yyParser::make_REG(parser->get_loc());
 "repeat"      return yyParser::make_REPEAT(parser->get_loc());
 "signed"      return yyParser::make_SIGNED(parser->get_loc());
-"stream"      return yyParser::make_STREAM(parser->get_loc());
 "wait"        return yyParser::make_WAIT(parser->get_loc());
 "while"       return yyParser::make_WHILE(parser->get_loc());
 "wire"        return yyParser::make_WIRE(parser->get_loc());

@@ -55,16 +55,16 @@ class LocalInterface : public Interface {
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
 
-    SId fopen(const std::string& path) override;
-    int32_t in_avail(SId id) override;
-    uint32_t pubseekoff(SId id, int32_t n, bool r) override;
-    uint32_t pubseekpos(SId id, int32_t n, bool r) override;
-    int32_t pubsync(SId id) override;
-    int32_t sbumpc(SId id) override;
-    int32_t sgetc(SId id) override;
-    uint32_t sgetn(SId id, char* c, uint32_t n) override;
-    int32_t sputc(SId id, char c) override;
-    uint32_t sputn(SId id, const char* c, uint32_t n) override;
+    FId fopen(const std::string& path) override;
+    int32_t in_avail(FId id) override;
+    uint32_t pubseekoff(FId id, int32_t n, bool r) override;
+    uint32_t pubseekpos(FId id, int32_t n, bool r) override;
+    int32_t pubsync(FId id) override;
+    int32_t sbumpc(FId id) override;
+    int32_t sgetc(FId id) override;
+    uint32_t sgetn(FId id, char* c, uint32_t n) override;
+    int32_t sputc(FId id, char c) override;
+    uint32_t sputn(FId id, const char* c, uint32_t n) override;
 
   private:
     Runtime* rt_;
@@ -118,43 +118,43 @@ inline void LocalInterface::write(VId id, bool b) {
   rt_->write(id, b);
 }
 
-inline SId LocalInterface::fopen(const std::string& path) {
+inline FId LocalInterface::fopen(const std::string& path) {
   return rt_->fopen(path);
 }
 
-inline int32_t LocalInterface::in_avail(SId id) {
+inline int32_t LocalInterface::in_avail(FId id) {
   return rt_->in_avail(id);
 }
 
-inline uint32_t LocalInterface::pubseekoff(SId id, int32_t n, bool r) {
+inline uint32_t LocalInterface::pubseekoff(FId id, int32_t n, bool r) {
   return rt_->pubseekoff(id, n, r);
 }
 
-inline uint32_t LocalInterface::pubseekpos(SId id, int32_t n, bool r) {
+inline uint32_t LocalInterface::pubseekpos(FId id, int32_t n, bool r) {
   return rt_->pubseekpos(id, n, r);
 }
 
-inline int32_t LocalInterface::pubsync(SId id) {
+inline int32_t LocalInterface::pubsync(FId id) {
   return rt_->pubsync(id);
 }
 
-inline int32_t LocalInterface::sbumpc(SId id) {
+inline int32_t LocalInterface::sbumpc(FId id) {
   return rt_->sbumpc(id);
 }
 
-inline int32_t LocalInterface::sgetc(SId id) {
+inline int32_t LocalInterface::sgetc(FId id) {
   return rt_->sgetc(id);
 }
 
-inline uint32_t LocalInterface::sgetn(SId id, char* c, uint32_t n) {
+inline uint32_t LocalInterface::sgetn(FId id, char* c, uint32_t n) {
   return rt_->sgetn(id, c, n);
 }
 
-inline int32_t LocalInterface::sputc(SId id, char c) {
+inline int32_t LocalInterface::sputc(FId id, char c) {
   return rt_->sputc(id, c);
 }
 
-inline uint32_t LocalInterface::sputn(SId id, const char* c, uint32_t n) {
+inline uint32_t LocalInterface::sputn(FId id, const char* c, uint32_t n) {
   return rt_->sputn(id, c, n);
 }
 

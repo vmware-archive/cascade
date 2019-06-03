@@ -143,23 +143,23 @@ class Runtime : public Asynchronous {
     // or closed stream id will result in undefined behavior.
     // 
     // Creates an entry in the stream table by calling new filebuf(path, in|out).
-    SId fopen(const std::string& path);
+    FId fopen(const std::string& path);
     // Returns an entry in the stream table
-    std::streambuf* rdbuf(SId id) const;
+    std::streambuf* rdbuf(FId id) const;
     // Replaces an entry in the stream table and returns its previous value
-    std::streambuf* rdbuf(SId id, std::streambuf* sb);
+    std::streambuf* rdbuf(FId id, std::streambuf* sb);
     // Streambuf operators: The boolean argument to pubseekoff/pos is used to
     // select between read/write (true/false) pointers. pubseekoff assumes
     // std::cur as its locator.
-    int32_t in_avail(SId id);
-    uint32_t pubseekoff(SId id, int32_t n, bool r);
-    uint32_t pubseekpos(SId id, int32_t n, bool r);
-    int32_t pubsync(SId id);
-    int32_t sbumpc(SId id);
-    int32_t sgetc(SId id);
-    uint32_t sgetn(SId id, char* c, uint32_t n);
-    int32_t sputc(SId id, char c);
-    uint32_t sputn(SId id, const char* c, uint32_t n);
+    int32_t in_avail(FId id);
+    uint32_t pubseekoff(FId id, int32_t n, bool r);
+    uint32_t pubseekpos(FId id, int32_t n, bool r);
+    int32_t pubsync(FId id);
+    int32_t sbumpc(FId id);
+    int32_t sgetc(FId id);
+    uint32_t sgetn(FId id, char* c, uint32_t n);
+    int32_t sputc(FId id, char c);
+    uint32_t sputn(FId id, const char* c, uint32_t n);
 
   private:
     static constexpr uint32_t stdin_ = 0x8000'0000;

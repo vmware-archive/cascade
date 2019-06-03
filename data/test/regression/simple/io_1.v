@@ -1,4 +1,4 @@
-stream s = $fopen("data/test/regression/simple/io_1.dat");
+integer s = $fopen("data/test/regression/simple/io_1.dat");
 reg[31:0] r;
 integer count = 1;
 always @(posedge clock.val) begin

@@ -146,7 +146,6 @@ bool is_null(const cascade::Expression* e) {
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
-%token STREAM      "stream"
 %token WAIT        "wait"
 %token WHILE       "while"
 %token WIRE        "wire"
@@ -1840,7 +1839,6 @@ generate_block_id_Q
   ;
 integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }
-  | STREAM { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
   : %empty { }

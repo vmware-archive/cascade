@@ -68,16 +68,16 @@ class Interface {
 
     // These methods must perform whatever target-specific logic is necessary
     // to cause the corresponding API calls to be invoked by the runtime.
-    virtual SId fopen(const std::string& path) = 0;
-    virtual int32_t in_avail(SId id) = 0;
-    virtual uint32_t pubseekoff(SId id, int32_t n, bool r) = 0;
-    virtual uint32_t pubseekpos(SId id, int32_t n, bool r) = 0;
-    virtual int32_t pubsync(SId id) = 0;
-    virtual int32_t sbumpc(SId id) = 0;
-    virtual int32_t sgetc(SId id) = 0;
-    virtual uint32_t sgetn(SId id, char* c, uint32_t n) = 0;
-    virtual int32_t sputc(SId id, char c) = 0;
-    virtual uint32_t sputn(SId id, const char* c, uint32_t n) = 0;
+    virtual FId fopen(const std::string& path) = 0;
+    virtual int32_t in_avail(FId id) = 0;
+    virtual uint32_t pubseekoff(FId id, int32_t n, bool r) = 0;
+    virtual uint32_t pubseekpos(FId id, int32_t n, bool r) = 0;
+    virtual int32_t pubsync(FId id) = 0;
+    virtual int32_t sbumpc(FId id) = 0;
+    virtual int32_t sgetc(FId id) = 0;
+    virtual uint32_t sgetn(FId id, char* c, uint32_t n) = 0;
+    virtual int32_t sputc(FId id, char c) = 0;
+    virtual uint32_t sputn(FId id, const char* c, uint32_t n) = 0;
 
     // Target specific implementations may override this method to perform
     // last-minute cleanup in the compiler that created this interface.

@@ -51,7 +51,7 @@ class interfacebuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
 
     // Constructors:
-    explicit interfacebuf(Interface* interface, SId id);
+    explicit interfacebuf(Interface* interface, FId id);
     ~interfacebuf() override = default; 
 
   private:
@@ -72,12 +72,12 @@ class interfacebuf : public std::streambuf {
 
     // Attributes:
     Interface* interface_;
-    SId id_;
+    FId id_;
 };
 
 class interfacestream : public std::iostream {
   public:
-    explicit interfacestream(Interface* interface, SId id);
+    explicit interfacestream(Interface* interface, FId id);
     ~interfacestream() override = default;
 
   private:
@@ -87,7 +87,7 @@ class interfacestream : public std::iostream {
     std::streambuf* get_buf(Interface* interface);
 };
 
-inline interfacebuf::interfacebuf(Interface* interface, SId id) {
+inline interfacebuf::interfacebuf(Interface* interface, FId id) {
   interface_ = interface;
   id_ = id;
 }
@@ -133,7 +133,7 @@ inline std::streambuf::int_type interfacebuf::overflow(int_type c) {
   return interface_->sputc(id_, c);
 }
 
-inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(get_buf(interface)), buf_(interface, id), cache_(&buf_, 1024) { }
+inline interfacestream::interfacestream(Interface* interface, FId id) : std::iostream(get_buf(interface)), buf_(interface, id), cache_(&buf_, 1024) { }
 
 inline std::streambuf* interfacestream::get_buf(Interface* interface) {
   return (dynamic_cast<RemoteInterface*>(interface) != nullptr) ? static_cast<std::streambuf*>(&cache_) : static_cast<std::streambuf*>(&buf_);
