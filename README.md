@@ -84,11 +84,9 @@ Start Cascade by typing
 ```
 This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed
 here is appended to the source of the (initially empty) top-level (root) module
-and evaluated immediately. Try defining a wire. You'll see the text ```ITEM
-OK``` to indicate that a new module item was added to the root.
+and evaluated immediately. Try defining a wire. 
 ```verilog
 >>> wire x;
-ITEM OK
 ```
 The Verilog specification requires that code inside of ```initial``` blocks is
 executed exactly once when a program begins executing. Because Cascade is a
@@ -97,15 +95,14 @@ dynamic environment, we generalize that specification: code inside of
 Try printing the value of the wire you just defined. 
 ```verilog
 >>> initial $display(x);
-ITEM OK 
 >>> 0
 ```
 Now try printing a variable which hasn't been defined.
 ```verilog
 >>> initial $display(y);
 >>> Typechecker Error:
-  > In final line of user input:
-    Referenece to unresolved identifier: y
+>>>  > In final line of user input:
+>>>    Referenece to unresolved identifier: y
 ```
 Anything you enter into the REPL is lexed, parsed, type-checked, and compiled.
 If any part of this process fails, Cascade will produce an error message and
@@ -115,14 +112,11 @@ undone. Below, ```x``` and ```y``` are declared successfully, but the
 redeclaration of ```x``` produces an error.
 ```verilog
 >>> wire x,y,x;
-ITEM OK
-ITEM OK
 >>> Typechecker Error:
-  > In final line of user input:
-    A variable named x already appears in this scope.
-    Previous declaration appears in previous user input.
+>>>  > In final line of user input:
+>>>    A variable named x already appears in this scope.
+>>>    Previous declaration appears in previous user input.
 >>> initial $display(y);
-ITEM OK
 >>> 0
 ```
 You can declare and instantiate modules from the REPL as well. Note however,
@@ -131,17 +125,13 @@ you may have declared in the root module will not be visible here. It isn't
 until a module is instantiated that it can access program state.
 ```verilog
 >>> module Foo(
-  input wire x,
-  output wire y 
-);
-  assign y = x;
-endmodule
-DECL OK
+>>>   input wire x,
+>>>   output wire y 
+>>> );
+>>>   assign y = x;
+>>> endmodule
 >>> wire q,r;
-ITEM OK
-ITEM OK
 >>> Foo f(q,r);
-ITEM OK
 ```
 If you don't want to type your entire program into the REPL you can use the
 include statement, where ```path/``` is assumed to be relative to your current
@@ -162,7 +152,6 @@ Alternately, you can start Cascade with the ```-e``` flag and the name of a file
 Finally, Cascade will stop running whenever a program invokes the ```$finish``` task.
 ```verilog
 >>> initial $finish;
-ITEM OK
 Goodbye!
 ```
 You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
@@ -298,29 +287,25 @@ every cycle. Try typing the following (and remember that you can type Ctrl-C to
 quit):
 ```verilog
 >>> always @(clock.val) $display(clock.val);
-ITEM OK
-0
-1
-0
-1
-...
+>>> 0
+>>> 1
+>>> 0
+>>> 1
+>>> ...
 ```
 This global clock can be used to implement sequential circuits, such as the
 barrel shifter shown below.
 ```verilog
 >>> module BShift(
-  input wire clk,
-  output reg[7:0] val
-);
-  always @(posedge clk) begin
-    val <= (val == 8'h80) ? 8'h01 : (val << 1);
-  end
-endmodule
-DECL OK
+>>>   input wire clk,
+>>>   output reg[7:0] val
+>>> );
+>>>   always @(posedge clk) begin
+>>>     val <= (val == 8'h80) ? 8'h01 : (val << 1);
+>>>   end
+>>> endmodule
 >>> wire[7:0] x;
-ITEM OK
 >>> BShift bs(clock.val, x);
-ITEM OK
 ```
 Compared to a traditional compiler which assumes a fixed clock rate, Cascade's
 clock is *virtual*: the amount of time between ticks can vary from one cycle to
@@ -370,7 +355,6 @@ Led led();
 Now try writing a simple program that connects the pads to the leds.
 ```verilog
 >>> assign led.val = pad.val;
-ITEM OK
 ```
 Toggling the pads should now change the values of the leds for as long as
 Cascade is running.
