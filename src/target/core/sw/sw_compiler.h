@@ -49,6 +49,7 @@ class SwCompiler : public CoreCompiler {
     SwCompiler();
     ~SwCompiler() override = default;
 
+    // TODO(eschkufz) delete this method once we remove fifos and memories
     SwCompiler& set_include_dirs(const std::string& s);
     SwCompiler& set_led(Bits* b, std::mutex* l);
     SwCompiler& set_pad(Bits* b, std::mutex* l);
