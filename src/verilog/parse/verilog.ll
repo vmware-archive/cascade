@@ -435,7 +435,7 @@ IF_TEXT     ([^`]*)
 "wire"        return yyParser::make_WIRE(parser->get_loc());
 
 "$display"  return yyParser::make_SYS_DISPLAY(parser->get_loc());
-"$eof"      return yyParser::make_SYS_EOF(parser->get_loc());
+"$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
 "$error"    return yyParser::make_SYS_ERROR(parser->get_loc());
 "$fatal"    return yyParser::make_SYS_FATAL(parser->get_loc());
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());

@@ -123,10 +123,10 @@ void Printer::visit(const ConditionalExpression* ce) {
   *this << Color::RED << ")" << Color::RESET;
 }
 
-void Printer::visit(const EofExpression* ee) {
-  *this << Color::YELLOW << "$eof" << Color::RESET;
+void Printer::visit(const FeofExpression* fe) {
+  *this << Color::YELLOW << "$feof" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  ee->accept_arg(this);
+  fe->accept_arg(this);
   *this << Color::RED << ")" << Color::RESET;
 }
 

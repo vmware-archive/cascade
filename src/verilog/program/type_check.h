@@ -92,7 +92,7 @@ class TypeCheck : public Visitor {
 
     // Visitor Interface:
     void visit(const Event* e) override;
-    void visit(const EofExpression* ee) override;
+    void visit(const FeofExpression* fe) override;
     void visit(const Identifier* id) override;
     void visit(const String* s) override;
     void visit(const GenerateBlock* gb) override;

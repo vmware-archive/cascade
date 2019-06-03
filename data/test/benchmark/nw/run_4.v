@@ -36,7 +36,7 @@ always @(posedge clock.val) begin
   rdata <= buffer;
 
   once <= 1;
-  if ($eof(s)) begin
+  if ($feof(s)) begin
     done <= 1;
   end
 

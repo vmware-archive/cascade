@@ -73,12 +73,12 @@ ModuleItem* TextMangle::build(const PortDeclaration* pd) {
   }
 }
 
-Expression* TextMangle::build(const EofExpression* ee) {
+Expression* TextMangle::build(const FeofExpression* fe) {
   // This is a bit confusing: the de10 compiler has created an entry in the
   // variable table for the argument to this expression (like we do with
   // arguments to display statements). Prior to transfering control to the fpga
   // we'll place the result of this eof check into this location in hardware.
-  const auto itr = de_->table_find(ee->get_arg());
+  const auto itr = de_->table_find(fe->get_arg());
   assert(itr != de_->table_end());
   return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
 }

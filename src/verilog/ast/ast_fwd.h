@@ -43,7 +43,7 @@ class Node;
   class Expression;
     class BinaryExpression;
     class ConditionalExpression;
-    class EofExpression;
+    class FeofExpression;
     class FopenExpression;
     class Primary;
       class Concatenation;

@@ -35,12 +35,12 @@ using namespace std;
 namespace cascade {
 
 Evaluate::Evaluate() {
-  eof_ = nullptr;
+  feof_ = nullptr;
   fopen_ = nullptr;
 }
 
-Evaluate& Evaluate::set_eof_handler(EofHandler h) {
-  eof_ = h;
+Evaluate& Evaluate::set_eof_handler(FeofHandler h) {
+  feof_ = h;
   return *this;
 }
 
@@ -331,12 +331,12 @@ void Evaluate::edit(ConditionalExpression* ce) {
   }
 }
 
-void Evaluate::edit(EofExpression* ee) {
+void Evaluate::edit(FeofExpression* fe) {
   // Relies on target-specific logic:
-  if (eof_ != nullptr) {
-    ee->bit_val_[0].set(0, eof_(this, ee));
+  if (feof_ != nullptr) {
+    fe->bit_val_[0].set(0, feof_(this, fe));
   } else {
-    ee->bit_val_[0].set(0, true);
+    fe->bit_val_[0].set(0, true);
   }
 }
 
@@ -512,10 +512,10 @@ void Evaluate::Invalidate::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 }
 
-void Evaluate::Invalidate::edit(EofExpression* ee) {
-  ee->bit_val_.clear();
-  ee->set_flag<0>(true);
-  Editor::edit(ee);
+void Evaluate::Invalidate::edit(FeofExpression* fe) {
+  fe->bit_val_.clear();
+  fe->set_flag<0>(true);
+  Editor::edit(fe);
 }
 
 void Evaluate::Invalidate::edit(FopenExpression* fe) {
@@ -656,12 +656,12 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   ce->bit_val_[0].set_signed(s);
 }
 
-void Evaluate::SelfDetermine::edit(EofExpression* ee) {
-  Editor::edit(ee);
+void Evaluate::SelfDetermine::edit(FeofExpression* fe) {
+  Editor::edit(fe);
 
   // $eof() expressions return 1-bit unsigned flags
-  ee->bit_val_.push_back(Bits(1, 0));
-  ee->bit_val_[0].set_signed(false);
+  fe->bit_val_.push_back(Bits(1, 0));
+  fe->bit_val_[0].set_signed(false);
 }
 
 void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
@@ -955,10 +955,10 @@ void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 }
 
-void Evaluate::ContextDetermine::edit(EofExpression* ee) {
+void Evaluate::ContextDetermine::edit(FeofExpression* fe) {
   // Nothing to do here. Nothing below this point will ever be evaluated by
   // this class.
-  (void) ee;
+  (void) fe;
 }
 
 void Evaluate::ContextDetermine::edit(FopenExpression* fe) {

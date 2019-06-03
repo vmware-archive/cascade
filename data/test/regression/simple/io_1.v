@@ -3,7 +3,7 @@ reg[31:0] r;
 integer count = 1;
 always @(posedge clock.val) begin
   $get(s, r);
-  if ($eof(s)) begin 
+  if ($feof(s)) begin 
     if (count == 2) begin
       $finish; 
     end else begin

@@ -9,7 +9,7 @@ stream s = $fopen("data/test/benchmark/regex/iliad.hex");
 
 always @(posedge clock.val) begin
   $get(s, char);
-  if ($eof(s)) begin
+  if ($feof(s)) begin
     if (itr == 8) begin
       $write(count);
       $finish(0);

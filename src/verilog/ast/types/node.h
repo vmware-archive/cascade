@@ -75,7 +75,7 @@ class Node {
       event                          =  5 | node,
       binary_expression              =  6 | expression,
       conditional_expression         =  7 | expression,
-      eof_expression                 =  8 | expression,
+      feof_expression                =  8 | expression,
       fopen_expression               =  9 | expression,
       concatenation                  = 10 | primary, 
       identifier                     = 11 | primary, 

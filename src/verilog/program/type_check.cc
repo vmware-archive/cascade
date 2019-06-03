@@ -334,12 +334,12 @@ void TypeCheck::visit(const Event* e) {
   }
 }
 
-void TypeCheck::visit(const EofExpression* ee) {
+void TypeCheck::visit(const FeofExpression* fe) {
   // RECURSE: arg
-  ee->accept_arg(this);
+  fe->accept_arg(this);
 
   // EXIT: Can't continue checking if arg can't be resolved
-  const auto* r = Resolve().get_resolution(ee->get_arg());
+  const auto* r = Resolve().get_resolution(fe->get_arg());
   if (r == nullptr) {
     return;
   }
@@ -347,7 +347,7 @@ void TypeCheck::visit(const EofExpression* ee) {
   // CHECK: Arg is a stream variable
   ModuleInfo info(Resolve().get_parent(r));
   if (!info.is_stream(r)) {
-    error("The argument of an $eof() expression must be a stream id", ee);
+    error("The argument of an $feof() expression must be a stream id", fe);
   }
 }
 

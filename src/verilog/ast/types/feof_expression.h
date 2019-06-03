@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_EOF_EXPRESSION_H
-#define CASCADE_SRC_VERILOG_AST_EOF_EXPRESSION_H
+#ifndef CASCADE_SRC_VERILOG_AST_TYPES_FEOF_EXPRESSION_H
+#define CASCADE_SRC_VERILOG_AST_TYPES_FEOF_EXPRESSION_H
 
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/expression.h"
@@ -37,34 +37,34 @@
 
 namespace cascade {
 
-class EofExpression : public Expression {
+class FeofExpression : public Expression {
   public:
     // Constructors:
-    explicit EofExpression(Identifier* arg__);
-    ~EofExpression() override;
+    explicit FeofExpression(Identifier* arg__);
+    ~FeofExpression() override;
 
     // Node Interface:
-    NODE(EofExpression)
-    EofExpression* clone() const override;
+    NODE(FeofExpression)
+    FeofExpression* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(EofExpression, Identifier, arg)
+    PTR_GET_SET(FeofExpression, Identifier, arg)
 
   private:
     PTR_ATTR(Identifier, arg);
 };
 
-inline EofExpression::EofExpression(Identifier* arg__) : Expression(Node::Tag::eof_expression) {
+inline FeofExpression::FeofExpression(Identifier* arg__) : Expression(Node::Tag::feof_expression) {
   PTR_SETUP(arg);
   parent_ = nullptr;
 }
 
-inline EofExpression::~EofExpression() {
+inline FeofExpression::~FeofExpression() {
   PTR_TEARDOWN(arg);
 }
 
-inline EofExpression* EofExpression::clone() const {
-  return new EofExpression(arg_->clone());
+inline FeofExpression* FeofExpression::clone() const {
+  return new FeofExpression(arg_->clone());
 }
 
 } // namespace cascade 

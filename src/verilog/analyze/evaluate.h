@@ -63,7 +63,7 @@ namespace cascade {
 class Evaluate : public Editor {
   public:
     // Typedefs:
-    typedef std::function<bool(Evaluate*, const EofExpression*)> EofHandler;
+    typedef std::function<bool(Evaluate*, const FeofExpression*)> FeofHandler;
     typedef std::function<uint32_t(Evaluate*, const FopenExpression*)> FopenHandler;
 
     // Constructors:
@@ -71,7 +71,7 @@ class Evaluate : public Editor {
     ~Evaluate() override = default;
 
     // Configuration Interface:
-    Evaluate& set_eof_handler(EofHandler h);
+    Evaluate& set_eof_handler(FeofHandler h);
     Evaluate& set_fopen_handler(FopenHandler h);
 
     // Returns the arity of an expression: an empty vector for scalars, one 
@@ -127,13 +127,13 @@ class Evaluate : public Editor {
 
   private:
     // Target-specific handlers:
-    EofHandler eof_;
+    FeofHandler feof_;
     FopenHandler fopen_;
 
     // Editor Interface:
     void edit(BinaryExpression* be) override;
     void edit(ConditionalExpression* ce) override;
-    void edit(EofExpression* ee) override;
+    void edit(FeofExpression* fe) override;
     void edit(FopenExpression* fe) override;
     void edit(Concatenation* c) override;
     void edit(Identifier* id) override;
@@ -156,7 +156,7 @@ class Evaluate : public Editor {
       ~Invalidate() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
@@ -175,7 +175,7 @@ class Evaluate : public Editor {
       ~SelfDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
@@ -197,7 +197,7 @@ class Evaluate : public Editor {
       ~ContextDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;

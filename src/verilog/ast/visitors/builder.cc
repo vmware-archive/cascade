@@ -92,9 +92,9 @@ Expression* Builder::build(const ConditionalExpression* ce) {
   );
 }
 
-Expression* Builder::build(const EofExpression* ee) {
-  return new EofExpression(
-    ee->accept_arg(this)
+Expression* Builder::build(const FeofExpression* fe) {
+  return new FeofExpression(
+    fe->accept_arg(this)
   );
 }
 

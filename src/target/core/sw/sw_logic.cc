@@ -147,9 +147,9 @@ void SwLogic::set_input(const Input* i) {
 
 void SwLogic::finalize() {
   // Attach eof handler
-  eval_.set_eof_handler([this](Evaluate* eval, const EofExpression* ee) {
+  eval_.set_eof_handler([this](Evaluate* eval, const FeofExpression* fe) {
     (void) eval;
-    const auto* r = Resolve().get_resolution(ee->get_arg());
+    const auto* r = Resolve().get_resolution(fe->get_arg());
     const auto itr = streams_.find(r);
     return (itr == streams_.end()) || itr->second->eof();
   });

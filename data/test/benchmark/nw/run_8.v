@@ -35,7 +35,7 @@ integer itr = 1;
 stream s = $fopen("data/test/benchmark/nw/constants_8.hex");
 always @(posedge clock.val) begin
   $get(s, buffer);
-  if ($eof(s)) begin
+  if ($feof(s)) begin
     if (itr == 1024) begin
       done <= 1;
     end else begin

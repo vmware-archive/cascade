@@ -157,7 +157,7 @@ void Nfa::to_verilog(ostream& os) const {
   os << endl;
   os << "always @(posedge clock.val) begin" << endl;
   os << "  $get(s, char);" << endl;
-  os << "  if ($eof(s)) begin" << endl;
+  os << "  if ($feof(s)) begin" << endl;
   os << "    if (itr == 1) begin" << endl;
   os << "      $write(count);" << endl;
   os << "      $finish(0);" << endl;

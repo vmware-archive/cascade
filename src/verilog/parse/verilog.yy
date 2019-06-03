@@ -153,7 +153,7 @@ bool is_null(const cascade::Expression* e) {
 
 /* System Task Identifiers */
 %token SYS_DISPLAY  "$display"
-%token SYS_EOF      "$eof"
+%token SYS_FEOF     "$feof"
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FINISH   "$finish"
@@ -341,7 +341,7 @@ bool is_null(const cascade::Expression* e) {
 
 /* A.8.3 Expressions */
 %type <ConditionalExpression*> conditional_expression
-%type <EofExpression*> eof_expression
+%type <FeofExpression*> feof_expression
 %type <Expression*> expression
 %type <Expression*> mintypmax_expression
 %type <Expression*> range_expression
@@ -1515,9 +1515,9 @@ conditional_expression
     $$ = new ConditionalExpression($1, $3, $5);
   }
   ;
-eof_expression
-  : SYS_EOF OPAREN identifier CPAREN {
-    $$ = new EofExpression($3);
+feof_expression
+  : SYS_FEOF OPAREN identifier CPAREN {
+    $$ = new FeofExpression($3);
     parser->set_loc($$);
   }
 expression
@@ -1600,7 +1600,7 @@ expression
     $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
-  | eof_expression { $$ = $1; }
+  | feof_expression { $$ = $1; }
   ;
 mintypmax_expression
   : expression { $$ = $1; }

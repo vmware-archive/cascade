@@ -534,7 +534,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
       p->is(Node::Tag::warning_statement) ||
       p->is(Node::Tag::write_statement);
     const auto in_pull_task = 
-      p->is(Node::Tag::eof_expression);
+      p->is(Node::Tag::feof_expression);
 
     // If this variable wasn't materialized (meaning it's not in the table)
     // or it's inside of a push task (one that only sends data to the host)

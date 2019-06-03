@@ -161,7 +161,7 @@ class De10Logic : public Logic, public Visitor {
     bool there_were_tasks_;
 
     // Visitor Interface:
-    void visit(const EofExpression* ee) override;
+    void visit(const FeofExpression* fe) override;
     void visit(const DisplayStatement* ds) override;
     void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;

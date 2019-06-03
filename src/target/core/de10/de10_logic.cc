@@ -438,18 +438,18 @@ const Identifier* De10Logic::open_loop_clock() const {
   return open_loop_enabled() ? *ModuleInfo(src_).inputs().begin() : nullptr;
 }
 
-void De10Logic::visit(const EofExpression* ee) {
+void De10Logic::visit(const FeofExpression* fe) {
   // This isn't technically an io task, but it needs to be associated with io tasks
   // that affect it.
-  const auto* s = Resolve().get_resolution(ee->get_arg());
+  const auto* s = Resolve().get_resolution(fe->get_arg());
   assert(s != nullptr);
-  eof_checks_[s].push_back(ee->get_arg());
+  eof_checks_[s].push_back(fe->get_arg());
 
   // Insert a materialized instance of its stream arg into the variable table.
   // It's a little bit of a hack to do this, but we only need a single bit, and
   // we know we've got it here in the AST. 
   Inserter i(this);
-  ee->accept_arg(&i); 
+  fe->accept_arg(&i); 
 }
 
 void De10Logic::visit(const DisplayStatement* ds) {
