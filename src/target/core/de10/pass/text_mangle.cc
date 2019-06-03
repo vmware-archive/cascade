@@ -101,6 +101,10 @@ Statement* TextMangle::build(const FinishStatement* fs) {
   return save_task(fs);
 }
 
+Statement* TextMangle::build(const FseekStatement* fs) {
+  return save_io(fs);
+}
+
 Statement* TextMangle::build(const GetStatement* gs) {
   return save_io(gs);
 }
@@ -123,10 +127,6 @@ Statement* TextMangle::build(const RetargetStatement* rs) {
 
 Statement* TextMangle::build(const SaveStatement* ss) {
   return save_task(ss);
-}
-
-Statement* TextMangle::build(const SeekStatement* ss) {
-  return save_io(ss);
 }
 
 Statement* TextMangle::build(const WarningStatement* ws) {
@@ -284,6 +284,11 @@ void TextMangle::Mangle::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void TextMangle::Mangle::visit(const FseekStatement* fs) {
+  (void) fs;
+  begin_mangle_io();
+}
+
 void TextMangle::Mangle::visit(const GetStatement* gs) {
   (void) gs;
   begin_mangle_io();
@@ -312,11 +317,6 @@ void TextMangle::Mangle::visit(const RetargetStatement* rs) {
 void TextMangle::Mangle::visit(const SaveStatement* ss) {
   (void) ss;
   begin_mangle_task();
-}
-
-void TextMangle::Mangle::visit(const SeekStatement* ss) {
-  (void) ss;
-  begin_mangle_io();
 }
 
 void TextMangle::Mangle::visit(const WarningStatement* ws) {

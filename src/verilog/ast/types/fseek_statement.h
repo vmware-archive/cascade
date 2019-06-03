@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_SEEK_STATEMENT_H
-#define CASCADE_SRC_VERILOG_AST_SEEK_STATEMENT_H
+#ifndef CASCADE_SRC_VERILOG_AST_TYPES_FSEEK_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_TYPES_FSEEK_STATEMENT_H
 
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/expression.h"
@@ -38,38 +38,38 @@
 
 namespace cascade {
 
-class SeekStatement : public SystemTaskEnableStatement {
+class FseekStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit SeekStatement(Identifier* id__, Number* pos__);
-    ~SeekStatement() override;
+    explicit FseekStatement(Identifier* id__, Number* pos__);
+    ~FseekStatement() override;
 
     // Node Interface:
-    NODE(SeekStatement)
-    SeekStatement* clone() const override;
+    NODE(FseekStatement)
+    FseekStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(SeekStatement, Identifier, id)
-    PTR_GET_SET(SeekStatement, Number, pos)
+    PTR_GET_SET(FseekStatement, Identifier, id)
+    PTR_GET_SET(FseekStatement, Number, pos)
 
   private:
     PTR_ATTR(Identifier, id);
     PTR_ATTR(Number, pos);
 };
 
-inline SeekStatement::SeekStatement(Identifier* id__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::seek_statement) {
+inline FseekStatement::FseekStatement(Identifier* id__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::fseek_statement) {
   PTR_SETUP(id);
   PTR_SETUP(pos);
   parent_ = nullptr;
 }
 
-inline SeekStatement::~SeekStatement() {
+inline FseekStatement::~FseekStatement() {
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(pos);
 }
 
-inline SeekStatement* SeekStatement::clone() const {
-  return new SeekStatement(id_->clone(), pos_->clone());
+inline FseekStatement* FseekStatement::clone() const {
+  return new FseekStatement(id_->clone(), pos_->clone());
 }
 
 } // namespace cascade 

@@ -288,6 +288,11 @@ void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Editor::edit(FseekStatement* fs) {
+  fs->accept_id(this);
+  fs->accept_pos(this);
+}
+
 void Editor::edit(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
@@ -312,11 +317,6 @@ void Editor::edit(RetargetStatement* rs) {
 
 void Editor::edit(SaveStatement* ss) {
   ss->accept_arg(this);
-}
-
-void Editor::edit(SeekStatement* ss) {
-  ss->accept_id(this);
-  ss->accept_pos(this);
 }
 
 void Editor::edit(WarningStatement* ws) {

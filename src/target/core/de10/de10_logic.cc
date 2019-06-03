@@ -255,14 +255,14 @@ void De10Logic::finalize() {
     // Look up the stream variable that this task references
     const Identifier* r = nullptr;
     switch(get<0>(io)->get_tag()) {
+      case Node::Tag::fseek_statement:
+        r = Resolve().get_resolution(static_cast<const FseekStatement*>(get<0>(io))->get_id());
+        break;
       case Node::Tag::get_statement:
         r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
         break;
       case Node::Tag::put_statement:
         r = Resolve().get_resolution(static_cast<const PutStatement*>(get<0>(io))->get_id());
-        break;
-      case Node::Tag::seek_statement:
-        r = Resolve().get_resolution(static_cast<const SeekStatement*>(get<0>(io))->get_id());
         break;
       default:
         assert(false);
@@ -476,6 +476,11 @@ void De10Logic::visit(const FinishStatement* fs) {
   fs->accept_arg(&i);
 }
 
+void De10Logic::visit(const FseekStatement* fs) {
+  // Record this task, but no need to descend on its arguments (which are constants)
+  io_tasks_.push_back(make_tuple(fs, nullptr, vector<VarInfo>()));
+}
+
 void De10Logic::visit(const GetStatement* gs) {
   // Record this io task, but no need to descend on its argument.
   // We'll write its target directly when he handle it.
@@ -501,11 +506,6 @@ void De10Logic::visit(const PutStatement* ps) {
 void De10Logic::visit(const RetargetStatement* rs) {
   // Record this task, but no need to descend on its argument (which is a constant)
   sys_tasks_.push_back(rs);
-}
-
-void De10Logic::visit(const SeekStatement* ss) {
-  // Record this task, but no need to descend on its arguments (which are constants)
-  io_tasks_.push_back(make_tuple(ss, nullptr, vector<VarInfo>()));
 }
 
 void De10Logic::visit(const WarningStatement* ws) {
@@ -605,6 +605,19 @@ void De10Logic::handle_io_tasks() {
       continue;
     }
     switch (get<0>(io_tasks_[i])->get_tag()) {
+      case Node::Tag::fseek_statement: {
+        const auto* fs = static_cast<const FseekStatement*>(get<0>(io_tasks_[i]));
+
+        const auto pos = Evaluate().get_value(fs->get_pos()).to_int();
+        get<1>(io_tasks_[i])->clear();
+        get<1>(io_tasks_[i])->seekg(pos);
+
+        const auto val = get<1>(io_tasks_[i])->eof();
+        for (auto& vinfo : get<2>(io_tasks_[i])) {
+          write_scalar(vinfo, Bits(val));
+        }
+        break;
+      }
       case Node::Tag::get_statement: {
         const auto* gs = static_cast<const GetStatement*>(get<0>(io_tasks_[i]));
 
@@ -628,19 +641,6 @@ void De10Logic::handle_io_tasks() {
         const auto& val = Evaluate().get_value(ps->get_var());
         val.write(*get<1>(io_tasks_[i]), 16);
         get<1>(io_tasks_[i])->put(' ');
-        break;
-      }
-      case Node::Tag::seek_statement: {
-        const auto* ss = static_cast<const SeekStatement*>(get<0>(io_tasks_[i]));
-
-        const auto pos = Evaluate().get_value(ss->get_pos()).to_int();
-        get<1>(io_tasks_[i])->clear();
-        get<1>(io_tasks_[i])->seekg(pos);
-
-        const auto val = get<1>(io_tasks_[i])->eof();
-        for (auto& vinfo : get<2>(io_tasks_[i])) {
-          write_scalar(vinfo, Bits(val));
-        }
         break;
       }
       default:

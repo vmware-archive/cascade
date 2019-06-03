@@ -83,13 +83,13 @@ class TextMangle : public Builder {
     Statement* build(const DisplayStatement* ds) override;
     Statement* build(const ErrorStatement* es) override;
     Statement* build(const FinishStatement* fs) override;
+    Statement* build(const FseekStatement* fs) override;
     Statement* build(const GetStatement* gs) override;
     Statement* build(const InfoStatement* is) override;
     Statement* build(const PutStatement* ps) override;
     Statement* build(const RestartStatement* rs) override;
     Statement* build(const RetargetStatement* rs) override;
     Statement* build(const SaveStatement* ss) override;
-    Statement* build(const SeekStatement* ss) override;
     Statement* build(const WarningStatement* ws) override;
     Statement* build(const WriteStatement* ws) override;
 
@@ -105,13 +105,13 @@ class TextMangle : public Builder {
       void visit(const DisplayStatement* ds) override;
       void visit(const ErrorStatement* es) override;
       void visit(const FinishStatement* fs) override;
+      void visit(const FseekStatement* fs) override;
       void visit(const GetStatement* gs) override;
       void visit(const InfoStatement* is) override;
       void visit(const PutStatement* ps) override;
       void visit(const RestartStatement* rs) override;
       void visit(const RetargetStatement* rs) override;
       void visit(const SaveStatement* ss) override;
-      void visit(const SeekStatement* ss) override;
       void visit(const WarningStatement* ws) override;
       void visit(const WriteStatement* ws) override;
       

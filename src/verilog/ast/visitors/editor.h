@@ -91,13 +91,13 @@ struct Editor {
   virtual void edit(DisplayStatement* ds);
   virtual void edit(ErrorStatement* es);
   virtual void edit(FinishStatement* fs);
+  virtual void edit(FseekStatement* fs);
   virtual void edit(GetStatement* gs);
   virtual void edit(InfoStatement* is);
   virtual void edit(PutStatement* ps);
   virtual void edit(RestartStatement* rs);
   virtual void edit(RetargetStatement* rs);
   virtual void edit(SaveStatement* ss);
-  virtual void edit(SeekStatement* ss);
   virtual void edit(WarningStatement* ws);
   virtual void edit(WriteStatement* ws);
   virtual void edit(WaitStatement* ws);

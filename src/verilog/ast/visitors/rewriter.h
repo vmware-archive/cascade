@@ -93,13 +93,13 @@ struct Rewriter {
   virtual Statement* rewrite(DisplayStatement* ds);
   virtual Statement* rewrite(ErrorStatement* es);
   virtual Statement* rewrite(FinishStatement* fs);
+  virtual Statement* rewrite(FseekStatement* fs);
   virtual Statement* rewrite(GetStatement* gs);
   virtual Statement* rewrite(InfoStatement* is);
   virtual Statement* rewrite(PutStatement* ps);
   virtual Statement* rewrite(RestartStatement* rs);
   virtual Statement* rewrite(RetargetStatement* rs);
   virtual Statement* rewrite(SaveStatement* ss);
-  virtual Statement* rewrite(SeekStatement* ss);
   virtual Statement* rewrite(WarningStatement* ws);
   virtual Statement* rewrite(WriteStatement* ws);
   virtual Statement* rewrite(WaitStatement* ws);

@@ -789,6 +789,23 @@ void TypeCheck::visit(const ErrorStatement* es) {
   check_printf(es->size_args(), es->begin_args(), es->end_args());
 }
 
+void TypeCheck::visit(const FseekStatement* fs) {
+  Visitor::visit(fs);
+  
+  // Can't continue checking if arg is unreachable
+  const auto* id = Resolve().get_resolution(fs->get_id());
+  if (id == nullptr){
+    return;
+  }
+  
+  // CHECK: Arg is stream id
+  const auto* src = Resolve().get_parent(id);
+  ModuleInfo info(src);
+  if (!info.is_stream(id)) {
+    error("The first argument of an $fseek() statement must be a stream id", fs);
+  } 
+}
+
 void TypeCheck::visit(const GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
@@ -849,23 +866,6 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const SeekStatement* ss) {
-  Visitor::visit(ss);
-  
-  // Can't continue checking if arg is unreachable
-  const auto* id = Resolve().get_resolution(ss->get_id());
-  if (id == nullptr){
-    return;
-  }
-  
-  // CHECK: Arg is stream id
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $seek() statement must be a stream id", ss);
-  } 
 }
 
 void TypeCheck::visit(const WarningStatement* ws) {

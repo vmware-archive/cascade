@@ -429,6 +429,23 @@ void SwLogic::visit(const FinishStatement* fs) {
   notify(fs);
 }
 
+void SwLogic::visit(const FseekStatement* fs) {
+  if (!silent_) {
+    const auto* r = Resolve().get_resolution(fs->get_id());
+    const auto itr = streams_.find(r);
+    assert(itr != streams_.end());
+
+    const auto pos = eval_.get_value(fs->get_pos()).to_int();
+    itr->second->clear();
+    itr->second->seekg(pos);
+
+    // Notify changes in stream state
+    eval_.flag_changed(r);
+    notify(r);
+  }
+  notify(fs);
+}
+
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
     const auto* rid = Resolve().get_resolution(gs->get_id());
@@ -496,23 +513,6 @@ void SwLogic::visit(const SaveStatement* ss) {
   if (!silent_) {
     interface()->save(ss->get_arg()->get_readable_val());
     there_were_tasks_ = true;
-  }
-  notify(ss);
-}
-
-void SwLogic::visit(const SeekStatement* ss) {
-  if (!silent_) {
-    const auto* r = Resolve().get_resolution(ss->get_id());
-    const auto itr = streams_.find(r);
-    assert(itr != streams_.end());
-
-    const auto pos = eval_.get_value(ss->get_pos()).to_int();
-    itr->second->clear();
-    itr->second->seekg(pos);
-
-    // Notify changes in stream state
-    eval_.flag_changed(r);
-    notify(r);
   }
   notify(ss);
 }

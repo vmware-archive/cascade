@@ -163,7 +163,7 @@ void Nfa::to_verilog(ostream& os) const {
   os << "      $finish(0);" << endl;
   os << "    end else begin" << endl;
   os << "      itr <= itr + 1;" << endl;
-  os << "      $seek(s, 0);" << endl;
+  os << "      $fseek(s, 0);" << endl;
   os << "    end" << endl;
   os << "  end else begin" << endl;
   os << "    if (state > 0) begin" << endl;

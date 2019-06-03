@@ -435,18 +435,18 @@ IF_TEXT     ([^`]*)
 "wire"        return yyParser::make_WIRE(parser->get_loc());
 
 "$display"  return yyParser::make_SYS_DISPLAY(parser->get_loc());
-"$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
 "$error"    return yyParser::make_SYS_ERROR(parser->get_loc());
 "$fatal"    return yyParser::make_SYS_FATAL(parser->get_loc());
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());
+"$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
 "$fopen"    return yyParser::make_SYS_FOPEN(parser->get_loc());
+"$fseek"    return yyParser::make_SYS_FSEEK(parser->get_loc());
 "$get"      return yyParser::make_SYS_GET(parser->get_loc());
 "$info"     return yyParser::make_SYS_INFO(parser->get_loc());
 "$put"      return yyParser::make_SYS_PUT(parser->get_loc());
 "$restart"  return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
 "$save"     return yyParser::make_SYS_SAVE(parser->get_loc());
-"$seek"     return yyParser::make_SYS_SEEK(parser->get_loc());
 "$warning"  return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    return yyParser::make_SYS_WRITE(parser->get_loc());
 

@@ -335,6 +335,12 @@ Statement* Rewriter::rewrite(FinishStatement* fs) {
   return fs;
 }
 
+Statement* Rewriter::rewrite(FseekStatement* fs) {
+  fs->accept_id(this);
+  fs->accept_pos(this);
+  return fs;
+}
+
 Statement* Rewriter::rewrite(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
@@ -364,12 +370,6 @@ Statement* Rewriter::rewrite(RetargetStatement* rs) {
 
 Statement* Rewriter::rewrite(SaveStatement* ss) {
   ss->accept_arg(this);
-  return ss;
-}
-
-Statement* Rewriter::rewrite(SeekStatement* ss) {
-  ss->accept_id(this);
-  ss->accept_pos(this);
   return ss;
 }
 

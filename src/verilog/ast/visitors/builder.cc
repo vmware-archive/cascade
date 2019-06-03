@@ -402,6 +402,13 @@ Statement* Builder::build(const FinishStatement* fs) {
   );
 }
 
+Statement* Builder::build(const FseekStatement* fs) {
+  return new FseekStatement(
+    fs->accept_id(this),
+    fs->accept_pos(this)
+  );
+}
+
 Statement* Builder::build(const GetStatement* gs) {
   return new GetStatement(
     gs->accept_id(this),
@@ -437,13 +444,6 @@ Statement* Builder::build(const RetargetStatement* rs) {
 Statement* Builder::build(const SaveStatement* ss) {
   return new SaveStatement(
     ss->accept_arg(this)
-  );
-}
-
-Statement* Builder::build(const SeekStatement* ss) {
-  return new SeekStatement(
-    ss->accept_id(this),
-    ss->accept_pos(this)
   );
 }
 

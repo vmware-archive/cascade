@@ -153,18 +153,18 @@ bool is_null(const cascade::Expression* e) {
 
 /* System Task Identifiers */
 %token SYS_DISPLAY  "$display"
-%token SYS_FEOF     "$feof"
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
+%token SYS_FEOF     "$feof"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
+%token SYS_FSEEK    "$fseek"
 %token SYS_GET      "$get"
 %token SYS_INFO     "$info"
 %token SYS_PUT      "$put"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_SAVE     "$save"
-%token SYS_SEEK     "$seek"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -1471,8 +1471,8 @@ system_task_enable
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_SEEK OPAREN identifier COMMA number CPAREN SCOLON {
-    $$ = new SeekStatement($3, $5);
+  | SYS_FSEEK OPAREN identifier COMMA number CPAREN SCOLON {
+    $$ = new FseekStatement($3, $5);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
