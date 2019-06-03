@@ -226,8 +226,7 @@ void RemoteRuntime::run_logic() {
 Engine* RemoteRuntime::compile(sockstream* sock) {
   Log log;
   Parser p(&log);
-  p.set_stream(*sock);
-  p.parse();
+  p.parse(*sock);
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
 

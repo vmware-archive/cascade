@@ -32,7 +32,13 @@
 
 // The top-level module. Evaluated module items are inserted here.
 (*__std="logic", __loc="runtime", __target="sw"*)
-module Root(); 
+module Root();
+  localparam STDIN   = 32'h8000_0000;
+  localparam STDOUT  = 32'h8000_0001;
+  localparam STDERR  = 32'h8000_0002;
+  localparam STDWARN = 32'h8000_0003;
+  localparam STDINFO = 32'h8000_0004;
+  localparam STDLOG  = 32'h8000_0005;
 endmodule
 
 // The top-level virtual clock.

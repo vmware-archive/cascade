@@ -83,11 +83,9 @@ class Engine {
     void finalize();
 
     // Extended State Management Interface:
-    // TODO(eschkufz) Does this really belong here? The only place this is
-    // called is in the open loop scheduler. This could be a lot more efficient
-    // if it were only defined for clocks.
-    bool get_bit(VId id);
-    void set_bit(VId id, bool t);
+    VId get_clock_id() const;
+    bool get_clock_val();
+    void set_clock_val(bool t);
 
     // Compiler Interface:
     void replace_with(Engine* e);
@@ -225,22 +223,22 @@ inline void Engine::finalize() {
   c_->finalize();
 }
 
-inline bool Engine::get_bit(VId id) {
-  auto* s = get_state();
-  assert(s->find(id) != s->end());
-  assert(s->find(id)->second.size() == 1);
-
-  const auto res = s->find(id)->second[0].to_bool();
-  delete s;
-
-  return res;
+inline VId Engine::get_clock_id() const {
+  auto* c = dynamic_cast<SwClock*>(c_);
+  assert(c != nullptr);
+  return c->get_id();
 }
 
-inline void Engine::set_bit(VId id, bool b) {
-  auto* s = new State();
-  s->insert(id, Bits(1, b));
-  set_state(s);
-  delete s;
+inline bool Engine::get_clock_val() {
+  auto* c = dynamic_cast<SwClock*>(c_);
+  assert(c != nullptr);
+  return c->get_val();
+}
+
+inline void Engine::set_clock_val(bool v) {
+  auto* c = dynamic_cast<SwClock*>(c_);
+  assert(c != nullptr);
+  c->set_val(v);
 }
 
 inline void Engine::replace_with(Engine* e) {

@@ -28,54 +28,29 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "ui/term/term_controller.h"
+#ifndef CASCADE_SRC_CL_FLAG_ARG_H
+#define CASCADE_SRC_CL_FLAG_ARG_H
 
-#include <cctype>
-#include <iostream>
-#include <sys/select.h>
-#include <unistd.h>
-#include "runtime/runtime.h"
+#include "str_arg.h"
 
-using namespace std;
+namespace cascade::cl {
 
-namespace cascade {
-
-TermController::TermController(Runtime* rt) : Controller(rt) { }
-
-void TermController::run_logic() {
-  // This flag is used to block while the runtime has control of cin
-  auto busy = false;
-
-  while (!stop_requested()) {
-    fd_set read_set;
-    FD_ZERO(&read_set);
-    struct timeval tv = {0, 100};
-
-    // Wait here until cin is ready and isn't under runtime control
-    while (busy || !FD_ISSET(STDIN_FILENO, &read_set)) {
-      FD_SET(STDIN_FILENO, &read_set);
-      select(STDIN_FILENO+1, &read_set, nullptr, nullptr, &tv);
-      if (stop_requested()) {
-        return;
-      }
-    }
-
-    // Scan past leading whitespace. We only want to hand control over to the
-    // runtime when there's actually something to parse here. Otherwise if you
-    // type enter, you can hang the runtime in between clock ticks while it
-    // waits for more input. You can still hang the runtime if you don't
-    // *finish* typing your input. But in this case you at least have a visual
-    // indicator of what you're doing.
-    while (!stop_requested() && isspace(cin.peek())) {
-      cin.get();
-    }
-
-    // Flag cin as controlled by the runtime. This second interrupt, which
-    // resets the flag, won't be handled until after the eval is complete
-    busy = true;
-    runtime()->eval(cin, true);
-    runtime()->schedule_interrupt([&busy]{busy = false;});
+template <>
+struct StrReader<bool> {
+  bool operator()(std::istream& is, bool& b) const {
+    (void)is;
+    return (b = true);
   }
-}
+};
+template <>
+struct StrWriter<bool> {
+  void operator()(std::ostream& os, const bool& b) const {
+    os << (b ? "true" : "false");
+  }
+};
 
-} // namespace cascade
+typedef StrArg<bool, StrReader<bool>, StrWriter<bool>, 0> FlagArg;
+
+} // namespace cascade::cl
+
+#endif

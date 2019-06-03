@@ -1,6 +1,0 @@
-[submodule "ext/cl"]
-	path = ext/cl
-	url = https://github.com/eschkufz/cl
-[submodule "ext/mongoose"]
-	path = ext/mongoose
-	url = https://github.com/cesanta/mongoose

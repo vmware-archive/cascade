@@ -28,33 +28,16 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_PRINT_HTML_HTML_PRINTER_H
-#define CASCADE_SRC_VERILOG_PRINT_HTML_HTML_PRINTER_H
+#ifndef CL_INCLUDE_CL_H
+#define CL_INCLUDE_CL_H
 
-#include "base/stream/substream.h"
-#include "verilog/print/printer.h"
-
-namespace cascade {
-
-class HtmlPrinter : public Printer {
-  public:
-    explicit HtmlPrinter(std::ostream& os);
-    ~HtmlPrinter() override;
-  
-  protected:
-    std::string reset() override;
-    std::string red() override;
-    std::string green() override;
-    std::string yellow() override;
-    std::string blue() override;
-    std::string grey() override;
-
-  private:
-    substream* ss_;
-    substream* init(std::ostream& os);
-};
-
-} // namespace cascade
-
+#include "arg.h"
+#include "args.h"
+#include "dir_arg.h"
+#include "flag_arg.h"
+#include "file_arg.h"
+#include "group.h"
+#include "simple.h"
+#include "str_arg.h"
 
 #endif

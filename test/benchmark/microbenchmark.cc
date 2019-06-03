@@ -29,144 +29,128 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
-#include "cl.h"
 #include "base/system/system.h"
 #include "benchmark/benchmark.h"
-#include "verilog/parse/parser.h"
-#include "cascade.h"
-#include "ui/view.h"
+#include "cascade/cascade.h"
+#include "cl/cl.h"
 #include "harness.h"
-
+#include "verilog/parse/parser.h"
 
 using namespace cascade;
-using namespace cl;
+using namespace cascade::cl;
 using namespace std;
 
 BENCHMARK_MAIN();
 
-static void BM_Parser(benchmark::State& state, string code) 
-{
-    stringstream ss(code);
+static void BM_Parser(benchmark::State& state, string code) {
+  stringstream ss(code);
 
-    Log log;
-    Parser p(&log);
+  Log log;
+  Parser p(&log);
 
-    for(auto _ : state) {
-        ss.clear();
-        ss.str(code);
-        p.set_stream(ss);
-        p.parse();
-    }
+  for(auto _ : state) {
+    ss.clear();
+    ss.str(code);
+    p.parse(ss);
+  }
 }
 
 BENCHMARK_CAPTURE(BM_Parser, parse_empty, "");
 
 BENCHMARK_CAPTURE(BM_Parser, parse_and, 
 R"verilog(
-    module and(x,y,z);
-        input wire x;
-        input wire y;
-        output wire z;
+  module and(x,y,z);
+    input wire x;
+    input wire y;
+    output wire z;
 
-        assign z = x & y;
-    endmodule
+    assign z = x & y;
+  endmodule
 )verilog");
 
 BENCHMARK_CAPTURE(BM_Parser, parse_array, 
 R"verilog(
-    module Array();
+  module Array();
 
-    parameter W = 2;
-    parameter FINISH = 0;
+  parameter W = 2;
+  parameter FINISH = 0;
 
-    localparam N = (1 << W) - 1;
-    localparam K = 3*W;
+  localparam N = (1 << W) - 1;
+  localparam K = 3*W;
 
-    reg[W-1:0] low;
-    reg[K:0]   mid  [N:0];    
-    reg        high [1:0][1:0][1:0];
+  reg[W-1:0] low;
+  reg[K:0]   mid  [N:0];    
+  reg        high [1:0][1:0][1:0];
 
-    reg[63:0] COUNT = 0;
-    always @(posedge clock.val) begin
-        low <= low + 1;
-        mid[low] <= mid[low] + 1; 
-        high[mid[N][K]][mid[N][1]][mid[N][0]] <= high[mid[N][K]][mid[N][1]][mid[N][0]] + 1;
+  reg[63:0] COUNT = 0;
+  always @(posedge clock.val) begin
+    low <= low + 1;
+    mid[low] <= mid[low] + 1; 
+    high[mid[N][K]][mid[N][1]][mid[N][0]] <= high[mid[N][K]][mid[N][1]][mid[N][0]] + 1;
 
-        if (high[1][0][0]) begin
-        $display(COUNT);
-        $finish(FINISH); 
-        end else
-        COUNT <= COUNT + 1;
-    end
+    if (high[1][0][0]) begin
+    $display(COUNT);
+    $finish(FINISH); 
+    end else
+    COUNT <= COUNT + 1;
+  end
 
-    endmodule
+  endmodule
 
-    Array#(.W(7)) array();
+  Array#(.W(7)) array();
 )verilog");
 
-static void BM_Code(benchmark::State& state, string code) 
-{
-    for(auto _ : state) {
-        stringstream ss;
-
-        Cascade c;
-        c.set_include_path(System::src_root());
-        c.attach_view(new PView(ss));
-        c.run();
-
-        c.eval("`include \"data/march/minimal.v\"\n" + code);
-
-        c.wait_for_stop();
-    }
+static void BM_Code(benchmark::State& state, string code) {
+  for(auto _ : state) {
+    Cascade c;
+    c.set_include_dirs(System::src_root());
+    c.run();
+    c << "`include \"data/march/minimal.v\"\n" << code << endl;
+    c.wait_for_stop();
+  }
 }
 
 BENCHMARK_CAPTURE(BM_Code, code_empty, R"verilog(initial $finish;)verilog");
 
-static void BM_CodeArray(benchmark::State& state)
-{
-    const string array_code = R"verilog(
-    module Array();
+static void BM_CodeArray(benchmark::State& state) {
+  const string array_code = R"verilog(
+  module Array();
 
-    parameter W = 2;
-    parameter FINISH = 0;
+  parameter W = 2;
+  parameter FINISH = 0;
 
-    localparam N = (1 << W) - 1;
-    localparam K = 3*W;
+  localparam N = (1 << W) - 1;
+  localparam K = 3*W;
 
-    reg[W-1:0] low;
-    reg[K:0]   mid  [N:0];    
-    reg        high [1:0][1:0][1:0];
+  reg[W-1:0] low;
+  reg[K:0]   mid  [N:0];    
+  reg        high [1:0][1:0][1:0];
 
-    reg[63:0] COUNT = 0;
-    always @(posedge clock.val) begin
-        low <= low + 1;
-        mid[low] <= mid[low] + 1; 
-        high[mid[N][K]][mid[N][1]][mid[N][0]] <= high[mid[N][K]][mid[N][1]][mid[N][0]] + 1;
+  reg[63:0] COUNT = 0;
+  always @(posedge clock.val) begin
+    low <= low + 1;
+    mid[low] <= mid[low] + 1; 
+    high[mid[N][K]][mid[N][1]][mid[N][0]] <= high[mid[N][K]][mid[N][1]][mid[N][0]] + 1;
 
-        if (high[1][0][0]) begin
-        $display(COUNT);
-        $finish(FINISH); 
-        end else
-        COUNT <= COUNT + 1;
-    end
+    if (high[1][0][0]) begin
+    $display(COUNT);
+    $finish(FINISH); 
+    end else
+    COUNT <= COUNT + 1;
+  end
 
-    endmodule
-    )verilog";
+  endmodule
+  )verilog";
 
-    const string instantiation_code = "Array#(.W(" + to_string(state.range(0)) + ")) array();";
+  const string instantiation_code = "Array#(.W(" + to_string(state.range(0)) + ")) array();";
 
-    for(auto _ : state) {
-        stringstream ss;
-
-        Cascade c;
-        c.set_include_path(System::src_root());
-        c.attach_view(new PView(ss));
-        c.run();
-
-        c.eval("`include \"data/march/minimal.v\"\n" + array_code + instantiation_code);
-
-        c.wait_for_stop();
-    }
+  for(auto _ : state) {
+    Cascade c;
+    c.set_include_dirs(System::src_root());
+    c.run();
+    c << "`include \"data/march/minimal.v\"\n" << array_code << instantiation_code << endl;
+    c.wait_for_stop();
+  }
 }
 
 BENCHMARK(BM_CodeArray)->Range(2,5)->Complexity();

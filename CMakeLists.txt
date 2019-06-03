@@ -54,10 +54,6 @@ set(CASCADE_INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(..)
 include_directories(src)
-include_directories(lib)
-include_directories(ext/mongoose)
-include_directories(ext/cl/include)
-include_directories(ext/cl)
 include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -68,6 +64,6 @@ flex_target(verilog_lexer src/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DI
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 add_library(verilog ${BISON_verilog_parser_OUTPUTS} ${FLEX_verilog_lexer_OUTPUTS})
 
-add_subdirectory(lib)
+add_subdirectory(src/cascade)
 add_subdirectory(tools)
 add_subdirectory(test)

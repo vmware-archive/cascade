@@ -28,57 +28,49 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "ui/log/log_view.h"
+#ifndef CASCADE_SRC_CL_GROUP_H
+#define CASCADE_SRC_CL_GROUP_H
 
-#include <ctime>
-#include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
-#include "verilog/program/program.h"
+#include <algorithm>
+#include "arg_table.h"
+#include "singleton.h"
 
-using namespace std;
+namespace cascade::cl {
 
-namespace cascade {
+class Group {
+  public:
+    static Group& create(const std::string& name) {
+      return *(new Group(name));
+    }
 
-LogView::LogView(ostream& os) : View(), os_(os) { }
+    Group(const Group& rhs) = delete;
+    Group(const Group&& rhs) = delete;
+    Group& operator=(Group& rhs) = delete;
+    Group& operator=(Group&& rhs) = delete;
 
-void LogView::startup(size_t t) {
-  os_ << "STARTUP " << t << " " << time(nullptr) << endl;
-}
+    const std::string& name() const {
+      return name_;
+    }
+    typedef std::vector<Arg*>::const_iterator arg_itr;
+    arg_itr arg_begin() const {
+      return Singleton<ArgTable>::get().args_by_group_[idx_].begin();
+    }
+    arg_itr arg_end() const {
+      return Singleton<ArgTable>::get().args_by_group_[idx_].end();
+    }
 
-void LogView::shutdown(size_t t) {
-  os_ << "SHUTDOWN " << t << " " << time(nullptr) << endl;
-}
+  private:
+    Group(const std::string& name) : name_(name) { 
+      auto& table = Singleton<ArgTable>::get();
+      table.groups_.push_back(this);
+      idx_ = table.args_by_group_.size();
+      table.args_by_group_.resize(idx_+1);
+    }
 
-void LogView::print(size_t t, const string& s) {
-  os_ << "PRINT " << t << " " << time(nullptr) << endl << s << endl;
-}
+    std::string name_;
+    size_t idx_;
+};
 
-void LogView::info(size_t t, const string& s) {
-  os_ << "INFO " << t << " " << time(nullptr) << endl << s << endl;
-}
+} // namespace cascade::cl
 
-void LogView::warn(size_t t, const string& s) {
-  os_ << "WARN " << t << " " << time(nullptr) << endl << s << endl;
-}
-
-void LogView::error(size_t t, const string& s) {
-  os_ << "ERROR " << t << " " << time(nullptr) << endl << s << endl;
-}
-
-void LogView::parse(size_t t, const string& s) {
-  os_ << "PARSE " << t << " " << time(nullptr) << endl << s << endl;
-}
-
-void LogView::decl(size_t t, const Program* p, const ModuleDeclaration* md) {
-  (void) p;
-  os_ << "DECL " << t << " " << time(nullptr) << endl;
-  TextPrinter(os_) << md << "\n";
-}
-
-void LogView::item(size_t t, const Program* p, const ModuleDeclaration* md) {
-  (void) p;
-  os_ << "ITEM " << t << " " << time(nullptr) << endl;
-  TextPrinter(os_) << md << "\n";
-}
-
-} // namespace cascade
+#endif

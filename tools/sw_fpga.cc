@@ -32,14 +32,14 @@
 #include <mutex>
 #include <ncurses.h>
 #include <string>
-#include "cl.h"
 #include "base/bits/bits.h"
+#include "cl/cl.h"
 #include "target/common/remote_runtime.h"
 #include "target/compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
-using namespace cl;
 using namespace cascade;
+using namespace cascade::cl;
 using namespace std;
 
 namespace {

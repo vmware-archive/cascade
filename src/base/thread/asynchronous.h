@@ -31,8 +31,11 @@
 #ifndef CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
 #define CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
 
+#include <cassert>
 #include <chrono>
+#include <condition_variable>
 #include <thread>
+#include <mutex>
 
 namespace cascade {
 
@@ -61,7 +64,26 @@ class Asynchronous {
     void run_to_completion();
     // Convenience method; invokves request_stop(), and wait_for_stop().
     void stop_now();
+
+    // The nuclear option. Detaches the underlying thread and invokes its
+    // destructor. No state is released, memory is leaked, fire and brimstone.
+    // Any further interaction with this object is undefined and will almost
+    // certainly have disasterous effect.
+    void terminate();
+    // Returns true is terminate() was called. 
+    bool was_terminated() const;
       
+    // Puts this thread to sleep for n milliseconds
+    void sleep_for(size_t n);
+    // Tells this thread to wait for up to n milliseconds. The thread may wake up
+    // spuriously or in response to a call to notify().
+    void wait_for(size_t n);
+    // Wakes up a thread which is currently blocking on a call to wait_for().
+    void notify();
+
+    // Returns true whenever request_stop() is invoked.
+    bool stop_requested() const;
+
   protected:
     // An arbitrary compute task. This method must halt execution in a
     // reasonable amount of time whenever stop_requested() returns true.
@@ -71,19 +93,16 @@ class Asynchronous {
     // invoked several times in a row.
     virtual void stop_logic();
 
-    // Convenience Method: Puts this thread to sleep for n milliseconds
-    void sleep_for(size_t n);
-
-    // Returns true whenever request_stop() is invoked.
-    bool stop_requested() const;
-
   private:
     std::thread thread_;
+    std::condition_variable cv_;
     bool stop_requested_;
+    bool was_terminated_;
 };
 
 inline Asynchronous::Asynchronous() : thread_() {
   stop_requested_ = true;
+  was_terminated_ = false;
 }
 
 inline Asynchronous::~Asynchronous() {
@@ -118,6 +137,19 @@ inline void Asynchronous::stop_now() {
   wait_for_stop();
 }
 
+inline void Asynchronous::terminate() {
+  assert(!was_terminated());
+  if (thread_.get_id() != std::thread::id()) {
+    thread_.detach();
+    thread_.~thread();
+    was_terminated_ = true;
+  }
+}
+
+inline bool Asynchronous::was_terminated() const {
+  return was_terminated_;
+}
+
 inline void Asynchronous::run_logic() {
   // Does nothing.
 }
@@ -128,6 +160,16 @@ inline void Asynchronous::stop_logic() {
 
 inline void Asynchronous::sleep_for(size_t n) {
   std::this_thread::sleep_for(std::chrono::milliseconds(n));
+}
+
+inline void Asynchronous::wait_for(size_t n) {
+  std::mutex m;
+  std::unique_lock<std::mutex> ul(m);
+  cv_.wait_for(ul, std::chrono::milliseconds(n));
+}
+
+inline void Asynchronous::notify() {
+  cv_.notify_one();
 }
 
 inline bool Asynchronous::stop_requested() const {

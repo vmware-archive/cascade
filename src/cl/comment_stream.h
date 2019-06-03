@@ -28,48 +28,51 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "verilog/print/html/html_printer.h"
+#ifndef CASCADE_SRC_CL_COMMENT_STREAM_H
+#define CASCADE_SRC_CL_COMMENT_STREAM_H
 
-using namespace std;
+#include <iostream>
+#include <streambuf>
 
-namespace cascade {
+namespace cascade::cl {
 
-HtmlPrinter::HtmlPrinter(ostream& os) : Printer(*init(os)) { }
+class comment_buf : public std::streambuf {
+  public:
+    comment_buf(std::streambuf* buf) : std::streambuf(), buf_(buf), on_comment_(false) {}
 
-HtmlPrinter::~HtmlPrinter() {
-  delete ss_;
-}
+  protected:
+    int_type underflow() override {
+      auto res = buf_->sgetc();
+      if (res != '#') {
+        return on_comment_ ? traits_type::to_int_type(' ') : res;
+      }
+      do {
+        res = buf_->snextc();
+      } while (res != traits_type::eof() && res != '\n');
+      on_comment_ = res == '\n';
+      return on_comment_ ? traits_type::to_int_type(' ') : res; 
+    }
+    int_type uflow() override {
+      const auto res = underflow();
+      if (res != traits_type::eof()) {
+        buf_->sbumpc();
+        on_comment_ = false;
+      }
+      return res;
+    }
 
-string HtmlPrinter::reset() {
-  return "</span>";
-}
+  private:
+    std::streambuf* buf_;
+    bool on_comment_;
+};
 
-string HtmlPrinter::red() {
-  return "<span style='color:red'>";
-}
+class comment_stream : public std::istream {
+  public:
+    comment_stream(std::istream& is) : std::istream(&buf_), buf_(is.rdbuf()) {}
+  private:
+    comment_buf buf_;
+};
 
-string HtmlPrinter::green() {
-  return "<span style='font-weight:bold; color:green'>";
-}
+} // namespace cascade::cl
 
-string HtmlPrinter::yellow() {
-  return "<span style='font-weight:bold; color:orange'>";
-}
-
-string HtmlPrinter::blue() {
-  return "<span style='color:blue'>";
-}
-
-string HtmlPrinter::grey() {
-  return "<span style='color:grey'>";
-}
-
-substream* HtmlPrinter::init(ostream& os) {
-  ss_ = new substream(os);
-  ss_->sub('"', "&quot;");
-  ss_->sub('\t', "&nbsp;&nbsp;");
-  ss_->sub('\n', "<br/>");
-  return ss_;  
-}
-
-} // namespace cascade
+#endif

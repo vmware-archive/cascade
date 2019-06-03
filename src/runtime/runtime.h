@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_RUNTIME_RUNTIME_H
 #define CASCADE_SRC_RUNTIME_RUNTIME_H
 
+#include <condition_variable>
 #include <ctime>
 #include <functional>
 #include <iosfwd>
@@ -52,13 +53,6 @@ class Log;
 class Module;
 class Parser;
 class Program;
-class View;
-
-// At the top level, FPGA-JIT is organized according to the MVC design pattern.
-// The user interacts with the program through the controller, observes the
-// results of those interactions through the view, and all major state is
-// stored in the runtime (ie the model). The runtime is one of two major
-// threads of control, the other being the controller.
 
 class Runtime : public Asynchronous {
   public:
@@ -66,48 +60,40 @@ class Runtime : public Asynchronous {
     typedef std::function<void()> Interrupt;
 
     // Constructors:
-    explicit Runtime(View* view);
+    explicit Runtime();
     ~Runtime() override;
 
     // Configuration Interface:
     Runtime& set_compiler(Compiler* c);
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
-    Runtime& disable_inlining(bool di);
-    Runtime& enable_info(bool ei);
-    Runtime& disable_warning(bool dw);
-    Runtime& disable_error(bool de);
+    Runtime& set_disable_inlining(bool di);
+    Runtime& set_profile_interval(size_t n);
 
-    // Controller Interface:
-    // 
-    // Invokes eval_stream() on this string in the gap between this and the
-    // next timestep.  Returns immediately. Code which is successfully eval'ed
-    // will begin execution at the beginning of the following timestep.
-    void eval(const std::string& s);
-    // Invokes eval_stream() in the gap between this and the next timestep.
-    // Returns immediately. Code which is successfully eval'ed will begin
-    // execution at the beginning of the following timestep.
-    void eval(std::istream& is, bool is_term);
+    // Eval Interface:
+    //
+    // Evaluates the next element from an input stream at the end of the
+    // current time step. Blocks until completion. Returns a pair indicating
+    // whether the end-of-file was reached and whether an error occurred.
+    std::pair<bool, bool> eval(std::istream& is);
+    // Identical to eval(), but loops until either an end-of-file was reached
+    // or an error occurs.
+    std::pair<bool, bool> eval_all(std::istream& is);
 
     // System Task Interface:
     //
-    // Print a newline-teriminated string to the view between this and the next
-    // timestep. Returns immediately.
+    // Print a newline-teriminated string between this and the next timestep.
     void display(const std::string& s);
-    // Print a string to the view between this and the next timestep. Returns
-    // immediately.
+    // Print a string between this and the next timestep. 
     void write(const std::string& s);
     // Shutdown the runtime and print statistics if arg is non-zero between
-    // this and the next timestep. Returns immediately.
+    // this and the next timestep. 
     void finish(uint32_t arg);
-    // Prints an error message between this and the next timestep. Returns
-    // immediately.
+    // Prints an error message between this and the next timestep. 
     void error(const std::string& s);
-    // Prints a warning message between this and the next timestep. Returns
-    // immediately.
+    // Prints a warning message between this and the next timestep. 
     void warning(const std::string& s);
-    // Prints an info message between this and the next timestep. Returns
-    // immediately.
+    // Prints an info message between this and the next timestep. 
     void info(const std::string& s);
     // Loads the current state of the simulation from a file
     void restart(const std::string& path);
@@ -117,12 +103,26 @@ class Runtime : public Asynchronous {
     // Saves the current state of the simulation to a file
     void save(const std::string& path);
 
-    // Program-Logic Interface:
+    // Scheduling Interface:
     //
-    // Schedules an interrupt on the interrupt queue. Returns false if the
-    // runtime is no longer active, meaning there is no hope of this interrupt
-    // ever being serviced.
+    // Schedules an interrupt to run between this and the next time step.
+    // Interrupts which would execute after a call to finish() will fizzle.
+    // This method is non-blocking and returns false if a call to finish() has
+    // already executed, meaning the interrupt is guaranteed to fizzle.  Note
+    // that returning true does not guarantee that it won't.
     bool schedule_interrupt(Interrupt int_);
+    // Identical to the single argument form, but alt is executed instead of
+    // int_ if the call to int_ fizzles.
+    bool schedule_interrupt(Interrupt int_, Interrupt alt);
+    // Identical to the single argument form, but blocks until the interrupt
+    // completes execution or fizzles.
+    void schedule_blocking_interrupt(Interrupt int_);
+    // Identical to the two argument form, but blocks until the interrupt
+    // completes execution or alt is executed in its place.
+    void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
+    // Returns true if the runtime has executed a finish statement.
+    bool is_finished() const;
+
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which
@@ -138,13 +138,17 @@ class Runtime : public Asynchronous {
     //
     // In contrast to the system task and program logic interfaces, these
     // methods are scheduled immediately, regardless of the execution state of
-    // the runtime. From a design point of view, this interface is a thin
-    // wrapper around streambufs. Attempting to perform an operation on an
-    // unrecognized or closed stream id will result in undefined behavior.
+    // the runtime. From a design perspective, this interface is a thin wrapper
+    // around streambufs. Attempting to perform an operation on an unrecognized
+    // or closed stream id will result in undefined behavior.
     // 
     // Creates an entry in the stream table by calling new filebuf(path, in|out).
     SId fopen(const std::string& path);
-    // streambuf operators: The boolean argument to pubseekoff/pos is used to
+    // Returns an entry in the stream table
+    std::streambuf* rdbuf(SId id) const;
+    // Replaces an entry in the stream table and returns its previous value
+    std::streambuf* rdbuf(SId id, std::streambuf* sb);
+    // Streambuf operators: The boolean argument to pubseekoff/pos is used to
     // select between read/write (true/false) pointers. pubseekoff assumes
     // std::cur as its locator.
     int32_t in_avail(SId id);
@@ -157,22 +161,14 @@ class Runtime : public Asynchronous {
     int32_t sputc(SId id, char c);
     uint32_t sputn(SId id, const char* c, uint32_t n);
 
-    // Profiling Interface:
-    //
-    // Returns the logical simulation time. This method is thread-safe and can
-    // be invoked at any time.
-    uint64_t time() const;
-    // Returns the current rate at which the runtime executes the simulation loop.
-    // This method is thread-safe and can be invoked at any time.
-    std::string current_frequency() const;
-    // Returns the overall rate at which the runtime executed the simulation loop.
-    // This method is thread-safe and can be invoked at any time.
-    std::string overall_frequency() const;
-
   private:
-    // MVC State:
-    View* view_;
-    
+    static constexpr uint32_t stdin_ = 0x8000'0000;
+    static constexpr uint32_t stdout_ = 0x8000'0001;
+    static constexpr uint32_t stderr_ = 0x8000'0002;
+    static constexpr uint32_t stdwarn_ = 0x8000'0003;
+    static constexpr uint32_t stdinfo_ = 0x8000'0004;
+    static constexpr uint32_t stdlog_ = 0x8000'0005;
+
     // Major Components:
     Log* log_;
     Parser* parser_;
@@ -189,14 +185,15 @@ class Runtime : public Asynchronous {
     bool enable_open_loop_;
     size_t open_loop_itrs_;
     size_t open_loop_target_;
-    bool enable_info_;
-    bool disable_warning_;
-    bool disable_error_;
+    size_t profile_interval_;
 
     // Interrupt Queue:
+    bool finished_;
     size_t item_evals_;
     std::vector<Interrupt> ints_;
     std::recursive_mutex int_lock_;
+    std::mutex block_lock_;
+    std::condition_variable block_cv_;
 
     // Generic Scheduling State:
     std::vector<Module*> logic_;
@@ -210,11 +207,12 @@ class Runtime : public Asynchronous {
     // Time Keeping:
     time_t begin_time_;
     time_t last_time_;
+    time_t last_check_;
     uint64_t last_logical_time_;
     uint64_t logical_time_;
 
     // Stream Table:
-    std::vector<std::streambuf*> stream_table_;
+    std::vector<std::streambuf*> streambufs_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.
@@ -224,7 +222,7 @@ class Runtime : public Asynchronous {
     //
     // Repeatedly parses and then invokes eval_nodes() on the contents of an
     // istream until either an error occurs or end of file is encountered.
-    bool eval_stream(std::istream& is, bool is_term);
+    void eval_stream(std::istream& is);
     // Invokes eval_node() on each of the elements in an iterator range.
     // Deletes elements in the range which follow a failed eval.
     template <typename InputItr>
@@ -251,10 +249,10 @@ class Runtime : public Asynchronous {
     bool drain_updates();
     // Invokes done_step on every module, completing the logical simulation step
     void done_step();
-    // Drains the interrupt queue
-    void drain_interrupts();
     // Invokes done_simulation on every module, completing the simulation
     void done_simulation();
+    // Drains the interrupt queue
+    void drain_interrupts();
 
     // Runs in open loop until timeout or a system task is triggered
     void open_loop_scheduler();
@@ -263,19 +261,25 @@ class Runtime : public Asynchronous {
 
     // Logging Helpers
     //
-    // Dumps parse errors to the console
+    // Dumps parse errors to stderr
     void log_parse_errors();
-    // Dumps typechecking warnings to the console
+    // Dumps typechecking warnings to stdwarn
     void log_checker_warns();
-    // Dumps typechecking errors to the console
+    // Dumps typechecking errors to stderr
     void log_checker_errors();
-    // Dumps compilation errors to the console
+    // Dumps compilation errors to stderr
     void log_compiler_errors();
-    // Dumps ctrl-d intercept
-    void log_ctrl_d();
+    // Dumps an event notification to stdlog
+    void log_event(const std::string& type, Node* n = nullptr);
+    // Dumps the current virtual clock frequency to stdlog
+    void log_freq();
 
     // Time Keeping Helpers:
     //
+    // Returns the current virtual clock frequency.
+    std::string current_frequency() const;
+    // Returns the overall virtual clock frequency.
+    std::string overall_frequency() const;
     // Prints a frequency in either MHz, KHz, or Hz. No GHz. We wish.
     std::string format_freq(uint64_t f) const;
 };

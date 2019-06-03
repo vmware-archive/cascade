@@ -30,12 +30,14 @@
 
 #include <cstring>
 #include <signal.h>
-#include "cl.h"
+#include <fstream>
+#include <sstream>
 #include "base/system/system.h"
-#include "cascade.h"
+#include "cascade/cascade.h"
+#include "cl/cl.h"
 
-using namespace cl;
 using namespace cascade;
+using namespace cascade::cl;
 using namespace std;
 
 namespace {
@@ -52,24 +54,8 @@ auto& inc_dirs = StrArg<string>::create("-I")
 auto& input_path = StrArg<string>::create("-e")
   .usage("path/to/file.v")
   .description("Read input from file");
-auto& ui = StrArg<string>::create("--ui")
-  .usage("term|web|batch")
-  .description("UI interface")
-  .initial("term");
 
-__attribute__((unused)) auto& g2 = Group::create("Web UI Options"); 
-auto& web_ui_port = StrArg<size_t>::create("--web_ui_port")
-  .usage("<int>")
-  .description("Port to run web ui on")
-  .initial(11111);
-auto& web_ui_buffer = StrArg<size_t>::create("--web_ui_buffer")
-  .usage("<int>")
-  .description("Maximum number of log messages to buffer per refresh")
-  .initial(128);
-auto& web_ui_debug = FlagArg::create("--web_ui_debug")
-  .description("Print debug information to web ui");
-
-__attribute__((unused)) auto& g3 = Group::create("Quartus Server Options");
+__attribute__((unused)) auto& g2 = Group::create("Quartus Server Options");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
   .usage("<host>")
   .description("Location of quartus server")
@@ -79,10 +65,10 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
   .description("Location of quartus server")
   .initial(9900);
 
-__attribute__((unused)) auto& g4 = Group::create("Logging Options");
+__attribute__((unused)) auto& g3 = Group::create("Logging Options");
 auto& profile = StrArg<int>::create("--profile")
   .usage("<n>")
-  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_info")
+  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_log")
   .initial(0);
 auto& enable_info = FlagArg::create("--enable_info")
   .description("Turn on info messages");
@@ -90,10 +76,10 @@ auto& disable_warning = FlagArg::create("--disable_warning")
   .description("Turn off warning messages");
 auto& disable_error = FlagArg::create("--disable_error")
   .description("Turn off error messages");
-auto& enable_logging = FlagArg::create("--enable_logging")
-  .description("Copies cascade output to log file");
+auto& enable_log = FlagArg::create("--enable_log")
+  .description("Prints debugging information to log file");
 
-__attribute__((unused)) auto& g5 = Group::create("Optimization Options");
+__attribute__((unused)) auto& g4 = Group::create("Optimization Options");
 auto& disable_inlining = FlagArg::create("--disable_inlining")
   .description("Prevents cascade from inlining modules");
 auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
@@ -101,34 +87,65 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
-__attribute__((unused)) auto& g6 = Group::create("Slave Runtime Options");
-auto& slave = FlagArg::create("--slave")
-  .description("Runs Cascade in slave mode");
-auto& slave_port = StrArg<size_t>::create("--slave_port")
-  .usage("<int>")
-  .description("Port to listen for slave connections on")
-  .initial(8800);
-auto& slave_path = StrArg<string>::create("--slave_path")
-  .usage("<path/to/socket>")
-  .description("Path to listen for slave_connections on")
-  .initial("/tmp/fpga_socket");
+class inbuf : public streambuf {
+  public:
+    inbuf(streambuf* sb) : streambuf() { 
+      sb_ = sb;
+    }
+    ~inbuf() override = default;
 
-Cascade* cascade_ = nullptr;
+  private:
+    streambuf* sb_;
+    int sync() override {
+      return sb_->pubsync();
+    }
+    int_type uflow() override {
+      const auto res =  sb_->sbumpc();
+      if (res == '\n') {
+        cout << ">>> ";
+        cout.flush();
+      }
+      return res;
+    }
+};
+
+class outbuf : public streambuf {
+  public:
+    outbuf(const string& color = "") : streambuf() {
+      color_ = color;
+    }
+    ~outbuf() override = default;
+
+  private:
+    string color_;
+    stringstream ss_;
+
+    int_type overflow(int_type c = traits_type::eof()) override {
+      ss_.put(c);
+      if (c == '\n') {
+        ss_ << ((color_ != "") ? "\033[00m" : "") << ">>> " << color_;
+      }
+      return c;
+    }
+    int_type sync() override {
+      cout << color_ << ss_.str() << ((color_ != "") ? "\033[00m" : "");
+      cout.flush();
+      ss_.str(string());
+      return 0;
+    }
+};
+
+Cascade cascade_;
 
 void int_handler(int sig) {
   (void) sig;
-  if (!::slave.value()) {
-    ::cascade_->error("User Interrupt:\n  > Caught Ctrl-C.");
-    ::cascade_->finish(0);
-  } else {
-    ::cascade_->request_stop();
-  }
+  ::cascade_.request_stop();
 }
 
 void segv_handler(int sig) {
   (void) sig;
-  cout << "CASCADE SHUTDOWN UNEXPECTEDLY" << endl;
-  cout << "Please rerun with --enable_logging and forward log file to developers" << endl;
+  cerr << "\033[31mCASCADE SHUTDOWN UNEXPECTEDLY\033[00m" << endl;
+  cerr << "\033[31mPlease rerun with --enable_log and forward log file to developers\033[00m" << endl;
   exit(1);
 }
 
@@ -138,7 +155,11 @@ int main(int argc, char** argv) {
   // Parse command line
   Simple::read(argc, argv);
 
-  // Attach signal handlers
+  // Wrap cin in inbuf (re-prints the prompt when the user types \n)
+  inbuf ib(cin.rdbuf());
+  cin.rdbuf(&ib);
+
+  // Install signal handlers
   { struct sigaction action;
     memset(&action, 0, sizeof(action));
     action.sa_handler = ::segv_handler;
@@ -150,51 +171,52 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
-  cascade_ = new Cascade();
+  // Set command line flags
+  ::cascade_.set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  ::cascade_.set_enable_inlining(!::disable_inlining.value());
+  ::cascade_.set_open_loop_target(::open_loop_target.value());
+  ::cascade_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+  ::cascade_.set_profile_interval(::profile.value());
 
-  cascade_->set_include_path(::inc_dirs.value() + ":" + System::src_root());
-
-  if (::ui.value() == "term") {
-    cascade_->attach_term_ui();
-  } 
-  else if (::ui.value() == "web") {
-    cascade_->attach_web_ui();
-    cascade_->set_web_ui_port(::web_ui_port.value());
-    cascade_->set_web_ui_buffer(::web_ui_buffer.value());
-    cascade_->set_web_ui_debug(::web_ui_debug.value());
+  // Map standard streams to colored outbufs
+  ::cascade_.set_stdout(new outbuf());
+  if (!::disable_error.value()) {
+    ::cascade_.set_stderr(new outbuf("\033[31m"));
   }
-  if (::enable_logging.value()) {
-    cascade_->attach_logfile();
+  if (!::disable_warning.value()) {
+    ::cascade_.set_stdwarn(new outbuf("\033[33m"));
   }
-
-  cascade_->enable_profile(::profile.value());
-  cascade_->enable_info(::enable_info.value());
-  cascade_->enable_warning(!::disable_warning.value());
-  cascade_->enable_error(!::disable_error.value());
-
-  cascade_->enable_inlining(!::disable_inlining.value());
-  cascade_->set_open_loop_target(::open_loop_target.value());
-
-  cascade_->set_quartus_host(::quartus_host.value());
-  cascade_->set_quartus_port(::quartus_port.value());
-
-  if (::slave.value()) {
-    cascade_->set_slave_mode(::slave.value());
-    cascade_->set_slave_port(::slave_port.value());
-    cascade_->set_slave_path(::slave_path.value());
+  if (::enable_info.value()) {
+    ::cascade_.set_stdinfo(new outbuf("\033[37m"));
   }
-
-  cascade_->run();
-  if (!::slave.value()) {
-    if (::input_path.value() != "") {
-      cascade_->eval("`include \"data/march/" + ::march.value() + ".v\"\n" +
-                     "`include \"" + ::input_path.value() + "\"");
-    } else {
-      cascade_->eval("`include \"data/march/" + ::march.value() + ".v\"");
-    }
+  auto* fb = new filebuf();
+  if (::enable_log.value()) {
+    fb->open("cascade.log", ios::app);
   }
-  cascade_->wait_for_stop();
+  ::cascade_.set_stdlog(fb);
 
+  // Print the initial prompt, start cascade, and read the march file and -e
+  // file (if provided)
+  cout << ">>> ";
+  ::cascade_.run();
+  if (::input_path.value() != "") {
+    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
+               << "`include \"" << ::input_path.value() <<  "\"" << endl;
+  } else {
+    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
+  }
+  ::cascade_.stop_now();
+
+  // Switch to reading from cin
+  ::cascade_.rdbuf(cin.rdbuf());
+  ::cascade_.run();
+  ::cascade_.wait_for_stop();
+
+  // If cascade isn't finished by now, it's because we've caught a signal.
+  if (!::cascade_.is_finished()) {
+    cerr << "\033[31mCaught Signal\033[00m" << endl;
+  }
   cout << "Goodbye!" << endl;
+
   return 0;
 }

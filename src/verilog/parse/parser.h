@@ -55,58 +55,42 @@ class Parser : public Editor {
     ~Parser() override = default;
 
     // Configuration Interface: 
-    //
-    // Sets the search path for include directives
     Parser& set_include_dirs(const std::string& s);
-    // Attaches a new stream to the parser and sets the eof flag to false
-    Parser& set_stream(std::istream& is);
 
-    // Parser Interface:
-    //
-    // Parses the next element from the current stream.  Writes errors/warnings to log.
-    void parse();
-    // Returns true if the last parse ended in an end-of-file
-    bool eof() const;
-    // Returns the current include nesting depth 
-    size_t depth() const;
-    // Returns iterators over the results of the previous parse
+    // Parses the next element from the current stream.  Writes errors/warnings
+    // to log.  Returns true if the last parse ended with end-of-file.
+    bool parse(std::istream& is);
+    // Returns iterators over the results of the previous parse.
     const_iterator begin() const;
     const_iterator end() const;
-    // Returns the text of the last parse.
-    const std::string& get_text() const;
     // Returns the file and line number for a node from the last parse.
     std::pair<std::string, size_t> get_loc(const Node* n) const;
 
   private:
+    // Persistent Parser State:
     friend class yyLexer;
     friend class yyParser;
+    std::streambuf* buf_;
     yyLexer lexer_;
+    Log* log_;
     
     // Configuration State:
     std::string include_dirs_;
-    Log* log_;
 
     // Location stack:
     std::stack<std::pair<std::string, location>> stack_;
 
-    // State returned by the previous parse:
+    // Parse State:
     std::vector<Node*> res_;
     bool eof_;
-    std::string last_parse_;
     std::unordered_map<const Node*, std::pair<std::string, size_t>> locs_;
-
-    // The lookahead symbol from the previous parse:
     yyParser::symbol_type backup_;
 
-    // Preprocessor Macro State:
+    // Preprocessor State:
     std::string name_;
     std::vector<std::string> args_;
     std::unordered_map<std::string, std::pair<std::vector<std::string>, std::string>> macros_;
-
-    // Preprocessor Ifdef State:
     bool polarity_;
-
-    // Preprocessor Scratch State:
     size_t nesting_;
     std::string text_;
 
@@ -128,6 +112,8 @@ class Parser : public Editor {
     std::string& get_path();
     // Returns the current location
     location& get_loc();
+    // Returns the current include nesting depth 
+    size_t get_depth() const;
     // Sets location to the same value as for n2
     void set_loc(const Node* n1, const Node* n2);
     // Sets filename to the current path, line to a constant value

@@ -28,44 +28,39 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_CONTROLLER_H
-#define CASCADE_SRC_UI_CONTROLLER_H
+#ifndef CASCADE_SRC_CASCADE_CASCADE_SLAVE_H
+#define CASCADE_SRC_CASCADE_CASCADE_SLAVE_H
 
-#include "runtime/runtime.h"
+#include <string>
+#include "target/common/remote_runtime.h"
 
 namespace cascade {
 
-class Runtime;
-
-// At the top level, FPGA-JIT is organized according to the MVC design pattern.
-// The user interacts with the program through the controller, observes the
-// results of those interactions through the view, and all major state is
-// stored in the runtime (ie the model). The controller is one of two major
-// threads of control, the other being the runtime.
-
-// Logically, nothing prevents a program from using multiple (n) controllers.
-// In this case, rather than 2, there would be n+1 main threads of control.
-
-class Controller : public Asynchronous {
+class CascadeSlave {
   public:
-    explicit Controller(Runtime* rt);
-    ~Controller() override = default;
+    // Constructors:
+    CascadeSlave();
+    CascadeSlave(const CascadeSlave& rhs) = delete;
+    CascadeSlave(CascadeSlave&& rhs) = delete;
+    CascadeSlave& operator=(const CascadeSlave& rhs) = delete;
+    CascadeSlave& operator=(CascadeSlave&& rhs) = delete;
+    ~CascadeSlave();
 
-  protected:
-    Runtime* runtime();
+    // Configuration Methods:
+    CascadeSlave& set_listeners(const std::string& path, size_t port);
+    CascadeSlave& set_quartus_server(const std::string& host, size_t port);
+
+    // Start/Stop Methods:
+    CascadeSlave& run();
+    CascadeSlave& request_stop();
+    CascadeSlave& wait_for_stop();
+    CascadeSlave& stop_now();
 
   private:
-    Runtime* rt_;
+    RemoteRuntime remote_runtime_;
 };
-
-inline Controller::Controller(Runtime* rt) : Asynchronous() {
-  rt_ = rt;
-}
-
-inline Runtime* Controller::runtime() {
-  return rt_;
-}
 
 } // namespace cascade
 
 #endif
+

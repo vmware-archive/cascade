@@ -28,35 +28,24 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_LOG_LOG_VIEW_H
-#define CASCADE_SRC_UI_LOG_LOG_VIEW_H
+#ifndef CASCADE_SRC_CL_SINGLETON_H
+#define CASCADE_SRC_CL_SINGLETON_H
 
-#include <iostream>
-#include "ui/view.h"
+namespace cascade::cl {
 
-namespace cascade {
+template <typename T>
+struct Singleton {
+  typedef T value_type;
 
-class LogView : public View {
-  public:
-    explicit LogView(std::ostream& os);
-    ~LogView() override = default;
+  Singleton() = delete;
 
-    void startup(size_t t) override;
-    void shutdown(size_t t) override;
-
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
-
-    void parse(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-  private:
-    std::ostream& os_;
+  template <typename ...Args>
+  static T& get(Args... args) {
+    static T t{args...};
+    return t;
+  }
 };
 
-} // namespace cascade
+} // namespace cascade::cl
 
 #endif

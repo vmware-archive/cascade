@@ -29,50 +29,46 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
-#include "cl.h"
-#include "harness.h"
 #include "benchmark/benchmark.h"
+#include "cl/cl.h"
+#include "gtest/gtest.h"
+#include "harness.h"
 
 using namespace cascade;
-using namespace cl;
+using namespace cascade::cl;
 using namespace std;
 
 BENCHMARK_MAIN();
 
-static void BM_Array(benchmark::State& state) 
-{
+static void BM_Array(benchmark::State& state) {
   for(auto _ : state) {
     run_benchmark("data/test/benchmark/array/run_7.v", "268435457\n");
   }
 }
 BENCHMARK(BM_Array)->Unit(benchmark::kMillisecond);
 
-static void BM_Bitcoin(benchmark::State& state) 
-{
+static void BM_Bitcoin(benchmark::State& state) {
   for(auto _ : state) {
     run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
   }
 }
 BENCHMARK(BM_Bitcoin)->Unit(benchmark::kMillisecond);
 
-static void BM_Mips32(benchmark::State& state) 
-{
+static void BM_Mips32(benchmark::State& state) {
   for(auto _ : state) {
     run_benchmark("data/test/benchmark/mips32/run_bubble_128_1024.v", "1");
   }
 }
 BENCHMARK(BM_Mips32)->Unit(benchmark::kMillisecond);
 
-static void BM_Regex(benchmark::State& state) 
-{
+static void BM_Regex(benchmark::State& state) {
   for(auto _ : state) {
     run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
   }
 }
 BENCHMARK(BM_Regex)->Unit(benchmark::kMillisecond);
 
-static void BM_Nw(benchmark::State& state) 
-{
+static void BM_Nw(benchmark::State& state) {
   for(auto _ : state) {
     run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
   }

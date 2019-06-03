@@ -28,31 +28,23 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_VIEW_H
-#define CASCADE_SRC_UI_TERM_TERM_VIEW_H
+#ifndef CASCADE_SRC_CL_ARG_TABLE_H
+#define CASCADE_SRC_CL_ARG_TABLE_H
 
-#include <mutex>
-#include "ui/view.h"
+#include <vector>
 
-namespace cascade {
+namespace cascade::cl {
 
-class TermView : public View {
-  public:
-    ~TermView() override = default;
+class Arg;
+class Group;
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
-
-    void parse(size_t t, const std::string& s) override;
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-  private:
-    std::mutex lock_;
+struct ArgTable {
+  std::vector<Arg*> args_;
+  std::vector<Group*> groups_;
+  std::vector<std::vector<Arg*>> args_by_group_;
+  std::vector<const char*> unrec_;
 };
 
-} // namespace cascade
+} // namespace cascade::cl
 
 #endif

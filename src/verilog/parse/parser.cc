@@ -37,10 +37,10 @@ using namespace std;
 namespace cascade {
 
 Parser::Parser(Log* log) : Editor() { 
+  buf_ = nullptr;
   include_dirs_ = "";
   log_ = log;
   push("<top>");
-  last_parse_ = "";
   nesting_ = 0;
 }
 
@@ -49,19 +49,17 @@ Parser& Parser::set_include_dirs(const string& s) {
   return *this;
 }
 
-Parser& Parser::set_stream(istream& is) {
-  lexer_.switch_streams(&is);
-  eof_ = false;
-  return *this;
-}
-
-void Parser::parse() {
+bool Parser::parse(istream& is) {
+  if (is.rdbuf() != buf_) {
+    buf_ = is.rdbuf();
+    lexer_.switch_streams(&is);
+    eof_ = false;
+  }
   yyParser parser(this);
   lexer_.set_debug(false);
   parser.set_debug_level(false);
 
   res_.clear();
-  last_parse_ = "";
   locs_.clear();
 
   get_loc().step();
@@ -69,14 +67,8 @@ void Parser::parse() {
   for (auto* n : res_) {
     n->accept(this);
   }
-}
 
-bool Parser::eof() const {
   return eof_;
-}
-
-size_t Parser::depth() const {
-  return stack_.size();
 }
 
 Parser::const_iterator Parser::begin() const {
@@ -85,10 +77,6 @@ Parser::const_iterator Parser::begin() const {
 
 Parser::const_iterator Parser::end() const {
   return res_.end();
-}
-
-const std::string& Parser::get_text() const {
-  return last_parse_;
 }
 
 pair<string, size_t> Parser::get_loc(const Node* n) const {
@@ -136,6 +124,10 @@ string& Parser::get_path() {
 location& Parser::get_loc() {
   assert(!stack_.empty());
   return stack_.top().second;
+}
+
+size_t Parser::get_depth() const {
+  return stack_.size();
 }
 
 void Parser::set_loc(const Node* n1, const Node* n2) {

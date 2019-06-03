@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_MISC_LOGGABLE_H
-#define CASCADE_SRC_MISC_LOGGABLE_H
+#ifndef CASCADE_SRC_BASE_LOG_LOG_H
+#define CASCADE_SRC_BASE_LOG_LOG_H
 
 #include <string>
 #include <vector>
@@ -37,23 +37,17 @@
 namespace cascade {
 
 // This class is used to attach logging facilities to objects with complex
-// behavior. It allows the user to record messages, warnings, and errors and
-// inspect their values at a later time.
+// behavior. It allows the user to record warnings, and errors and inspect
+// their values at a later time.
 
 class Log {
   public:
-    typedef std::vector<std::string>::const_iterator log_iterator;
     typedef std::vector<std::string>::const_iterator error_iterator;
     typedef std::vector<std::string>::const_iterator warn_iterator;
 
-    void log(const std::string& s);
     void error(const std::string& s);
     void warn(const std::string& s);
     void clear();
-
-    bool log() const;
-    log_iterator log_begin() const;
-    log_iterator log_end() const;
 
     bool error() const;
     error_iterator error_begin() const;
@@ -64,14 +58,9 @@ class Log {
     warn_iterator warn_end() const;
 
   private:
-    std::vector<std::string> logs_;
     std::vector<std::string> errors_;
     std::vector<std::string> warns_;
 };
-
-inline void Log::log(const std::string& s) {
-  logs_.push_back(s);
-} 
 
 inline void Log::error(const std::string& s) {
   errors_.push_back(s);
@@ -82,23 +71,10 @@ inline void Log::warn(const std::string& s) {
 }
 
 inline void Log::clear() {
-  logs_.clear();
   errors_.clear();
   warns_.clear();
 }
 
-inline bool Log::log() const {
-  return !logs_.empty();
-}
-
-inline Log::log_iterator Log::log_begin() const {
-  return logs_.begin();
-}
-
-inline Log::log_iterator Log::log_end() const {
-  return logs_.end();
-}
-  
 inline bool Log::error() const {
   return !errors_.empty();
 }

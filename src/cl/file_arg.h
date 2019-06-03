@@ -28,24 +28,29 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
-#define CASCADE_SRC_UI_TERM_TERM_CONTROLLER_H
+#ifndef CASCADE_SRC_CL_FILE_ARG_H
+#define CASCADE_SRC_CL_FILE_ARG_H
 
-#include "ui/controller.h"
+#include <fstream>
+#include "comment_stream.h"
+#include "str_arg.h"
 
-namespace cascade {
+namespace cascade::cl {
 
-class Runtime;
-
-class TermController : public Controller {
-  public:
-    explicit TermController(Runtime* rt);
-    ~TermController() override = default;
-
-  protected:
-    void run_logic() override;
+template <typename T, typename R>
+struct FileReader {
+  bool operator()(std::istream& is, T& t) const {
+    std::string path = "";
+    is >> path;
+    std::ifstream ifs(path);
+    comment_stream cs(ifs);
+    return ifs.is_open() ? R()(cs, t) : false;
+  }
 };
 
-} // namespace cascade
+template <typename T, typename R = StrReader<T>, typename W = StrWriter<T>>
+using FileArg = StrArg<T, FileReader<T, R>, W>; 
+
+} // namespace cascade::cl
 
 #endif

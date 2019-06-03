@@ -34,11 +34,11 @@
 #include <string>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "cl.h"
+#include "cl/cl.h"
 #include "target/core/de10/quartus_server.h"
 
 using namespace cascade;
-using namespace cl;
+using namespace cascade::cl;
 using namespace std;
 
 constexpr auto HW_REGS_BASE = 0xfc000000u;

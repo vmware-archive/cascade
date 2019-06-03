@@ -28,63 +28,69 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_UI_WEB_WEB_UI_H
-#define CASCADE_SRC_UI_WEB_WEB_UI_H
+#ifndef CASCADE_SRC_CASCADE_CASCADE_H
+#define CASCADE_SRC_CASCADE_CASCADE_H
 
-#include <mutex>
+#include <iostream>
+#include <sstream>
 #include <string>
-#include <vector>
-#include "mongoose.h"
-#include "ui/controller.h"
-#include "ui/view.h"
-#include "verilog/ast/visitors/visitor.h"
+#include "base/thread/asynchronous.h"
+#include "runtime/runtime.h"
 
 namespace cascade {
 
-class WebUi : public Controller, public View {
+class Cascade : public std::iostream {
   public:
-    explicit WebUi(Runtime* rt);
-    ~WebUi() override = default;
+    // Constructors:
+    Cascade();
+    Cascade(const Cascade& rhs) = delete;
+    Cascade(Cascade&& rhs) = delete;
+    Cascade& operator=(const Cascade& rhs) = delete;
+    Cascade& operator=(Cascade&& rhs) = delete;
+    ~Cascade();
 
-    WebUi& set_port(size_t port);
-    WebUi& set_buffer(size_t buffer);
-    WebUi& set_debug(bool debug);
+    // Configuration Methods:
+    Cascade& set_include_dirs(const std::string& path);
+    Cascade& set_enable_inlining(bool enable);
+    Cascade& set_open_loop_target(size_t n);
+    Cascade& set_quartus_server(const std::string& host, size_t port);
+    Cascade& set_profile_interval(size_t n);
+    Cascade& set_stdin(std::streambuf* sb);
+    Cascade& set_stdout(std::streambuf* sb);
+    Cascade& set_stderr(std::streambuf* sb);
+    Cascade& set_stdwarn(std::streambuf* sb);
+    Cascade& set_stdinfo(std::streambuf* sb);
+    Cascade& set_stdlog(std::streambuf* sb);
 
-    void print(size_t t, const std::string& s) override;
-    void info(size_t t, const std::string& s) override;
-    void warn(size_t t, const std::string& s) override;
-    void error(size_t t, const std::string& s) override;
+    // Concurrency Methods:
+    Cascade& run();
+    Cascade& request_stop();
+    Cascade& wait_for_stop();
+    Cascade& stop_now();
 
-    void decl(size_t t, const Program* p, const ModuleDeclaration* md) override;
-    void item(size_t t, const Program* p, const ModuleDeclaration* md) override;
-
-    void send_index(struct mg_connection* nc, struct http_message* msg);
-    void send_freq();
-    void send_buffer(struct mg_connection* nc);
-    void recv_eval(const std::string& s);
+    // Execution State:
+    bool is_running() const;
+    bool is_finished() const;
 
   private:
-    std::string port_;
-    size_t max_buffer_;
-    bool debug_;
+    class EvalLoop : public Asynchronous {
+      public:
+        EvalLoop(Cascade* cascade);
+        ~EvalLoop() override = default;
+      private:
+        Cascade* cascade_;
+        void run_logic() override;
+        void cin_loop();
+        void generic_loop();
+    };
 
-    // Document Root:
-    std::string doc_root_;
+    Runtime runtime_;
+    EvalLoop eval_;
+    std::stringbuf sb_;
+    bool is_running_;
 
-    // Message Buffer:
-    std::vector<std::string> buffer_;
-    std::recursive_mutex lock_;
-    size_t overflow_;
-
-    // Mongoose State:
-    struct mg_serve_http_opts opts_;
-
-    // Asynchronous Interface:
-    void run_logic() override;
-
-    // Asynchronous Interface Helpers:
-    void buffer(const std::string& api, const std::string& val, bool quote, bool force);
-    void ok(const std::string& s);
+    bool is_cin() const;
+    void halt_eval();
 };
 
 } // namespace cascade
