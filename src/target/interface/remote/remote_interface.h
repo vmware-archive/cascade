@@ -57,8 +57,8 @@ class RemoteInterface : public Interface {
 
     FId fopen(const std::string& path) override;
     int32_t in_avail(FId id) override;
-    uint32_t pubseekoff(FId id, int32_t n, bool r) override;
-    uint32_t pubseekpos(FId id, int32_t n, bool r) override;
+    uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
+    uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
     int32_t pubsync(FId id) override;
     int32_t sbumpc(FId id) override;
     int32_t sgetc(FId id) override;
@@ -156,11 +156,12 @@ inline int32_t RemoteInterface::in_avail(FId id) {
   return res;
 }
 
-inline uint32_t RemoteInterface::pubseekoff(FId id, int32_t n, bool r) {
+inline uint32_t RemoteInterface::pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) {
   Rpc(Rpc::Type::PUBSEEKOFF, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
-  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
-  sock_->put(r ? 1 : 0);
+  sock_->write(reinterpret_cast<const char*>(&off), sizeof(off));
+  sock_->write(reinterpret_cast<const char*>(&way), sizeof(way));
+  sock_->write(reinterpret_cast<const char*>(&which), sizeof(which));
   sock_->flush();
 
   uint32_t res;
@@ -168,11 +169,11 @@ inline uint32_t RemoteInterface::pubseekoff(FId id, int32_t n, bool r) {
   return res;
 }
 
-inline uint32_t RemoteInterface::pubseekpos(FId id, int32_t n, bool r) {
+inline uint32_t RemoteInterface::pubseekpos(FId id, int32_t pos, uint8_t which) {
   Rpc(Rpc::Type::PUBSEEKPOS, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
-  sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
-  sock_->put(r ? 1 : 0);
+  sock_->write(reinterpret_cast<const char*>(&pos), sizeof(pos));
+  sock_->write(reinterpret_cast<const char*>(&which), sizeof(which));
   sock_->flush();
 
   uint32_t res;

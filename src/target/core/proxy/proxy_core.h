@@ -307,24 +307,28 @@ inline void ProxyCore<T>::recv() {
       }
       case Rpc::Type::PUBSEEKOFF: {
         FId id = 0;
-        int32_t n = 0;
+        int32_t off = 0;
+        uint8_t way = 0;
+        uint8_t which = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
-        sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
-        const auto r = (sock_->get() == 1);
+        sock_->read(reinterpret_cast<char*>(&off), sizeof(off));
+        sock_->read(reinterpret_cast<char*>(&way), sizeof(way));
+        sock_->read(reinterpret_cast<char*>(&which), sizeof(which));
 
-        uint32_t res = T::interface()->pubseekoff(id, n, r);
+        uint32_t res = T::interface()->pubseekoff(id, off, way, which);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::PUBSEEKPOS: {
         FId id = 0;
-        int32_t n = 0;
+        int32_t pos = 0;
+        uint8_t which = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
-        sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
-        const auto r = (sock_->get() == 1);
+        sock_->read(reinterpret_cast<char*>(&pos), sizeof(pos));
+        sock_->read(reinterpret_cast<char*>(&which), sizeof(which));
 
-        uint32_t res = T::interface()->pubseekpos(id, n, r);
+        uint32_t res = T::interface()->pubseekpos(id, pos, which);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;

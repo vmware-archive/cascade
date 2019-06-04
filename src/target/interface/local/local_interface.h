@@ -57,8 +57,8 @@ class LocalInterface : public Interface {
 
     FId fopen(const std::string& path) override;
     int32_t in_avail(FId id) override;
-    uint32_t pubseekoff(FId id, int32_t n, bool r) override;
-    uint32_t pubseekpos(FId id, int32_t n, bool r) override;
+    uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
+    uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
     int32_t pubsync(FId id) override;
     int32_t sbumpc(FId id) override;
     int32_t sgetc(FId id) override;
@@ -126,12 +126,12 @@ inline int32_t LocalInterface::in_avail(FId id) {
   return rt_->in_avail(id);
 }
 
-inline uint32_t LocalInterface::pubseekoff(FId id, int32_t n, bool r) {
-  return rt_->pubseekoff(id, n, r);
+inline uint32_t LocalInterface::pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) {
+  return rt_->pubseekoff(id, off, way, which);
 }
 
-inline uint32_t LocalInterface::pubseekpos(FId id, int32_t n, bool r) {
-  return rt_->pubseekpos(id, n, r);
+inline uint32_t LocalInterface::pubseekpos(FId id, int32_t pos, uint8_t which) {
+  return rt_->pubseekpos(id, pos, which);
 }
 
 inline int32_t LocalInterface::pubsync(FId id) {

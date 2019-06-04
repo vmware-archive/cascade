@@ -94,7 +94,7 @@ Expression* Builder::build(const ConditionalExpression* ce) {
 
 Expression* Builder::build(const FeofExpression* fe) {
   return new FeofExpression(
-    fe->accept_arg(this)
+    fe->accept_fd(this)
   );
 }
 
@@ -404,8 +404,9 @@ Statement* Builder::build(const FinishStatement* fs) {
 
 Statement* Builder::build(const FseekStatement* fs) {
   return new FseekStatement(
-    fs->accept_id(this),
-    fs->accept_pos(this)
+    fs->accept_fd(this),
+    fs->accept_offset(this),
+    fs->accept_op(this)
   );
 }
 

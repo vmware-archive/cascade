@@ -8,7 +8,7 @@ always @(posedge clock.val) begin
       $finish; 
     end else begin
       count <= count + 1;
-      $fseek(s, 0);
+      $rewind(s);
     end
   end else begin 
     $write(r); 

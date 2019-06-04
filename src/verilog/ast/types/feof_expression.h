@@ -40,7 +40,7 @@ namespace cascade {
 class FeofExpression : public Expression {
   public:
     // Constructors:
-    explicit FeofExpression(Identifier* arg__);
+    explicit FeofExpression(Identifier* fd__);
     ~FeofExpression() override;
 
     // Node Interface:
@@ -48,23 +48,23 @@ class FeofExpression : public Expression {
     FeofExpression* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FeofExpression, Identifier, arg)
+    PTR_GET_SET(FeofExpression, Identifier, fd)
 
   private:
-    PTR_ATTR(Identifier, arg);
+    PTR_ATTR(Identifier, fd);
 };
 
-inline FeofExpression::FeofExpression(Identifier* arg__) : Expression(Node::Tag::feof_expression) {
-  PTR_SETUP(arg);
+inline FeofExpression::FeofExpression(Identifier* fd__) : Expression(Node::Tag::feof_expression) {
+  PTR_SETUP(fd);
   parent_ = nullptr;
 }
 
 inline FeofExpression::~FeofExpression() {
-  PTR_TEARDOWN(arg);
+  PTR_TEARDOWN(fd);
 }
 
 inline FeofExpression* FeofExpression::clone() const {
-  return new FeofExpression(arg_->clone());
+  return new FeofExpression(fd_->clone());
 }
 
 } // namespace cascade 

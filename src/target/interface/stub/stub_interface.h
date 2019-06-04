@@ -54,8 +54,8 @@ class StubInterface : public Interface {
 
     FId fopen(const std::string& path) override;
     int32_t in_avail(FId id) override;
-    uint32_t pubseekoff(FId id, int32_t n, bool r) override;
-    uint32_t pubseekpos(FId id, int32_t n, bool r) override;
+    uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
+    uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
     int32_t pubsync(FId id) override;
     int32_t sbumpc(FId id) override;
     int32_t sgetc(FId id) override;
@@ -129,19 +129,20 @@ inline int32_t StubInterface::in_avail(FId id) {
   return 0;
 }
 
-inline uint32_t StubInterface::pubseekoff(FId id, int32_t n, bool r) {
+inline uint32_t StubInterface::pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) {
   // Does nothing
   (void) id;
-  (void) n;
-  (void) r;
+  (void) off;
+  (void) way;
+  (void) which;
   return 0;
 }
 
-inline uint32_t StubInterface::pubseekpos(FId id, int32_t n, bool r) {
+inline uint32_t StubInterface::pubseekpos(FId id, int32_t pos, uint8_t which) {
   // Does nothing
   (void) id;
-  (void) n;
-  (void) r;
+  (void) pos;
+  (void) which;
   return 0;
 }
 

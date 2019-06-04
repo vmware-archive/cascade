@@ -256,7 +256,7 @@ void De10Logic::finalize() {
     const Identifier* r = nullptr;
     switch(get<0>(io)->get_tag()) {
       case Node::Tag::fseek_statement:
-        r = Resolve().get_resolution(static_cast<const FseekStatement*>(get<0>(io))->get_id());
+        r = Resolve().get_resolution(static_cast<const FseekStatement*>(get<0>(io))->get_fd());
         break;
       case Node::Tag::get_statement:
         r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
@@ -441,15 +441,15 @@ const Identifier* De10Logic::open_loop_clock() const {
 void De10Logic::visit(const FeofExpression* fe) {
   // This isn't technically an io task, but it needs to be associated with io tasks
   // that affect it.
-  const auto* s = Resolve().get_resolution(fe->get_arg());
+  const auto* s = Resolve().get_resolution(fe->get_fd());
   assert(s != nullptr);
-  eof_checks_[s].push_back(fe->get_arg());
+  eof_checks_[s].push_back(fe->get_fd());
 
   // Insert a materialized instance of its stream arg into the variable table.
   // It's a little bit of a hack to do this, but we only need a single bit, and
   // we know we've got it here in the AST. 
   Inserter i(this);
-  fe->accept_arg(&i); 
+  fe->accept_fd(&i); 
 }
 
 void De10Logic::visit(const DisplayStatement* ds) {
@@ -608,9 +608,13 @@ void De10Logic::handle_io_tasks() {
       case Node::Tag::fseek_statement: {
         const auto* fs = static_cast<const FseekStatement*>(get<0>(io_tasks_[i]));
 
-        const auto pos = Evaluate().get_value(fs->get_pos()).to_int();
+        const auto offset = Evaluate().get_value(fs->get_offset()).to_int();
+        const auto op = Evaluate().get_value(fs->get_op()).to_int();
+        const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
+
         get<1>(io_tasks_[i])->clear();
-        get<1>(io_tasks_[i])->seekg(pos);
+        get<1>(io_tasks_[i])->seekg(offset, way); 
+        get<1>(io_tasks_[i])->seekp(offset, way); 
 
         const auto val = get<1>(io_tasks_[i])->eof();
         for (auto& vinfo : get<2>(io_tasks_[i])) {

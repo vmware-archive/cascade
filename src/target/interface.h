@@ -70,8 +70,8 @@ class Interface {
     // to cause the corresponding API calls to be invoked by the runtime.
     virtual FId fopen(const std::string& path) = 0;
     virtual int32_t in_avail(FId id) = 0;
-    virtual uint32_t pubseekoff(FId id, int32_t n, bool r) = 0;
-    virtual uint32_t pubseekpos(FId id, int32_t n, bool r) = 0;
+    virtual uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) = 0;
+    virtual uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) = 0;
     virtual int32_t pubsync(FId id) = 0;
     virtual int32_t sbumpc(FId id) = 0;
     virtual int32_t sgetc(FId id) = 0;

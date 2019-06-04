@@ -126,7 +126,7 @@ void Printer::visit(const ConditionalExpression* ce) {
 void Printer::visit(const FeofExpression* fe) {
   *this << Color::YELLOW << "$feof" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  fe->accept_arg(this);
+  fe->accept_fd(this);
   *this << Color::RED << ")" << Color::RESET;
 }
 
@@ -598,9 +598,11 @@ void Printer::visit(const FinishStatement* fs) {
 void Printer::visit(const FseekStatement* fs) {
   *this << Color::YELLOW << "$fseek" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  fs->accept_id(this);
+  fs->accept_fd(this);
   *this << Color::RED << "," << Color::RESET;
-  fs->accept_pos(this);
+  fs->accept_offset(this);
+  *this << Color::RED << "," << Color::RESET;
+  fs->accept_op(this);
   *this << Color::RED << ");" << Color::RESET;
 }
 

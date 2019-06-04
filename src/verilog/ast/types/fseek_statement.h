@@ -41,7 +41,7 @@ namespace cascade {
 class FseekStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit FseekStatement(Identifier* id__, Number* pos__);
+    explicit FseekStatement(Identifier* fd__, Number* offset__, Number* op__);
     ~FseekStatement() override;
 
     // Node Interface:
@@ -49,27 +49,31 @@ class FseekStatement : public SystemTaskEnableStatement {
     FseekStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FseekStatement, Identifier, id)
-    PTR_GET_SET(FseekStatement, Number, pos)
+    PTR_GET_SET(FseekStatement, Identifier, fd)
+    PTR_GET_SET(FseekStatement, Number, offset)
+    PTR_GET_SET(FseekStatement, Number, op)
 
   private:
-    PTR_ATTR(Identifier, id);
-    PTR_ATTR(Number, pos);
+    PTR_ATTR(Identifier, fd);
+    PTR_ATTR(Number, offset);
+    PTR_ATTR(Number, op);
 };
 
-inline FseekStatement::FseekStatement(Identifier* id__, Number* pos__) : SystemTaskEnableStatement(Node::Tag::fseek_statement) {
-  PTR_SETUP(id);
-  PTR_SETUP(pos);
+inline FseekStatement::FseekStatement(Identifier* fd__, Number* offset__, Number* op__) : SystemTaskEnableStatement(Node::Tag::fseek_statement) {
+  PTR_SETUP(fd);
+  PTR_SETUP(offset);
+  PTR_SETUP(op);
   parent_ = nullptr;
 }
 
 inline FseekStatement::~FseekStatement() {
-  PTR_TEARDOWN(id);
-  PTR_TEARDOWN(pos);
+  PTR_TEARDOWN(fd);
+  PTR_TEARDOWN(offset);
+  PTR_TEARDOWN(op);
 }
 
 inline FseekStatement* FseekStatement::clone() const {
-  return new FseekStatement(id_->clone(), pos_->clone());
+  return new FseekStatement(fd_->clone(), offset_->clone(), op_->clone());
 }
 
 } // namespace cascade 

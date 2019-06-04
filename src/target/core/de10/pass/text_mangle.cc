@@ -78,7 +78,7 @@ Expression* TextMangle::build(const FeofExpression* fe) {
   // variable table for the argument to this expression (like we do with
   // arguments to display statements). Prior to transfering control to the fpga
   // we'll place the result of this eof check into this location in hardware.
-  const auto itr = de_->table_find(fe->get_arg());
+  const auto itr = de_->table_find(fe->get_fd());
   assert(itr != de_->table_end());
   return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
 }

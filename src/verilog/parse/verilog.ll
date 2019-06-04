@@ -445,6 +445,7 @@ IF_TEXT     ([^`]*)
 "$put"      return yyParser::make_SYS_PUT(parser->get_loc());
 "$restart"  return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
+"$rewind"   return yyParser::make_SYS_REWIND(parser->get_loc());
 "$save"     return yyParser::make_SYS_SAVE(parser->get_loc());
 "$warning"  return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    return yyParser::make_SYS_WRITE(parser->get_loc());

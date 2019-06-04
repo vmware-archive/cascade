@@ -391,12 +391,32 @@ int32_t Runtime::in_avail(FId id) {
   return rdbuf(id)->in_avail();
 }
 
-uint32_t Runtime::pubseekoff(FId id, int32_t n, bool r) {
-  return rdbuf(id)->pubseekoff(n, ios::cur, r ? ios::in : ios::out);
+uint32_t Runtime::pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) {
+  auto d = ios_base::cur;
+  switch (way) {
+    case 1: d = ios_base::beg; break;
+    case 2: d = ios_base::end; break;
+    default: break;
+  }
+  auto o = ios_base::openmode();
+  switch (which) {
+    case 1: o = ios_base::in; break;
+    case 2: o = ios_base::out; break;
+    case 3: o = ios_base::in | ios_base::out; break;
+    default: break;
+  }
+  return rdbuf(id)->pubseekoff(off, d, o);
 }
 
-uint32_t Runtime::pubseekpos(FId id, int32_t n, bool r) {
-  return rdbuf(id)->pubseekpos(n, r ? ios::in : ios::out);
+uint32_t Runtime::pubseekpos(FId id, int32_t pos, uint8_t which) {
+  auto o = ios_base::openmode();
+  switch (which) {
+    case 1: o = ios_base::in; break;
+    case 2: o = ios_base::out; break;
+    case 3: o = ios_base::in | ios_base::out; break;
+    default: break;
+  }
+  return rdbuf(id)->pubseekpos(pos, o);
 }
 
 int32_t Runtime::pubsync(FId id) {

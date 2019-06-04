@@ -149,7 +149,7 @@ void SwLogic::finalize() {
   // Attach eof handler
   eval_.set_eof_handler([this](Evaluate* eval, const FeofExpression* fe) {
     (void) eval;
-    const auto* r = Resolve().get_resolution(fe->get_arg());
+    const auto* r = Resolve().get_resolution(fe->get_fd());
     const auto itr = streams_.find(r);
     return (itr == streams_.end()) || itr->second->eof();
   });
@@ -431,13 +431,17 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const FseekStatement* fs) {
   if (!silent_) {
-    const auto* r = Resolve().get_resolution(fs->get_id());
+    const auto* r = Resolve().get_resolution(fs->get_fd());
     const auto itr = streams_.find(r);
     assert(itr != streams_.end());
 
-    const auto pos = eval_.get_value(fs->get_pos()).to_int();
+    const auto offset = eval_.get_value(fs->get_offset()).to_int();
+    const auto op = eval_.get_value(fs->get_op()).to_int();
+    const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
+
     itr->second->clear();
-    itr->second->seekg(pos);
+    itr->second->seekg(offset, way); 
+    itr->second->seekp(offset, way);
 
     // Notify changes in stream state
     eval_.flag_changed(r);

@@ -15,7 +15,7 @@ always @(posedge clock.val) begin
       $finish(0);
     end else begin
       itr <= itr + 1;
-      $fseek(s, 0);
+      $rewind(s);
     end
   end else begin
     if (state > 0) begin

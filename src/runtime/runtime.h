@@ -148,12 +148,10 @@ class Runtime : public Asynchronous {
     std::streambuf* rdbuf(FId id) const;
     // Replaces an entry in the stream table and returns its previous value
     std::streambuf* rdbuf(FId id, std::streambuf* sb);
-    // Streambuf operators: The boolean argument to pubseekoff/pos is used to
-    // select between read/write (true/false) pointers. pubseekoff assumes
-    // std::cur as its locator.
+    // Streambuf operators:
     int32_t in_avail(FId id);
-    uint32_t pubseekoff(FId id, int32_t n, bool r);
-    uint32_t pubseekpos(FId id, int32_t n, bool r);
+    uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which);
+    uint32_t pubseekpos(FId id, int32_t pos, uint8_t which);
     int32_t pubsync(FId id);
     int32_t sbumpc(FId id);
     int32_t sgetc(FId id);

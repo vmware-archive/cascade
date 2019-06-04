@@ -74,7 +74,7 @@ void Editor::edit(ConditionalExpression* ce) {
 }
 
 void Editor::edit(FeofExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_fd(this);
 }
 
 void Editor::edit(FopenExpression* fe) {
@@ -289,8 +289,9 @@ void Editor::edit(FinishStatement* fs) {
 }
 
 void Editor::edit(FseekStatement* fs) {
-  fs->accept_id(this);
-  fs->accept_pos(this);
+  fs->accept_fd(this);
+  fs->accept_offset(this);
+  fs->accept_op(this);
 }
 
 void Editor::edit(GetStatement* gs) {

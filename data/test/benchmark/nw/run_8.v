@@ -40,7 +40,7 @@ always @(posedge clock.val) begin
       done <= 1;
     end else begin
       itr <= itr + 1;
-      $fseek(s, 0);
+      $rewind(s);
       $get(s, buffer);
     end
   end

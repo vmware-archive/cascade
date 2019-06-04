@@ -336,10 +336,10 @@ void TypeCheck::visit(const Event* e) {
 
 void TypeCheck::visit(const FeofExpression* fe) {
   // RECURSE: arg
-  fe->accept_arg(this);
+  fe->accept_fd(this);
 
   // EXIT: Can't continue checking if arg can't be resolved
-  const auto* r = Resolve().get_resolution(fe->get_arg());
+  const auto* r = Resolve().get_resolution(fe->get_fd());
   if (r == nullptr) {
     return;
   }
@@ -793,7 +793,7 @@ void TypeCheck::visit(const FseekStatement* fs) {
   Visitor::visit(fs);
   
   // Can't continue checking if arg is unreachable
-  const auto* id = Resolve().get_resolution(fs->get_id());
+  const auto* id = Resolve().get_resolution(fs->get_fd());
   if (id == nullptr){
     return;
   }

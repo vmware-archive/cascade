@@ -74,7 +74,7 @@ void Visitor::visit(const ConditionalExpression* ce) {
 }
 
 void Visitor::visit(const FeofExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_fd(this);
 }
 
 void Visitor::visit(const FopenExpression* fe) {
@@ -289,8 +289,9 @@ void Visitor::visit(const FinishStatement* fs) {
 }
 
 void Visitor::visit(const FseekStatement* fs) {
-  fs->accept_id(this);
-  fs->accept_pos(this);
+  fs->accept_fd(this);
+  fs->accept_offset(this);
+  fs->accept_op(this);
 }
 
 void Visitor::visit(const GetStatement* gs) {

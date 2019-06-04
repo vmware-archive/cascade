@@ -163,6 +163,7 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_PUT      "$put"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
+%token SYS_REWIND   "$rewind"
 %token SYS_SAVE     "$save"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
@@ -1466,12 +1467,16 @@ system_task_enable
     $$ = new RetargetStatement($3);
     parser->set_loc($$);
   }
+  | SYS_REWIND OPAREN identifier CPAREN SCOLON {
+    $$ = new FseekStatement($3, new Number(Bits(false)), new Number(Bits(false)));
+    parser->set_loc($$);
+  }
   | SYS_SAVE OPAREN string_ CPAREN SCOLON {
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_FSEEK OPAREN identifier COMMA number CPAREN SCOLON {
-    $$ = new FseekStatement($3, $5);
+  | SYS_FSEEK OPAREN identifier COMMA number COMMA number CPAREN SCOLON {
+    $$ = new FseekStatement($3, $5, $7);
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
