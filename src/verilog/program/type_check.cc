@@ -781,12 +781,10 @@ void TypeCheck::visit(const WhileStatement* ws) {
 
 void TypeCheck::visit(const DisplayStatement* ds) {
   ds->accept_args(this);
-  check_printf(ds->size_args(), ds->begin_args(), ds->end_args());
 }
 
 void TypeCheck::visit(const ErrorStatement* es) {
   es->accept_args(this);
-  check_printf(es->size_args(), es->begin_args(), es->end_args());
 }
 
 void TypeCheck::visit(const FseekStatement* fs) {
@@ -831,7 +829,6 @@ void TypeCheck::visit(const GetStatement* gs) {
 
 void TypeCheck::visit(const InfoStatement* is) {
   is->accept_args(this);
-  check_printf(is->size_args(), is->begin_args(), is->end_args());
 }
 
 void TypeCheck::visit(const PutStatement* ps) {
@@ -853,6 +850,12 @@ void TypeCheck::visit(const PutStatement* ps) {
   }
 }
 
+void TypeCheck::visit(const PutsStatement* ps) {
+  ps->accept_fd(this);
+  // Don't descend on format string.
+  ps->accept_expr(this);
+}
+
 void TypeCheck::visit(const RestartStatement* rs) {
   (void) rs;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
@@ -870,12 +873,10 @@ void TypeCheck::visit(const SaveStatement* ss) {
 
 void TypeCheck::visit(const WarningStatement* ws) {
   ws->accept_args(this);
-  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
 }
 
 void TypeCheck::visit(const WriteStatement* ws) {
   ws->accept_args(this);
-  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
 }
 
 void TypeCheck::visit(const WaitStatement* ws) {
