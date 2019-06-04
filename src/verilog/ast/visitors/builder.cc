@@ -430,6 +430,14 @@ Statement* Builder::build(const PutStatement* ps) {
   );
 }
 
+Statement* Builder::build(const PutsStatement* ps) {
+  return new PutsStatement(
+    ps->accept_fd(this),
+    ps->accept_fmt(this),
+    ps->accept_expr(this)
+  );
+}
+
 Statement* Builder::build(const RestartStatement* rs) {
   return new RestartStatement(
     rs->accept_arg(this)

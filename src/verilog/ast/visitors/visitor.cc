@@ -308,6 +308,12 @@ void Visitor::visit(const PutStatement* ps) {
   ps->accept_var(this);
 }
 
+void Visitor::visit(const PutsStatement* ps) {
+  ps->accept_fd(this);
+  ps->accept_fmt(this);
+  ps->accept_expr(this);
+}
+
 void Visitor::visit(const RestartStatement* rs) {
   rs->accept_arg(this);
 }

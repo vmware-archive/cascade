@@ -97,6 +97,7 @@ struct Rewriter {
   virtual Statement* rewrite(GetStatement* gs);
   virtual Statement* rewrite(InfoStatement* is);
   virtual Statement* rewrite(PutStatement* ps);
+  virtual Statement* rewrite(PutsStatement* ps);
   virtual Statement* rewrite(RestartStatement* rs);
   virtual Statement* rewrite(RetargetStatement* rs);
   virtual Statement* rewrite(SaveStatement* ss);

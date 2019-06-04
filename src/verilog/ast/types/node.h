@@ -122,15 +122,16 @@ class Node {
       get_statement                  = 52 | system_task_enable_statement, 
       info_statement                 = 53 | system_task_enable_statement, 
       put_statement                  = 54 | system_task_enable_statement, 
-      restart_statement              = 55 | system_task_enable_statement, 
-      retarget_statement             = 56 | system_task_enable_statement, 
-      save_statement                 = 57 | system_task_enable_statement, 
-      warning_statement              = 58 | system_task_enable_statement, 
-      write_statement                = 59 | system_task_enable_statement, 
-      wait_statement                 = 60 | statement, 
-      delay_control                  = 61 | timing_control,
-      event_control                  = 62 | timing_control,
-      variable_assign                = 63 | node
+      puts_statement                 = 55 | system_task_enable_statement, 
+      restart_statement              = 56 | system_task_enable_statement, 
+      retarget_statement             = 57 | system_task_enable_statement, 
+      save_statement                 = 58 | system_task_enable_statement, 
+      warning_statement              = 59 | system_task_enable_statement, 
+      write_statement                = 60 | system_task_enable_statement, 
+      wait_statement                 = 61 | statement, 
+      delay_control                  = 62 | timing_control,
+      event_control                  = 63 | timing_control,
+      variable_assign                = 64 | node
     };
 
     // Constructors:

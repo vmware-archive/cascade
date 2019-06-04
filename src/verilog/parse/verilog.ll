@@ -443,6 +443,7 @@ IF_TEXT     ([^`]*)
 "$get"      return yyParser::make_SYS_GET(parser->get_loc());
 "$info"     return yyParser::make_SYS_INFO(parser->get_loc());
 "$put"      return yyParser::make_SYS_PUT(parser->get_loc());
+"$puts"     return yyParser::make_SYS_PUTS(parser->get_loc());
 "$restart"  return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
 "$rewind"   return yyParser::make_SYS_REWIND(parser->get_loc());

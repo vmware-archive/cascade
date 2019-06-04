@@ -161,6 +161,7 @@ bool is_null(const cascade::Expression* e) {
 %token SYS_GET      "$get"
 %token SYS_INFO     "$info"
 %token SYS_PUT      "$put"
+%token SYS_PUTS     "$puts"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_REWIND   "$rewind"
@@ -1457,6 +1458,14 @@ system_task_enable
   }
   | SYS_PUT OPAREN identifier COMMA identifier CPAREN SCOLON {
     $$ = new PutStatement($3, $5); 
+    parser->set_loc($$);
+  }
+  | SYS_PUT OPAREN identifier COMMA string_ CPAREN SCOLON {
+    $$ = new PutsStatement($3, $5); 
+    parser->set_loc($$);
+  }
+  | SYS_PUT OPAREN identifier COMMA string_ COMMA expression CPAREN SCOLON {
+    $$ = new PutsStatement($3, $5, $7); 
     parser->set_loc($$);
   }
   | SYS_RESTART OPAREN string_ CPAREN SCOLON {

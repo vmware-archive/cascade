@@ -544,6 +544,7 @@
   friend class GetStatement; \
   friend class InfoStatement; \
   friend class PutStatement; \
+  friend class PutsStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \

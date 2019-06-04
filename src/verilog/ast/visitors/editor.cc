@@ -308,6 +308,12 @@ void Editor::edit(PutStatement* ps) {
   ps->accept_var(this);
 }
 
+void Editor::edit(PutsStatement* ps) {
+  ps->accept_fd(this);
+  ps->accept_fmt(this);
+  ps->accept_expr(this);
+}
+
 void Editor::edit(RestartStatement* rs) {
   rs->accept_arg(this);
 }

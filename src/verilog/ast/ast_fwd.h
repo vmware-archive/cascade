@@ -102,6 +102,7 @@ class Node;
       class GetStatement;
       class InfoStatement;
       class PutStatement;
+      class PutsStatement;
       class RestartStatement;
       class RetargetStatement;
       class SaveStatement;

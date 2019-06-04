@@ -359,6 +359,13 @@ Statement* Rewriter::rewrite(PutStatement* ps) {
   return ps;
 }
 
+Statement* Rewriter::rewrite(PutsStatement* ps) {
+  ps->accept_fd(this);
+  ps->accept_fmt(this);
+  ps->accept_expr(this);
+  return ps;
+}
+
 Statement* Rewriter::rewrite(RestartStatement* rs) {
   rs->accept_arg(this);
   return rs;

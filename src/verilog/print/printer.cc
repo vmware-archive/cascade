@@ -632,6 +632,19 @@ void Printer::visit(const PutStatement* ps) {
   *this << Color::RED << ");" << Color::RESET;
 }
 
+void Printer::visit(const PutsStatement* ps) {
+  *this << Color::YELLOW << "$puts" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ps->accept_fd(this);
+  *this << Color::RED << "," << Color::RESET;
+  ps->accept_fmt(this);
+  if (ps->is_non_null_expr()) {
+    *this << Color::RED << "," << Color::RESET;
+    ps->accept_expr(this);
+  }
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const RestartStatement* rs) {
   *this << Color::YELLOW << "$restart" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
