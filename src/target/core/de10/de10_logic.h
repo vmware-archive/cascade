@@ -162,16 +162,11 @@ class De10Logic : public Logic, public Visitor {
 
     // Visitor Interface:
     void visit(const FeofExpression* fe) override;
-    void visit(const DisplayStatement* ds) override;
-    void visit(const ErrorStatement* es) override;
     void visit(const FinishStatement* fs) override;
     void visit(const FseekStatement* fs) override;
     void visit(const GetStatement* gs) override;
-    void visit(const InfoStatement* is) override;
     void visit(const PutStatement* ps) override;
     void visit(const RetargetStatement* rs) override;
-    void visit(const WarningStatement* ws) override;
-    void visit(const WriteStatement* ws) override;
 
     // Variable Table Building Helper:
     void insert(const Identifier* id, bool materialized);

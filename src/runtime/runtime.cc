@@ -163,143 +163,6 @@ pair<bool, bool> Runtime::eval_all(istream& is) {
   return make_pair(eof, err);
 }
 
-void Runtime::display(const string& s) {
-  schedule_interrupt([this, s]{
-    ostream(rdbuf(stdout_)) << s << endl;
-  });
-}
-
-void Runtime::write(const string& s) {
-  schedule_interrupt([this, s]{
-    ostream(rdbuf(stdout_)) << s;
-    ostream(rdbuf(stdout_)).flush();
-  });
-}
-
-void Runtime::finish(uint32_t arg) {
-  schedule_interrupt([this, arg]{
-    if (arg > 0) {
-      ostream(rdbuf(stdout_)) 
-        << "Simulation Time: " << logical_time_ << "\n"
-        << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << "\n"
-        << "Clock Frequency: " << overall_frequency() << endl;
-    } 
-    request_stop();
-    finished_ = true;
-  });
-}
-
-void Runtime::error(const string& s) {
-  schedule_interrupt([this, s]{
-    ostream(rdbuf(stderr_)) << s << endl;
-  });
-}
-
-void Runtime::warning(const string& s) {
-  schedule_interrupt([this, s]{
-    ostream(rdbuf(stdwarn_)) << s << endl;
-  });
-}
-
-void Runtime::info(const string& s) {
-  schedule_interrupt([this, s]{
-    ostream(rdbuf(stdinfo_)) << s << endl;
-  });
-}
-
-void Runtime::restart(const string& path) {
-  schedule_interrupt([this, path]{
-    // As with retarget(), invoking this method in a state where item_evals_ >
-    // 0 can be problematic. This condition guarantees safety.
-    if (item_evals_ > 0) {
-      return restart(path);
-    }
-    ifstream ifs(path);
-    if (!ifs.is_open()) {
-      error("Unable to open save file '" + path + "'!");
-      finish(0);
-      return;
-    }
-    root_->restart(ifs);
-  });
-}   
-
-void Runtime::retarget(const string& s) {
-  schedule_interrupt([this, s]{
-    // An unfortunate corner case: Have some evals been processed by the
-    // interrupt queue? Remember that Module::rebuild() can only be invoked in
-    // a state where there are no unhandled evals. Fortunately, there's an easy
-    // fix: just reinvoke retarget().  This will reschedule us on the far side
-    // of Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
-    if (item_evals_ > 0) {
-      return retarget(s);
-    }
-    // Give up if we can't open the march file which was requested
-    incstream ifs(System::src_root());
-    if (!ifs.open("data/march/" + s + ".v")) {
-      error("Unrecognized march option '" + s + "'!");
-      finish(0);
-      return;
-    }
-
-    // Temporarily relocate program_ and root_ so that we can scan the contents
-    // of this file using the eval_stream() infrastructure. We'll delete the
-    // temporary data-structures when we're done.
-    auto* march = program_;
-    program_ = new Program();
-    auto* backup_root = root_;
-    root_ = nullptr;
-    eval_stream(ifs);
-    assert(!log_->error());
-    std::swap(march, program_);
-    std::swap(backup_root, root_);
-    item_evals_ = 0;
-
-    // Replace attribute annotations for every elaborated module (this includes the
-    // root, which is where logic inherits its annotations from).
-    for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
-      auto* std1 = i->second->get_attrs()->get<String>("__std");
-      assert(std1 != nullptr);
-
-      auto found = false;
-      for (auto j = march->elab_begin(), je = march->elab_end(); j != je; ++j) {
-        auto* std2 = j->second->get_attrs()->get<String>("__std");
-        assert(std2 != nullptr);
-       
-        if (std1->get_readable_val() == std2->get_readable_val()) {
-          i->second->replace_attrs(j->second->get_attrs()->clone());
-          found = true; 
-          break;
-        }   
-      }
-      if (!found) {
-        delete march;
-        delete backup_root;
-        error("New target does not support modules with standard type " + std1->get_readable_val() + "!");
-        finish(0);
-        return;
-      }
-    }
-
-    // Delete temporaries and rebuild the program
-    delete march;
-    delete backup_root;
-    root_->rebuild();
-  });
-}
-
-void Runtime::save(const string& path) {
-  schedule_interrupt([this, path]{
-    // As with retarget(), invoking this method in a state where item_evals_ >
-    // 0 can be problematic. This condition guarantees safety.
-    if (item_evals_ > 0) {
-      return save(path);
-    }
-    ofstream ofs(path);
-    root_->save(ofs);
-  });
-}
-
 bool Runtime::schedule_interrupt(Interrupt int_) {
   lock_guard<recursive_mutex> lg(int_lock_);
   if (finished_) {
@@ -353,6 +216,110 @@ void Runtime::write(VId id, const Bits* bits) {
 
 void Runtime::write(VId id, bool b) {
   dp_->write(id, b);
+}
+
+void Runtime::finish(uint32_t arg) {
+  if (arg > 0) {
+    ostream(rdbuf(stdout_)) 
+      << "Simulation Time: " << logical_time_ << "\n"
+      << "Wall Clock Time: " << (::time(nullptr) - begin_time_) << "s" << "\n"
+      << "Clock Frequency: " << overall_frequency() << endl;
+  } 
+  request_stop();
+  finished_ = true;
+}
+
+void Runtime::restart(const string& path) {
+  schedule_interrupt([this, path]{
+    // As with retarget(), invoking this method in a state where item_evals_ >
+    // 0 can be problematic. This condition guarantees safety.
+    if (item_evals_ > 0) {
+      return restart(path);
+    }
+    ifstream ifs(path);
+    if (!ifs.is_open()) {
+      ostream(rdbuf(stderr_)) << "Unable to open save file '" << path << "'\"!" << endl;
+      finish(0);
+      return;
+    }
+    root_->restart(ifs);
+  });
+}   
+
+void Runtime::retarget(const string& s) {
+  schedule_interrupt([this, s]{
+    // An unfortunate corner case: Have some evals been processed by the
+    // interrupt queue? Remember that Module::rebuild() can only be invoked in
+    // a state where there are no unhandled evals. Fortunately, there's an easy
+    // fix: just reinvoke retarget().  This will reschedule us on the far side
+    // of Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
+    if (item_evals_ > 0) {
+      return retarget(s);
+    }
+    // Give up if we can't open the march file which was requested
+    incstream ifs(System::src_root());
+    if (!ifs.open("data/march/" + s + ".v")) {
+      ostream(rdbuf(stderr_)) << "Unrecognized march option '" << s << "'!" << endl;
+      finish(0);
+      return;
+    }
+
+    // Temporarily relocate program_ and root_ so that we can scan the contents
+    // of this file using the eval_stream() infrastructure. We'll delete the
+    // temporary data-structures when we're done.
+    auto* march = program_;
+    program_ = new Program();
+    auto* backup_root = root_;
+    root_ = nullptr;
+    eval_stream(ifs);
+    assert(!log_->error());
+    std::swap(march, program_);
+    std::swap(backup_root, root_);
+    item_evals_ = 0;
+
+    // Replace attribute annotations for every elaborated module (this includes the
+    // root, which is where logic inherits its annotations from).
+    for (auto i = program_->elab_begin(), ie = program_->elab_end(); i != ie; ++i) {
+      auto* std1 = i->second->get_attrs()->get<String>("__std");
+      assert(std1 != nullptr);
+
+      auto found = false;
+      for (auto j = march->elab_begin(), je = march->elab_end(); j != je; ++j) {
+        auto* std2 = j->second->get_attrs()->get<String>("__std");
+        assert(std2 != nullptr);
+       
+        if (std1->get_readable_val() == std2->get_readable_val()) {
+          i->second->replace_attrs(j->second->get_attrs()->clone());
+          found = true; 
+          break;
+        }   
+      }
+      if (!found) {
+        delete march;
+        delete backup_root;
+        ostream(rdbuf(stderr_)) << "New target does not support modules with standard type " << std1->get_readable_val() << "!" << endl;
+        finish(0);
+        return;
+      }
+    }
+
+    // Delete temporaries and rebuild the program
+    delete march;
+    delete backup_root;
+    root_->rebuild();
+  });
+}
+
+void Runtime::save(const string& path) {
+  schedule_interrupt([this, path]{
+    // As with retarget(), invoking this method in a state where item_evals_ >
+    // 0 can be problematic. This condition guarantees safety.
+    if (item_evals_ > 0) {
+      return save(path);
+    }
+    ofstream ofs(path);
+    root_->save(ofs);
+  });
 }
 
 FId Runtime::fopen(const std::string& path) {
@@ -436,11 +403,13 @@ uint32_t Runtime::sgetn(FId id, char* c, uint32_t n) {
 }
 
 int32_t Runtime::sputc(FId id, char c) {
-  return rdbuf(id)->sputc(c);
+  // Squelch puts which take place after a call to finish
+  return !finished_ ? rdbuf(id)->sputc(c) : c;
 }
 
 uint32_t Runtime::sputn(FId id, const char* c, uint32_t n) {
-  return rdbuf(id)->sputn(c, n);
+  // Squelch puts which take place after a call to finish
+  return !finished_ ? rdbuf(id)->sputn(c, n) : n;
 }
 
 void Runtime::run_logic() {
@@ -692,10 +661,10 @@ void Runtime::reference_scheduler() {
 }
 
 void Runtime::log_parse_errors() {
-  stringstream ss;
-  ss << "Parse Error:";
+  ostream os(rdbuf(stderr_));
+  os << "Parse Error:";
 
-  indstream is(ss);
+  indstream is(os);
   is.tab();
   for (auto e = log_->error_begin(), ee = log_->error_end(); e != ee; ++e) {
     is << "\n> ";
@@ -703,7 +672,7 @@ void Runtime::log_parse_errors() {
     is << *e;
     is.untab();
   }
-  error(ss.str());
+  os << endl;
 }
 
 void Runtime::log_checker_warns() {
@@ -711,10 +680,10 @@ void Runtime::log_checker_warns() {
     return;
   }
 
-  stringstream ss;
-  ss << "Typechecker Warning:";
+  ostream os(rdbuf(stdwarn_));
+  os << "Typechecker Warning:";
 
-  indstream is(ss);
+  indstream is(os);
   is.tab();
   for (auto w = log_->warn_begin(), we = log_->warn_end(); w != we; ++w) {
     is << "\n> ";
@@ -722,14 +691,14 @@ void Runtime::log_checker_warns() {
     is << *w;
     is.untab();
   }
-  warning(ss.str());
+  os << endl;
 }
 
 void Runtime::log_checker_errors() {
-  stringstream ss;
-  ss << "Typechecker Error:";
+  ostream os(rdbuf(stderr_));
+  os << "Typechecker Error:";
 
-  indstream is(ss);
+  indstream is(os);
   is.tab();
   for (auto e = log_->error_begin(), ee = log_->error_end(); e != ee; ++e) {
     is << "\n> ";
@@ -737,11 +706,11 @@ void Runtime::log_checker_errors() {
     is << *e;
     is.untab();
   }
-  error(ss.str());
+  os << endl;
 }
 
 void Runtime::log_compiler_errors() {
-  error("Internal Compiler Error:\n  > " + compiler_->what());
+  ostream(rdbuf(stderr_)) << "Internal Compiler Error:\n  > " << compiler_->what() << endl;
   finish(0);
 }
 
@@ -754,7 +723,7 @@ void Runtime::log_event(const string& type, Node* n) {
   auto s = ss.str();
 
   auto event = [this, s]{
-    ostream(rdbuf(5)) << s << endl;
+    ostream(rdbuf(stdlog_)) << s << endl;
   };
   schedule_interrupt(event, event);
 }
@@ -768,7 +737,7 @@ void Runtime::log_freq() {
   }
   auto event = [this]{
     last_check_ = ::time(nullptr);
-    ostream(rdbuf(5)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
+    ostream(rdbuf(stdlog_)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
   };
   schedule_interrupt(event, event);
 }

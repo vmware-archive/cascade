@@ -384,18 +384,6 @@ Statement* Builder::build(const TimingControlStatement* tcs) {
   );
 }
 
-Statement* Builder::build(const DisplayStatement* ds) {
-  auto* res = new DisplayStatement();
-  ds->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
-Statement* Builder::build(const ErrorStatement* es) {
-  auto* res = new ErrorStatement();
-  es->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
 Statement* Builder::build(const FinishStatement* fs) {
   return new FinishStatement(
     fs->accept_arg(this)
@@ -415,12 +403,6 @@ Statement* Builder::build(const GetStatement* gs) {
     gs->accept_id(this),
     gs->accept_var(this)
   );
-}
-
-Statement* Builder::build(const InfoStatement* is) {
-  auto* res = new InfoStatement();
-  is->accept_args(this, res->back_inserter_args());
-  return res;
 }
 
 Statement* Builder::build(const PutStatement* ps) {
@@ -454,18 +436,6 @@ Statement* Builder::build(const SaveStatement* ss) {
   return new SaveStatement(
     ss->accept_arg(this)
   );
-}
-
-Statement* Builder::build(const WarningStatement* ws) {
-  auto* res = new WarningStatement();
-  ws->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
-Statement* Builder::build(const WriteStatement* ws) {
-  auto* res = new WriteStatement();
-  ws->accept_args(this, res->back_inserter_args());
-  return res;
 }
 
 Statement* Builder::build(const WaitStatement* ws) {

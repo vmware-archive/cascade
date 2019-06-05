@@ -154,10 +154,9 @@ void Module::restart(std::istream& is) {
       continue;
     }
 
-    stringstream ss;
+    ostream os(rt_->rdbuf(Runtime::stdinfo_));
     const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
-    ss << "Updated state for " << fid;
-    rt_->info(ss.str());
+    os << "Updated state for " << fid << endl;
 
     (*i)->engine_->set_input(itr->second.first);
     (*i)->engine_->set_state(itr->second.second);

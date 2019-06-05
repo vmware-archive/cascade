@@ -24,6 +24,7 @@ using namespace cascade;
 #define YY_BUF_SIZE 1024*1024
 
 std::pair<bool, std::string> strip_num(const char* c, size_t n);
+std::string strip_text(const char* c, size_t n);
 %}
 
 SPACE       ([ \t])
@@ -458,7 +459,7 @@ IF_TEXT     ([^`]*)
 '[sS]?[hH]{WHITESPACE}*{HEX}     return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
 
 {IDENTIFIER} return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-{QUOTED_STR} return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
+{QUOTED_STR} return yyParser::make_STRING(strip_text(yytext+1, yyleng-2), parser->get_loc());
 
 <<EOF>> return yyParser::make_END_OF_FILE(parser->get_loc());
 
@@ -482,6 +483,19 @@ std::pair<bool, std::string> strip_num(const char* c, size_t n) {
   }
 
   return std::make_pair(is_signed, s);
+}
+
+std::string strip_text(const char* c, size_t n) {
+  std::string res = "";
+  for (auto i = 0; i < n; ++i) {
+    if ((c[i] == '\\') && (c[i+1] == 'n')) {
+      res += '\n';
+      ++i;
+    } else {
+      res += c[i];
+    }
+  }
+  return res;
 }
 
 int yyFlexLexer::yylex() {

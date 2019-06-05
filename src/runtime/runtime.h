@@ -56,6 +56,14 @@ class Program;
 
 class Runtime : public Asynchronous {
   public:
+    // Constexprs:
+    static constexpr FId stdin_ = 0x8000'0000;
+    static constexpr FId stdout_ = 0x8000'0001;
+    static constexpr FId stderr_ = 0x8000'0002;
+    static constexpr FId stdwarn_ = 0x8000'0003;
+    static constexpr FId stdinfo_ = 0x8000'0004;
+    static constexpr FId stdlog_ = 0x8000'0005;
+
     // Typedefs:
     typedef std::function<void()> Interrupt;
 
@@ -80,29 +88,6 @@ class Runtime : public Asynchronous {
     // or an error occurs.
     std::pair<bool, bool> eval_all(std::istream& is);
 
-    // System Task Interface:
-    //
-    // Print a newline-teriminated string between this and the next timestep.
-    void display(const std::string& s);
-    // Print a string between this and the next timestep. 
-    void write(const std::string& s);
-    // Shutdown the runtime and print statistics if arg is non-zero between
-    // this and the next timestep. 
-    void finish(uint32_t arg);
-    // Prints an error message between this and the next timestep. 
-    void error(const std::string& s);
-    // Prints a warning message between this and the next timestep. 
-    void warning(const std::string& s);
-    // Prints an info message between this and the next timestep. 
-    void info(const std::string& s);
-    // Loads the current state of the simulation from a file
-    void restart(const std::string& path);
-    // Schedules a recompilation of the current program to a new march target in
-    // between this and the next timestep. Returns immediately.
-    void retarget(const std::string& s);
-    // Saves the current state of the simulation to a file
-    void save(const std::string& path);
-
     // Scheduling Interface:
     //
     // Schedules an interrupt to run between this and the next time step.
@@ -123,6 +108,8 @@ class Runtime : public Asynchronous {
     // Returns true if the runtime has executed a finish statement.
     bool is_finished() const;
 
+    // Data Plane Interface:
+    //
     // Writes a value to the dataplane. Invoking this method to insert
     // arbitrary values may be useful for simulating noisy circuits. However in
     // general, the use of this method is probably best left to modules which
@@ -134,20 +121,25 @@ class Runtime : public Asynchronous {
     // are going about their normal execution.
     void write(VId id, bool b);
 
+    // System Task Interface:
+    //
+    // Executes a $finish() and returns immediately.
+    void finish(uint32_t arg);
+    // Schedules a $restart() at the end of this step and returns immediately.
+    void restart(const std::string& path);
+    // Schedules a $retarget() at the end of this step and returns immediately.
+    void retarget(const std::string& s);
+    // Schedules a $save() at the end of this step and returns immediately.
+    void save(const std::string& path);
+
     // Stream I/O Interface:
     //
-    // In contrast to the system task and program logic interfaces, these
-    // methods are scheduled immediately, regardless of the execution state of
-    // the runtime. From a design perspective, this interface is a thin wrapper
-    // around streambufs. Attempting to perform an operation on an unrecognized
-    // or closed stream id will result in undefined behavior.
-    // 
-    // Creates an entry in the stream table by calling new filebuf(path, in|out).
-    FId fopen(const std::string& path);
     // Returns an entry in the stream table
     std::streambuf* rdbuf(FId id) const;
     // Replaces an entry in the stream table and returns its previous value
     std::streambuf* rdbuf(FId id, std::streambuf* sb);
+    // Creates an entry in the stream table by calling new filebuf(path, in|out).
+    FId fopen(const std::string& path);
     // Streambuf operators:
     int32_t in_avail(FId id);
     uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which);
@@ -160,13 +152,6 @@ class Runtime : public Asynchronous {
     uint32_t sputn(FId id, const char* c, uint32_t n);
 
   private:
-    static constexpr uint32_t stdin_ = 0x8000'0000;
-    static constexpr uint32_t stdout_ = 0x8000'0001;
-    static constexpr uint32_t stderr_ = 0x8000'0002;
-    static constexpr uint32_t stdwarn_ = 0x8000'0003;
-    static constexpr uint32_t stdinfo_ = 0x8000'0004;
-    static constexpr uint32_t stdlog_ = 0x8000'0005;
-
     // Major Components:
     Log* log_;
     Parser* parser_;

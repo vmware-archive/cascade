@@ -89,14 +89,6 @@ Statement* TextMangle::build(const NonblockingAssign* na) {
   return m.res_;
 }
 
-Statement* TextMangle::build(const DisplayStatement* ds) {
-  return save_task(ds);
-}
-
-Statement* TextMangle::build(const ErrorStatement* es) {
-  return save_task(es);
-}
-
 Statement* TextMangle::build(const FinishStatement* fs) {
   return save_task(fs);
 }
@@ -107,10 +99,6 @@ Statement* TextMangle::build(const FseekStatement* fs) {
 
 Statement* TextMangle::build(const GetStatement* gs) {
   return save_io(gs);
-}
-
-Statement* TextMangle::build(const InfoStatement* is) {
-  return save_task(is);
 }
 
 Statement* TextMangle::build(const PutStatement* ps) {
@@ -127,14 +115,6 @@ Statement* TextMangle::build(const RetargetStatement* rs) {
 
 Statement* TextMangle::build(const SaveStatement* ss) {
   return save_task(ss);
-}
-
-Statement* TextMangle::build(const WarningStatement* ws) {
-  return save_task(ws);
-}
-
-Statement* TextMangle::build(const WriteStatement* ws) {
-  return save_task(ws);
 }
 
 Statement* TextMangle::save_io(const Statement* s) {
@@ -269,16 +249,6 @@ void TextMangle::Mangle::visit(const Identifier* id) {
   }
 }
 
-void TextMangle::Mangle::visit(const DisplayStatement* ds) {
-  begin_mangle_task();
-  ds->accept_args(this);
-}
-
-void TextMangle::Mangle::visit(const ErrorStatement* es) {
-  begin_mangle_task();
-  es->accept_args(this);
-}
-
 void TextMangle::Mangle::visit(const FinishStatement* fs) {
   begin_mangle_task();
   fs->accept_arg(this);
@@ -292,11 +262,6 @@ void TextMangle::Mangle::visit(const FseekStatement* fs) {
 void TextMangle::Mangle::visit(const GetStatement* gs) {
   (void) gs;
   begin_mangle_io();
-}
-
-void TextMangle::Mangle::visit(const InfoStatement* is) {
-  begin_mangle_task();
-  is->accept_args(this);
 }
 
 void TextMangle::Mangle::visit(const PutStatement* ps) {
@@ -317,16 +282,6 @@ void TextMangle::Mangle::visit(const RetargetStatement* rs) {
 void TextMangle::Mangle::visit(const SaveStatement* ss) {
   (void) ss;
   begin_mangle_task();
-}
-
-void TextMangle::Mangle::visit(const WarningStatement* ws) {
-  begin_mangle_task();
-  ws->accept_args(this);
-}
-
-void TextMangle::Mangle::visit(const WriteStatement* ws) {
-  begin_mangle_task();
-  ws->accept_args(this);
 }
 
 void TextMangle::Mangle::begin_mangle_io() {

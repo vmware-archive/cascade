@@ -435,38 +435,7 @@ void TypeCheck::visit(const Identifier* id) {
 }
 
 void TypeCheck::visit(const String* s) {
-  auto e = false;
-  if (s->get_parent()->is(Node::Tag::fopen_expression)) {
-    // Nothing to do.
-  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
-    auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
-    if (ds->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::error_statement)) {
-    auto* es = static_cast<const ErrorStatement*>(s->get_parent());
-    if (es->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::info_statement)) {
-    auto* is = static_cast<const InfoStatement*>(s->get_parent());
-    if (is->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::warning_statement)) {
-    auto* ws = static_cast<const WarningStatement*>(s->get_parent());
-    if (ws->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::write_statement)) {
-    auto* ws = static_cast<const WriteStatement*>(s->get_parent());
-    if (ws->front_args() != s) {
-      e = true;
-    }
-  } else {
-    e = true;
-  }
-  if (e) {
+  if (!s->get_parent()->is(Node::Tag::fopen_expression)) {
     error("Cascade does not currently support the use of string constants in expressions", s);
   }
 }
@@ -779,14 +748,6 @@ void TypeCheck::visit(const WhileStatement* ws) {
   Visitor::visit(ws);
 }
 
-void TypeCheck::visit(const DisplayStatement* ds) {
-  ds->accept_args(this);
-}
-
-void TypeCheck::visit(const ErrorStatement* es) {
-  es->accept_args(this);
-}
-
 void TypeCheck::visit(const FseekStatement* fs) {
   Visitor::visit(fs);
   
@@ -827,10 +788,6 @@ void TypeCheck::visit(const GetStatement* gs) {
   }
 }
 
-void TypeCheck::visit(const InfoStatement* is) {
-  is->accept_args(this);
-}
-
 void TypeCheck::visit(const PutStatement* ps) {
   ps->accept_id(this);
   ps->accept_var(this);
@@ -869,14 +826,6 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const WarningStatement* ws) {
-  ws->accept_args(this);
-}
-
-void TypeCheck::visit(const WriteStatement* ws) {
-  ws->accept_args(this);
 }
 
 void TypeCheck::visit(const WaitStatement* ws) {

@@ -40,15 +40,10 @@ class StubInterface : public Interface {
     StubInterface();
     ~StubInterface() override = default;
 
-    void display(const std::string& s) override;
-    void error(const std::string& s) override;
     void finish(uint32_t arg) override;
-    void info(const std::string& s) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
-    void warning(const std::string& s) override;
-    void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
 
@@ -66,24 +61,9 @@ class StubInterface : public Interface {
 
 inline StubInterface::StubInterface() : Interface() { }
 
-inline void StubInterface::display(const std::string& s) {
-  // Does nothing.
-  (void) s;
-}
-
-inline void StubInterface::error(const std::string& s) {
-  // Does nothing.
-  (void) s;
-}
-
 inline void StubInterface::finish(uint32_t arg) {
   // Does nothing.
   (void) arg;
-}
-
-inline void StubInterface::info(const std::string& s) {
-  // Does nothing.
-  (void) s;
 }
 
 inline void StubInterface::restart(const std::string& s) {
@@ -97,16 +77,6 @@ inline void StubInterface::retarget(const std::string& s) {
 }
 
 inline void StubInterface::save(const std::string& s) {
-  // Does nothing.
-  (void) s;
-}
-
-inline void StubInterface::warning(const std::string& s) {
-  // Does nothing.
-  (void) s;
-}
-
-inline void StubInterface::write(const std::string& s) {
   // Does nothing.
   (void) s;
 }

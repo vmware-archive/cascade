@@ -276,14 +276,6 @@ void Visitor::visit(const TimingControlStatement* tcs) {
   tcs->accept_stmt(this);
 }
 
-void Visitor::visit(const DisplayStatement* ds) {
-  ds->accept_args(this);
-}
-
-void Visitor::visit(const ErrorStatement* es) {
-  es->accept_args(this);
-}
-
 void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }
@@ -297,10 +289,6 @@ void Visitor::visit(const FseekStatement* fs) {
 void Visitor::visit(const GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
-}
-
-void Visitor::visit(const InfoStatement* is) {
-  is->accept_args(this);
 }
 
 void Visitor::visit(const PutStatement* ps) {
@@ -324,14 +312,6 @@ void Visitor::visit(const RetargetStatement* rs) {
 
 void Visitor::visit(const SaveStatement* ss) {
   ss->accept_arg(this);
-}
-
-void Visitor::visit(const WarningStatement* ws) {
-  ws->accept_args(this);
-}
-
-void Visitor::visit(const WriteStatement* ws) {
-  ws->accept_args(this);
 }
 
 void Visitor::visit(const WaitStatement* ws) {

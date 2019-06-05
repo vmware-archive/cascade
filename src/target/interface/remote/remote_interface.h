@@ -43,15 +43,10 @@ class RemoteInterface : public Interface {
     explicit RemoteInterface(sockstream* sock, Rpc::Id id);
     ~RemoteInterface() override = default;
 
-    void display(const std::string& s) override;
-    void error(const std::string& s) override;
     void finish(uint32_t arg) override;
-    void info(const std::string& s) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
-    void warning(const std::string& s) override;
-    void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
 
@@ -76,27 +71,9 @@ inline RemoteInterface::RemoteInterface(sockstream* sock, Rpc::Id id) : Interfac
   id_ = id;
 }
 
-inline void RemoteInterface::display(const std::string& s) {
-  Rpc(Rpc::Type::DISPLAY, id_).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
-  sock_->put('\0');
-}
-
-inline void RemoteInterface::error(const std::string& s) {
-  Rpc(Rpc::Type::ERROR, id_).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
-  sock_->put('\0');
-}
-
 inline void RemoteInterface::finish(uint32_t arg) {
   Rpc(Rpc::Type::FINISH, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&arg), 4);
-}
-
-inline void RemoteInterface::info(const std::string& s) {
-  Rpc(Rpc::Type::INFO, id_).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
-  sock_->put('\0');
 }
 
 inline void RemoteInterface::restart(const std::string& s) {
@@ -117,20 +94,8 @@ inline void RemoteInterface::save(const std::string& s) {
   sock_->put('\0');
 }
 
-inline void RemoteInterface::warning(const std::string& s) {
-  Rpc(Rpc::Type::WARNING, id_).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
-  sock_->put('\0');
-}
-
-inline void RemoteInterface::write(const std::string& s) {
-  Rpc(Rpc::Type::WRITE, id_).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
-  sock_->put('\0');
-}
-
 inline void RemoteInterface::write(VId id, const Bits* b) {
-  Rpc(Rpc::Type::WRITE_BITS, id_).serialize(*sock_);
+  Rpc(Rpc::Type::WRITE, id_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   b->serialize(*sock_);
 }

@@ -276,14 +276,6 @@ void Editor::edit(TimingControlStatement* tcs) {
   tcs->accept_stmt(this);
 }
 
-void Editor::edit(DisplayStatement* ds) {
-  ds->accept_args(this);
-}
-
-void Editor::edit(ErrorStatement* es) {
-  es->accept_args(this);
-}
-
 void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
@@ -297,10 +289,6 @@ void Editor::edit(FseekStatement* fs) {
 void Editor::edit(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
-}
-
-void Editor::edit(InfoStatement* is) {
-  is->accept_args(this);
 }
 
 void Editor::edit(PutStatement* ps) {
@@ -324,14 +312,6 @@ void Editor::edit(RetargetStatement* rs) {
 
 void Editor::edit(SaveStatement* ss) {
   ss->accept_arg(this);
-}
-
-void Editor::edit(WarningStatement* ws) {
-  ws->accept_args(this);
-}
-
-void Editor::edit(WriteStatement* ws) {
-  ws->accept_args(this);
 }
 
 void Editor::edit(WaitStatement* ws) {

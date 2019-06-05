@@ -189,7 +189,15 @@ void Printer::visit(const Number* n) {
 }
 
 void Printer::visit(const String* s) {
-  *this << Color::BLUE << "\"" << s->get_readable_val() << "\"" << Color::RESET;
+  *this << Color::BLUE << "\"";
+  for (auto c : s->get_readable_val()) {
+    if (c == '\n') {
+      os_ << "\\n";
+    } else {
+      os_ << c;
+    }
+  }
+  *this << "\"" << Color::RESET;
 }
 
 void Printer::visit(const RangeExpression* re) {
@@ -572,22 +580,6 @@ void Printer::visit(const TimingControlStatement* ptc) {
   ptc->accept_stmt(this);
 }
 
-void Printer::visit(const DisplayStatement* ds) {
-  *this << Color::YELLOW << "$display" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  int cnt = 0;
-  ds->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
-  *this << Color::RED << ");" << Color::RESET;
-}
-
-void Printer::visit(const ErrorStatement* es) {
-  *this << Color::YELLOW << "$error" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  int cnt = 0;
-  es->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
-  *this << Color::RED << ");" << Color::RESET;
-}
-
 void Printer::visit(const FinishStatement* fs) {
   *this << Color::YELLOW << "$finish" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
@@ -612,14 +604,6 @@ void Printer::visit(const GetStatement* gs) {
   gs->accept_id(this);
   *this << Color::RED << "," << Color::RESET;
   gs->accept_var(this);
-  *this << Color::RED << ");" << Color::RESET;
-}
-
-void Printer::visit(const InfoStatement* is) {
-  *this << Color::YELLOW << "$info" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  int cnt = 0;
-  is->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 
@@ -663,22 +647,6 @@ void Printer::visit(const SaveStatement* ss) {
   *this << Color::YELLOW << "$save" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   ss->accept_arg(this);
-  *this << Color::RED << ");" << Color::RESET;
-}
-
-void Printer::visit(const WarningStatement* ws) {
-  *this << Color::YELLOW << "$warning" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  int cnt = 0;
-  ws->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
-  *this << Color::RED << ");" << Color::RESET;
-}
-
-void Printer::visit(const WriteStatement* ws) {
-  *this << Color::YELLOW << "$write" << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  int cnt = 0;
-  ws->accept_args(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
   *this << Color::RED << ");" << Color::RESET;
 }
 

@@ -250,9 +250,9 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
   } else {
     e->replace_with(e_fast);
     if (e->is_stub()) {
-      rt->info("Deferring " + ss.str());
+      ostream(rt->rdbuf(Runtime::stdinfo_)) << "Deferring " << ss.str() << endl;
     } else {
-      rt->info("Finished " + ss.str());
+      ostream(rt->rdbuf(Runtime::stdinfo_)) << "Finished " << ss.str() << endl;
     }
   }
 
@@ -272,10 +272,10 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
       // it in place of the fast-pass compilation. Otherwise we delete it.
       rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
         if ((this_version < version) || (e_slow == nullptr)) {
-          rt->info("Aborted " + str);
+          ostream(rt->rdbuf(Runtime::stdinfo_)) << "Aborted " << str << endl;
         } else {
           e->replace_with(e_slow);
-          rt->info("Finished " + str);
+          ostream(rt->rdbuf(Runtime::stdinfo_)) << "Finished " << str << endl;
         }
       },
       [e_slow] {
@@ -319,18 +319,8 @@ void Compiler::StubCheck::visit(const InitialConstruct* ic) {
   stub_ = false;
 }
 
-void Compiler::StubCheck::visit(const DisplayStatement* ds) {
-  (void) ds;
-  stub_ = false;
-}
-
 void Compiler::StubCheck::visit(const FinishStatement* fs) {
   (void) fs;
-  stub_ = false;
-}
-
-void Compiler::StubCheck::visit(const WriteStatement* ws) {
-  (void) ws;
   stub_ = false;
 }
 

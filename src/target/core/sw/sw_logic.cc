@@ -405,22 +405,6 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
   }
 }
 
-void SwLogic::visit(const DisplayStatement* ds) {
-  if (!silent_) {
-    interface()->display(Printf(&eval_).format(ds->begin_args(), ds->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(ds);
-}
-
-void SwLogic::visit(const ErrorStatement* es) {
-  if (!silent_) {
-    interface()->error(Printf(&eval_).format(es->begin_args(), es->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(es);
-}
-
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
     interface()->finish(eval_.get_value(fs->get_arg()).to_int());
@@ -470,14 +454,6 @@ void SwLogic::visit(const GetStatement* gs) {
   notify(gs);
 }
 
-void SwLogic::visit(const InfoStatement* is) {
-  if (!silent_) {
-    interface()->info(Printf(&eval_).format(is->begin_args(), is->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(is);
-}
-
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
     const auto* r = Resolve().get_resolution(ps->get_id());
@@ -493,6 +469,32 @@ void SwLogic::visit(const PutStatement* ps) {
     // force a change is to invoke flush()
     eval_.flag_changed(r);
     notify(r);
+  }
+  notify(ps);
+}
+
+void SwLogic::visit(const PutsStatement* ps) {
+  if (!silent_) {
+    const auto str = Printf(&eval_).format(ps->get_fmt()->get_readable_val(), ps->get_expr());
+
+    if (ps->get_fd()->is(Node::Tag::identifier)) {
+      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(ps->get_fd()));
+      const auto itr = streams_.find(r);
+      assert(itr != streams_.end()); 
+      *itr->second << str;
+      
+      // Notify change in stream state (note that isn't guaranteed to do anything
+      // as interface has some implementation leeway for put). The only way to
+      // force a change is to invoke flush()
+      eval_.flag_changed(r);
+      notify(r);
+    } else {
+      const auto fd = eval_.get_value(ps->get_fd()).to_int();
+      assert(fd >= 0x8000'0000);
+      interfacestream(interface(), fd) << str;
+
+      // No need to change the state of the standard streams
+    }
   }
   notify(ps);
 }
@@ -519,22 +521,6 @@ void SwLogic::visit(const SaveStatement* ss) {
     there_were_tasks_ = true;
   }
   notify(ss);
-}
-
-void SwLogic::visit(const WarningStatement* ws) {
-  if (!silent_) {
-    interface()->warning(Printf(&eval_).format(ws->begin_args(), ws->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(ws);
-}
-
-void SwLogic::visit(const WriteStatement* ws) {
-  if (!silent_) {
-    interface()->write(Printf(&eval_).format(ws->begin_args(), ws->end_args()));
-    there_were_tasks_ = true;
-  }
-  notify(ws);
 }
 
 void SwLogic::visit(const WaitStatement* ws) {

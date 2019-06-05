@@ -526,13 +526,9 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
     const auto* p = t->first->get_parent();
     const auto in_push_task = 
-      p->is(Node::Tag::display_statement) ||
-      p->is(Node::Tag::error_statement) ||
-      p->is(Node::Tag::finish_statement) ||
-      p->is(Node::Tag::info_statement) ||
       p->is(Node::Tag::put_statement) ||
-      p->is(Node::Tag::warning_statement) ||
-      p->is(Node::Tag::write_statement);
+      p->is(Node::Tag::puts_statement) ||
+      p->is(Node::Tag::finish_statement);
     const auto in_pull_task = 
       p->is(Node::Tag::feof_expression);
 

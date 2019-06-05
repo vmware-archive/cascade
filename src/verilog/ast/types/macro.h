@@ -537,19 +537,14 @@
   friend class RepeatStatement; \
   friend class WhileStatement; \
   friend class TimingControlStatement; \
-  friend class DisplayStatement; \
-  friend class ErrorStatement; \
   friend class FinishStatement; \
   friend class FseekStatement; \
   friend class GetStatement; \
-  friend class InfoStatement; \
   friend class PutStatement; \
   friend class PutsStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \
-  friend class WarningStatement; \
-  friend class WriteStatement; \
   friend class WaitStatement; \
   friend class DelayControl; \
   friend class EventControl; \

@@ -41,8 +41,8 @@ namespace cascade {
 class PutsStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit PutsStatement(Identifier* fd__, String* fmt__);
-    explicit PutsStatement(Identifier* fd__, String* fmt__, Expression* expr__);
+    explicit PutsStatement(Expression* fd__, String* fmt__);
+    explicit PutsStatement(Expression* fd__, String* fmt__, Expression* expr__);
     ~PutsStatement() override;
 
     // Node Interface:
@@ -50,24 +50,24 @@ class PutsStatement : public SystemTaskEnableStatement {
     PutsStatement* clone() const override;
 
     // Put/Set:
-    PTR_GET_SET(PutsStatement, Identifier, fd)
+    PTR_GET_SET(PutsStatement, Expression, fd)
     PTR_GET_SET(PutsStatement, String, fmt)
     MAYBE_GET_SET(PutsStatement, Expression, expr)
 
   private:
-    PTR_ATTR(Identifier, fd);
+    PTR_ATTR(Expression, fd);
     PTR_ATTR(String, fmt);
     MAYBE_ATTR(Expression, expr);
 };
 
-inline PutsStatement::PutsStatement(Identifier* fd__, String* fmt__) : SystemTaskEnableStatement(Node::Tag::puts_statement) {
+inline PutsStatement::PutsStatement(Expression* fd__, String* fmt__) : SystemTaskEnableStatement(Node::Tag::puts_statement) {
   PTR_SETUP(fd);
   PTR_SETUP(fmt);
   MAYBE_DEFAULT_SETUP(expr);
   parent_ = nullptr;
 }
 
-inline PutsStatement::PutsStatement(Identifier* fd__, String* fmt__, Expression* expr__) : PutsStatement(fd__, fmt__) {
+inline PutsStatement::PutsStatement(Expression* fd__, String* fmt__, Expression* expr__) : PutsStatement(fd__, fmt__) {
   MAYBE_SETUP(expr);
 }
 

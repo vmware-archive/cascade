@@ -42,15 +42,10 @@ class LocalInterface : public Interface {
     explicit LocalInterface(Runtime* rt);
     ~LocalInterface() override = default;     
 
-    void display(const std::string& s) override;
-    void error(const std::string& s) override;
     void finish(uint32_t arg) override;
-    void info(const std::string& s) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
-    void warning(const std::string& s) override;
-    void write(const std::string& s) override;
 
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
@@ -74,20 +69,8 @@ inline LocalInterface::LocalInterface(Runtime* rt) : Interface() {
   rt_ = rt;
 }
 
-inline void LocalInterface::display(const std::string& s) {
-  rt_->display(s);
-}
-
-inline void LocalInterface::error(const std::string& s) {
-  rt_->error(s);
-}
-
 inline void LocalInterface::finish(uint32_t arg) {
   rt_->finish(arg);
-}
-
-inline void LocalInterface::info(const std::string& s) {
-  rt_->info(s);
 }
 
 inline void LocalInterface::restart(const std::string& s) {
@@ -100,14 +83,6 @@ inline void LocalInterface::retarget(const std::string& s) {
 
 inline void LocalInterface::save(const std::string& s) {
   rt_->save(s);
-}
-
-inline void LocalInterface::warning(const std::string& s) {
-  rt_->warning(s);
-}
-
-inline void LocalInterface::write(const std::string& s) {
-  rt_->write(s);
 }
 
 inline void LocalInterface::write(VId id, const Bits* b) {

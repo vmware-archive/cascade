@@ -35,17 +35,13 @@
 #include <string>
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
 
 namespace cascade {
 
 class Printf {
   public:
     Printf(Evaluate* eval);
-
-    template <typename InputItr>
-    std::string format(InputItr begin, InputItr end);
-
+    std::string format(const std::string& format, const Expression* expr);
   private:
     Evaluate* eval_;
 };
@@ -54,50 +50,35 @@ inline Printf::Printf(Evaluate* eval) {
   eval_ = eval;
 }
 
-template <typename InputItr>
-inline std::string Printf::format(InputItr begin, InputItr end) {
-  if (begin == end) {
-    return "";
+inline std::string Printf::format(const std::string& format, const Expression* expr) {
+  if (format[0] != '%') {
+    return format;
   }
 
   std::stringstream ss;
-  auto a = begin;
-
-  if (!(*a)->is(Node::Tag::string)) {
-    eval_->get_value(*a).write(ss, 10);
-    return ss.str();
-  } 
-  auto* s = static_cast<const String*>(*a);
-
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == std::string::npos) {
+  switch (format[1]) {
+    case 'b':
+    case 'B': 
+      eval_->get_value(expr).write(ss, 2);
       break;
-    }
-    if (++a == end) {
-      continue;
-    }
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': 
-        eval_->get_value(*a).write(ss, 2);
-        break;
-      case 'd':
-      case 'D':
-        eval_->get_value(*a).write(ss, 10);
-        break;
-      case 'h':
-      case 'H': 
-        eval_->get_value(*a).write(ss, 16);
-        break;
-      case 'o':
-      case 'O': 
-        eval_->get_value(*a).write(ss, 8);
-        break;
-      default: 
-        assert(false);
-    }
+    case 'd':
+    case 'D':
+      eval_->get_value(expr).write(ss, 10);
+      break;
+    case 'h':
+    case 'H': 
+      eval_->get_value(expr).write(ss, 16);
+      break;
+    case 'o':
+    case 'O': 
+      eval_->get_value(expr).write(ss, 8);
+      break;
+    case 'u':
+    case 'U':
+      eval_->get_value(expr).write(ss, 16);
+      break;
+    default: 
+      assert(false);
   }
   return ss.str();
 }

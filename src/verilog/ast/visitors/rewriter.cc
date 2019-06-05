@@ -320,16 +320,6 @@ Statement* Rewriter::rewrite(TimingControlStatement* tcs) {
   return tcs;
 }
 
-Statement* Rewriter::rewrite(DisplayStatement* ds) {
-  ds->accept_args(this);
-  return ds;
-}
-
-Statement* Rewriter::rewrite(ErrorStatement* es) {
-  es->accept_args(this);
-  return es;
-}
-
 Statement* Rewriter::rewrite(FinishStatement* fs) {
   fs->accept_arg(this);
   return fs;
@@ -346,11 +336,6 @@ Statement* Rewriter::rewrite(GetStatement* gs) {
   gs->accept_id(this);
   gs->accept_var(this);
   return gs;
-}
-
-Statement* Rewriter::rewrite(InfoStatement* is) {
-  is->accept_args(this);
-  return is;
 }
 
 Statement* Rewriter::rewrite(PutStatement* ps) {
@@ -379,16 +364,6 @@ Statement* Rewriter::rewrite(RetargetStatement* rs) {
 Statement* Rewriter::rewrite(SaveStatement* ss) {
   ss->accept_arg(this);
   return ss;
-}
-
-Statement* Rewriter::rewrite(WarningStatement* ws) {
-  ws->accept_args(this);
-  return ws;
-}
-
-Statement* Rewriter::rewrite(WriteStatement* ws) {
-  ws->accept_args(this);
-  return ws;
 }
 
 Statement* Rewriter::rewrite(WaitStatement* ws) {

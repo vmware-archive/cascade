@@ -48,15 +48,10 @@ class Interface {
 
     // These methods must perform whatever target-specific logic is necessary to
     // cause the corresponding system task calls to be invoked in the runtime.
-    virtual void display(const std::string& s) = 0;
-    virtual void error(const std::string& s) = 0;
     virtual void finish(uint32_t arg) = 0;
-    virtual void info(const std::string& s) = 0;
     virtual void restart(const std::string& s) = 0;
     virtual void retarget(const std::string& s) = 0;
     virtual void save(const std::string& s) = 0;
-    virtual void warning(const std::string& s) = 0;
-    virtual void write(const std::string& s) = 0;
 
     // These methods must perform whatever target-specific logic is necessary to
     // communicate changes in the value of logic elements back to the runtime.
