@@ -54,6 +54,9 @@
 #include "verilog/transform/event_expand.h"
 #include "verilog/transform/loop_unroll.h"
 
+#include "src/verilog/print/term/term_printer.h"
+
+
 using namespace std;
 
 namespace cascade {
@@ -321,6 +324,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     ControlMerge().run(md);
     DeadCodeEliminate().run(md);
     BlockFlatten().run(md);
+    TermPrinter(cout) << md << "\n";
   }
   return md;
 }

@@ -789,25 +789,6 @@ void TypeCheck::visit(const GetStatement* gs) {
 }
 
 void TypeCheck::visit(const PutStatement* ps) {
-  ps->accept_id(this);
-  ps->accept_var(this);
-  
-  // Can't continue checking if pointers are unresolvable
-  const auto* id = Resolve().get_resolution(ps->get_id());
-  const auto* var = Resolve().get_resolution(ps->get_var());
-  if ((id == nullptr) || (var == nullptr)) {
-    return;
-  }
-
-  // CHECK: First arg is stream id, second arg is stateful variable
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $put() statement must be a stream id", ps);
-  }
-}
-
-void TypeCheck::visit(const PutsStatement* ps) {
   ps->accept_fd(this);
   // Don't descend on format string.
   ps->accept_expr(this);

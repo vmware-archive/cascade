@@ -262,7 +262,8 @@ void De10Logic::finalize() {
         r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
         break;
       case Node::Tag::put_statement:
-        r = Resolve().get_resolution(static_cast<const PutStatement*>(get<0>(io))->get_id());
+        // TODO(eschkufz) this is broken now that fds can be expressions
+        //r = Resolve().get_resolution(static_cast<const PutStatement*>(get<0>(io))->get_fd());
         break;
       default:
         assert(false);
@@ -476,7 +477,7 @@ void De10Logic::visit(const PutStatement* ps) {
   // the variable table.
   io_tasks_.push_back(make_tuple(ps, nullptr, vector<VarInfo>()));
   Inserter i(this);
-  ps->accept_var(&i); 
+  ps->accept_expr(&i); 
 }
 
 void De10Logic::visit(const RetargetStatement* rs) {
@@ -599,12 +600,10 @@ void De10Logic::handle_io_tasks() {
       }  
       case Node::Tag::put_statement: {
         const auto* ps = static_cast<const PutStatement*>(get<0>(io_tasks_[i]));
-
         Sync sync(this);
-        ps->accept_var(&sync);
-        const auto& val = Evaluate().get_value(ps->get_var());
-        val.write(*get<1>(io_tasks_[i]), 16);
-        get<1>(io_tasks_[i])->put(' ');
+        ps->accept_expr(&sync);
+        Evaluate eval;
+        *get<1>(io_tasks_[i]) << Printf(&eval).format(ps->get_fmt()->get_readable_val(), ps->get_expr());
         break;
       }
       default:

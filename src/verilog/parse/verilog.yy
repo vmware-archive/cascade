@@ -55,7 +55,7 @@ bool is_null(const cascade::Expression* e) {
 }
 
 template <typename InItr>
-cascade::SeqBlock* desugar_output(const cascade::Identifier* fd, InItr begin, InItr end) {
+cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, InItr end) {
   // Check args are well-formed
   auto error = false;
   auto simple = false;
@@ -77,7 +77,7 @@ cascade::SeqBlock* desugar_output(const cascade::Identifier* fd, InItr begin, In
   if (!error) {
     sb = new cascade::SeqBlock(); 
     if (simple) {
-      sb->push_back_stmts(new cascade::PutsStatement(fd->clone(), new cascade::String("%d"), (*begin)->clone()));
+      sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String("%d"), (*begin)->clone()));
     } else {
       size_t i = 0;
       auto itr = begin;
@@ -85,12 +85,12 @@ cascade::SeqBlock* desugar_output(const cascade::Identifier* fd, InItr begin, In
       const auto& str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
       while (i < str.length()) {
         if (str[i] == '%') {
-          sb->push_back_stmts(new cascade::PutsStatement(fd->clone(), new cascade::String(str.substr(i, 2)), (*itr++)->clone()));
+          sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, 2)), (*itr++)->clone()));
           i += 2;
           continue;
         } 
         const auto ie = str.find_first_of('%', i);
-        sb->push_back_stmts(new cascade::PutsStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))));
+        sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))));
         i = ie;
       }
     }
@@ -206,13 +206,14 @@ cascade::SeqBlock* desugar_output(const cascade::Identifier* fd, InItr begin, In
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
 %token SYS_FEOF     "$feof"
+%token SYS_FDISPLAY "$fdisplay"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
 %token SYS_FSEEK    "$fseek"
+%token SYS_FWRITE   "$fwrite"
 %token SYS_GET      "$get"
 %token SYS_INFO     "$info"
 %token SYS_PUT      "$put"
-%token SYS_PUTS     "$puts"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
 %token SYS_REWIND   "$rewind"
@@ -1437,11 +1438,11 @@ loop_statement
 /* A.6.9 Task Enable Statements */
 system_task_enable
   : SYS_DISPLAY SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDOUT"), new String("\n")); 
+    $$ = new PutStatement(new Identifier("STDOUT"), new String("\n")); 
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDOUT"), new String("\n")); 
+    $$ = new PutStatement(new Identifier("STDOUT"), new String("\n")); 
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { 
@@ -1450,16 +1451,16 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $display() statement!");
       YYERROR;
     }
-    sb->push_back_stmts(new PutsStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
     $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDERR"), new String("\n")); 
+    $$ = new PutStatement(new Identifier("STDERR"), new String("\n")); 
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN CPAREN SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDERR"), new String("\n")); 
+    $$ = new PutStatement(new Identifier("STDERR"), new String("\n")); 
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN expression_P CPAREN SCOLON { 
@@ -1468,7 +1469,7 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $error() statement!");
       YYERROR;
     }
-    sb->push_back_stmts(new PutsStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
     $$ = sb;
     parser->set_loc($$);
   }
@@ -1490,9 +1491,24 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $fatal() statement!");
       YYERROR;
     }
-    es->push_back_stmts(new PutsStatement(new Identifier("STDERR"), new String("\n")));
+    es->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
     auto* sb = new SeqBlock(es);
     sb->push_back_stmts(new FinishStatement($3));
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FDISPLAY OPAREN expression CPAREN SCOLON { 
+    $$ = new PutStatement($3, new String("\n")); 
+    parser->set_loc($$);
+  }
+  | SYS_FDISPLAY OPAREN expression COMMA expression_P CPAREN SCOLON { 
+    auto* fd = $3->clone();
+    auto* sb = desugar_output($3, $5.begin(), $5.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fdisplay() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(fd, new String("\n")));
     $$ = sb;
     parser->set_loc($$);
   }
@@ -1508,16 +1524,30 @@ system_task_enable
     $$ = new FinishStatement($3); 
     parser->set_loc($$);
   }
+  | SYS_FWRITE OPAREN expression CPAREN SCOLON { 
+    $$ = new PutStatement($3, new String("\n")); 
+    parser->set_loc($$);
+  }
+  | SYS_FWRITE OPAREN expression COMMA expression_P CPAREN SCOLON { 
+    auto* fd = $3->clone();
+    auto* sb = desugar_output($3, $5.begin(), $5.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fwrite() statement!");
+      YYERROR;
+    }
+    $$ = sb;
+    parser->set_loc($$);
+  }
   | SYS_GET OPAREN identifier COMMA identifier CPAREN SCOLON {
     $$ = new GetStatement($3, $5); 
     parser->set_loc($$);
   }
   | SYS_INFO SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDINFO"), new String("\n"));
+    $$ = new PutStatement(new Identifier("STDINFO"), new String("\n"));
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN CPAREN SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDINFO"), new String("\n"));
+    $$ = new PutStatement(new Identifier("STDINFO"), new String("\n"));
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
@@ -1526,27 +1556,15 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $info() statement!");
       YYERROR;
     }
-    sb->push_back_stmts(new PutsStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
     $$ = sb;
     parser->set_loc($$);
   }
-  | SYS_PUT OPAREN identifier COMMA identifier CPAREN SCOLON {
-    $$ = new PutStatement($3, $5); 
-    parser->set_loc($$);
+  | SYS_PUT OPAREN expression COMMA string_ CPAREN SCOLON {
+    $$ = new PutStatement($3, $5);
   }
-  | SYS_PUT OPAREN identifier COMMA string_ CPAREN SCOLON {
-    $$ = new PutsStatement($3, $5); 
-    parser->set_loc($$);
-  }
-  | SYS_PUT OPAREN identifier COMMA string_ COMMA expression CPAREN SCOLON {
-    $$ = new PutsStatement($3, $5, $7); 
-    parser->set_loc($$);
-  }
-  | SYS_PUTS OPAREN expression COMMA string_ CPAREN SCOLON {
-    $$ = new PutsStatement($3, $5);
-  }
-  | SYS_PUTS OPAREN expression COMMA string_ COMMA expression CPAREN SCOLON {
-    $$ = new PutsStatement($3, $5, $7);
+  | SYS_PUT OPAREN expression COMMA string_ COMMA expression CPAREN SCOLON {
+    $$ = new PutStatement($3, $5, $7);
   }
   | SYS_RESTART OPAREN string_ CPAREN SCOLON {
     $$ = new RestartStatement($3);
@@ -1569,11 +1587,11 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDWARN"), new String("\n"));
+    $$ = new PutStatement(new Identifier("STDWARN"), new String("\n"));
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN CPAREN SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDWARN"), new String("\n"));
+    $$ = new PutStatement(new Identifier("STDWARN"), new String("\n"));
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN expression_P CPAREN SCOLON { 
@@ -1582,16 +1600,16 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $warning() statement!");
       YYERROR;
     }
-    sb->push_back_stmts(new PutsStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
     $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WRITE SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDOUT"), new String("")); 
+    $$ = new PutStatement(new Identifier("STDOUT"), new String("")); 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN CPAREN SCOLON { 
-    $$ = new PutsStatement(new Identifier("STDOUT"), new String("")); 
+    $$ = new PutStatement(new Identifier("STDOUT"), new String("")); 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { 

@@ -92,7 +92,6 @@ struct Visitor {
   virtual void visit(const FseekStatement* fs);
   virtual void visit(const GetStatement* gs);
   virtual void visit(const PutStatement* ps);
-  virtual void visit(const PutsStatement* ps);
   virtual void visit(const RestartStatement* rs);
   virtual void visit(const RetargetStatement* rs);
   virtual void visit(const SaveStatement* ss);

@@ -407,13 +407,6 @@ Statement* Builder::build(const GetStatement* gs) {
 
 Statement* Builder::build(const PutStatement* ps) {
   return new PutStatement(
-    ps->accept_id(this),
-    ps->accept_var(this)
-  );
-}
-
-Statement* Builder::build(const PutsStatement* ps) {
-  return new PutsStatement(
     ps->accept_fd(this),
     ps->accept_fmt(this),
     ps->accept_expr(this)

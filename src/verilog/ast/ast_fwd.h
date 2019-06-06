@@ -99,7 +99,6 @@ class Node;
       class FseekStatement;
       class GetStatement;
       class PutStatement;
-      class PutsStatement;
       class RestartStatement;
       class RetargetStatement;
       class SaveStatement;

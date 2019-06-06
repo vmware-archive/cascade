@@ -67,12 +67,13 @@ struct Rpc : Serializable {
     OPEN_LOOP,
 
     // Interface API:
+    WRITE_BITS,
+    WRITE_BOOL,
+
     FINISH,
     RESTART,
     RETARGET,
     SAVE,
-
-    WRITE,
 
     FOPEN,
     IN_AVAIL,

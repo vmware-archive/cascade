@@ -541,7 +541,6 @@
   friend class FseekStatement; \
   friend class GetStatement; \
   friend class PutStatement; \
-  friend class PutsStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \

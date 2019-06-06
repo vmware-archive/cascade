@@ -527,7 +527,6 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     const auto* p = t->first->get_parent();
     const auto in_push_task = 
       p->is(Node::Tag::put_statement) ||
-      p->is(Node::Tag::puts_statement) ||
       p->is(Node::Tag::finish_statement);
     const auto in_pull_task = 
       p->is(Node::Tag::feof_expression);

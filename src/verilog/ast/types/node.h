@@ -119,14 +119,13 @@ class Node {
       fseek_statement                = 49 | system_task_enable_statement, 
       get_statement                  = 50 | system_task_enable_statement, 
       put_statement                  = 51 | system_task_enable_statement, 
-      puts_statement                 = 52 | system_task_enable_statement, 
-      restart_statement              = 53 | system_task_enable_statement, 
-      retarget_statement             = 54 | system_task_enable_statement, 
-      save_statement                 = 55 | system_task_enable_statement, 
-      wait_statement                 = 56 | statement, 
-      delay_control                  = 57 | timing_control,
-      event_control                  = 58 | timing_control,
-      variable_assign                = 59 | node
+      restart_statement              = 52 | system_task_enable_statement, 
+      retarget_statement             = 53 | system_task_enable_statement, 
+      save_statement                 = 54 | system_task_enable_statement, 
+      wait_statement                 = 55 | statement, 
+      delay_control                  = 56 | timing_control,
+      event_control                  = 57 | timing_control,
+      variable_assign                = 58 | node
     };
 
     // Constructors:

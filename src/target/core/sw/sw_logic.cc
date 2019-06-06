@@ -456,25 +456,6 @@ void SwLogic::visit(const GetStatement* gs) {
 
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
-    const auto* r = Resolve().get_resolution(ps->get_id());
-    const auto itr = streams_.find(r);
-    assert(itr != streams_.end());
-
-    const auto& val = eval_.get_value(ps->get_var());
-    val.write(*itr->second, 16);
-    itr->second->put(' ');
-
-    // Notify change in stream state (note that isn't guaranteed to do anything
-    // as interface has some implementation leeway for put). The only way to
-    // force a change is to invoke flush()
-    eval_.flag_changed(r);
-    notify(r);
-  }
-  notify(ps);
-}
-
-void SwLogic::visit(const PutsStatement* ps) {
-  if (!silent_) {
     const auto str = Printf(&eval_).format(ps->get_fmt()->get_readable_val(), ps->get_expr());
 
     if (ps->get_fd()->is(Node::Tag::identifier)) {

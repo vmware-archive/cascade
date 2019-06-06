@@ -339,12 +339,6 @@ Statement* Rewriter::rewrite(GetStatement* gs) {
 }
 
 Statement* Rewriter::rewrite(PutStatement* ps) {
-  ps->accept_id(this);
-  ps->accept_var(this);
-  return ps;
-}
-
-Statement* Rewriter::rewrite(PutsStatement* ps) {
   ps->accept_fd(this);
   ps->accept_fmt(this);
   ps->accept_expr(this);

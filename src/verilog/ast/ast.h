@@ -81,7 +81,6 @@
 #include "verilog/ast/types/fseek_statement.h"
 #include "verilog/ast/types/get_statement.h"
 #include "verilog/ast/types/put_statement.h"
-#include "verilog/ast/types/puts_statement.h"
 #include "verilog/ast/types/restart_statement.h"
 #include "verilog/ast/types/retarget_statement.h"
 #include "verilog/ast/types/save_statement.h"

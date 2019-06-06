@@ -40,12 +40,13 @@ class StubInterface : public Interface {
     StubInterface();
     ~StubInterface() override = default;
 
+    void write(VId id, const Bits* b) override;
+    void write(VId id, bool b) override;
+
     void finish(uint32_t arg) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
-
-    void write(VId id, const Bits* b) override;
 
     FId fopen(const std::string& path) override;
     int32_t in_avail(FId id) override;
@@ -60,6 +61,18 @@ class StubInterface : public Interface {
 };
 
 inline StubInterface::StubInterface() : Interface() { }
+
+inline void StubInterface::write(VId id, const Bits* b) {
+  // Does nothing.
+  (void) id;
+  (void) b;
+}
+
+inline void StubInterface::write(VId id, bool b) {
+  // Does nothing.
+  (void) id;
+  (void) b;
+}
 
 inline void StubInterface::finish(uint32_t arg) {
   // Does nothing.
@@ -79,12 +92,6 @@ inline void StubInterface::retarget(const std::string& s) {
 inline void StubInterface::save(const std::string& s) {
   // Does nothing.
   (void) s;
-}
-
-inline void StubInterface::write(VId id, const Bits* b) {
-  // Does nothing.
-  (void) id;
-  (void) b;
 }
 
 inline FId StubInterface::fopen(const std::string& path) {

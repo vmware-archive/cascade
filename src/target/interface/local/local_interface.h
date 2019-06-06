@@ -42,13 +42,13 @@ class LocalInterface : public Interface {
     explicit LocalInterface(Runtime* rt);
     ~LocalInterface() override = default;     
 
+    void write(VId id, const Bits* b) override;
+    void write(VId id, bool b) override;
+
     void finish(uint32_t arg) override;
     void restart(const std::string& s) override;
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
-
-    void write(VId id, const Bits* b) override;
-    void write(VId id, bool b) override;
 
     FId fopen(const std::string& path) override;
     int32_t in_avail(FId id) override;
@@ -69,6 +69,14 @@ inline LocalInterface::LocalInterface(Runtime* rt) : Interface() {
   rt_ = rt;
 }
 
+inline void LocalInterface::write(VId id, const Bits* b) {
+  rt_->write(id, b);
+}
+
+inline void LocalInterface::write(VId id, bool b) {
+  rt_->write(id, b);
+}
+
 inline void LocalInterface::finish(uint32_t arg) {
   rt_->finish(arg);
 }
@@ -83,14 +91,6 @@ inline void LocalInterface::retarget(const std::string& s) {
 
 inline void LocalInterface::save(const std::string& s) {
   rt_->save(s);
-}
-
-inline void LocalInterface::write(VId id, const Bits* b) {
-  rt_->write(id, b);
-}
-
-inline void LocalInterface::write(VId id, bool b) {
-  rt_->write(id, b);
 }
 
 inline FId LocalInterface::fopen(const std::string& path) {

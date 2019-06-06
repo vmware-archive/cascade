@@ -223,6 +223,23 @@ inline void ProxyCore<T>::recv() {
   Rpc rpc;
   while (rpc.deserialize(*sock_)) {
     switch(rpc.type_) {
+      case Rpc::Type::WRITE_BITS: {
+        VId id = 0;
+        Bits bits;
+        sock_->read(reinterpret_cast<char*>(&id), 4);
+        bits.deserialize(*sock_);
+        T::interface()->write(id, &bits);
+        break;
+      }
+      case Rpc::Type::WRITE_BOOL: {
+        VId id = 0;
+        bool b = false;
+        sock_->read(reinterpret_cast<char*>(&id), 4);
+        b = (sock_->get() == 1);
+        T::interface()->write(id, b);
+        break;
+      }
+
       case Rpc::Type::FINISH: {
         uint32_t code = 0;
         sock_->read(reinterpret_cast<char*>(&code), 4);
@@ -245,15 +262,6 @@ inline void ProxyCore<T>::recv() {
         std::string path = "";
         getline(*sock_, path, '\0');
         T::interface()->save(path);
-        break;
-      }
-
-      case Rpc::Type::WRITE: {
-        VId id = 0;
-        Bits bits;
-        sock_->read(reinterpret_cast<char*>(&id), 4);
-        bits.deserialize(*sock_);
-        T::interface()->write(id, &bits);
         break;
       }
 

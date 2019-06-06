@@ -95,7 +95,6 @@ struct Builder {
   virtual Statement* build(const FseekStatement* fs);
   virtual Statement* build(const GetStatement* gs);
   virtual Statement* build(const PutStatement* ps);
-  virtual Statement* build(const PutsStatement* ps);
   virtual Statement* build(const RestartStatement* rs);
   virtual Statement* build(const RetargetStatement* rs);
   virtual Statement* build(const SaveStatement* ss);
