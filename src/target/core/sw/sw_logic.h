@@ -70,11 +70,20 @@ class SwLogic : public Logic, public Visitor {
     bool there_were_tasks() const override;
 
   private:
+    class EofIndex : public Visitor {
+      public:
+        EofIndex(SwLogic* sw);
+        void visit(const FeofExpression* fe);
+      private:
+        SwLogic* sw_;
+    };
+
     // Source Management:
     ModuleDeclaration* src_;
     std::vector<const Identifier*> reads_;
     std::vector<std::pair<const Identifier*, VId>> writes_;
     std::unordered_map<VId, const Identifier*> state_;
+    std::vector<const FeofExpression*> eofs_;
 
     // Control State:
     bool silent_;
@@ -122,14 +131,6 @@ class SwLogic : public Logic, public Visitor {
     // Debug Printing:
     void log(const std::string& op, const Node* n);
 
-    struct UpdateEof : public Visitor {
-      UpdateEof(SwLogic* sw) { sw_ = sw; }
-      void visit(const FeofExpression* fe) {
-        Evaluate().flag_changed(fe);
-        sw_->notify(fe);
-      }
-      SwLogic* sw_;
-    };
 };
 
 } // namespace cascade

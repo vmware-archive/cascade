@@ -53,7 +53,7 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   src_ = md;
   update_pool_.resize(1);
 
-  // Initialize monitors and system task handlers
+  // Initialize monitors and system tasks
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     Monitor().init(*i);
   }
@@ -61,6 +61,8 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
     const auto fd = eval_.get_value(fe->get_fd()).to_int();
     return get_stream(fd)->eof();
   });
+  EofIndex ei(this);
+  src_->accept(&ei);
 
   // Set silent mode, schedule always constructs and continuous assigns, and then
   // place the silent flag in its default, disabled state
@@ -227,6 +229,14 @@ void SwLogic::update() {
 
 bool SwLogic::there_were_tasks() const {
   return there_were_tasks_;
+}
+
+SwLogic::EofIndex::EofIndex(SwLogic* sw) : Visitor() {
+  sw_ = sw;
+}
+
+void SwLogic::EofIndex::visit(const FeofExpression* fe) {
+  sw_->eofs_.push_back(fe);
 }
 
 void SwLogic::schedule_now(const Node* n) {
@@ -426,8 +436,10 @@ void SwLogic::visit(const FseekStatement* fs) {
     is->seekg(offset, way); 
     is->seekp(offset, way);
 
-    UpdateEof uf(this);
-    src_->accept(&uf);
+    for (auto* fe : eofs_) {
+      eval_.flag_changed(fe);
+      notify(fe);
+    }
   }
   notify(fs);
 }
@@ -443,8 +455,10 @@ void SwLogic::visit(const GetStatement* gs) {
       assert(r != nullptr);
       notify(r);
     }
-    UpdateEof uf(this);
-    src_->accept(&uf);
+    for (auto* fe : eofs_) {
+      eval_.flag_changed(fe);
+      notify(fe);
+    }
   }
   notify(gs);
 }
@@ -454,11 +468,14 @@ void SwLogic::visit(const PutStatement* ps) {
     const auto fd = eval_.get_value(ps->get_fd()).to_int();
     auto* is = get_stream(fd);
     Printf().write(*is, &eval_, ps);
+
     // TODO(eschkufz) This belongs in fflush
     is->flush();
 
-    UpdateEof uf(this);
-    src_->accept(&uf);
+    for (auto* fe : eofs_) {
+      eval_.flag_changed(fe);
+      notify(fe);
+    }
   }
   notify(ps);
 }
