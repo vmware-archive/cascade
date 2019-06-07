@@ -498,14 +498,20 @@ brief description of their behavior is shown below.
 |                       | $restart(file)              |  x        |             |                  |
 |                       | $retarget(march)            |  x        |             |                  |
 | File I/O              | $fopen(path)                |  x        |             |                  |
+|                       | $fclose(fd)                 |           | x           |                  |
 |                       | $fdisplay(fd, fmt, args...) |  x        |             |                  |
 |                       | $feof(fd)                   |  x        |             |                  |
 |                       | $fflush(fd)                 |  x        |             |                  |
+|                       | $fgetc(fd)                  |           | x           |                  |
+|                       | $fgets(str, fd)             |           | x           |                  |
 |                       | $fread(fd, var)             |  x        |             |                  |
 |                       | $fscanf(fd, fmt, args...)   |  x        |             |                  |
 |                       | $fseek(fd, off, dir)        |  x        |             |                  |
+|                       | $ftell(fd)                  |           | x           |                  |
 |                       | $fwrite(fd, fmt, args...)   |  x        |             |                  |
 |                       | $rewind(fd, off, dir)       |  x        |             |                  |
+|                       | $ungetc(c, dir)             |           | x           |                  |
+
 
 #### Printf Tasks
 
