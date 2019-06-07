@@ -483,34 +483,45 @@ tasks are guaranteed to run correctly on every target.
 A complete listing of the system tasks which Cascade supports, along with a
 brief description of their behavior is shown below.
 
-| Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
-|:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
-| Printf                | $display(fmt, args...)    |  x        |             |                  |
-|                       | $write(fmt, args...)      |  x        |             |                  |
-| Debugging             | $monitor(var)             |           | x           |                  |
-| Logging               | $info(fmt, args...)       |  x        |             |                  |    
-|                       | $warning(fmt, args...)    |  x        |             |                  |
-|                       | $error(fmt, args...)      |  x        |             |                  |
-| Simulation Control    | $finish(code)             |  x        |             |                  |
-|                       | $fatal(code, fmt, args...)|  x        |             |                  |
-| Virtualization        | $save(file)               |  x        |             |                  |
-|                       | $restart(file)            |  x        |             |                  |
-|                       | $retarget(march)          |  x        |             |                  |
-| Stream I/O            | $fopen(file)              |  x        |             |                  |
-|                       | $eof(s)                   |  x        |             |                  |
-|                       | $get(s, var)              |  x        |             |                  |
-|                       | $put(s, var)              |  x        |             |                  |
-|                       | $seek(s, var)             |  x        |             |                  |
+| Feature Class         | Feature                     | Supported | In Progress | Will Not Support | 
+|:----------------------|:----------------------------|:---------:|:-----------:|:----------------:|
+| Printf                | $display(fmt, args...)      |  x        |             |                  |
+|                       | $write(fmt, args...)        |  x        |             |                  |
+| Scanf                 | $scanf(fmt, args...)        |  x        |             |                  |
+| Debugging             | $monitor(var)               |           | x           |                  |
+| Logging               | $info(fmt, args...)         |  x        |             |                  |    
+|                       | $warning(fmt, args...)      |  x        |             |                  |
+|                       | $error(fmt, args...)        |  x        |             |                  |
+| Simulation Control    | $finish(code)               |  x        |             |                  |
+|                       | $fatal(code, fmt, args...)  |  x        |             |                  |
+| Virtualization        | $save(file)                 |  x        |             |                  |
+|                       | $restart(file)              |  x        |             |                  |
+|                       | $retarget(march)            |  x        |             |                  |
+| File I/O              | $fopen(path)                |  x        |             |                  |
+|                       | $fdisplay(fd, fmt, args...) |  x        |             |                  |
+|                       | $feof(fd)                   |  x        |             |                  |
+|                       | $fflush(fd)                 |  x        |             |                  |
+|                       | $fread(fd, var)             |  x        |             |                  |
+|                       | $fscanf(fd, fmt, args...)   |  x        |             |                  |
+|                       | $fseek(fd, off, dir)        |  x        |             |                  |
+|                       | $fwrite(fd, fmt, args...)   |  x        |             |                  |
+|                       | $rewind(fd, off, dir)       |  x        |             |                  |
 
 #### Printf Tasks
 
-The printf-of system tasks can be used to emit debugging statements to the
-REPL. Both use the same printf-style of argument passing. A formatting string
-which may be delimitted with variable placeholders (```%d, %x, etc...```) is
-followed by a list of program variables whose runtime values are substituted
-for those placeholders. Both printf-style system tasks behave identically. The
-only difference is that ```$display()``` automatically appends a newline
-character to the end of its output.
+The printf family of system tasks can be used to emit debugging statements to
+stdout (the REPL). Both use the same printf-style of argument passing. A
+formatting string which may be delimitted with variable placeholders (```%d,
+%x, etc...```) is followed by a list of program variables whose runtime values
+are substituted for those placeholders. Both printf-style system tasks behave
+identically. The only difference is that ```$display()``` automatically appends
+a newline character to the end of its output.
+
+#### Scanf
+
+The scan system task can be used to read values from stdin. However this
+feature is only useful when cascade is used as a library, as when Cascade is
+run in a REPL, it dedicates stdin to parsing code..
 
 #### Logging Tasks
 
@@ -581,30 +592,31 @@ always @(pad.val) begin
 end
 ```
 
-#### Stream I/O Tasks 
+#### File I/O Tasks 
 
-The ```$fopen()```, ```$get()```, and ```$put()``` tasks provide an abstract
-mechanism for interacting with file streams. The following example shows how to
-read the contents of a file, one cycle at a time. Note that ```$get()``` is
-sensitive to the size of its second argument and will read as many bytes as
-necessary to produce a value for that variable.
+The family of file i/o tasks provide an abstract mechanism for interacting with
+file streams. The following example shows how to read the contents of a file,
+one cycle at a time. Note that ```$fread()``` is sensitive to the size of its
+second argument and will read as many bytes as necessary to produce a value for
+that variable.
 
 ```verilog
-stream s = $fopen("path/to/file");
+integer s = $fopen("path/to/file");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
-  $get(s, x);
-  if ($eof(s)) begin
+  $fread(s, x);
+  if ($feof(s)) begin
     $finish;
   end
   $display(x);
 end
 ```
 
-The following example shows how you can use both ```$get()``` and ```$put()```
-tasks in conjunction with the ```$eof``` task to stream data to and from your
-program, regardless of whether it is running in software or hardware.
+The following example shows how you can use both ```$fread()``` and
+```$fwrite()``` tasks in conjunction with the ```$feof``` task to stream data
+to and from your program, regardless of whether it is running in software or
+hardware.
 
 ```verilog
 module Compute(
@@ -618,22 +630,23 @@ reg[31:0]  x;
 wire[31:0] y;
 Compute c(x,y);
 
-stream i = $fopen("path/to/input");
-stream o = $fopen("path/to/output");
+integer i = $fopen("path/to/input");
+integer o = $fopen("path/to/output");
 always @(posedge clock.val) begin
-  $get(i, x);
-  if ($eof(i)) begin
+  $fread(i, x);
+  if ($feof(i)) begin
     $finish;
   end  
-  $put(o, y);
+  $fwrite(o, "%x", y);
 end
 ```
 
-In addition to the tasks described above, the ```$seek()``` task can be used to
-reset the position from which ```$get()``` tasks are performed. Note that
-Cascade uses an eventual consistency model for ```$put()``` statements.
+In addition to the tasks described above, the ```$fseek()``` task can be used
+to reset the position from which ```$fread()``` tasks are performed. Note that
+Cascade uses an eventual consistency model for ```$fdisplay()``` statements.
 Attempting to interleave reads and writes to the same stream may result in
-unexpected behavior.
+unexpected behavior unless the user forces a sync by invoking the
+```$fflush()``` task.
 
 Standard Library
 =====
