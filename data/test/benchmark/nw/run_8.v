@@ -34,14 +34,14 @@ reg signed[SWIDTH-1:0] checksum = 0;
 integer itr = 1;
 integer s = $fopen("data/test/benchmark/nw/constants_8.hex");
 always @(posedge clock.val) begin
-  $get(s, buffer);
+  $fread(s, buffer);
   if ($feof(s)) begin
     if (itr == 1024) begin
       done <= 1;
     end else begin
       itr <= itr + 1;
       $rewind(s);
-      $get(s, buffer);
+      $fread(s, buffer);
     end
   end
 

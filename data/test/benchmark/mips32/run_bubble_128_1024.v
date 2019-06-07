@@ -7,7 +7,7 @@ integer i = 0;
 reg[31:0] val = 0;
 initial begin
   for (i = 0; i < 63; i = i + 1) begin
-    $get(s, val);
+    $fread(s, val);
     imem[i] <= val;
   end
 end 

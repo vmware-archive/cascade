@@ -156,7 +156,7 @@ void Nfa::to_verilog(ostream& os) const {
   os << "integer s = $fopen(\"data/test/benchmark/regex/iliad.hex\");" << endl;
   os << endl;
   os << "always @(posedge clock.val) begin" << endl;
-  os << "  $get(s, char);" << endl;
+  os << "  $fread(s, char);" << endl;
   os << "  if ($feof(s)) begin" << endl;
   os << "    if (itr == 1) begin" << endl;
   os << "      $write(count);" << endl;

@@ -88,11 +88,11 @@ void DeadCodeEliminate::edit(ModuleDeclaration* md) {
     if ((*i)->is_subclass_of(Node::Tag::declaration)) {
       auto* d = static_cast<Declaration*>(*i);
       
-      const auto is_reg = d->is(Node::Tag::reg_declaration);
+      const auto is_port = d->get_parent()->is(Node::Tag::port_declaration);
       const auto is_stream = 
+        d->is(Node::Tag::reg_declaration) &&
         static_cast<RegDeclaration*>(d)->is_non_null_val() && 
         static_cast<RegDeclaration*>(d)->get_val()->is(Node::Tag::fopen_expression);
-      const auto is_port = d->get_parent()->is(Node::Tag::port_declaration);
       const auto is_dead = use_.find(d->get_id()) == use_.end();
 
       if (!is_port && !is_stream && is_dead) {
