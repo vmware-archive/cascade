@@ -52,6 +52,11 @@ ReadSet::const_iterator ReadSet::end() const {
   return reads_.end();
 }
 
+void ReadSet::visit(const FeofExpression* fe) {
+  Visitor::visit(fe);
+  reads_.insert(fe);
+}
+
 void ReadSet::visit(const Identifier* id) {
   if (lhs_) {
     return;

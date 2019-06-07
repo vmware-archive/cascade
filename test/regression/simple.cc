@@ -309,9 +309,6 @@ TEST(simple, sign_1) {
 TEST(simple, sign_2) {
   run_code("minimal","data/test/regression/simple/sign_2.v", "000");
 }
-//TEST(simple, wait_1) {
-//  run_code("minimal","data/test/regression/simple/wait_1.v", "Hello World");
-//}
 TEST(simple, while_1) {
   run_code("minimal","data/test/regression/simple/while_1.v", "333");
 }

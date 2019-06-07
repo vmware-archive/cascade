@@ -105,9 +105,6 @@ TEST(parse, pass_port_list) {
 TEST(parse, pass_system_task) {
   run_parse("data/test/regression/parse/pass/system_task.v", false);
 }
-TEST(parse, pass_wait_statement) {
-  run_parse("data/test/regression/parse/pass/wait_statement.v", false);
-}
 
 TEST(parse, fail_assign_1) {
   run_parse("data/test/regression/parse/fail/assign_1.v", true);

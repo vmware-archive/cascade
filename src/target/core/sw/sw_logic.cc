@@ -418,7 +418,8 @@ void SwLogic::visit(const FseekStatement* fs) {
     is->seekg(offset, way); 
     is->seekp(offset, way);
 
-    // TODO(eschkufz) changes in stream state
+    UpdateEof uf(this);
+    src_->accept(&uf);
   }
   notify(fs);
 }
@@ -429,12 +430,13 @@ void SwLogic::visit(const GetStatement* gs) {
     auto* is = get_stream(fd);
     Scanf().read(*is, &eval_, gs);
 
-    // TODO(eschkufz) notify change in stream state
     if (gs->is_non_null_var()) {
       const auto* r = Resolve().get_resolution(gs->get_var());
       assert(r != nullptr);
       notify(r);
     }
+    UpdateEof uf(this);
+    src_->accept(&uf);
   }
   notify(gs);
 }
@@ -447,7 +449,8 @@ void SwLogic::visit(const PutStatement* ps) {
     // TODO(eschkufz) This belongs in fflush
     is->flush();
 
-    // TODO(eschkufz) notify change in stream state
+    UpdateEof uf(this);
+    src_->accept(&uf);
   }
   notify(ps);
 }

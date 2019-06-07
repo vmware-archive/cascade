@@ -121,6 +121,9 @@ class Evaluate : public Editor {
     // Forced a recomputation for the next evaluation of any expression that
     // depends on this variable.
     void flag_changed(const Identifier* id);
+    // Forces a recomputation for the next evaluation of this expression or any
+    // expression that depends on this one.
+    void flag_changed(const FeofExpression* fe);
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
     void invalidate(const Expression* e);

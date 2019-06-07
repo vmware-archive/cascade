@@ -121,6 +121,15 @@ class SwLogic : public Logic, public Visitor {
 
     // Debug Printing:
     void log(const std::string& op, const Node* n);
+
+    struct UpdateEof : public Visitor {
+      UpdateEof(SwLogic* sw) { sw_ = sw; }
+      void visit(const FeofExpression* fe) {
+        Evaluate().flag_changed(fe);
+//        sw_->notify(fe);
+      }
+      SwLogic* sw_;
+    };
 };
 
 } // namespace cascade

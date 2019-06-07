@@ -238,6 +238,13 @@ void Evaluate::flag_changed(const Identifier* id) {
   const_cast<Identifier*>(id)->set_flag<0>(false);
 }
 
+void Evaluate::flag_changed(const FeofExpression* fe) {
+  for (const Node* n = fe; n->is_subclass_of(Node::Tag::expression); n = n->get_parent()) {
+    const auto* e = static_cast<const Expression*>(n);
+    const_cast<Expression*>(e)->set_flag<0>(true);
+  }
+}
+
 void Evaluate::invalidate(const Expression* e) {
   const auto* root = get_root(e);
   Invalidate i;

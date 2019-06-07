@@ -503,12 +503,13 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
   // Iterate over identifiers in the RHS
   ReadSet rs(ca->get_assign()->get_rhs());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
-
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r != nullptr && r == l) {
-      error("Cannot assign a wire to itself", ca);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this is a recursive definition
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      if (r != nullptr && r == l) {
+        error("Cannot assign a wire to itself", ca);
+      }
     }
   }
 }
@@ -545,13 +546,14 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // Iterate over identifiers in the RHS
   ReadSet rs(ld->get_val());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
-    assert(r != nullptr);
-
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r == ld->get_id()) {
-      error("Cannot define a localparam to be equal to itself", ld);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this is a recursive definition
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      assert(r != nullptr);
+      if (r == ld->get_id()) {
+        error("Cannot define a localparam to be equal to itself", ld);
+      }
     }
   }
 }
@@ -595,13 +597,14 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   // Iterate over identifiers in the RHS
   ReadSet rs(pd->get_val());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
-    assert(r != nullptr);
-
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r == pd->get_id()) {
-      error("Cannot define a parameter to be equal to itself", pd);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this is a recursive definition
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      assert(r != nullptr);
+      if (r == pd->get_id()) {
+        error("Cannot define a parameter to be equal to itself", pd);
+      }
     }
   }
 }

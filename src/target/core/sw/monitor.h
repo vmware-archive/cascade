@@ -47,6 +47,7 @@ class Monitor : public Editor {
     void init(ModuleItem* mi);
 
   private:
+    void wait_on_node(Node* n, FeofExpression* fe);
     void wait_on_node(Node* n, Identifier* m);
     void wait_on_reads(Node* n, Expression* e);
 
@@ -60,15 +61,27 @@ inline void Monitor::init(ModuleItem* mi) {
   mi->accept(this);
 }
 
+inline void Monitor::wait_on_node(Node* n, FeofExpression* fe) {
+  fe->monitor_.push_back(n);
+}
+
 inline void Monitor::wait_on_node(Node* n, Identifier* m) {
   m->monitor_.push_back(n);
 }
 
 inline void Monitor::wait_on_reads(Node* n, Expression* m) {
   for (auto* i : ReadSet(m)) {
-    auto* r = Resolve().get_resolution(i);
-    assert(r != nullptr);
-    wait_on_node(n, const_cast<Identifier*>(r));
+    if (i->is(Node::Tag::identifier)) {
+      const auto* id = static_cast<const Identifier*>(i);
+      auto* r = Resolve().get_resolution(id);
+      assert(r != nullptr);
+      wait_on_node(n, const_cast<Identifier*>(r));
+    } else if (i->is(Node::Tag::feof_expression)) {
+      const auto* fe = static_cast<const FeofExpression*>(i);
+      wait_on_node(n, const_cast<FeofExpression*>(fe));
+    } else {
+      assert(false);
+    }
   }
 }
 

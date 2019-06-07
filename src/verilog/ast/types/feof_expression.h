@@ -51,6 +51,10 @@ class FeofExpression : public Expression {
 
   private:
     PTR_ATTR(Expression, fd);
+
+    friend class Monitor;
+    friend class SwLogic;
+    DECORATION(Vector<const Node*>, monitor);
 };
 
 inline FeofExpression::FeofExpression(Expression* fd__) : Expression(Node::Tag::feof_expression) {

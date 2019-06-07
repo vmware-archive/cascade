@@ -58,16 +58,19 @@ void EventExpand::edit(TimingControlStatement* tcs) {
     return Editor::edit(tcs);
   }
 
-  // Look up the read dependencies for this statement. Sort lexicographically
-  // to ensure deterministic compiles.
+  // Look up the variable dependencies for this statement. We don't *currently*
+  // support system task statements here. Sort lexicographically to ensure
+  // deterministic compiles.
   map<string, const Identifier*> reads;
   for (auto* i : ReadSet(tcs->get_stmt())) {
-    const auto* r = Resolve().get_resolution(i);
-    assert(r != nullptr);
+    if (i->is(Node::Tag::identifier)) {
+      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(i));
+      assert(r != nullptr);
 
-    stringstream ss;
-    TextPrinter(ss) << r;
-    reads.insert(make_pair(ss.str(), r));
+      stringstream ss;
+      TextPrinter(ss) << r;
+      reads.insert(make_pair(ss.str(), r));
+    }
   }
 
   // Create a new timing control with an explicit list
