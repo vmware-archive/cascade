@@ -590,7 +590,7 @@ void Printer::visit(const FseekStatement* fs) {
 }
 
 void Printer::visit(const GetStatement* gs) {
-  *this << Color::YELLOW << "$get" << Color::RESET;
+  *this << Color::YELLOW << "$__get" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   gs->accept_fd(this);
   *this << Color::RED << "," << Color::RESET;
@@ -603,7 +603,7 @@ void Printer::visit(const GetStatement* gs) {
 }
 
 void Printer::visit(const PutStatement* ps) {
-  *this << Color::YELLOW << "$put" << Color::RESET;
+  *this << Color::YELLOW << "$__put" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
   ps->accept_fd(this);
   *this << Color::RED << "," << Color::RESET;

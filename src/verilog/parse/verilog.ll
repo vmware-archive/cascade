@@ -444,9 +444,9 @@ IF_TEXT     ([^`]*)
 "$fscanf"   return yyParser::make_SYS_FSCANF(parser->get_loc());
 "$fseek"    return yyParser::make_SYS_FSEEK(parser->get_loc());
 "$fwrite"   return yyParser::make_SYS_FWRITE(parser->get_loc());
-"$get"      return yyParser::make_SYS_GET(parser->get_loc());
+"$__get"    return yyParser::make_SYS_GET(parser->get_loc());
 "$info"     return yyParser::make_SYS_INFO(parser->get_loc());
-"$put"      return yyParser::make_SYS_PUT(parser->get_loc());
+"$__put"    return yyParser::make_SYS_PUT(parser->get_loc());
 "$restart"  return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
 "$rewind"   return yyParser::make_SYS_REWIND(parser->get_loc());
