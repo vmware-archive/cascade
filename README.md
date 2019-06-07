@@ -521,7 +521,7 @@ a newline character to the end of its output.
 
 The scan system task can be used to read values from stdin. However this
 feature is only useful when cascade is used as a library, as when Cascade is
-run in a REPL, it dedicates stdin to parsing code..
+run in a REPL, it dedicates stdin to parsing code.
 
 #### Logging Tasks
 

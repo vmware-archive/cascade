@@ -709,14 +709,17 @@ void TypeCheck::visit(const WhileStatement* ws) {
 
 void TypeCheck::visit(const GetStatement* gs) {
   gs->accept_fd(this);
+  // Don't descend on format string
   gs->accept_var(this);
-  
+  if (gs->is_null_var()) {
+    return;
+  }
+
   // Can't continue checking if pointers are unresolvable
   const auto* r = Resolve().get_resolution(gs->get_var());
   if (r == nullptr) {
     return;
   }
-  
   // CHECK: var is a stateful variable
   const auto* src = Resolve().get_parent(r);
   ModuleInfo info(src);

@@ -441,6 +441,7 @@ IF_TEXT     ([^`]*)
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());
 "$fopen"    return yyParser::make_SYS_FOPEN(parser->get_loc());
 "$fread"    return yyParser::make_SYS_FREAD(parser->get_loc());
+"$fscanf"   return yyParser::make_SYS_FSCANF(parser->get_loc());
 "$fseek"    return yyParser::make_SYS_FSEEK(parser->get_loc());
 "$fwrite"   return yyParser::make_SYS_FWRITE(parser->get_loc());
 "$get"      return yyParser::make_SYS_GET(parser->get_loc());
@@ -450,6 +451,7 @@ IF_TEXT     ([^`]*)
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
 "$rewind"   return yyParser::make_SYS_REWIND(parser->get_loc());
 "$save"     return yyParser::make_SYS_SAVE(parser->get_loc());
+"$scanf"    return yyParser::make_SYS_SCANF(parser->get_loc());
 "$warning"  return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    return yyParser::make_SYS_WRITE(parser->get_loc());
 

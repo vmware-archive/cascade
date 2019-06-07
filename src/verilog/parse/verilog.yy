@@ -55,20 +55,25 @@ bool is_null(const cascade::Expression* e) {
 }
 
 template <typename InItr>
-cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, InItr end) {
+cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr begin, InItr end) {
   // Check args are well-formed
   auto error = false;
   auto simple = false;
   const auto n = end - begin;
-  if (n == 0) {
-    error = false;
-  } else if ((*begin)->is(cascade::Node::Tag::string)) {
+  if ((*begin)->is(cascade::Node::Tag::string)) {
     const auto& str = static_cast<const cascade::String*>(*begin)->get_readable_val();
     if (static_cast<size_t>(std::count(str.begin(), str.end(), '%')) != (n-1)) {
       error = true;
     }
+    if (input) {
+      for (auto i = begin; i != end; ++i) {
+        if (!(*i)->is(cascade::Node::Tag::identifier)) {
+          error = false;
+        }
+      }
+    }
   } else {
-    error = (n != 1);
+    error = (input || (n != 1));
     simple = true;
   }
 
@@ -77,7 +82,10 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
   if (!error) {
     sb = new cascade::SeqBlock(); 
     if (simple) {
-      sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String("%d"), (*begin)->clone()));
+      sb->push_back_stmts(input ?
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String("%d"), static_cast<cascade::Identifier*>((*begin)->clone()))) :  
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%d"), (*begin)->clone()))
+      );
     } else {
       size_t i = 0;
       auto itr = begin;
@@ -85,12 +93,18 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
       const auto& str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
       while (i < str.length()) {
         if (str[i] == '%') {
-          sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, 2)), (*itr++)->clone()));
+          sb->push_back_stmts(input ?
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, 2)), static_cast<cascade::Identifier*>((*itr++)->clone()))) :
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, 2)), (*itr++)->clone()))
+          );
           i += 2;
           continue;
         } 
         const auto ie = str.find_first_of('%', i);
-        sb->push_back_stmts(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))));
+        sb->push_back_stmts(input ?
+          static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)))) :
+          static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))))
+        );
         i = ie;
       }
     }
@@ -209,6 +223,7 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
 %token SYS_FREAD    "$fread"
+%token SYS_FSCANF   "$fscanf"
 %token SYS_FSEEK    "$fseek"
 %token SYS_FWRITE   "$fwrite"
 %token SYS_GET      "$get"
@@ -218,6 +233,7 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token SYS_RETARGET "$retarget"
 %token SYS_REWIND   "$rewind"
 %token SYS_SAVE     "$save"
+%token SYS_SCANF    "$scanf"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -1443,7 +1459,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { 
-    auto* sb = desugar_output(new Identifier("STDOUT"), $3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDOUT"), $3.begin(), $3.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $display() statement!");
       YYERROR;
@@ -1468,7 +1484,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN expression_P CPAREN SCOLON { 
-    auto* sb = desugar_output(new Identifier("STDERR"), $3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDERR"), $3.begin(), $3.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $error() statement!");
       YYERROR;
@@ -1491,7 +1507,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FATAL OPAREN number COMMA expression_P CPAREN SCOLON { 
-    auto* es = desugar_output(new Identifier("STDERR"), $5.begin(), $5.end()); 
+    auto* es = desugar_io(false, new Identifier("STDERR"), $5.begin(), $5.end()); 
     if (es == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $fatal() statement!");
       YYERROR;
@@ -1509,7 +1525,7 @@ system_task_enable
   }
   | SYS_FDISPLAY OPAREN expression COMMA expression_P CPAREN SCOLON { 
     auto* fd = $3->clone();
-    auto* sb = desugar_output($3, $5.begin(), $5.end()); 
+    auto* sb = desugar_io(false, $3, $5.begin(), $5.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $fdisplay() statement!");
       YYERROR;
@@ -1534,13 +1550,30 @@ system_task_enable
     $$ = new FinishStatement($3); 
     parser->set_loc($$);
   }
+  | SYS_FREAD OPAREN expression COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, new String("%u"), $5);
+    parser->set_loc($$);
+  }
+  | SYS_FSCANF OPAREN expression COMMA expression_P CPAREN SCOLON {
+    auto* sb = desugar_io(true, $3, $5.begin(), $5.end());
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fscanf() statement!");
+      YYERROR;
+    }
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FSEEK OPAREN expression COMMA number COMMA number CPAREN SCOLON {
+    $$ = new FseekStatement($3, $5, $7);
+    parser->set_loc($$);
+  }
   | SYS_FWRITE OPAREN expression CPAREN SCOLON { 
     $$ = new PutStatement($3, new String("\n")); 
     parser->set_loc($$);
   }
   | SYS_FWRITE OPAREN expression COMMA expression_P CPAREN SCOLON { 
     auto* fd = $3->clone();
-    auto* sb = desugar_output($3, $5.begin(), $5.end()); 
+    auto* sb = desugar_io(false, $3, $5.begin(), $5.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $fwrite() statement!");
       YYERROR;
@@ -1571,7 +1604,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
-    auto* sb = desugar_output(new Identifier("STDINFO"), $3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDINFO"), $3.begin(), $3.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $info() statement!");
       YYERROR;
@@ -1603,12 +1636,13 @@ system_task_enable
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_FREAD OPAREN expression COMMA identifier CPAREN SCOLON {
-    $$ = new GetStatement($3, new String("%u"), $5);
-    parser->set_loc($$);
-  }
-  | SYS_FSEEK OPAREN expression COMMA number COMMA number CPAREN SCOLON {
-    $$ = new FseekStatement($3, $5, $7);
+  | SYS_SCANF OPAREN expression_P CPAREN SCOLON {
+    auto* sb = desugar_io(true, new Identifier("STDIN"), $3.begin(), $3.end());
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $scanf() statement!");
+      YYERROR;
+    }
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
@@ -1626,7 +1660,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN expression_P CPAREN SCOLON { 
-    auto* sb = desugar_output(new Identifier("STDWARN"), $3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDWARN"), $3.begin(), $3.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $warning() statement!");
       YYERROR;
@@ -1651,7 +1685,7 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { 
-    auto* sb = desugar_output(new Identifier("STDOUT"), $3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDOUT"), $3.begin(), $3.end()); 
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $write() statement!");
       YYERROR;
