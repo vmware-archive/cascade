@@ -28,45 +28,68 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
-#define CASCADE_SRC_VERILOG_AST_FOREVER_STATEMENT_H
+#ifndef CASCADE_SRC_TARGET_CORE_COMMON_SCANF_H
+#define CASCADE_SRC_TARGET_CORE_COMMON_SCANF_H
 
-#include "verilog/ast/types/loop_statement.h"
-#include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/statement.h"
+#include <cctype>
+#include <iostream>
+#include "base/bits/bits.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/ast/ast.h"
 
 namespace cascade {
 
-class ForeverStatement : public LoopStatement {
-  public:
-    // Constructors:
-    explicit ForeverStatement(Statement* stmt__);
-    ~ForeverStatement() override;
-
-    // Node Interface:
-    NODE(ForeverStatement)
-    ForeverStatement* clone() const override;
-
-    // Get/Set:
-    PTR_GET_SET(ForeverStatement, Statement, stmt)
-
-  private:
-    PTR_ATTR(Statement, stmt);
+struct Scanf {
+  void read(std::istream& is, Evaluate* eval, const GetStatement* gs);
 };
 
-inline ForeverStatement::ForeverStatement(Statement* stmt__) : LoopStatement(Node::Tag::forever_statement) {
-  parent_ = nullptr;
-  PTR_SETUP(stmt);
+inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs) {
+  const auto format = gs->get_fmt()->get_readable_val();
+  if (format[0] != '%') {
+    for (auto c : format) {
+      if (isspace(c)) {
+        while (isspace(is.peek())) {
+          is.get();
+        }
+      } else if (c != is.get()) {
+        break;
+      }
+    }
+    return;
+  }
+
+  Bits val;
+  switch (format[1]) {
+    case 'b':
+    case 'B': 
+      val.read(is, 2);
+      break;
+    case 'd':
+    case 'D':
+      val.read(is, 10);
+      break;
+    case 'h':
+    case 'H': 
+      val.read(is, 16);
+      break;
+    case 'o':
+    case 'O': 
+      val.read(is, 8);
+      break;
+    case 'u':
+    case 'U':
+      val.read(is, 16);
+      break;
+    default: 
+      assert(false);
+  }
+
+  assert(gs->is_non_null_var());
+  const auto* var = gs->get_var();
+  eval->assign_value(var, val);
 }
 
-inline ForeverStatement::~ForeverStatement() {
-  PTR_TEARDOWN(stmt);
-}
-
-inline ForeverStatement* ForeverStatement::clone() const {
-  return new ForeverStatement(stmt_->clone());
-}
-
-} // namespace cascade 
+} // namespace cascade
 
 #endif
+

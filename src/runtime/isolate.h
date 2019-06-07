@@ -47,12 +47,11 @@ namespace cascade {
 // 1. Module instantiations are promoted to top-level input/outputs
 // 2. Variables are given globally-unique non-hierarchical names 
 // 3. Declarations are moved to the top-most scope.
-// 4. Integer declarations are desugared to 32-bit register declarations.
-// 5. Generate regions are flattened into their enclosing scope.
-// 6. Generate constructs are flattened into their enclosing scope.
-// 7. Attribute annotations which appear inside the module are removed.
-// 8. The 'ignore' oldest initial blocks are deleted.
-// 9. fork/join blocks are replaced by begin/end blocks.
+// 4. Generate regions are flattened into their enclosing scope.
+// 5. Generate constructs are flattened into their enclosing scope.
+// 6. Attribute annotations which appear inside the module are removed.
+// 7. The 'ignore' oldest initial blocks are deleted.
+// 8. fork/join blocks are replaced by begin/end blocks.
 
 class Isolate : public Builder {
   public:
@@ -82,7 +81,6 @@ class Isolate : public Builder {
     ModuleDeclaration* build(const ModuleDeclaration* md) override; 
     ModuleItem* build(const InitialConstruct* ic) override;
     ModuleItem* build(const GenvarDeclaration* gd) override;
-    ModuleItem* build(const IntegerDeclaration* id) override;
     ModuleItem* build(const LocalparamDeclaration* ld) override;
     ModuleItem* build(const ParameterDeclaration* pd) override;
     ModuleItem* build(const PortDeclaration* pd) override;

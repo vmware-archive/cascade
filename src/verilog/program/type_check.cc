@@ -334,23 +334,6 @@ void TypeCheck::visit(const Event* e) {
   }
 }
 
-void TypeCheck::visit(const FeofExpression* fe) {
-  // RECURSE: arg
-  fe->accept_fd(this);
-
-  // EXIT: Can't continue checking if arg can't be resolved
-  const auto* r = Resolve().get_resolution(fe->get_fd());
-  if (r == nullptr) {
-    return;
-  }
-
-  // CHECK: Arg is a stream variable
-  ModuleInfo info(Resolve().get_parent(r));
-  if (!info.is_stream(r)) {
-    error("The argument of an $feof() expression must be a stream id", fe);
-  }
-}
-
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i = id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
@@ -540,25 +523,6 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
   }
 }
 
-void TypeCheck::visit(const IntegerDeclaration* id) {
-  // RECURSE: Check for unsupported language features in initial value
-  id->accept_val(this);
-
-  // CHECK: Duplicate definition
-  if (Navigate(id).find_duplicate_name(id->get_id()->back_ids())) {
-    multiple_def(id->get_id());
-  }
-  if (Navigate(id).find_child_ignore_subscripts(id->get_id()->back_ids())) {
-    error("A nested scope with this name already exists in this scope", id);
-  }
-  // CHECK: Integer initialized to constant value
-  if (id->is_non_null_val() && !Constant().is_static_constant(id->get_val())) {
-    error("Integer initialization requires constant value", id);
-  }
-  // CHECK: Array properties
-  check_array(id->get_id()->begin_dim(), id->get_id()->end_dim());
-}
-
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // RECURSE: Check for unsupported language features in initial value
   ld->accept_val(this);
@@ -702,10 +666,8 @@ void TypeCheck::visit(const BlockingAssign* ba) {
   Visitor::visit(ba);
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(ba->get_assign()->get_lhs());
-  if ((r != nullptr) && 
-      !r->get_parent()->is(Node::Tag::reg_declaration) && 
-      !r->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("Found a blocking assignments to a variable with type other than reg or integer", ba);
+  if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("Found a blocking assignments to a variable with type other than reg", ba);
   }
 }
 
@@ -714,10 +676,8 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   Visitor::visit(na);
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
-  if ((r != nullptr) && 
-      !r->get_parent()->is(Node::Tag::reg_declaration) && 
-      !r->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("Found a non-blocking assignments to a variable with type other than reg or integer", na);
+  if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("Found a non-blocking assignments to a variable with type other than reg", na);
   }
 }
 
@@ -734,10 +694,6 @@ void TypeCheck::visit(const ForStatement* fs) {
   Visitor::visit(fs);
 }
 
-void TypeCheck::visit(const ForeverStatement* fs) {
-  error("Cascade does not currently support the use of forever statements", fs);
-}
-
 void TypeCheck::visit(const RepeatStatement* rs) {
   warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", rs);
   Visitor::visit(rs);
@@ -748,43 +704,21 @@ void TypeCheck::visit(const WhileStatement* ws) {
   Visitor::visit(ws);
 }
 
-void TypeCheck::visit(const FseekStatement* fs) {
-  Visitor::visit(fs);
-  
-  // Can't continue checking if arg is unreachable
-  const auto* id = Resolve().get_resolution(fs->get_fd());
-  if (id == nullptr){
-    return;
-  }
-  
-  // CHECK: Arg is stream id
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of an $fseek() statement must be a stream id", fs);
-  } 
-}
-
 void TypeCheck::visit(const GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
   gs->accept_var(this);
   
   // Can't continue checking if pointers are unresolvable
-  const auto* id = Resolve().get_resolution(gs->get_id());
-  const auto* var = Resolve().get_resolution(gs->get_var());
-  if ((id == nullptr) || (var == nullptr)) {
+  const auto* r = Resolve().get_resolution(gs->get_var());
+  if (r == nullptr) {
     return;
   }
   
-  // CHECK: First arg is stream id, second arg is stateful variable
-  const auto* src = Resolve().get_parent(id);
+  // CHECK: var is a stateful variable
+  const auto* src = Resolve().get_parent(r);
   ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $get() statement must be a stream id", gs);
-  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("The second argument of a $get() statement must either be a variable of type reg or integer", gs);
-  } else if (info.is_stream(var)) {
-    error("The second argument of a $get() statement must not be a stream id", gs);
+  if (!r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("The target of a $get() statement must be a variable of type reg", gs);
   }
 }
 
@@ -807,10 +741,6 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const WaitStatement* ws) {
-  error("Cascade does not currently support the use of wait statements", ws);
 }
 
 void TypeCheck::visit(const DelayControl* dc) {

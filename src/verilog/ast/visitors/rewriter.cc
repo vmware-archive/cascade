@@ -196,13 +196,6 @@ ModuleItem* Rewriter::rewrite(GenvarDeclaration* gd) {
   return gd;
 }
 
-ModuleItem* Rewriter::rewrite(IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  id->accept_id(this);
-  id->accept_val(this);
-  return id;
-}
-
 ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
   ld->accept_attrs(this);
   ld->accept_dim(this);
@@ -289,11 +282,6 @@ Statement* Rewriter::rewrite(ForStatement* fs) {
   return fs;
 }
 
-Statement* Rewriter::rewrite(ForeverStatement* fs) {
-  fs->accept_stmt(this);
-  return fs;
-}
-
 Statement* Rewriter::rewrite(RepeatStatement* rs) {
   rs->accept_cond(this);
   rs->accept_stmt(this);
@@ -333,7 +321,8 @@ Statement* Rewriter::rewrite(FseekStatement* fs) {
 }
 
 Statement* Rewriter::rewrite(GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  gs->accept_fmt(this);
   gs->accept_var(this);
   return gs;
 }
@@ -358,12 +347,6 @@ Statement* Rewriter::rewrite(RetargetStatement* rs) {
 Statement* Rewriter::rewrite(SaveStatement* ss) {
   ss->accept_arg(this);
   return ss;
-}
-
-Statement* Rewriter::rewrite(WaitStatement* ws) {
-  ws->accept_cond(this);
-  ws->accept_stmt(this);
-  return ws;
 }
 
 Statement* Rewriter::rewrite(WhileStatement* ws) {

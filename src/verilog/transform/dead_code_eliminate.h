@@ -51,7 +51,6 @@ class DeadCodeEliminate : public Editor {
 
       void visit(const Attributes* a) override;
       void visit(const Identifier* i) override;
-      void visit(const IntegerDeclaration* id) override;
       void visit(const LocalparamDeclaration* ld) override;
       void visit(const NetDeclaration* nd) override;
       void visit(const ParameterDeclaration* pd) override;

@@ -70,7 +70,6 @@ struct Editor {
   virtual void edit(InitialConstruct* ic);
   virtual void edit(ContinuousAssign* ca);
   virtual void edit(GenvarDeclaration* gd);
-  virtual void edit(IntegerDeclaration* id);
   virtual void edit(LocalparamDeclaration* ld);
   virtual void edit(NetDeclaration* nd);
   virtual void edit(ParameterDeclaration* pd);
@@ -83,7 +82,6 @@ struct Editor {
   virtual void edit(CaseStatement* cs);
   virtual void edit(ConditionalStatement* cs);
   virtual void edit(ForStatement* fs);
-  virtual void edit(ForeverStatement* fs);
   virtual void edit(RepeatStatement* rs);
   virtual void edit(ParBlock* pb);
   virtual void edit(SeqBlock* sb);
@@ -95,7 +93,6 @@ struct Editor {
   virtual void edit(RestartStatement* rs);
   virtual void edit(RetargetStatement* rs);
   virtual void edit(SaveStatement* ss);
-  virtual void edit(WaitStatement* ws);
   virtual void edit(WhileStatement* ws);
   virtual void edit(DelayControl* dc);
   virtual void edit(EventControl* ec);

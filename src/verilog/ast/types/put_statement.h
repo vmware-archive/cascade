@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_TYPES_PUT_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_TYPES_PUT_STATEMENT_H
 
-#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/string.h"
 #include "verilog/ast/types/system_task_enable_statement.h"

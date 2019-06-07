@@ -333,17 +333,6 @@ void Printer::visit(const GenvarDeclaration* gd) {
   *this << Color::RED << ";" << Color::RESET;
 }
 
-void Printer::visit(const IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  *this << Color::GREEN << "integer " << Color::RESET;
-  id->accept_id(this);
-  if (id->is_non_null_val()) {
-    *this << Color::RED << " = " << Color::RESET;
-    id->accept_val(this);
-  }
-  *this << Color::RED << ";" << Color::RESET;
-}
-
 void Printer::visit(const LocalparamDeclaration* ld) {
   ld->accept_attrs(this);
   *this << Color::GREEN << "localparam" << Color::RESET;
@@ -533,11 +522,6 @@ void Printer::visit(const ForStatement* fs) {
   fs->accept_stmt(this);
 }
 
-void Printer::visit(const ForeverStatement* fs) {
-  *this << Color::GREEN << "forever " << Color::RESET;
-  fs->accept_stmt(this);
-}
-
 void Printer::visit(const RepeatStatement* rs) {
   *this << Color::GREEN << "repeat " << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
@@ -601,9 +585,13 @@ void Printer::visit(const FseekStatement* fs) {
 void Printer::visit(const GetStatement* gs) {
   *this << Color::YELLOW << "$get" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  *this << Color::RED << "," << Color::RESET;
+  gs->accept_fmt(this);
+  if (gs->is_non_null_var()) {
   *this << Color::RED << "," << Color::RESET;
   gs->accept_var(this);
+  }
   *this << Color::RED << ");" << Color::RESET;
 }
 
@@ -639,15 +627,6 @@ void Printer::visit(const SaveStatement* ss) {
   *this << Color::RED << "(" << Color::RESET;
   ss->accept_arg(this);
   *this << Color::RED << ");" << Color::RESET;
-}
-
-void Printer::visit(const WaitStatement* ws) {
-  *this << Color::GREEN << "wait " << Color::RESET;
-  *this << Color::RED << "(" << Color::RESET;
-  ws->accept_cond(this); 
-  *this << Color::RED << ")" << Color::RESET;
-  *this << " ";
-  ws->accept_stmt(this);
 }
 
 void Printer::visit(const WhileStatement* ws) {

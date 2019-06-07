@@ -33,7 +33,6 @@
 
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/expression.h"
-#include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
@@ -41,7 +40,7 @@ namespace cascade {
 class FseekStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit FseekStatement(Identifier* fd__, Number* offset__, Number* op__);
+    explicit FseekStatement(Expression* fd__, Number* offset__, Number* op__);
     ~FseekStatement() override;
 
     // Node Interface:
@@ -49,17 +48,17 @@ class FseekStatement : public SystemTaskEnableStatement {
     FseekStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FseekStatement, Identifier, fd)
+    PTR_GET_SET(FseekStatement, Expression, fd)
     PTR_GET_SET(FseekStatement, Number, offset)
     PTR_GET_SET(FseekStatement, Number, op)
 
   private:
-    PTR_ATTR(Identifier, fd);
+    PTR_ATTR(Expression, fd);
     PTR_ATTR(Number, offset);
     PTR_ATTR(Number, op);
 };
 
-inline FseekStatement::FseekStatement(Identifier* fd__, Number* offset__, Number* op__) : SystemTaskEnableStatement(Node::Tag::fseek_statement) {
+inline FseekStatement::FseekStatement(Expression* fd__, Number* offset__, Number* op__) : SystemTaskEnableStatement(Node::Tag::fseek_statement) {
   PTR_SETUP(fd);
   PTR_SETUP(offset);
   PTR_SETUP(op);

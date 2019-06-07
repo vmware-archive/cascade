@@ -73,7 +73,6 @@ struct Builder {
   virtual ModuleItem* build(const InitialConstruct* ic);
   virtual ModuleItem* build(const ContinuousAssign* ca);
   virtual ModuleItem* build(const GenvarDeclaration* gd);
-  virtual ModuleItem* build(const IntegerDeclaration* id);
   virtual ModuleItem* build(const LocalparamDeclaration* ld);
   virtual ModuleItem* build(const NetDeclaration* nd);
   virtual ModuleItem* build(const ParameterDeclaration* pd);
@@ -86,7 +85,6 @@ struct Builder {
   virtual Statement* build(const CaseStatement* cs);
   virtual Statement* build(const ConditionalStatement* cs);
   virtual Statement* build(const ForStatement* fs);
-  virtual Statement* build(const ForeverStatement* fs);
   virtual Statement* build(const RepeatStatement* rs);
   virtual Statement* build(const ParBlock* pb);
   virtual Statement* build(const SeqBlock* sb);
@@ -98,7 +96,6 @@ struct Builder {
   virtual Statement* build(const RestartStatement* rs);
   virtual Statement* build(const RetargetStatement* rs);
   virtual Statement* build(const SaveStatement* ss);
-  virtual Statement* build(const WaitStatement* ws);
   virtual Statement* build(const WhileStatement* ws);
   virtual TimingControl* build(const DelayControl* dc);
   virtual TimingControl* build(const EventControl* ec);

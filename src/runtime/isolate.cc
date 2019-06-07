@@ -111,16 +111,6 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
   return nullptr;
 }
 
-ModuleItem* Isolate::build(const IntegerDeclaration* id) {
-  return new RegDeclaration(
-    id->get_attrs()->accept(this),
-    id->accept_id(this),
-    true,
-    new RangeExpression(32, 0),
-    id->accept_val(this)
-  );
-}
-
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.

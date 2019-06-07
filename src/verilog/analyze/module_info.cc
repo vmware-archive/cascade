@@ -591,22 +591,6 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
   // Nothing external should reference this
 }
 
-void ModuleInfo::visit(const IntegerDeclaration* id) {
-  md_->locals_.insert(id->get_id());   
-  record_external_use(id->get_id());
-  if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
-    md_->stateful_.insert(id->get_id());
-    md_->streams_.insert(id->get_id());
-  }
-  for (auto i = Resolve().use_begin(id->get_id()), ie = Resolve().use_end(id->get_id()); i != ie; ++i) {
-    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
-        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
-      return;
-    }
-  }
-  md_->stateful_.insert(id->get_id());
-}
-
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
   md_->locals_.insert(ld->get_id());   
   // Nothing external should reference this
@@ -721,11 +705,11 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
 
 void ModuleInfo::visit(const GetStatement* gs) {
   Visitor::visit(gs);
-
-  const auto* r = Resolve().get_resolution(gs->get_var());
-  assert(r != nullptr);
-
-  md_->stateful_.insert(r);
+  if (gs->is_non_null_var()) {
+    const auto* r = Resolve().get_resolution(gs->get_var());
+    assert(r != nullptr);
+    md_->stateful_.insert(r);
+  }
 }
 
 void ModuleInfo::visit(const VariableAssign* va) {

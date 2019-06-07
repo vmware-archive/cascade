@@ -170,12 +170,6 @@ void Editor::edit(GenvarDeclaration* gd) {
   gd->accept_id(this);
 }
 
-void Editor::edit(IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  id->accept_id(this); 
-  id->accept_val(this);
-}
-
 void Editor::edit(LocalparamDeclaration* ld) {
   ld->accept_attrs(this);
   ld->accept_dim(this);
@@ -250,10 +244,6 @@ void Editor::edit(ForStatement* fs) {
   fs->accept_stmt(this);
 }
 
-void Editor::edit(ForeverStatement* fs) {
-  fs->accept_stmt(this);
-}
-
 void Editor::edit(RepeatStatement* rs) {
   rs->accept_cond(this);
   rs->accept_stmt(this);
@@ -287,7 +277,8 @@ void Editor::edit(FseekStatement* fs) {
 }
 
 void Editor::edit(GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  gs->accept_fmt(this);
   gs->accept_var(this);
 }
 
@@ -307,11 +298,6 @@ void Editor::edit(RetargetStatement* rs) {
 
 void Editor::edit(SaveStatement* ss) {
   ss->accept_arg(this);
-}
-
-void Editor::edit(WaitStatement* ws) {
-  ws->accept_cond(this);
-  ws->accept_stmt(this);
 }
 
 void Editor::edit(WhileStatement* ws) {

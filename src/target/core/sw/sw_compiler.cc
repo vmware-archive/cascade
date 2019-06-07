@@ -193,9 +193,6 @@ SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) 
   for (auto* s : info.stateful()) { 
     c->set_state(s, to_vid(s));
   }
-  for (auto* s : info.streams()) {
-    c->set_stream(s, to_vid(s));
-  }
   return c;
 } 
 

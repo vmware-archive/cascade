@@ -71,7 +71,7 @@ class Evaluate : public Editor {
     ~Evaluate() override = default;
 
     // Configuration Interface:
-    Evaluate& set_eof_handler(FeofHandler h);
+    Evaluate& set_feof_handler(FeofHandler h);
     Evaluate& set_fopen_handler(FopenHandler h);
 
     // Returns the arity of an expression: an empty vector for scalars, one 
@@ -184,7 +184,6 @@ class Evaluate : public Editor {
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
@@ -205,7 +204,6 @@ class Evaluate : public Editor {
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;

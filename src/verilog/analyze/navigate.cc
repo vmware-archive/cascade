@@ -355,10 +355,6 @@ void Navigate::visit(const GenvarDeclaration* gd) {
   cache_name(gd->get_id());
 }
 
-void Navigate::visit(const IntegerDeclaration* id) {
-  cache_name(id->get_id());
-}
-
 void Navigate::visit(const LocalparamDeclaration* ld) {
   cache_name(ld->get_id());
 }

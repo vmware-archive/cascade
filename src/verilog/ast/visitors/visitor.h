@@ -70,7 +70,6 @@ struct Visitor {
   virtual void visit(const InitialConstruct* ic);
   virtual void visit(const ContinuousAssign* ca);
   virtual void visit(const GenvarDeclaration* gd);
-  virtual void visit(const IntegerDeclaration* id);
   virtual void visit(const LocalparamDeclaration* ld);
   virtual void visit(const NetDeclaration* nd);
   virtual void visit(const ParameterDeclaration* pd);
@@ -83,7 +82,6 @@ struct Visitor {
   virtual void visit(const CaseStatement* cs);
   virtual void visit(const ConditionalStatement* cs);
   virtual void visit(const ForStatement* fs);
-  virtual void visit(const ForeverStatement* fs);
   virtual void visit(const RepeatStatement* rs);
   virtual void visit(const ParBlock* pb);
   virtual void visit(const SeqBlock* sb);
@@ -95,7 +93,6 @@ struct Visitor {
   virtual void visit(const RestartStatement* rs);
   virtual void visit(const RetargetStatement* rs);
   virtual void visit(const SaveStatement* ss);
-  virtual void visit(const WaitStatement* ws);
   virtual void visit(const WhileStatement* ws);
   virtual void visit(const DelayControl* dc);
   virtual void visit(const EventControl* ec);

@@ -177,7 +177,6 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token ENDMODULE   "endmodule"
 %token FOR         "for"
 %token FORK        "fork"
-%token FOREVER     "forever"
 %token GENERATE    "generate"
 %token GENVAR      "genvar"
 %token IF          "if"
@@ -197,7 +196,6 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
-%token WAIT        "wait"
 %token WHILE       "while"
 %token WIRE        "wire"
 
@@ -209,6 +207,7 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token SYS_FDISPLAY "$fdisplay"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
+%token SYS_FREAD    "$fread"
 %token SYS_FSEEK    "$fseek"
 %token SYS_FWRITE   "$fwrite"
 %token SYS_GET      "$get"
@@ -372,7 +371,6 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %type <std::vector<Event*>> event_expression
 %type <TimingControl*> procedural_timing_control
 %type <TimingControlStatement*> procedural_timing_control_statement
-%type <WaitStatement*> wait_statement
 
 /* A.6.6 Conditional Statements */
 %type <ConditionalStatement*> conditional_statement
@@ -766,7 +764,7 @@ output_declaration
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto id = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(id, $2);
       parser->set_loc(id->get_id(), $2);
@@ -967,7 +965,7 @@ block_item_declaration
   }
   | attribute_instance_S integer_L list_of_block_variable_identifiers SCOLON { 
     for (auto id : $3) {
-      $$.push_back(new IntegerDeclaration($1->clone(), id, nullptr));
+      $$.push_back(new RegDeclaration($1->clone(), id, true, new RangeExpression(32, 0), nullptr));
     }
     delete $1;
   }
@@ -1325,7 +1323,7 @@ statement
   | /*attribute_instance_S*/ seq_block { $$ = $1; }
   | /*attribute_instance_S*/ system_task_enable { $$ = $1; }
   /* TODO | attribute_instance_S task_enable */
-  | /*attribute_instance_S*/ wait_statement { $$ = $1; }
+  /* TODO | wait_statement */
   ;
 statement_or_null
   : statement { $$ = $1; }
@@ -1382,12 +1380,7 @@ procedural_timing_control
 procedural_timing_control_statement
   : procedural_timing_control statement_or_null { $$ = new TimingControlStatement($1,$2); }
   ;
-wait_statement
-  : WAIT OPAREN expression CPAREN statement_or_null { 
-    $$ = new WaitStatement($3,$5); 
-    parser->set_loc($$, $3);
-  }
-  ;
+/* wait_statement */
 
 /* A.6.6 Conditional Statements */
 conditional_statement
@@ -1417,11 +1410,8 @@ case_item
 
 /* A.6.8 Looping Statements */
 loop_statement
-  : FOREVER statement { 
-    $$ = new ForeverStatement($2); 
-    parser->set_loc($$, $2);
-  }
-  | REPEAT OPAREN expression CPAREN statement { 
+  /* forever statement */
+  : REPEAT OPAREN expression CPAREN statement { 
     $$ = new RepeatStatement($3,$5); 
     parser->set_loc($$);
   }
@@ -1538,8 +1528,12 @@ system_task_enable
     $$ = sb;
     parser->set_loc($$);
   }
-  | SYS_GET OPAREN identifier COMMA identifier CPAREN SCOLON {
+  | SYS_GET OPAREN expression COMMA string_ CPAREN SCOLON {
     $$ = new GetStatement($3, $5); 
+    parser->set_loc($$);
+  }
+  | SYS_GET OPAREN expression COMMA string_ COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, $5, $7); 
     parser->set_loc($$);
   }
   | SYS_INFO SCOLON { 
@@ -1574,7 +1568,7 @@ system_task_enable
     $$ = new RetargetStatement($3);
     parser->set_loc($$);
   }
-  | SYS_REWIND OPAREN identifier CPAREN SCOLON {
+  | SYS_REWIND OPAREN expression CPAREN SCOLON {
     $$ = new FseekStatement($3, new Number(Bits(false)), new Number(Bits(false)));
     parser->set_loc($$);
   }
@@ -1582,7 +1576,11 @@ system_task_enable
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_FSEEK OPAREN identifier COMMA number COMMA number CPAREN SCOLON {
+  | SYS_FREAD OPAREN expression COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, new String("%u"), $5);
+    parser->set_loc($$);
+  }
+  | SYS_FSEEK OPAREN expression COMMA number COMMA number CPAREN SCOLON {
     $$ = new FseekStatement($3, $5, $7);
     parser->set_loc($$);
   }
@@ -1638,7 +1636,7 @@ conditional_expression
   }
   ;
 feof_expression
-  : SYS_FEOF OPAREN identifier CPAREN {
+  : SYS_FEOF OPAREN expression CPAREN {
     $$ = new FeofExpression($3);
     parser->set_loc($$);
   }

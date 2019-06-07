@@ -35,6 +35,7 @@
 #include <iostream>
 #include "target/core/common/interfacestream.h"
 #include "target/core/common/printf.h"
+#include "target/core/common/scanf.h"
 #include "target/core/sw/monitor.h"
 #include "target/input.h"
 #include "target/interface.h"
@@ -48,30 +49,34 @@ using namespace std;
 namespace cascade {
 
 SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface), Visitor() { 
-  // Record pointer to source code
+  // Record pointer to source code and provision update pool
   src_ = md;
-  // Initialize monitors
+  update_pool_.resize(1);
+
+  // Initialize monitors and system task handlers
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     Monitor().init(*i);
   }
-  // Initial provision for update_pool_:
-  update_pool_.resize(1);
-  // Schedule always constructs and continuous assigns.
+  eval_.set_feof_handler([this](Evaluate* eval, const FeofExpression* fe) {
+    const auto fd = eval_.get_value(fe->get_fd()).to_int();
+    return get_stream(fd)->eof();
+  });
+
+  // Set silent mode, schedule always constructs and continuous assigns, and then
+  // place the silent flag in its default, disabled state
+  silent_ = true;
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::always_construct) || (*i)->is(Node::Tag::continuous_assign)) {
       schedule_now(*i);
     }
   }
-  // By default, silent mode is off
   silent_ = false;
 }
 
 SwLogic::~SwLogic() {
   delete src_;
   for (auto& s : streams_) {
-    if (s.second != nullptr) {
-      delete s.second;
-    }
+    delete s.second;
   }
 }
 
@@ -93,18 +98,23 @@ SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
   return *this;
 }
 
-SwLogic& SwLogic::set_stream(const Identifier* id, VId vid) {
-  (void) vid;
-  streams_.insert(make_pair(id, nullptr));
-  return *this;
-}
-
 State* SwLogic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
     s->insert(sv.first, eval_.get_array_value(sv.second));
   }
   return s;
+}
+
+interfacestream* SwLogic::get_stream(uint32_t fd) {
+  const auto itr = streams_.find(fd);
+  if (itr != streams_.end()) {
+    return itr->second;
+  }
+
+  auto* is = new interfacestream(interface(), fd);
+  streams_[fd] = is;
+  return is;
 }
 
 void SwLogic::set_state(const State* s) {
@@ -146,35 +156,20 @@ void SwLogic::set_input(const Input* i) {
 }
 
 void SwLogic::finalize() {
-  // Attach eof handler
-  eval_.set_eof_handler([this](Evaluate* eval, const FeofExpression* fe) {
-    (void) eval;
-    const auto* r = Resolve().get_resolution(fe->get_fd());
-    const auto itr = streams_.find(r);
-    return (itr == streams_.end()) || itr->second->eof();
-  });
-
-  // Generate values for any calls to fopen which haven't been handled yet
-  for (auto& s : streams_) {
-    if (eval_.get_value(s.first).to_int() == 0) {
-      // Invoke fopen on runtime
-      const auto* rd = static_cast<const RegDeclaration*>(s.first->get_parent());
-      const auto* fopen = static_cast<const FopenExpression*>(rd->get_val());
-      const auto id = interface()->fopen(fopen->get_arg()->get_readable_val());
-      // Write the value of this variable so this condition isn't invoked again
-      eval_.assign_value(s.first, Bits(32, id));
-      // Notify change in stream state
-      eval_.flag_changed(const_cast<Identifier*>(s.first));
-      notify(s.first);
-      // Call one last silent evaluate (just in case this triggered a
-      // continuous assign or an always block)
-      silent_evaluate();
+  // Handle calls to fopen.
+  for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
+    if ((*i)->is(Node::Tag::reg_declaration)) {
+      const auto* rd = static_cast<const RegDeclaration*>(*i);
+      if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
+        const auto* fe = static_cast<const FopenExpression*>(rd->get_val());
+        if (eval_.get_value(rd->get_id()).to_int() == 0) {
+          const auto fd = interface()->fopen(fe->get_arg()->get_readable_val());
+          eval_.assign_value(rd->get_id(), Bits(32, fd));
+          notify(rd->get_id());
+        }
+      }
     }
-    // Regardless of which time through this is, create an interfacestream for
-    // this variable.
-    s.second = new interfacestream(interface(), eval_.get_value(s.first).to_int());
   }
-
   // Schedule initial constructs
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::initial_construct)) {
@@ -277,7 +272,7 @@ uint16_t& SwLogic::get_state(const Statement* s) {
 }
 
 void SwLogic::visit(const Event* e) {
-  // TODO(eschkufz) Support for complex expressions here
+  // TODO(eschkufz) Support for complex expressions 
   assert(e->get_expr()->is(Node::Tag::identifier));
   const auto* id = static_cast<const Identifier*>(e->get_expr());
   const auto* r = Resolve().get_resolution(id);
@@ -294,10 +289,7 @@ void SwLogic::visit(const AlwaysConstruct* ac) {
 }
 
 void SwLogic::visit(const InitialConstruct* ic) {
-  const auto* ign = ic->get_attrs()->get<String>("__ignore");
-  if (ign == nullptr || !ign->eq("true")) {
-    schedule_active(ic->get_stmt());
-  }
+  schedule_active(ic->get_stmt());
 }
 
 void SwLogic::visit(const ContinuousAssign* ca) {
@@ -415,67 +407,47 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const FseekStatement* fs) {
   if (!silent_) {
-    const auto* r = Resolve().get_resolution(fs->get_fd());
-    const auto itr = streams_.find(r);
-    assert(itr != streams_.end());
+    const auto fd = eval_.get_value(fs->get_fd()).to_int();
+    auto* is = get_stream(fd);
 
     const auto offset = eval_.get_value(fs->get_offset()).to_int();
     const auto op = eval_.get_value(fs->get_op()).to_int();
     const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
 
-    itr->second->clear();
-    itr->second->seekg(offset, way); 
-    itr->second->seekp(offset, way);
+    is->clear();
+    is->seekg(offset, way); 
+    is->seekp(offset, way);
 
-    // Notify changes in stream state
-    eval_.flag_changed(r);
-    notify(r);
+    // TODO(eschkufz) changes in stream state
   }
   notify(fs);
 }
 
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
-    const auto* rid = Resolve().get_resolution(gs->get_id());
-    const auto itr = streams_.find(rid);
-    assert(itr != streams_.end());
+    const auto fd = eval_.get_value(gs->get_fd()).to_int();
+    auto* is = get_stream(fd);
+    Scanf().read(*is, &eval_, gs);
 
-    Bits val;
-    val.read(*itr->second, 16);
-    const auto* rvar = Resolve().get_resolution(gs->get_var());
-    eval_.assign_value(rvar, val);
-
-    // Notify change in stream state and variable
-    eval_.flag_changed(rid);
-    eval_.flag_changed(rvar);
-    notify(rid);
-    notify(rvar);
+    // TODO(eschkufz) notify change in stream state
+    if (gs->is_non_null_var()) {
+      const auto* r = Resolve().get_resolution(gs->get_var());
+      assert(r != nullptr);
+      notify(r);
+    }
   }
   notify(gs);
 }
 
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
-    const auto str = Printf(&eval_).format(ps->get_fmt()->get_readable_val(), ps->get_expr());
+    const auto fd = eval_.get_value(ps->get_fd()).to_int();
+    auto* is = get_stream(fd);
+    Printf().write(*is, &eval_, ps);
+    // TODO(eschkufz) This belongs in fflush
+    is->flush();
 
-    if (ps->get_fd()->is(Node::Tag::identifier)) {
-      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(ps->get_fd()));
-      const auto itr = streams_.find(r);
-      assert(itr != streams_.end()); 
-      *itr->second << str;
-      
-      // Notify change in stream state (note that isn't guaranteed to do anything
-      // as interface has some implementation leeway for put). The only way to
-      // force a change is to invoke flush()
-      eval_.flag_changed(r);
-      notify(r);
-    } else {
-      const auto fd = eval_.get_value(ps->get_fd()).to_int();
-      assert(fd >= 0x8000'0000);
-      interfacestream(interface(), fd) << str;
-
-      // No need to change the state of the standard streams
-    }
+    // TODO(eschkufz) notify change in stream state
   }
   notify(ps);
 }
@@ -504,22 +476,8 @@ void SwLogic::visit(const SaveStatement* ss) {
   notify(ss);
 }
 
-void SwLogic::visit(const WaitStatement* ws) {
-  auto& state = get_state(ws);
-  if (state == 0) {
-    if (!eval_.get_value(ws->get_cond()).to_bool()) {
-      return;
-    }
-    state = 1;
-    schedule_now(ws->get_stmt());
-  } else {
-    state = 0;
-    notify(ws);
-  }
-}
-
 void SwLogic::visit(const DelayControl* dc) {
-  // NOTE: Unsynthesizable verilog
+  // TODO(eschkufz) Support for delay control
   assert(false);
   (void) dc;
 }

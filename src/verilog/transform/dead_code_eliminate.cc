@@ -63,10 +63,6 @@ void DeadCodeEliminate::Index::visit(const Identifier* i) {
   }
 }
 
-void DeadCodeEliminate::Index::visit(const IntegerDeclaration* id) {
-  id->accept_val(this);
-}
-
 void DeadCodeEliminate::Index::visit(const LocalparamDeclaration* ld) {
   ld->accept_dim(this);
   ld->accept_val(this);
@@ -91,9 +87,15 @@ void DeadCodeEliminate::edit(ModuleDeclaration* md) {
   for (auto i = md->begin_items(); i != md->end_items(); ) {
     if ((*i)->is_subclass_of(Node::Tag::declaration)) {
       auto* d = static_cast<Declaration*>(*i);
+      
+      const auto is_reg = d->is(Node::Tag::reg_declaration);
+      const auto is_stream = 
+        static_cast<RegDeclaration*>(d)->is_non_null_val() && 
+        static_cast<RegDeclaration*>(d)->get_val()->is(Node::Tag::fopen_expression);
       const auto is_port = d->get_parent()->is(Node::Tag::port_declaration);
       const auto is_dead = use_.find(d->get_id()) == use_.end();
-      if (!is_port && is_dead) {
+
+      if (!is_port && !is_stream && is_dead) {
         dead = true;
         i = md->purge_items(i);
         continue;

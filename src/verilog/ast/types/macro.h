@@ -518,7 +518,6 @@
   friend class ContinuousAssign; \
   friend class Declaration; \
   friend class GenvarDeclaration; \
-  friend class IntegerDeclaration; \
   friend class LocalparamDeclaration; \
   friend class NetDeclaration; \
   friend class ParameterDeclaration; \
@@ -533,7 +532,6 @@
   friend class CaseStatement; \
   friend class ConditionalStatement; \
   friend class ForStatement; \
-  friend class ForeverStatement; \
   friend class RepeatStatement; \
   friend class WhileStatement; \
   friend class TimingControlStatement; \
@@ -544,7 +542,6 @@
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \
-  friend class WaitStatement; \
   friend class DelayControl; \
   friend class EventControl; \
   friend class VariableAssign

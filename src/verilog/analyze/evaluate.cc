@@ -39,7 +39,7 @@ Evaluate::Evaluate() {
   fopen_ = nullptr;
 }
 
-Evaluate& Evaluate::set_eof_handler(FeofHandler h) {
+Evaluate& Evaluate::set_feof_handler(FeofHandler h) {
   feof_ = h;
   return *this;
 }
@@ -771,28 +771,6 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
   gd->get_id()->bit_val_[0].set_signed(true);
 }
 
-void Evaluate::SelfDetermine::edit(IntegerDeclaration* id) {
-  // Don't descend on id, we handle it below
-  id->accept_val(this);
-
-  // Calculate arity
-  size_t arity = 1;
-  for (auto i = id->get_id()->begin_dim(), ie = id->get_id()->end_dim(); i != ie; ++i) {
-    const auto rng = eval_->get_range(*i);
-    arity *= ((rng.first-rng.second)+1);
-  }
-  // Allocate bits: Integers must be a minimum of 32 bits and are always signed
-  id->get_id()->bit_val_.resize(arity);
-  for (size_t i = 0; i < arity; ++i) { 
-    id->get_id()->bit_val_[i].resize(32);
-    id->get_id()->bit_val_[i].set_signed(true);
-  }
-
-  // Hold off on initial assignment here. We may be doing some size extending
-  // in context-determination. We'll want to wait until then to compute the
-  // value of this variable.
-}
-
 void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
   ld->accept_val(this);
@@ -1015,25 +993,6 @@ void Evaluate::ContextDetermine::edit(UnaryExpression* ue) {
 void Evaluate::ContextDetermine::edit(GenvarDeclaration* gd) {
   // There's nothing left to do here. There's no rhs to worry about.
   (void) gd;
-}
-
-void Evaluate::ContextDetermine::edit(IntegerDeclaration* id) { 
-  // Nothing to do if there's no assignment happening here
-  if (id->is_null_val()) {
-    return;
-  }
-  // The parser should guarantee that only scalar declarations
-  // have initial values.
-  assert(id->get_id()->bit_val_.size() == 1);
-
-  // Assignments impose larger sizes but not sign constraints
-  if (id->get_val()->bit_val_[0].size() < 32) {
-    id->get_val()->bit_val_[0].resize(32);
-  }
-  id->accept_val(this);
-
-  // Now that we're context determined, we can perform initial assignment
-  id->get_id()->bit_val_[0].assign(eval_->get_value(id->get_val()));
 }
 
 void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {

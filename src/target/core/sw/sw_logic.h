@@ -55,7 +55,6 @@ class SwLogic : public Logic, public Visitor {
     SwLogic& set_read(const Identifier* id, VId vid);
     SwLogic& set_write(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
-    SwLogic& set_stream(const Identifier* id, VId vid);
 
     // Core Interface:
     State* get_state() override;
@@ -76,26 +75,27 @@ class SwLogic : public Logic, public Visitor {
     std::vector<const Identifier*> reads_;
     std::vector<std::pair<const Identifier*, VId>> writes_;
     std::unordered_map<VId, const Identifier*> state_;
-    std::unordered_map<const Identifier*, interfacestream*> streams_;
 
     // Control State:
-    Evaluate eval_;
     bool silent_;
     bool there_were_tasks_;
     std::vector<const Node*> active_;
     std::vector<std::tuple<const Identifier*,size_t,int,int>> updates_;
     std::vector<Bits> update_pool_;
+    Evaluate eval_;
+    std::unordered_map<FId, interfacestream*> streams_;
 
     // Scheduling: 
     void schedule_now(const Node* n);
     void schedule_active(const Node* n);
     void notify(const Node* n);
 
-    // Resyncing Helpers:
+    // Finalize Helpers:
     void silent_evaluate();
 
     // Control State:
     uint16_t& get_state(const Statement* s);
+    interfacestream* get_stream(uint32_t fd);
 
     // Visitor Interface:
     void visit(const Event* e) override;
@@ -115,7 +115,6 @@ class SwLogic : public Logic, public Visitor {
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
-    void visit(const WaitStatement* ws) override;
     void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;

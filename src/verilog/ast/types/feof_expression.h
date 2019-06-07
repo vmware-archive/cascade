@@ -33,14 +33,13 @@
 
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/expression.h"
-#include "verilog/ast/types/identifier.h"
 
 namespace cascade {
 
 class FeofExpression : public Expression {
   public:
     // Constructors:
-    explicit FeofExpression(Identifier* fd__);
+    explicit FeofExpression(Expression* fd__);
     ~FeofExpression() override;
 
     // Node Interface:
@@ -48,13 +47,13 @@ class FeofExpression : public Expression {
     FeofExpression* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FeofExpression, Identifier, fd)
+    PTR_GET_SET(FeofExpression, Expression, fd)
 
   private:
-    PTR_ATTR(Identifier, fd);
+    PTR_ATTR(Expression, fd);
 };
 
-inline FeofExpression::FeofExpression(Identifier* fd__) : Expression(Node::Tag::feof_expression) {
+inline FeofExpression::FeofExpression(Expression* fd__) : Expression(Node::Tag::feof_expression) {
   PTR_SETUP(fd);
   parent_ = nullptr;
 }

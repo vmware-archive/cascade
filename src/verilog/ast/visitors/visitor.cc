@@ -170,12 +170,6 @@ void Visitor::visit(const GenvarDeclaration* gd) {
   gd->accept_id(this);
 }
 
-void Visitor::visit(const IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  id->accept_id(this); 
-  id->accept_val(this);
-}
-
 void Visitor::visit(const LocalparamDeclaration* ld) {
   ld->accept_attrs(this);
   ld->accept_dim(this);
@@ -250,10 +244,6 @@ void Visitor::visit(const ForStatement* fs) {
   fs->accept_stmt(this);
 }
 
-void Visitor::visit(const ForeverStatement* fs) {
-  fs->accept_stmt(this);
-}
-
 void Visitor::visit(const RepeatStatement* rs) {
   rs->accept_cond(this);
   rs->accept_stmt(this);
@@ -287,7 +277,8 @@ void Visitor::visit(const FseekStatement* fs) {
 }
 
 void Visitor::visit(const GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  gs->accept_fmt(this);
   gs->accept_var(this);
 }
 
@@ -307,11 +298,6 @@ void Visitor::visit(const RetargetStatement* rs) {
 
 void Visitor::visit(const SaveStatement* ss) {
   ss->accept_arg(this);
-}
-
-void Visitor::visit(const WaitStatement* ws) {
-  ws->accept_cond(this);
-  ws->accept_stmt(this);
 }
 
 void Visitor::visit(const WhileStatement* ws) {

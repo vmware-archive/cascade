@@ -31,16 +31,19 @@
 #ifndef CASCADE_SRC_VERILOG_AST_GET_STATEMENT_H
 #define CASCADE_SRC_VERILOG_AST_GET_STATEMENT_H
 
-#include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/system_task_enable_statement.h"
+#include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/string.h"
+#include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
 class GetStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit GetStatement(Identifier* id__, Identifier* var__);
+    explicit GetStatement(Expression* fd__, String* fmt__);
+    explicit GetStatement(Expression* fd__, String* fmt__, Identifier* var__);
     ~GetStatement() override;
 
     // Node Interface:
@@ -48,27 +51,37 @@ class GetStatement : public SystemTaskEnableStatement {
     GetStatement* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(GetStatement, Identifier, id)
-    PTR_GET_SET(GetStatement, Identifier, var)
+    PTR_GET_SET(GetStatement, Expression, fd)
+    PTR_GET_SET(GetStatement, String, fmt)
+    MAYBE_GET_SET(GetStatement, Identifier, var)
 
   private:
-    PTR_ATTR(Identifier, id);
-    PTR_ATTR(Identifier, var);
+    PTR_ATTR(Expression, fd);
+    PTR_ATTR(String, fmt);
+    MAYBE_ATTR(Identifier, var);
 };
 
-inline GetStatement::GetStatement(Identifier* id__, Identifier* var__) : SystemTaskEnableStatement(Node::Tag::get_statement) {
-  PTR_SETUP(id);
-  PTR_SETUP(var);
+inline GetStatement::GetStatement(Expression* fd__, String* fmt__) : SystemTaskEnableStatement(Node::Tag::get_statement) {
+  PTR_SETUP(fd);
+  PTR_SETUP(fmt);
+  MAYBE_DEFAULT_SETUP(var);
   parent_ = nullptr;
 }
 
+inline GetStatement::GetStatement(Expression* fd__, String* fmt__, Identifier* var__) : GetStatement(fd__, fmt__) {
+  MAYBE_SETUP(var);
+}
+
 inline GetStatement::~GetStatement() {
-  PTR_TEARDOWN(id);
-  PTR_TEARDOWN(var);
+  PTR_TEARDOWN(fd);
+  PTR_TEARDOWN(fmt);
+  MAYBE_TEARDOWN(var);
 }
 
 inline GetStatement* GetStatement::clone() const {
-  return new GetStatement(id_->clone(), var_->clone());
+  auto* res = new GetStatement(fd_->clone(), fmt_->clone());
+  MAYBE_CLONE(var);
+  return res;
 }
 
 } // namespace cascade 

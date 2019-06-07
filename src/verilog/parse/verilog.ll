@@ -410,7 +410,6 @@ IF_TEXT     ([^`]*)
 "endmodule"{SPACE}*{NEWLINE}? return yyParser::make_ENDMODULE(parser->get_loc());
 "for"         return yyParser::make_FOR(parser->get_loc());
 "fork"        return yyParser::make_FORK(parser->get_loc());
-"forever"     return yyParser::make_FOREVER(parser->get_loc());
 "generate"    return yyParser::make_GENERATE(parser->get_loc());
 "genvar"      return yyParser::make_GENVAR(parser->get_loc());
 "if"          return yyParser::make_IF(parser->get_loc());
@@ -430,7 +429,6 @@ IF_TEXT     ([^`]*)
 "reg"         return yyParser::make_REG(parser->get_loc());
 "repeat"      return yyParser::make_REPEAT(parser->get_loc());
 "signed"      return yyParser::make_SIGNED(parser->get_loc());
-"wait"        return yyParser::make_WAIT(parser->get_loc());
 "while"       return yyParser::make_WHILE(parser->get_loc());
 "wire"        return yyParser::make_WIRE(parser->get_loc());
 
@@ -441,6 +439,7 @@ IF_TEXT     ([^`]*)
 "$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());
 "$fopen"    return yyParser::make_SYS_FOPEN(parser->get_loc());
+"$fread"    return yyParser::make_SYS_FREAD(parser->get_loc());
 "$fseek"    return yyParser::make_SYS_FSEEK(parser->get_loc());
 "$fwrite"   return yyParser::make_SYS_FWRITE(parser->get_loc());
 "$get"      return yyParser::make_SYS_GET(parser->get_loc());

@@ -74,6 +74,9 @@ ModuleItem* TextMangle::build(const PortDeclaration* pd) {
 }
 
 Expression* TextMangle::build(const FeofExpression* fe) {
+  // TODO(eschkufz) This is broken now that fds can be expressions
+
+  /*
   // This is a bit confusing: the de10 compiler has created an entry in the
   // variable table for the argument to this expression (like we do with
   // arguments to display statements). Prior to transfering control to the fpga
@@ -81,6 +84,9 @@ Expression* TextMangle::build(const FeofExpression* fe) {
   const auto itr = de_->table_find(fe->get_fd());
   assert(itr != de_->table_end());
   return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
+  */
+
+  return nullptr;
 }
 
 Statement* TextMangle::build(const NonblockingAssign* na) {

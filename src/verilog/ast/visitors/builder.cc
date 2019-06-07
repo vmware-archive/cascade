@@ -233,14 +233,6 @@ ModuleItem* Builder::build(const GenvarDeclaration* gd) {
   );
 }
 
-ModuleItem* Builder::build(const IntegerDeclaration* id) {
-  return new IntegerDeclaration(
-    id->accept_attrs(this),
-    id->accept_id(this),
-    id->accept_val(this)
-  );
-}
-
 ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->accept_attrs(this),
@@ -348,12 +340,6 @@ Statement* Builder::build(const ForStatement* fs) {
   );
 }
 
-Statement* Builder::build(const ForeverStatement* fs) {
-  return new ForeverStatement(
-    fs->accept_stmt(this)
-  );
-}
-
 Statement* Builder::build(const RepeatStatement* rs) {
   return new RepeatStatement(
     rs->accept_cond(this),
@@ -400,7 +386,8 @@ Statement* Builder::build(const FseekStatement* fs) {
 
 Statement* Builder::build(const GetStatement* gs) {
   return new GetStatement(
-    gs->accept_id(this),
+    gs->accept_fd(this),
+    gs->accept_fmt(this),
     gs->accept_var(this)
   );
 }
@@ -428,13 +415,6 @@ Statement* Builder::build(const RetargetStatement* rs) {
 Statement* Builder::build(const SaveStatement* ss) {
   return new SaveStatement(
     ss->accept_arg(this)
-  );
-}
-
-Statement* Builder::build(const WaitStatement* ws) {
-  return new WaitStatement(
-    ws->accept_cond(this),
-    ws->accept_stmt(this)
   );
 }
 

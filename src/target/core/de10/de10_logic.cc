@@ -256,10 +256,12 @@ void De10Logic::finalize() {
     const Identifier* r = nullptr;
     switch(get<0>(io)->get_tag()) {
       case Node::Tag::fseek_statement:
-        r = Resolve().get_resolution(static_cast<const FseekStatement*>(get<0>(io))->get_fd());
+        // TODO(eschkufz) this is broken now that fds can be expressions
+        //r = Resolve().get_resolution(static_cast<const FseekStatement*>(get<0>(io))->get_fd());
         break;
       case Node::Tag::get_statement:
-        r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
+        // TODO(eschkufz) this is broken now that fds can be expressions
+        //r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
         break;
       case Node::Tag::put_statement:
         // TODO(eschkufz) this is broken now that fds can be expressions
@@ -440,6 +442,9 @@ const Identifier* De10Logic::open_loop_clock() const {
 }
 
 void De10Logic::visit(const FeofExpression* fe) {
+  // TODO(eschkufz) This is broken now that fds can be expressions
+
+  /*
   // This isn't technically an io task, but it needs to be associated with io tasks
   // that affect it.
   const auto* s = Resolve().get_resolution(fe->get_fd());
@@ -451,6 +456,7 @@ void De10Logic::visit(const FeofExpression* fe) {
   // we know we've got it here in the AST. 
   Inserter i(this);
   fe->accept_fd(&i); 
+  */
 }
 
 void De10Logic::visit(const FinishStatement* fs) {
@@ -603,7 +609,7 @@ void De10Logic::handle_io_tasks() {
         Sync sync(this);
         ps->accept_expr(&sync);
         Evaluate eval;
-        *get<1>(io_tasks_[i]) << Printf(&eval).format(ps->get_fmt()->get_readable_val(), ps->get_expr());
+        Printf().write(*get<1>(io_tasks_[i]), &eval, ps);
         break;
       }
       default:

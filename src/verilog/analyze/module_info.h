@@ -173,7 +173,6 @@ class ModuleInfo : public Visitor {
     void visit(const IfGenerateConstruct* igc) override;
     void visit(const LoopGenerateConstruct* lgc) override;
     void visit(const GenvarDeclaration* gd) override;
-    void visit(const IntegerDeclaration* id) override;
     void visit(const LocalparamDeclaration* ld) override;
     void visit(const NetDeclaration* nd) override;
     void visit(const ParameterDeclaration* pd) override;

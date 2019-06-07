@@ -31,56 +31,50 @@
 #ifndef CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 #define CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 
-#include <sstream>
-#include <string>
+#include <iostream>
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/ast.h"
 
 namespace cascade {
 
-class Printf {
-  public:
-    Printf(Evaluate* eval);
-    std::string format(const std::string& format, const Expression* expr);
-  private:
-    Evaluate* eval_;
+struct Printf {
+  void write(std::ostream& os, Evaluate* eval, const PutStatement* ps);
 };
 
-inline Printf::Printf(Evaluate* eval) {
-  eval_ = eval;
-}
-
-inline std::string Printf::format(const std::string& format, const Expression* expr) {
+inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* ps) {
+  const auto format = ps->get_fmt()->get_readable_val();
   if (format[0] != '%') {
-    return format;
+    os << format;
+    return;
   }
 
-  std::stringstream ss;
+  assert(ps->is_non_null_expr());
+  const auto* expr = ps->get_expr();
+
   switch (format[1]) {
     case 'b':
     case 'B': 
-      eval_->get_value(expr).write(ss, 2);
+      eval->get_value(expr).write(os, 2);
       break;
     case 'd':
     case 'D':
-      eval_->get_value(expr).write(ss, 10);
+      eval->get_value(expr).write(os, 10);
       break;
     case 'h':
     case 'H': 
-      eval_->get_value(expr).write(ss, 16);
+      eval->get_value(expr).write(os, 16);
       break;
     case 'o':
     case 'O': 
-      eval_->get_value(expr).write(ss, 8);
+      eval->get_value(expr).write(os, 8);
       break;
     case 'u':
     case 'U':
-      eval_->get_value(expr).write(ss, 16);
+      eval->get_value(expr).write(os, 16);
       break;
     default: 
       assert(false);
   }
-  return ss.str();
 }
 
 } // namespace cascade

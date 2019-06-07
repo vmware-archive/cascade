@@ -73,7 +73,6 @@ class Printer : public Visitor {
     void visit(const InitialConstruct* ic) override;
     void visit(const ContinuousAssign* ca) override;
     void visit(const GenvarDeclaration* gd) override;
-    void visit(const IntegerDeclaration* id) override;
     void visit(const LocalparamDeclaration* ld) override;
     void visit(const NetDeclaration* nd) override;
     void visit(const ParameterDeclaration* pd) override;
@@ -86,7 +85,6 @@ class Printer : public Visitor {
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
     void visit(const ForStatement* fs) override;
-    void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
@@ -98,7 +96,6 @@ class Printer : public Visitor {
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
-    void visit(const WaitStatement* ws) override;
     void visit(const WhileStatement* ws) override;
     void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;

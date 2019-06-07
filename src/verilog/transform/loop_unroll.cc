@@ -95,13 +95,6 @@ Statement* LoopUnroll::Unroll::build(const RepeatStatement* rs) {
 
 LoopUnroll::Reset::Reset() : Visitor() { }
 
-void LoopUnroll::Reset::visit(const IntegerDeclaration* id) {
-  if (id->is_non_null_val()) {
-    const auto& val = Evaluate().get_value(id->get_val());
-    Evaluate().assign_value(id->get_id(), val);
-  }
-}
-
 void LoopUnroll::Reset::visit(const RegDeclaration* rd) {
   if (rd->is_non_null_val()) {
     const auto& val = Evaluate().get_value(rd->get_val());

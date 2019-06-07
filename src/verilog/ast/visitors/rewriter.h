@@ -72,7 +72,6 @@ struct Rewriter {
   virtual ModuleItem* rewrite(InitialConstruct* ic);
   virtual ModuleItem* rewrite(ContinuousAssign* ca);
   virtual ModuleItem* rewrite(GenvarDeclaration* gd);
-  virtual ModuleItem* rewrite(IntegerDeclaration* id);
   virtual ModuleItem* rewrite(LocalparamDeclaration* ld);
   virtual ModuleItem* rewrite(NetDeclaration* nd);
   virtual ModuleItem* rewrite(ParameterDeclaration* pd);
@@ -85,7 +84,6 @@ struct Rewriter {
   virtual Statement* rewrite(CaseStatement* cs);
   virtual Statement* rewrite(ConditionalStatement* cs);
   virtual Statement* rewrite(ForStatement* fs);
-  virtual Statement* rewrite(ForeverStatement* fs);
   virtual Statement* rewrite(RepeatStatement* rs);
   virtual Statement* rewrite(ParBlock* pb);
   virtual Statement* rewrite(SeqBlock* sb);
@@ -97,7 +95,6 @@ struct Rewriter {
   virtual Statement* rewrite(RestartStatement* rs);
   virtual Statement* rewrite(RetargetStatement* rs);
   virtual Statement* rewrite(SaveStatement* ss);
-  virtual Statement* rewrite(WaitStatement* ws);
   virtual Statement* rewrite(WhileStatement* ws);
   virtual TimingControl* rewrite(DelayControl* dc);
   virtual TimingControl* rewrite(EventControl* ec);
