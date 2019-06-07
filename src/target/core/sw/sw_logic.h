@@ -126,7 +126,7 @@ class SwLogic : public Logic, public Visitor {
       UpdateEof(SwLogic* sw) { sw_ = sw; }
       void visit(const FeofExpression* fe) {
         Evaluate().flag_changed(fe);
-//        sw_->notify(fe);
+        sw_->notify(fe);
       }
       SwLogic* sw_;
     };

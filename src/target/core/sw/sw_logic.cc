@@ -241,12 +241,20 @@ void SwLogic::schedule_active(const Node* n) {
 }
 
 void SwLogic::notify(const Node* n) {
-  if (n->is(Node::Tag::identifier)) {
-    for (auto* m : static_cast<const Identifier*>(n)->monitor_) {
-      schedule_active(m);
-    }
-    return;
-  } 
+  switch (n->get_tag()) {
+    case Node::Tag::identifier:
+      for (auto* m : static_cast<const Identifier*>(n)->monitor_) {
+        schedule_active(m);
+      }
+      return;
+    case Node::Tag::feof_expression:
+      for (auto* m : static_cast<const FeofExpression*>(n)->monitor_) {
+        schedule_active(m);
+      }
+      return;
+    default:
+      break;
+  }
   const auto* p = n->get_parent();
   if (p->is(Node::Tag::case_item)) {
     schedule_active(p->get_parent());
