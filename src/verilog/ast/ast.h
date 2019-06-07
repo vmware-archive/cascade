@@ -75,6 +75,7 @@
 #include "verilog/ast/types/par_block.h"
 #include "verilog/ast/types/seq_block.h"
 #include "verilog/ast/types/timing_control_statement.h"
+#include "verilog/ast/types/fflush_statement.h"
 #include "verilog/ast/types/finish_statement.h"
 #include "verilog/ast/types/fseek_statement.h"
 #include "verilog/ast/types/get_statement.h"

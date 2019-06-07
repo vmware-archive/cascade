@@ -415,6 +415,15 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
   }
 }
 
+void SwLogic::visit(const FflushStatement* fs) {
+  if (!silent_) {
+    const auto fd = eval_.get_value(fs->get_fd()).to_int();
+    auto* is = get_stream(fd);
+    is->flush();
+  }
+  notify(fs);
+}
+
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
     interface()->finish(eval_.get_value(fs->get_arg()).to_int());
@@ -468,9 +477,6 @@ void SwLogic::visit(const PutStatement* ps) {
     const auto fd = eval_.get_value(ps->get_fd()).to_int();
     auto* is = get_stream(fd);
     Printf().write(*is, &eval_, ps);
-
-    // TODO(eschkufz) This belongs in fflush
-    is->flush();
 
     for (auto* fe : eofs_) {
       eval_.flag_changed(fe);

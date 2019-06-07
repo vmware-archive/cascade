@@ -93,6 +93,7 @@ class Node;
       class WhileStatement;
     class TimingControlStatement;
     class SystemTaskEnableStatement;
+      class FflushStatement;
       class FinishStatement;
       class FseekStatement;
       class GetStatement;

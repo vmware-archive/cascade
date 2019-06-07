@@ -113,16 +113,17 @@ class Node {
       repeat_statement               = 43 | loop_statement, 
       while_statement                = 44 | loop_statement, 
       timing_control_statement       = 45 | statement, 
-      finish_statement               = 46 | system_task_enable_statement, 
-      fseek_statement                = 47 | system_task_enable_statement, 
-      get_statement                  = 48 | system_task_enable_statement, 
-      put_statement                  = 49 | system_task_enable_statement, 
-      restart_statement              = 50 | system_task_enable_statement, 
-      retarget_statement             = 51 | system_task_enable_statement, 
-      save_statement                 = 52 | system_task_enable_statement, 
-      delay_control                  = 53 | timing_control,
-      event_control                  = 54 | timing_control,
-      variable_assign                = 55 | node
+      fflush_statement               = 46 | system_task_enable_statement, 
+      finish_statement               = 47 | system_task_enable_statement, 
+      fseek_statement                = 48 | system_task_enable_statement, 
+      get_statement                  = 49 | system_task_enable_statement, 
+      put_statement                  = 50 | system_task_enable_statement, 
+      restart_statement              = 51 | system_task_enable_statement, 
+      retarget_statement             = 52 | system_task_enable_statement, 
+      save_statement                 = 53 | system_task_enable_statement, 
+      delay_control                  = 54 | timing_control,
+      event_control                  = 55 | timing_control,
+      variable_assign                = 56 | node
     };
 
     // Constructors:

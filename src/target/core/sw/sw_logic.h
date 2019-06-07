@@ -117,6 +117,7 @@ class SwLogic : public Logic, public Visitor {
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
     void visit(const TimingControlStatement* tcs) override;
+    void visit(const FflushStatement* fs) override;
     void visit(const FinishStatement* fs) override;
     void visit(const FseekStatement* fs) override;
     void visit(const GetStatement* gs) override;

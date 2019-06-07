@@ -205,6 +205,7 @@ cascade::SeqBlock* desugar_output(const cascade::Expression* fd, InItr begin, In
 %token SYS_FATAL    "$fatal"
 %token SYS_FEOF     "$feof"
 %token SYS_FDISPLAY "$fdisplay"
+%token SYS_FFLUSH   "$fflush"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
 %token SYS_FREAD    "$fread"
@@ -1428,11 +1429,17 @@ loop_statement
 /* A.6.9 Task Enable Statements */
 system_task_enable
   : SYS_DISPLAY SCOLON { 
-    $$ = new PutStatement(new Identifier("STDOUT"), new String("\n")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { 
-    $$ = new PutStatement(new Identifier("STDOUT"), new String("\n")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { 
@@ -1442,15 +1449,22 @@ system_task_enable
       YYERROR;
     }
     sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
     $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR SCOLON { 
-    $$ = new PutStatement(new Identifier("STDERR"), new String("\n")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR"))); 
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN CPAREN SCOLON { 
-    $$ = new PutStatement(new Identifier("STDERR"), new String("\n")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN expression_P CPAREN SCOLON { 
@@ -1460,6 +1474,7 @@ system_task_enable
       YYERROR;
     }
     sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
     $$ = sb;
     parser->set_loc($$);
   }
@@ -1482,6 +1497,7 @@ system_task_enable
       YYERROR;
     }
     es->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    es->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
     auto* sb = new SeqBlock(es);
     sb->push_back_stmts(new FinishStatement($3));
     $$ = sb;
@@ -1500,6 +1516,10 @@ system_task_enable
     }
     sb->push_back_stmts(new PutStatement(fd, new String("\n")));
     $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FFLUSH OPAREN expression CPAREN SCOLON {
+    $$ = new FflushStatement($3);
     parser->set_loc($$);
   }
   | SYS_FINISH SCOLON { 
@@ -1537,11 +1557,17 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_INFO SCOLON { 
-    $$ = new PutStatement(new Identifier("STDINFO"), new String("\n"));
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN CPAREN SCOLON { 
-    $$ = new PutStatement(new Identifier("STDINFO"), new String("\n"));
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
@@ -1551,6 +1577,7 @@ system_task_enable
       YYERROR;
     }
     sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
     $$ = sb;
     parser->set_loc($$);
   }
@@ -1585,11 +1612,17 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
-    $$ = new PutStatement(new Identifier("STDWARN"), new String("\n"));
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN CPAREN SCOLON { 
-    $$ = new PutStatement(new Identifier("STDWARN"), new String("\n"));
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN expression_P CPAREN SCOLON { 
@@ -1599,15 +1632,22 @@ system_task_enable
       YYERROR;
     }
     sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
     $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WRITE SCOLON { 
-    $$ = new PutStatement(new Identifier("STDOUT"), new String("")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb; 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN CPAREN SCOLON { 
-    $$ = new PutStatement(new Identifier("STDOUT"), new String("")); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb; 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { 
@@ -1616,6 +1656,7 @@ system_task_enable
       error(parser->get_loc(), "Found incorrectly formatted $write() statement!");
       YYERROR;
     }
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
     $$ = sb;
     parser->set_loc($$);
   }

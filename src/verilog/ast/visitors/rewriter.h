@@ -88,6 +88,7 @@ struct Rewriter {
   virtual Statement* rewrite(ParBlock* pb);
   virtual Statement* rewrite(SeqBlock* sb);
   virtual Statement* rewrite(TimingControlStatement* rcs);
+  virtual Statement* rewrite(FflushStatement* fs);
   virtual Statement* rewrite(FinishStatement* fs);
   virtual Statement* rewrite(FseekStatement* fs);
   virtual Statement* rewrite(GetStatement* gs);

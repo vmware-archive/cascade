@@ -437,6 +437,7 @@ IF_TEXT     ([^`]*)
 "$fatal"    return yyParser::make_SYS_FATAL(parser->get_loc());
 "$fdisplay" return yyParser::make_SYS_FDISPLAY(parser->get_loc());
 "$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
+"$fflush"   return yyParser::make_SYS_FFLUSH(parser->get_loc());
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());
 "$fopen"    return yyParser::make_SYS_FOPEN(parser->get_loc());
 "$fread"    return yyParser::make_SYS_FREAD(parser->get_loc());

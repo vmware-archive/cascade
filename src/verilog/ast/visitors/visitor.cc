@@ -266,6 +266,10 @@ void Visitor::visit(const TimingControlStatement* tcs) {
   tcs->accept_stmt(this);
 }
 
+void Visitor::visit(const FflushStatement* fs) {
+  fs->accept_fd(this);
+}
+
 void Visitor::visit(const FinishStatement* fs) {
   fs->accept_arg(this);
 }

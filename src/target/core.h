@@ -102,9 +102,10 @@ class Core {
     // obtained by a call to interface().
     virtual void update() = 0;
     // This method must return true if the previous call to either evaluate()
-    // or update() resulted in at least one system task. If you don't want to
-    // think too hard about this. It's safe (though definitely less performant)
-    // to always return true.
+    // or update() resulted in at least one system task that requires attention
+    // at the end of the current time step: $finish(), $save(), $restart(), or
+    // $retarget(). If you don't want to think too hard about this. It's safe
+    // (though definitely less performant) to always return true.
     virtual bool there_were_tasks() const = 0;
 
     // Target-specific implementations may override this method if there is a

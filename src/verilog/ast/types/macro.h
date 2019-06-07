@@ -535,6 +535,7 @@
   friend class RepeatStatement; \
   friend class WhileStatement; \
   friend class TimingControlStatement; \
+  friend class FflushStatement; \
   friend class FinishStatement; \
   friend class FseekStatement; \
   friend class GetStatement; \
