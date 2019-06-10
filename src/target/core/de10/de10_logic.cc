@@ -188,11 +188,6 @@ void De10Logic::set_state(const State* s) {
     if (itr != s->end()) {
       // Write value directly to device
       write_array(vinfo->second, itr->second);
-      // Write stream values to sw as well, since we'll need this value when
-      // resolving io tasks
-      if (info.is_stream(v)) {
-        Evaluate().assign_value(vinfo->first, itr->second[0]);
-      }
     }
   }
 
@@ -242,6 +237,8 @@ void De10Logic::set_input(const Input* i) {
 void De10Logic::finalize() {
   // Create interface streams for every stream variable
   ModuleInfo info(src_);
+  /*
+  // TODO(eschkufz) this is broken now that we've generalized stream vars to expressions
   for (auto* s : info.streams()) {
     const auto sid = Evaluate().get_value(s).to_int();
     if (sid > streams_.size()) {
@@ -249,6 +246,7 @@ void De10Logic::finalize() {
     }
     streams_[sid] = new interfacestream(interface(), sid);
   }
+  */
 
   // For every io task...
   for (auto& io : io_tasks_) {

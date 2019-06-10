@@ -54,7 +54,6 @@ void ModuleInfo::invalidate() {
   md_->inputs_.clear();
   md_->outputs_.clear();
   md_->stateful_.clear();
-  md_->streams_.clear();
   md_->reads_.clear();
   md_->writes_.clear();
   md_->named_params_.clear();
@@ -99,12 +98,6 @@ bool ModuleInfo::is_stateful(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
   return (r == nullptr) ? false : (md_->stateful_.find(r) != md_->stateful_.end());
-}
-
-bool ModuleInfo::is_stream(const Identifier* id) {
-  refresh();
-  const auto* r = Resolve().get_resolution(id);
-  return (r == nullptr) ? false : (md_->streams_.find(r) != md_->streams_.end());
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
@@ -155,11 +148,6 @@ const unordered_set<const Identifier*>& ModuleInfo::outputs() {
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
   refresh();
   return md_->stateful_;
-}
-
-const unordered_set<const Identifier*>& ModuleInfo::streams() {
-  refresh();
-  return md_->streams_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::externals() {
@@ -613,7 +601,6 @@ void ModuleInfo::visit(const RegDeclaration* rd) {
   record_external_use(rd->get_id());
   if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
     md_->stateful_.insert(rd->get_id());
-    md_->streams_.insert(rd->get_id());
   }
   for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
     if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&

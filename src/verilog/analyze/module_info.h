@@ -83,9 +83,6 @@ class ModuleInfo : public Visitor {
     // statement.
     // TODO(eschkufz) this semantics isn't quite correct. 
     bool is_stateful(const Identifier* id);
-    // Returns true if this is a local variable which is initialized by the
-    // $fopen() system task.
-    bool is_stream(const Identifier* id);
     // Returns true if variable resolves to a declaration outside of this
     // module.  Note that !is_external(x) =/= is_local(x).
     bool is_external(const Identifier* id);
@@ -111,8 +108,6 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*>& outputs(); 
     // Returns the set of variables for which is_stateful(x) returns true.
     const std::unordered_set<const Identifier*>& stateful(); 
-    // Returns the set of variables for which is_stream(x) returns true.
-    const std::unordered_set<const Identifier*>& streams(); 
     // Returns the set of variables for which is_external(x) returns true.
     const std::unordered_set<const Identifier*>& externals(); 
     // Returns the set of variables for which is_read(x) returns true.
