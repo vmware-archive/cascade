@@ -405,8 +405,7 @@ void Evaluate::edit(Number* n) {
 }
 
 void Evaluate::edit(String* s) {
-  // TODO(eschkufz) Support this language feature.
-  assert(false);
+  // Does nothing. We assigned a value to this expression in init.
   (void) s;
 }
 
@@ -559,9 +558,9 @@ void Evaluate::Invalidate::edit(Number* n) {
 }
 
 void Evaluate::Invalidate::edit(String* s) {
-  // TODO(eschkufz) Support for this language feature
-  assert(false);
-  (void) s;
+  // Nowhere left to descend to. This is a primary.
+  s->bit_val_.clear();
+  s->set_flag<0>(true);
 }
 
 void Evaluate::Invalidate::edit(UnaryExpression* ue) {
@@ -732,9 +731,9 @@ void Evaluate::SelfDetermine::edit(Number* n) {
 }
 
 void Evaluate::SelfDetermine::edit(String* s) {
-  // TODO(eschkufz) Support for this language feature
-  assert(false);
-  (void) s;
+  // Strings are always unsigned. 
+  s->bit_val_.push_back(Bits(s->get_readable_val()));
+  s->bit_val_[0].set_signed(false);
 }
 
 void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {

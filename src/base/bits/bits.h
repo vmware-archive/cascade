@@ -53,6 +53,8 @@ class BitsBase : public Serializable {
     // Constructors:
     BitsBase();
     explicit BitsBase(bool b);
+    explicit BitsBase(char c);
+    explicit BitsBase(const std::string& s);
     BitsBase(size_t n, T val);
     BitsBase(const BitsBase& rhs) = default;
     BitsBase(BitsBase&& rhs) = default;
@@ -75,6 +77,8 @@ class BitsBase : public Serializable {
     // Casts:
     bool to_bool() const;
     T to_int() const;
+    char to_char() const;
+    std::string to_str() const;
 
     // Size:
     size_t size() const;
@@ -248,10 +252,31 @@ inline BitsBase<T, BT, ST>::BitsBase(bool b) {
 }
 
 template <typename T, typename BT, typename ST>
+inline BitsBase<T, BT, ST>::BitsBase(char c) {
+  val_.push_back(static_cast<T>(c));
+  size_ = 8;
+  signed_ = false;
+}
+
+template <typename T, typename BT, typename ST>
+inline BitsBase<T, BT, ST>::BitsBase(const std::string& s) {
+  val_.resize((s.length()+bytes_per_word()-1)/bytes_per_word(), static_cast<T>(0));
+  for (int pos = 0, i = s.length()-1; i >= 0; --i, ++pos) {
+    const auto idx = pos/bytes_per_word();
+    const auto off = 8*(pos%bytes_per_word()); 
+    val_[idx] |= (static_cast<T>(s[i]) << off);
+  }
+  size_ = 8*s.length();
+  signed_ = false;
+}
+
+template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase(size_t n, T val) : BitsBase() { 
   assert(n > 0);
-  extend_to(n);
+  val_.resize((n+bits_per_word()-1)/bits_per_word(), static_cast<T>(0));
   val_[0] = val;
+  size_ = n;
+  signed_ = false;
   trim();
 }
 
@@ -308,7 +333,7 @@ inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
 
   const auto n = (size_+7) / 8;
   for (size_t i = 0; i < n; ++i) {
-    const uint8_t b = (val_[i/bytes_per_word()] >> (8*(i%bytes_per_word()))) & 0xffu;
+    const uint8_t b = (val_[i/bytes_per_word()] >> (8*(i%bytes_per_word()))) & static_cast<T>(0xffu);
     os.put(b);
   }
 
@@ -372,8 +397,24 @@ inline bool BitsBase<T, BT, ST>::to_bool() const {
 
 template <typename T, typename BT, typename ST>
 inline T BitsBase<T, BT, ST>::to_int() const {
-  assert(size_ <= bits_per_word());
   return val_[0];
+}
+
+template <typename T, typename BT, typename ST>
+inline char BitsBase<T, BT, ST>::to_char() const {
+  return static_cast<char>(val_[0] & 0xffu);
+}
+
+template <typename T, typename BT, typename ST>
+inline std::string BitsBase<T, BT, ST>::to_str() const {
+  std::string res(size()/8, ' ');
+  for (int pos = 0, i = res.length()-1; i >= 0; --i, ++pos) {
+    const auto idx = pos/bytes_per_word();
+    const auto off = 8*(pos%bytes_per_word()); 
+    const auto val = (val_[idx] >> off) & static_cast<T>(0xffu);
+    res[i] = ((val == 0) ? ' ' : static_cast<char>(val));
+  }
+  return res;
 }
 
 template <typename T, typename BT, typename ST>
@@ -1096,44 +1137,32 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
   const auto mask = (static_cast<T>(1) << step) - 1;
 
   // Walk over the string from lowest to highest order
-  size_t idx = 0;
-  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    while (true) {
-      // Extract mask bits 
-      buf.push_back((val_[i] >> idx) & mask);
-      idx += step;
-      // Easy case: Step divides words evenly 
-      if (idx == bits_per_word()) {
-        idx = 0;
-        break;
-      } 
-      // Hard case: Look ahead for more bits
-      if (idx > bits_per_word()) {
-        idx %= bits_per_word();
-        if ((i+1) != ie) {
-          buf.back() |= (val_[i+1] & ((static_cast<T>(1) << idx) - 1)) << (step - idx);
-        }
-        break;
+  size_t off = 0;
+  for (size_t i = 0, ie = size(); i < ie; i += step) {
+    const auto pos = i / bits_per_word();
+    // Extract mask bits 
+    buf.push_back((val_[pos] >> off) & mask);
+    off += step;
+    // Easy case: Step divides words evenly 
+    if (off == bits_per_word()) {
+      off = 0;
+    } 
+    // Hard case: Look ahead for more bits
+    else if (off > bits_per_word()) {
+      off %= bits_per_word();
+      if ((pos+1) != val_.size()) {
+        buf.back() |= (val_[pos+1] & ((static_cast<T>(1) << off) - 1)) << (step - off);
       }
     }
   }
 
   // Print the result
-  bool zero = true;
   for (int i = buf.size()-1; i >= 0; --i) {
-    if (zero && (buf[i] == 0)) {
-      continue;
+    if (buf[i] > 9) {
+      os << static_cast<char>('a' + (buf[i] - 10));
     } else {
-      zero = false;
-      if (buf[i] > 9) {
-        os << static_cast<char>('a' + (buf[i] - 10));
-      } else {
-        os << static_cast<int>(buf[i]);
-      }
+      os << static_cast<int>(buf[i]);
     }
-  }
-  if (zero) {
-    os << "0";  
   }
 }
 

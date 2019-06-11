@@ -417,12 +417,6 @@ void TypeCheck::visit(const Identifier* id) {
   } 
 }
 
-void TypeCheck::visit(const String* s) {
-  if (!s->get_parent()->is(Node::Tag::fopen_expression)) {
-    error("Cascade does not currently support the use of string constants in expressions", s);
-  }
-}
-
 void TypeCheck::visit(const GenerateBlock* gb) {
   // RECURSE: items
   gb->accept_items(this);

@@ -451,7 +451,7 @@ impression of what Cascade is capable of.
 |                       | Concatentation Operators  |  x        |             |                  |
 |                       | Conditional Operators     |  x        |             |                  |
 |                       | Bit/Part Select           |  x        |             |                  |
-|                       | Strings                   |           | x           |                  |
+|                       | Strings                   |  x        |             |                  |
 |                       | Real Constants            |           | x           |                  |
 | Parameters            | Parameter Declarations    |  x        |             |                  |
 |                       | Localparam Declarations   |  x        |             |                  |

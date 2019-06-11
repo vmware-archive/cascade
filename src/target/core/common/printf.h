@@ -56,6 +56,10 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
     case 'B': 
       eval->get_value(expr).write(os, 2);
       break;
+    case 'c':
+    case 'C':
+      os << (eval->get_value(expr).to_char());
+      break;
     case 'd':
     case 'D':
       eval->get_value(expr).write(os, 10);
@@ -67,6 +71,10 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
     case 'o':
     case 'O': 
       eval->get_value(expr).write(os, 8);
+      break;
+    case 's':
+    case 'S': 
+      os << eval->get_value(expr).to_str();
       break;
     case 'u':
     case 'U':

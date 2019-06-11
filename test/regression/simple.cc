@@ -241,7 +241,7 @@ TEST(simple, mem_1) {
   run_code("minimal","data/test/regression/simple/mem_1.v", "0011223344556677");
 }
 TEST(simple, mem_2) {
-  run_code("minimal","data/test/regression/simple/mem_2.v", "01234567");
+  run_code("minimal","data/test/regression/simple/mem_2.v", "0001020304050607");
 }
 TEST(simple, nested_1) {
   run_code("minimal","data/test/regression/simple/nested_1.v", "8");
@@ -307,7 +307,10 @@ TEST(simple, sign_1) {
   run_code("minimal","data/test/regression/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");
 }
 TEST(simple, sign_2) {
-  run_code("minimal","data/test/regression/simple/sign_2.v", "000");
+  run_code("minimal","data/test/regression/simple/sign_2.v", "0000000000");
+}
+TEST(simple, string) {
+  run_code("minimal","data/test/regression/simple/string.v", "   Hello world is stored as 00000048656c6c6f20776f726c64\nHello world!!! is stored as 48656c6c6f20776f726c64212121\n");
 }
 TEST(simple, while_1) {
   run_code("minimal","data/test/regression/simple/while_1.v", "333");
