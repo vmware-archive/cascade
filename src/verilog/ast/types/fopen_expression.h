@@ -32,7 +32,6 @@
 #define CASCADE_SRC_VERILOG_AST_FOPEN_EXPRESSION_H
 
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/string.h"
 #include "verilog/ast/types/expression.h"
 
 namespace cascade {
@@ -40,7 +39,7 @@ namespace cascade {
 class FopenExpression : public Expression {
   public:
     // Constructors:
-    explicit FopenExpression(String* arg__);
+    explicit FopenExpression(Expression* path__);
     ~FopenExpression() override;
 
     // Node Interface:
@@ -48,23 +47,23 @@ class FopenExpression : public Expression {
     FopenExpression* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(FopenExpression, String, arg)
+    PTR_GET_SET(FopenExpression, Expression, path)
 
   private:
-    PTR_ATTR(String, arg);
+    PTR_ATTR(Expression, path);
 };
 
-inline FopenExpression::FopenExpression(String* arg__) : Expression(Node::Tag::fopen_expression) {
-  PTR_SETUP(arg);
+inline FopenExpression::FopenExpression(Expression* path__) : Expression(Node::Tag::fopen_expression) {
+  PTR_SETUP(path);
   parent_ = nullptr;
 }
 
 inline FopenExpression::~FopenExpression() {
-  PTR_TEARDOWN(arg);
+  PTR_TEARDOWN(path);
 }
 
 inline FopenExpression* FopenExpression::clone() const {
-  return new FopenExpression(arg_->clone());
+  return new FopenExpression(path_->clone());
 }
 
 } // namespace cascade 

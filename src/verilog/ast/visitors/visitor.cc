@@ -78,7 +78,7 @@ void Visitor::visit(const FeofExpression* fe) {
 }
 
 void Visitor::visit(const FopenExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_path(this);
 }
 
 void Visitor::visit(const Concatenation* c) {

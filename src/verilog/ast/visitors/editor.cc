@@ -78,7 +78,7 @@ void Editor::edit(FeofExpression* fe) {
 }
 
 void Editor::edit(FopenExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_path(this);
 }
 
 void Editor::edit(Concatenation* c) {

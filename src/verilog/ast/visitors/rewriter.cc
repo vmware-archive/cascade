@@ -87,7 +87,7 @@ Expression* Rewriter::rewrite(FeofExpression* fe) {
 }
 
 Expression* Rewriter::rewrite(FopenExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_path(this);
   return fe;
 }
 

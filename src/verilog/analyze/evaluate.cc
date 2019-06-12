@@ -525,10 +525,9 @@ void Evaluate::Invalidate::edit(FeofExpression* fe) {
 }
 
 void Evaluate::Invalidate::edit(FopenExpression* fe) {
-  // fopen expressions are evaluated using target-specific handlers.  No need
-  // to descend beyond here.
   fe->bit_val_.clear();
   fe->set_flag<0>(true);
+  Editor::edit(fe);
 }
 
 void Evaluate::Invalidate::edit(Concatenation* c) {
@@ -671,6 +670,8 @@ void Evaluate::SelfDetermine::edit(FeofExpression* fe) {
 }
 
 void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
+  Editor::edit(fe);
+
   // $fopen() expressions return 32-bit unsigned integer file values.
   fe->bit_val_.push_back(Bits(32, 0));
   fe->bit_val_[0].set_signed(false);
@@ -946,8 +947,7 @@ void Evaluate::ContextDetermine::edit(FeofExpression* fe) {
 }
 
 void Evaluate::ContextDetermine::edit(FopenExpression* fe) {
-  // Nothing to do here. Nothing below this point will ever be evaluated by
-  // this class.
+  // Nothing to do here. Fopen doesn't determine the shape of its argument.
   (void) fe;
 }
 

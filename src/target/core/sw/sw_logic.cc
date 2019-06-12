@@ -165,7 +165,7 @@ void SwLogic::finalize() {
       if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
         const auto* fe = static_cast<const FopenExpression*>(rd->get_val());
         if (eval_.get_value(rd->get_id()).to_int() == 0) {
-          const auto fd = interface()->fopen(fe->get_arg()->get_readable_val());
+          const auto fd = interface()->fopen(eval_.get_value(fe->get_path()).to_str());
           eval_.assign_value(rd->get_id(), Bits(32, fd));
           notify(rd->get_id());
         }

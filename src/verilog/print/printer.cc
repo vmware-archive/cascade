@@ -133,7 +133,7 @@ void Printer::visit(const FeofExpression* fe) {
 void Printer::visit(const FopenExpression* fe) {
   *this << Color::YELLOW << "$fopen" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
-  fe->accept_arg(this);
+  fe->accept_path(this);
   *this << Color::RED << ")" << Color::RESET;
 }
 
