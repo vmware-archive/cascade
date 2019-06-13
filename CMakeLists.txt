@@ -25,12 +25,18 @@ else ()
     set(force_compiler "")
 endif()
 
+if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^armv7*")
+    set(force_arch "armv7")
+else()
+    set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
 pmm(
     CONAN
         BUILD missing
         BINCRAFTERS
         COMMUNITY
-        SETTINGS compiler.libcxx=${cxxlib} ${force_compiler}
+        SETTINGS compiler.libcxx=${cxxlib} ${force_compiler} arch=${force_arch}
         REMOTES mpusz https://api.bintray.com/conan/mpusz/conan-mpusz
     )
 
