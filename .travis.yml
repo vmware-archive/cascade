@@ -1,101 +1,87 @@
 dist: xenial
 language: cpp
-matrix:
-  fast_finish: true
+
+jobs:
   include:
-  - os: linux
-    compiler: gcc
+  - &chroot
+    stage: Prepare Build Environment
+    os: linux
     dist: xenial
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - ccache
-        - cmake
-        - flex
-        - bison
-        - g++-8
-        - python3-venv
+    install: echo "Building Ubuntu chroot environment..."
+    script: .travis/generate_env.sh
+    before_cache: .travis/unmount_env.sh
     cache:
       directories:
-      - $HOME/.conan/data
-    before_install:
-      - export CC="/usr/bin/gcc-8"
-      - export CXX="/usr/bin/g++-8"
-  - os: linux
-    compiler: clang
-    dist: xenial
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        - llvm-toolchain-xenial-8
-        packages:
-        - python3-venv
-        - ccache
-        - cmake
-        - flex
-        - bison
-        - clang-8
-        - libc++-dev
-        - libc++abi-dev
-    cache:
-      directories:
-      - $HOME/.conan/data
-    before_install:
-      - export CC="/usr/bin/clang-8"
-      - export CXX="/usr/bin/clang++-8"
-      - sudo ln -s /usr/include/libcxxabi/__cxxabi_config.h /usr/include/c++/v1/__cxxabi_config.h
-  - os: linux
-    dist: xenial
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - python3-venv
-        - ccache
-        - cmake
-        - flex
-        - bison
-        - g++-8
-      sonarcloud:
-        organization: cascade
-    cache:
-      directories:
-      - $HOME/.conan/data
+        - $HOME/$ARCH
+    env: 
+      ARCH=amd64
+  - <<: *chroot
     env:
-      - COVERAGE="1"
-    before_install:
-      - export CC="/usr/bin/gcc-8"
-      - export CXX="/usr/bin/g++-8"
-      - sudo ln -sf /usr/bin/gcov-8 /usr/bin/gcov 
-      - wget http://downloads.sourceforge.net/ltp/lcov-1.14.tar.gz
-      - tar xvfz lcov-1.14.tar.gz
-      - cd lcov-1.14; make; sudo make install; cd ..
-  - os: osx
+      ARCH=armhf
+  - &depends
+    stage: Setup Build and Install Dependencies
+    os: linux
+    dist: xenial
+    before_install: .travis/setup_chroot.sh
+    script: echo "install deps"
+    install: .travis/setup_build.sh
+    before_cache: .travis/unmount_env.sh
+    cache: 
+      directories:
+        - $HOME/$ARCH
+        - $HOME/.conan/data
+    env: 
+      ARCH=amd64
+  - <<: *depends
+    os: osx
     osx_image: xcode10.1
     compiler: clang
     addons:
       homebrew:
+        update: true
         packages:
-        - ccache
-        - cmake
-        - flex
-        - bison
-    cache:
+          - flex
+          - bison
+  - <<: *depends
+    env:
+      ARCH=armhf
+  - &build
+    stage: Build Cascade
+    os: linux
+    dist: xenial
+    before_install: .travis/setup_chroot.sh
+    script: echo "build"
+    install: .travis/install.sh
+    before_cache: .travis/unmount_env.sh
+    cache: 
       directories:
-      - $HOME/.conan/data
-      - $HOME/.pyenv/versions/2.7.10/
-      - /usr/local/Homebrew
-script:
-- mkdir -p ~/.conan && cp .travis/conan_settings.yml ~/.conan/settings.yml
-- ./setup --silent --ci --coverage=$COVERAGE
-after_success:
-- "[ $COVERAGE = 1 ] && curl -L https://codecov.io/bash -o codecov.sh; bash codecov.sh -x gcov 2>&1 | grep -v 'has arcs to entry block' | grep -v 'has arcs from exit block' && cd .. && sonar-scanner -Dsonar.projectKey=cascade
-  -Dsonar.organization=cascade -Dsonar.sources=lib,src,tools -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build
-  -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=cascade_coverage/*,**/cascade_coverage/*,**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN) || true"
+        - $HOME/$ARCH
+        - $HOME/.conan/data
+    env: 
+      ARCH=amd64
+  - <<: *build
+    os: osx
+    osx_image: xcode10.1
+    compiler: clang
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - flex
+          - bison
+    env:
+      ARCH=amd64  
+  - <<: *build
+    env:
+      ARCH=armhf
+  - <<: *build
+    name: Coverage, Debug
+    install: COVERAGE=1 .travis/install.sh
+    env:
+      ARCH=amd64
+    addons:
+      sonarcloud:
+        organization: cascade
 env:
   global:
   - secure: HCmvfaRvj3TmSB+KJA3zbIaLEBXKpv3ED4vnayNg93FTBaLtLw0W8XXk8Sa7pOU+u00rE+2tkC52nKdMikscJlcYZm3KBR2Zqh4Br/hnMVIeXCFs9LTrA6UZDBVs1AeXYYV1KwetcG03o5YZDYNvS8tRZs8Fwl7pZzlfms8wdFyqnG59MNY0znG6RC18eO/dFCu78f4urjYW9UrmEQzU5YyGFYhHH9SylXV5o8cL1+XHoIUlqhyYswZ/PgdBQTUGLvts5IeV+gsO1GD9ibxO5iAlJ4M9OpnFuAxWojKqNcA+GxoC3XH+6Uga09UV/5qXn6gkEnKtMJMoGTI8sWkYlJ8yp5XJqCJOCIfQ11yagp2e9pYogxLNfiC7OZ63q3CHnwNU3PRSJemhX9HwBvp2ZFa1NkQTmwk5tdLYCel0d8uGNqJgyNp7JpLMxA1Fo3yuvVDoRjB2RgT8SSH2CbSmMhsbqdaDtuOsW6JcV/GxnvqCj8KRM2HJNIkCZMY1lX8E0z/QnWcCWt3gKCQ6FzSsjUWZIXsvSPcgbUm7NMY6UXbPY4IkOQZ5+0cCM21s5NAozk8ln86pdjxRwlrpxjAn50jGgy29ZSxxaGvXKtdJ6NrUkZgtNC5AtVQE/NItEwF5KKvm9vqG9ug4IOldSjXEHExH8Z28hU1KhEV2K+JAjE0=
