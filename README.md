@@ -238,7 +238,7 @@ int main() {
     cascade.clear(); // Clears eof and bad bits.
     
     // While cascade is stopped, it is safe to replace its rdbuf. For example:
-    stringstream ss("wire x; initial $display("Hello, world!"));
+    stringstream ss("wire x; initial $display(\"Hello, world!\");");
     cascade.rdbuf(ss.rdbuf());
     cascade.run();
     
