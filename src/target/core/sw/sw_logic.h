@@ -37,8 +37,6 @@
 #include <vector>
 #include "base/bits/bits.h"
 #include "target/core.h"
-#include "target/input.h"
-#include "target/state.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -52,9 +50,9 @@ class SwLogic : public Logic, public Visitor {
     ~SwLogic() override;
 
     // Configuration Logic:
-    SwLogic& set_read(const Identifier* id, VId vid);
-    SwLogic& set_write(const Identifier* id, VId vid);
+    SwLogic& set_input(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
+    SwLogic& set_output(const Identifier* id, VId vid);
 
     // Core Interface:
     State* get_state() override;
@@ -80,8 +78,8 @@ class SwLogic : public Logic, public Visitor {
 
     // Source Management:
     ModuleDeclaration* src_;
-    std::vector<const Identifier*> reads_;
-    std::vector<std::pair<const Identifier*, VId>> writes_;
+    std::vector<const Identifier*> inputs_;
+    std::vector<std::pair<const Identifier*, VId>> outputs_;
     std::unordered_map<VId, const Identifier*> state_;
     std::vector<const FeofExpression*> eofs_;
 
@@ -102,9 +100,9 @@ class SwLogic : public Logic, public Visitor {
     // Finalize Helpers:
     void silent_evaluate();
 
-    // Control State:
+    // Control Helpers:
     uint16_t& get_state(const Statement* s);
-    interfacestream* get_stream(uint32_t fd);
+    interfacestream* get_stream(FId fd);
 
     // Visitor Interface:
     void visit(const Event* e) override;
@@ -131,7 +129,6 @@ class SwLogic : public Logic, public Visitor {
 
     // Debug Printing:
     void log(const std::string& op, const Node* n);
-
 };
 
 } // namespace cascade

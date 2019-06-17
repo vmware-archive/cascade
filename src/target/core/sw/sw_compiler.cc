@@ -185,13 +185,13 @@ SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) 
   ModuleInfo info(md);
   auto* c = new SwLogic(interface, md);
   for (auto* i : info.inputs()) {
-    c->set_read(i, to_vid(i));
-  }
-  for (auto* o : info.outputs()) {
-    c->set_write(o, to_vid(o));
+    c->set_input(i, to_vid(i));
   }
   for (auto* s : info.stateful()) { 
     c->set_state(s, to_vid(s));
+  }
+  for (auto* o : info.outputs()) {
+    c->set_output(o, to_vid(o));
   }
   return c;
 } 

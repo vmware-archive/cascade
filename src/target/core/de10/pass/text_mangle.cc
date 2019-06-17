@@ -201,8 +201,8 @@ void TextMangle::Mangle::visit(const Identifier* id) {
     return;
   }
 
-  const auto titr = de_->table_find(id);
-  assert(titr != de_->table_end());
+  const auto titr = de_->get_table().find(id);
+  assert(titr != de_->get_table().end());
 
   // This is a bit nasty. The amount of space we set aside for this argument in
   // the variable table may exceed its actual bit-width. This is because the
@@ -212,7 +212,8 @@ void TextMangle::Mangle::visit(const Identifier* id) {
   assert(r != nullptr);
   const auto w = Evaluate().get_width(r);
 
-  for (size_t i = 0; i < titr->second.entry_size(); ++i) {
+  assert(titr->second.elements == 1);
+  for (size_t i = 0; i < titr->second.words_per_element; ++i) {
     const auto upper = min(32*(i+1),w)-1;
     const auto lower = 32*i;
 
@@ -248,7 +249,7 @@ void TextMangle::Mangle::visit(const Identifier* id) {
     // Attach the concatenation to an assignment, we'll always have enough bits now
     res_->push_back_stmts(new NonblockingAssign(
       new VariableAssign(
-        new Identifier(new Id("__var"), new Number(Bits(32, titr->second.index()+i))),
+        new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+i))),
         rhs
       )
     ));
@@ -330,17 +331,16 @@ void TextMangle::Mangle::begin_mangle_task() {
 
 Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
-  const auto titr = de_->table_find(r);
-  assert(titr != de_->table_end());
-  assert(titr->second.materialized());
+  const auto titr = de_->get_table().find(r);
+  assert(titr != de_->get_table().end());
 
   // Start with an expression for where this variable begins in the variable table
-  Expression* idx = new Number(Bits(32, titr->second.index()));
+  Expression* idx = new Number(Bits(32, titr->second.begin));
 
   // Now iterate over the arity of r and compute a symbolic expression 
-  auto mul = titr->second.elements();
+  auto mul = titr->second.elements;
   auto iitr = i->begin_dim();
-  for (auto a : titr->second.arity()) {
+  for (auto a : Evaluate().get_arity(titr->first)) {
     mul /= a;
     idx = new BinaryExpression(
       idx,
@@ -348,11 +348,11 @@ Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Ident
       new BinaryExpression(
         (*iitr++)->clone(),
         BinaryExpression::Op::TIMES,
-        new Number(Bits(32, mul*titr->second.element_size()))
+        new Number(Bits(32, mul*titr->second.words_per_element))
       )
     );
   }
-  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
+  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.words_per_element)));
 }
 
 } // namespace cascade

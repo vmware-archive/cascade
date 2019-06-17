@@ -45,20 +45,20 @@ class De10Logic;
 // This pass performs several major text transformations:
 // 1. Declarations are deleted.
 // 2. Attribute annotations are deleted.
-// 3. $eof() expressions are replaced their corresponding vtable entry
+// 3. $feof() expressions are replaced their corresponding vtable entry
 // 4. System tasks and io tasks are transformed into state udpate operations
 // 5. Non-blocking assignments are transformed into state update operations
 //
-// Note however that further passes use the presence of system tasks and io tasks
-// as landmarks for additional code modifications. To account for this, we leave
-// dummy ast nodes in their place, and save the mangeld code we generate for later.
-// Specifically non-blocking assigns for the form:
+// Note that further passes use the presence of system tasks and io tasks as
+// landmarks for additional code modifications. To account for this, we leave
+// dummy ast nodes in their place, and save the mangled code we generate for
+// later.  Specifically we emit non-blocking assigns of the form:
 //
 // - __1 <= n to indicate that this was the n'th io task we replaced
 // - __2 <= n to indicate that this was the n'th system task we replaced
 // 
-// Later on, when these passes have completed, we can make one final pass over the
-// ast to replace these dummy nodes with the code we generate here.
+// Later on, when these passes have completed, we can make one final pass over
+// the ast to replace these dummy nodes with the code we generate here.
 
 class TextMangle : public Builder {
   public:

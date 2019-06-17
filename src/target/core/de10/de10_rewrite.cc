@@ -66,7 +66,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_shadow_vars(res, md, de);
   emit_mask_vars(res);
   emit_control_vars(res);
-  emit_view_vars(res, de);
+  emit_view_vars(res, md, de);
   emit_trigger_vars(res, &ti);
   emit_state_vars(res);
 
@@ -86,7 +86,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_var_logic(res, md, de);
   emit_trigger_logic(res, &ti);
   emit_state_logic(res, de);
-  emit_output_logic(res, de);
+  emit_output_logic(res, md, de);
 
   // Holy cow! We're done!
   ss.str(string());
@@ -149,8 +149,7 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
-
+  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier(new Id("__var"), new RangeExpression(table_dim, 0)), false, new RangeExpression(32, 0), nullptr
   ));
@@ -158,10 +157,10 @@ void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
 
 void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // These are where update values are stored between calls to evaluate() and
-  // update(). These declarations sorted lexicographically to ensure
-  // deterministic code..
+  // update(). These declarations are sorted lexicographically to ensure
+  // deterministic code.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
+  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
 
   map<string, RegDeclaration*> shadows;
   for (auto* s : ModuleInfo(md).stateful()) {
@@ -184,6 +183,8 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
 }
 
 void De10Rewrite::emit_mask_vars(ModuleDeclaration* res) {
+  // These variables track the activation of system tasks and io tasks.
+
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__task_mask"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
@@ -199,6 +200,8 @@ void De10Rewrite::emit_mask_vars(ModuleDeclaration* res) {
 }
 
 void De10Rewrite::emit_control_vars(ModuleDeclaration* res) {
+  // These variables control the transition to and from open loop mode.
+
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__open_loop"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
@@ -207,43 +210,41 @@ void De10Rewrite::emit_control_vars(ModuleDeclaration* res) {
   ));
 }
 
-void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const De10Logic* de) {
+void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // These are the variables from the original program which have been
   // relocated into the variable table. These declarations are sorted
   // lexicograhically to ensure deterministic code.
 
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
-  for (auto v = de->map_begin(), ve = de->map_end(); v != ve; ++v) {
-    const auto titr = de->table_find(v->first);
-    assert(titr != de->table_end());
-    if (!titr->second.materialized()) {
+  for (auto v = de->get_table().begin(), ve = de->get_table().end(); v != ve; ++v) {
+    // Ignore variables which have not be reified into the state table (ie: non-stateful outputs)
+    if (!ModuleInfo(md).is_stateful(v->first)) {
       continue;
     }
-    const auto& vinfo = titr->second;
 
     const RangeExpression* re = nullptr;
     auto is_signed = false;
-    if (vinfo.id()->get_parent()->is(Node::Tag::net_declaration)) {
-      auto* nd = static_cast<const NetDeclaration*>(vinfo.id()->get_parent());
+    if (v->first->get_parent()->is(Node::Tag::net_declaration)) {
+      auto* nd = static_cast<const NetDeclaration*>(v->first->get_parent());
       re = nd->get_dim();
       is_signed = nd->get_signed();
-    } else if (vinfo.id()->get_parent()->is(Node::Tag::reg_declaration)) {
-      auto* rd = static_cast<const RegDeclaration*>(vinfo.id()->get_parent());
+    } else if (v->first->get_parent()->is(Node::Tag::reg_declaration)) {
+      auto* rd = static_cast<const RegDeclaration*>(v->first->get_parent());
       re = rd->get_dim();
       is_signed = rd->get_signed();
     } 
    
     auto* nd = new NetDeclaration(
-      new Attributes(), NetDeclaration::Type::WIRE, nullptr, vinfo.id()->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
+      new Attributes(), NetDeclaration::Type::WIRE, nullptr, v->first->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
     ); 
     vector<ContinuousAssign*> cas;
-    for (size_t i = 0, ie = vinfo.elements(); i < ie; ++i) {
-      auto* lhs = vinfo.id()->clone();
+    for (size_t i = 0, ie = v->second.elements; i < ie; ++i) {
+      auto* lhs = v->first->clone();
       lhs->purge_dim();
-      emit_subscript(lhs, i, ie, vinfo.arity());
+      emit_subscript(lhs, i, ie, Evaluate().get_arity(v->first));
       auto* rhs = new Concatenation();
-      for (size_t j = 0, je = vinfo.element_size(); j < je; ++j) {
-        rhs->push_back_exprs(new Identifier(new Id("__var"), new Number(Bits(32, vinfo.index() + (i+1)*je-j-1))));
+      for (size_t j = 0, je = v->second.words_per_element; j < je; ++j) {
+        rhs->push_back_exprs(new Identifier(new Id("__var"), new Number(Bits(32, v->second.begin + (i+1)*je-j-1))));
       }
       auto* ca = new ContinuousAssign(new VariableAssign(lhs, rhs));
       cas.push_back(ca);
@@ -315,6 +316,8 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
 }
 
 void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
+  // These are variables which control transitions through state machines.
+
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__continue"), false, nullptr, new Number(Bits(false))
   ));
@@ -331,7 +334,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   // counterpart. Updates are triggered whenever the user forces a read of the
   // update latch or we are in open loop mode.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
+  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
 
   res->push_back_items(new NetDeclaration(
     new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__update_queue"), false, new RangeExpression(table_dim, 0)
@@ -354,7 +357,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
     new Identifier("__apply_updates"), 
     new BinaryExpression(
       new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->apply_update_idx())))),
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))),
       BinaryExpression::Op::PPIPE,
       new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
@@ -368,7 +371,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
     new BinaryExpression(
       new Identifier("__read"), 
       BinaryExpression::Op::AAMP, 
-      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->drop_update_idx())))
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
     )
   )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
@@ -409,7 +412,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
         new BinaryExpression(
           new Identifier("__read"),
           BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->sys_task_idx())))
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().sys_task_index())))
         ),
         new Identifier("__next_task_mask"), 
         new Identifier("__task_mask"))
@@ -437,7 +440,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
         new BinaryExpression(
           new Identifier("__read"),
           BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->io_task_idx())))
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().io_task_index())))
         ),
         new Identifier("__next_io_mask"), 
         new Identifier("__io_mask"))
@@ -473,7 +476,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
       ),
       new Identifier("__in"),
       new ConditionalExpression(
@@ -493,7 +496,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
       ),
       new Number(Bits(false)),
       new ConditionalExpression(
@@ -523,7 +526,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   // logic is sorted lexicographically to guarantee deterministic code.
 
   map<size_t, NonblockingAssign*> logic;
-  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
+  for (auto t = de->get_table().begin(), te = de->get_table().end(); t != te; ++t) {
     const auto* p = t->first->get_parent();
     const auto in_push_task = 
       p->is(Node::Tag::put_statement) ||
@@ -531,19 +534,19 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     const auto in_pull_task = 
       p->is(Node::Tag::feof_expression);
 
-    // If this variable wasn't materialized (meaning it's not in the table)
-    // or it's inside of a push task (one that only sends data to the host)
-    // we don't need to emit any update logic.
-    if (!t->second.materialized() || in_push_task) {
+    // If this variable hasn't been reified into the variable table or is
+    // inside of a push task (one that only sends data to the host) we don't
+    // need to emit any update logic.
+    if (in_push_task || !ModuleInfo(md).is_stateful(t->first)) {
       continue;
     }
 
-    const auto arity = t->second.arity();
-    const auto w = t->second.bit_size();
+    const auto arity = Evaluate().get_arity(t->first);
+    const auto w = t->second.bits_per_element;
 
-    size_t idx = t->second.index();
-    for (size_t i = 0, ie = t->second.elements(); i < ie; ++i) {
-      for (size_t j = 0, je = t->second.element_size(); j < je; ++j) {
+    size_t idx = t->second.begin;
+    for (size_t i = 0, ie = t->second.elements; i < ie; ++i) {
+      for (size_t j = 0, je = t->second.words_per_element; j < je; ++j) {
         auto* lhs = new Identifier(new Id("__var"), new Number(Bits(32, idx)));
 
         Expression* rhs = lhs->clone();
@@ -630,7 +633,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->resume_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().resume_index())))
       ),
       BinaryExpression::Op::PPIPE,
       new BinaryExpression(
@@ -650,7 +653,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
       new BinaryExpression(
         new Identifier("__read"),
         BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->reset_idx())))
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().reset_index())))
       ),
       new Number(Bits(true)),
       new Number(Bits(false))
@@ -662,49 +665,49 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
   ))); 
 }
 
-void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const De10Logic* de) {
+void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // Assignments are sorted lexicographically to guarantee deterministic code.
 
   map<size_t, CaseItem*> outputs;
-  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
-    if (t->second.materialized()) {
+  for (auto t = de->get_table().begin(), te = de->get_table().end(); t != te; ++t) {
+    if (ModuleInfo(md).is_stateful(t->first)) {
       continue;
     }
-    assert(t->second.elements() == 1);
-    const auto w = t->second.bit_size();
-    for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
+    assert(t->second.elements == 1);
+    const auto w = t->second.bits_per_element;
+    for (size_t i = 0; i < t->second.words_per_element; ++i) {
       auto* id = t->first->clone();
       id->purge_dim();
       emit_slice(id, w, i);
       auto* ci = new CaseItem(
-        new Number(Bits(32, t->second.index()+i)),
+        new Number(Bits(32, t->second.begin+i)),
         new BlockingAssign(new VariableAssign(
           new Identifier("__out"),
           id
         ))
       );
-      outputs[t->second.index()+i] = ci;
+      outputs[t->second.begin+i] = ci;
     }
   }
   auto* cs = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__vid"));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->there_are_updates_idx())),
+    new Number(Bits(32, de->get_table().there_are_updates_index())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__there_are_updates")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->sys_task_idx())),
+    new Number(Bits(32, de->get_table().sys_task_index())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__task_queue")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->io_task_idx())),
+    new Number(Bits(32, de->get_table().io_task_index())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__io_queue")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->done_idx())),
+    new Number(Bits(32, de->get_table().done_index())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__done")))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->open_loop_idx())),
+    new Number(Bits(32, de->get_table().open_loop_index())),
     new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__open_loop_itrs")))
   ));
   for (auto& o : outputs) {

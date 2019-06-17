@@ -38,7 +38,7 @@
 #include "target/core/common/scanf.h"
 #include "target/core/sw/monitor.h"
 #include "target/input.h"
-#include "target/interface.h"
+#include "target/state.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
@@ -82,21 +82,21 @@ SwLogic::~SwLogic() {
   }
 }
 
-SwLogic& SwLogic::set_read(const Identifier* id, VId vid) {
-  if (vid >= reads_.size()) {
-    reads_.resize(vid+1, nullptr);
+SwLogic& SwLogic::set_input(const Identifier* id, VId vid) {
+  if (vid >= inputs_.size()) {
+    inputs_.resize(vid+1, nullptr);
   }
-  reads_[vid] = id;
-  return *this;
-}
-
-SwLogic& SwLogic::set_write(const Identifier* id, VId vid) {
-  writes_.push_back(make_pair(id, vid));
+  inputs_[vid] = id;
   return *this;
 }
 
 SwLogic& SwLogic::set_state(const Identifier* id, VId vid) {
   state_.insert(make_pair(vid, id));
+  return *this;
+}
+
+SwLogic& SwLogic::set_output(const Identifier* id, VId vid) {
+  outputs_.push_back(make_pair(id, vid));
   return *this;
 }
 
@@ -106,17 +106,6 @@ State* SwLogic::get_state() {
     s->insert(sv.first, eval_.get_array_value(sv.second));
   }
   return s;
-}
-
-interfacestream* SwLogic::get_stream(uint32_t fd) {
-  const auto itr = streams_.find(fd);
-  if (itr != streams_.end()) {
-    return itr->second;
-  }
-
-  auto* is = new interfacestream(interface(), fd);
-  streams_[fd] = is;
-  return is;
 }
 
 void SwLogic::set_state(const State* s) {
@@ -132,8 +121,8 @@ void SwLogic::set_state(const State* s) {
 
 Input* SwLogic::get_input() {
   auto* i = new Input();
-  for (size_t v = 0, ve = reads_.size(); v < ve; ++v) {
-    const auto* id = reads_[v];
+  for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
+    const auto* id = inputs_[v];
     if (id == nullptr) {
       continue;
     }
@@ -143,8 +132,8 @@ Input* SwLogic::get_input() {
 }
 
 void SwLogic::set_input(const Input* i) {
-  for (size_t v = 0, ve = reads_.size(); v < ve; ++v) {
-    const auto* id = reads_[v];
+  for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
+    const auto* id = inputs_[v];
     if (id == nullptr) {
       continue;
     }
@@ -181,7 +170,7 @@ void SwLogic::finalize() {
 }
 
 void SwLogic::read(VId vid, const Bits* b) {
-  const auto* id = reads_[vid];
+  const auto* id = inputs_[vid];
   eval_.assign_value(id, *b);
   notify(id);
 }
@@ -195,7 +184,7 @@ void SwLogic::evaluate() {
     const_cast<Node*>(e)->set_flag<1>(false);
     schedule_now(e);
   }
-  for (auto& o : writes_) {
+  for (auto& o : outputs_) {
     interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
@@ -222,7 +211,7 @@ void SwLogic::update() {
     schedule_now(e);
   }
 
-  for (auto& o : writes_) {
+  for (auto& o : outputs_) {
     interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
@@ -287,6 +276,16 @@ void SwLogic::silent_evaluate() {
 
 uint16_t& SwLogic::get_state(const Statement* s) {
   return const_cast<Statement*>(s)->ctrl_;
+}
+
+interfacestream* SwLogic::get_stream(FId fd) {
+  const auto itr = streams_.find(fd);
+  if (itr != streams_.end()) {
+    return itr->second;
+  }
+  auto* is = new interfacestream(interface(), fd);
+  streams_[fd] = is;
+  return is;
 }
 
 void SwLogic::visit(const Event* e) {
