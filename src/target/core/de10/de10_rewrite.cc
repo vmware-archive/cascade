@@ -222,7 +222,8 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
   for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
     // Ignore variables which have not be reified into the state table (ie: non-stateful outputs)
-    if (!ModuleInfo(md).is_stateful(v->first)) {
+    ModuleInfo info(md);
+    if (info.is_output(v->first) && !info.is_stateful(v->first)) {
       continue;
     }
 
@@ -541,7 +542,8 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     // If this variable hasn't been reified into the variable table or is
     // inside of a push task (one that only sends data to the host) we don't
     // need to emit any update logic.
-    if (in_push_task || !ModuleInfo(md).is_stateful(t->first)) {
+    ModuleInfo info(md);
+    if (in_push_task || (info.is_output(t->first) && !info.is_stateful(t->first))) {
       continue;
     }
 
@@ -554,7 +556,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
         auto* lhs = new Identifier(new Id("__var"), new Number(Bits(32, idx)));
 
         Expression* rhs = lhs->clone();
-        if (ModuleInfo(md).is_stateful(t->first) && !in_pull_task) {
+        if (info.is_stateful(t->first) && !in_pull_task) {
           auto* id = new Identifier(t->first->front_ids()->get_readable_sid() + "_next");
           emit_subscript(id, i, ie, arity);
           emit_slice(id, w, j);
@@ -690,7 +692,8 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
 
   map<size_t, CaseItem*> outputs;
   for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
-    if (ModuleInfo(md).is_stateful(t->first)) {
+    ModuleInfo info(md);      
+    if (!info.is_output(t->first) || info.is_stateful(t->first)) {
       continue;
     }
     assert(t->second.elements == 1);

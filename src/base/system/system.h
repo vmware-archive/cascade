@@ -59,7 +59,7 @@ inline std::string System::src_root() {
   #endif
   const auto path = std::string(result, (count > 0) ? count : 0);
 
-  return path.substr(0, path.rfind('/')) + "/..";
+  return path.substr(0, path.rfind('/')) + "/../..";
 }
 
 inline int System::execute(const std::string& cmd) {
