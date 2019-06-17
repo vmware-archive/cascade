@@ -288,6 +288,13 @@ interfacestream* SwLogic::get_stream(FId fd) {
   return is;
 }
 
+void SwLogic::update_eofs() {
+  for (auto* fe : eofs_) {
+    eval_.flag_changed(fe);
+    notify(fe);
+  }
+}
+
 void SwLogic::visit(const Event* e) {
   // TODO(eschkufz) Support for complex expressions 
   assert(e->get_expr()->is(Node::Tag::identifier));
@@ -444,10 +451,7 @@ void SwLogic::visit(const FseekStatement* fs) {
     is->seekg(offset, way); 
     is->seekp(offset, way);
 
-    for (auto* fe : eofs_) {
-      eval_.flag_changed(fe);
-      notify(fe);
-    }
+    update_eofs();
   }
   notify(fs);
 }
@@ -463,10 +467,7 @@ void SwLogic::visit(const GetStatement* gs) {
       assert(r != nullptr);
       notify(r);
     }
-    for (auto* fe : eofs_) {
-      eval_.flag_changed(fe);
-      notify(fe);
-    }
+    update_eofs();
   }
   notify(gs);
 }
@@ -476,11 +477,7 @@ void SwLogic::visit(const PutStatement* ps) {
     const auto fd = eval_.get_value(ps->get_fd()).to_int();
     auto* is = get_stream(fd);
     Printf().write(*is, &eval_, ps);
-
-    for (auto* fe : eofs_) {
-      eval_.flag_changed(fe);
-      notify(fe);
-    }
+    update_eofs();
   }
   notify(ps);
 }

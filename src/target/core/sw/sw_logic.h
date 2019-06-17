@@ -103,6 +103,7 @@ class SwLogic : public Logic, public Visitor {
     // Control Helpers:
     uint16_t& get_state(const Statement* s);
     interfacestream* get_stream(FId fd);
+    void update_eofs();
 
     // Visitor Interface:
     void visit(const Event* e) override;

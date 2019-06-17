@@ -54,23 +54,39 @@ class VarTable {
     };
 
     // Typedefs:
-    typedef typename std::unordered_map<const Identifier*, const Row>::const_iterator const_iterator;
+    typedef typename std::unordered_map<const Identifier*, const Row>::const_iterator const_var_iterator;
+    typedef typename std::unordered_map<const Expression*, const Row>::const_iterator const_expr_iterator;
         
     // Constructors:
     VarTable(volatile uint8_t* addr);
 
     // Inserts an element into the table.
-    void insert(const Identifier* id);
-    // Returns the number of words in the variable table. This includes control
-    // variables (eg <there_are_updates>).
+    void insert_var(const Identifier* id);
+    // Inserts an expression into the table.
+    void insert_expr(const Expression* e);
+    // Returns the number of words in the variable segment of the var table.
+    // This includes control variables (eg <there_are_updates>).
+    size_t var_size() const;
+    // Returns the number of words in the expression segment of the var table.
+    size_t expr_size() const;
+    // Returns the total number of entries in both variable and expression segments 
+    // of the var table.
     size_t size() const;
 
     // Returns a pointer to an element in the table or end on failure
-    const_iterator find(const Identifier* id) const;
+    const_var_iterator var_find(const Identifier* id) const;
     // Returns a pointer to the beginning of the table
-    const_iterator begin() const;
+    const_var_iterator var_begin() const;
     // Returns a pointer ot the end of the table
-    const_iterator end() const;
+    const_var_iterator var_end() const;
+
+    // Returns a pointer to an element in the table or end on failure
+    const_expr_iterator expr_find(const Expression* e) const;
+    // Returns a pointer to the beginning of the table
+    const_expr_iterator expr_begin() const;
+    // Returns a pointer ot the end of the table
+    const_expr_iterator expr_end() const;
+
 
     // Returns the starting index of this identifier.
     size_t index(const Identifier* id) const;
@@ -94,21 +110,27 @@ class VarTable {
     size_t open_loop_index() const;
 
     // Reads the value of a control variable
-    T read_control_variable(size_t index) const;
+    T read_control_var(size_t index) const;
     // Writes the value of a control variable
-    void write_control_variable(size_t index, T val);
+    void write_control_var(size_t index, T val);
 
     // Reads the value of a variable
-    void read_variable(const Identifier* id) const; 
+    void read_var(const Identifier* id) const; 
     // Writes the value of a scalar variable
-    void write_variable(const Identifier* id, const Bits& val);
+    void write_var(const Identifier* id, const Bits& val);
     // Writes the value of an array variable
-    void write_variable(const Identifier* id, const Vector<Bits>& val);
+    void write_var(const Identifier* id, const Vector<Bits>& val);
+
+    // Reads the value of an expression
+    T read_expr(const Expression* e) const;
+    // Writes the value of an expression
+    void write_expr(const Expression* e, T val);
 
   private:
     volatile uint8_t* addr_;
-    std::unordered_map<const Identifier*, const Row> table_;
     size_t next_index_;
+    std::unordered_map<const Identifier*, const Row> vtable_;
+    std::unordered_map<const Expression*, const Row> etable_;
 
     constexpr size_t bits_per_word() const;
 
@@ -126,8 +148,8 @@ inline VarTable<T>::VarTable(volatile uint8_t* addr) {
 }
 
 template <typename T>
-inline void VarTable<T>::insert(const Identifier* id) {
-  assert(find(id) == end());
+inline void VarTable<T>::insert_var(const Identifier* id) {
+  assert(var_find(id) == var_end());
 
   Row row;
   row.begin = next_index_;
@@ -140,34 +162,72 @@ inline void VarTable<T>::insert(const Identifier* id) {
   row.bits_per_element = std::max(Evaluate().get_width(r), Evaluate().get_width(id));
   row.words_per_element = (row.bits_per_element + bits_per_word() - 1) / bits_per_word();
 
-  table_.insert(std::make_pair(id, row));
+  vtable_.insert(std::make_pair(id, row));
   next_index_ += (row.elements * row.words_per_element);
 }
 
 template <typename T>
-inline size_t VarTable<T>::size() const {
+inline void VarTable<T>::insert_expr(const Expression* e) {
+  assert(expr_find(e) == expr_end());
+
+  Row row;
+  row.begin = expr_size();
+  row.elements = 1;
+  row.bits_per_element = Evaluate().get_width(e);
+  row.words_per_element = (row.bits_per_element + bits_per_word() - 1) / bits_per_word();
+
+  etable_.insert(std::make_pair(e, row));
+}
+
+template <typename T>
+inline size_t VarTable<T>::var_size() const {
   return open_loop_index() + 1;
 }
 
 template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::find(const Identifier* id) const {
-  return table_.find(id);
+inline size_t VarTable<T>::expr_size() const {
+  return etable_.size();
 }
 
 template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::begin() const {
-  return table_.begin();
+inline size_t VarTable<T>::size() const {
+  return var_size() + expr_size();
 }
 
 template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::end() const {
-  return table_.end();
+inline typename VarTable<T>::const_var_iterator VarTable<T>::var_find(const Identifier* id) const {
+  return vtable_.find(id);
+}
+
+template <typename T>
+inline typename VarTable<T>::const_var_iterator VarTable<T>::var_begin() const {
+  return vtable_.begin();
+}
+
+template <typename T>
+inline typename VarTable<T>::const_var_iterator VarTable<T>::var_end() const {
+  return vtable_.end();
+}
+
+template <typename T>
+inline typename VarTable<T>::const_expr_iterator VarTable<T>::expr_find(const Expression* e) const {
+  return etable_.find(e);
+}
+
+template <typename T>
+inline typename VarTable<T>::const_expr_iterator VarTable<T>::expr_begin() const {
+  return etable_.begin();
+}
+
+template <typename T>
+inline typename VarTable<T>::const_expr_iterator VarTable<T>::expr_end() const {
+  return etable_.end();
 }
 
 template <typename T>
 inline size_t VarTable<T>::index(const Identifier* id) const {
-  const auto itr = table_.find(id);
-  assert(itr != table_.end());
+  const auto itr = vtable_.find(id);
+  assert(itr != vtable_.end());
   return itr->second.index_;
 }
 
@@ -217,23 +277,23 @@ inline size_t VarTable<T>::open_loop_index() const {
 }
 
 template <typename T>
-inline T VarTable<T>::read_control_variable(size_t index) const {
+inline T VarTable<T>::read_control_var(size_t index) const {
   assert(index >= there_are_updates_index());
   assert(index <= open_loop_index());
   return DE10_READ(mangle(index));
 }
 
 template <typename T>
-inline void VarTable<T>::write_control_variable(size_t index, T val) {
+inline void VarTable<T>::write_control_var(size_t index, T val) {
   assert(index >= there_are_updates_index());
   assert(index <= open_loop_index());
   DE10_WRITE(mangle(index), val);
 }
 
 template <typename T>
-inline void VarTable<T>::read_variable(const Identifier* id) const {
-  const auto itr = table_.find(id);
-  assert(itr != table_.end());
+inline void VarTable<T>::read_var(const Identifier* id) const {
+  const auto itr = vtable_.find(id);
+  assert(itr != vtable_.end());
 
   auto idx = itr->second.begin;
   for (size_t i = 0; i < itr->second.elements; ++i) {
@@ -246,9 +306,9 @@ inline void VarTable<T>::read_variable(const Identifier* id) const {
 }
 
 template <typename T>
-inline void VarTable<T>::write_variable(const Identifier* id, const Bits& val) {
-  const auto itr = table_.find(id);
-  assert(itr != table_.end());
+inline void VarTable<T>::write_var(const Identifier* id, const Bits& val) {
+  const auto itr = vtable_.find(id);
+  assert(itr != vtable_.end());
   assert(itr->second.elements == 1);
 
   auto idx = itr->second.begin;
@@ -260,9 +320,9 @@ inline void VarTable<T>::write_variable(const Identifier* id, const Bits& val) {
 }
 
 template <typename T>
-inline void VarTable<T>::write_variable(const Identifier* id, const Vector<Bits>& val) {
-  const auto itr = table_.find(id);
-  assert(itr != table_.end());
+inline void VarTable<T>::write_var(const Identifier* id, const Vector<Bits>& val) {
+  const auto itr = vtable_.find(id);
+  assert(itr != vtable_.end());
   assert(val.size() == itr->second.elements);
 
   auto idx = itr->second.begin;
@@ -273,6 +333,26 @@ inline void VarTable<T>::write_variable(const Identifier* id, const Vector<Bits>
       ++idx;
     }
   }
+}
+
+template <typename T>
+inline T VarTable<T>::read_expr(const Expression* e) const {
+  const auto itr = etable_.find(e);
+  assert(itr != etable_.end());
+  assert(itr->second.elements == 1);
+  assert(itr->words_per_element == 1);
+
+  return DE19_READ(mangle(itr->second.begin));
+}
+
+template <typename T>
+inline void VarTable<T>::write_expr(const Expression* e, T val) {
+  const auto itr = etable_.find(e);
+  assert(itr != etable_.end());
+  assert(itr->second.elements == 1);
+  assert(itr->second.words_per_element == 1);
+
+  DE10_WRITE(mangle(itr->second.begin), val);
 }
 
 template <typename T>

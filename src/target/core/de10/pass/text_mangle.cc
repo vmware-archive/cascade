@@ -74,19 +74,13 @@ ModuleItem* TextMangle::build(const PortDeclaration* pd) {
 }
 
 Expression* TextMangle::build(const FeofExpression* fe) {
-  // TODO(eschkufz) This is broken now that fds can be expressions
+  // Feof expressions are replaced by references to a location in the variable
+  // table. The software-side of the de10 logic manages the value of this variable
+  // based on invocations of other io tasks.
 
-  /*
-  // This is a bit confusing: the de10 compiler has created an entry in the
-  // variable table for the argument to this expression (like we do with
-  // arguments to display statements). Prior to transfering control to the fpga
-  // we'll place the result of this eof check into this location in hardware.
-  const auto itr = de_->table_find(fe->get_fd());
-  assert(itr != de_->table_end());
-  return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
-  */
-
-  return nullptr;
+  const auto itr = de_->get_table().expr_find(fe);
+  assert(itr != de_->get_table().expr_end());
+  return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
 }
 
 Statement* TextMangle::build(const NonblockingAssign* na) {
@@ -201,8 +195,8 @@ void TextMangle::Mangle::visit(const Identifier* id) {
     return;
   }
 
-  const auto titr = de_->get_table().find(id);
-  assert(titr != de_->get_table().end());
+  const auto titr = de_->get_table().var_find(id);
+  assert(titr != de_->get_table().var_end());
 
   // This is a bit nasty. The amount of space we set aside for this argument in
   // the variable table may exceed its actual bit-width. This is because the
@@ -331,8 +325,8 @@ void TextMangle::Mangle::begin_mangle_task() {
 
 Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
-  const auto titr = de_->get_table().find(r);
-  assert(titr != de_->get_table().end());
+  const auto titr = de_->get_table().var_find(r);
+  assert(titr != de_->get_table().var_end());
 
   // Start with an expression for where this variable begins in the variable table
   Expression* idx = new Number(Bits(32, titr->second.begin));

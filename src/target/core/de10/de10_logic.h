@@ -92,7 +92,6 @@ class De10Logic : public Logic {
     std::vector<std::pair<const Identifier*, VId>> outputs_;
     std::vector<const SystemTaskEnableStatement*> sys_tasks_;
     std::vector<const SystemTaskEnableStatement*> io_tasks_;
-    std::vector<const FeofExpression*> eofs_;
 
     // Control State:
     bool there_were_tasks_;
@@ -101,6 +100,7 @@ class De10Logic : public Logic {
 
     // Control Helpers:
     interfacestream* get_stream(FId fd);
+    void update_eofs();
     void wait_until_done();
     void handle_outputs();
     void handle_io_tasks();

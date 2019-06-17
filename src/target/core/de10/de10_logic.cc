@@ -58,8 +58,8 @@ De10Logic::~De10Logic() {
 }
 
 De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
-  if (table_.find(id) == table_.end()) {
-    table_.insert(id);
+  if (table_.var_find(id) == table_.var_end()) {
+    table_.insert_var(id);
   }
   if (inputs_.size() <= vid) {
     inputs_.resize(vid+1, nullptr);
@@ -69,16 +69,16 @@ De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
 }
 
 De10Logic& De10Logic::set_state(const Identifier* id, VId vid) {
-  if (table_.find(id) == table_.end()) {
-    table_.insert(id);
+  if (table_.var_find(id) == table_.var_end()) {
+    table_.insert_var(id);
   }   
   state_.insert(make_pair(vid, id));
   return *this;
 }
 
 De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
-  if (table_.find(id) == table_.end()) { 
-    table_.insert(id);
+  if (table_.var_find(id) == table_.var_end()) { 
+    table_.insert_var(id);
   }
   outputs_.push_back(make_pair(id, vid));
   return *this;
@@ -105,7 +105,7 @@ size_t De10Logic::num_io_tasks() const {
 State* De10Logic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
-    table_.read_variable(sv.second);
+    table_.read_var(sv.second);
     s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
   return s;
@@ -115,13 +115,13 @@ void De10Logic::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      table_.write_variable(sv.second, itr->second);
+      table_.write_var(sv.second, itr->second);
     }
   }
-  table_.write_control_variable(table_.drop_update_index(), 1);
-  table_.write_control_variable(table_.reset_index(), 1);
-  table_.write_control_variable(table_.io_task_index(), 1);
-  table_.write_control_variable(table_.sys_task_index(), 1);
+  table_.write_control_var(table_.drop_update_index(), 1);
+  table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.io_task_index(), 1);
+  table_.write_control_var(table_.sys_task_index(), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -131,7 +131,7 @@ Input* De10Logic::get_input() {
     if (id == nullptr) {
       continue;
     }
-    table_.read_variable(id);
+    table_.read_var(id);
     i->insert(v, Evaluate().get_value(id));
   }
   return i;
@@ -145,13 +145,13 @@ void De10Logic::set_input(const Input* i) {
     }
     const auto itr = i->find(v);
     if (itr != i->end()) {
-      table_.write_variable(id, itr->second);
+      table_.write_var(id, itr->second);
     }
   }
-  table_.write_control_variable(table_.drop_update_index(), 1);
-  table_.write_control_variable(table_.reset_index(), 1);
-  table_.write_control_variable(table_.io_task_index(), 1);
-  table_.write_control_variable(table_.sys_task_index(), 1);
+  table_.write_control_var(table_.drop_update_index(), 1);
+  table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.io_task_index(), 1);
+  table_.write_control_var(table_.sys_task_index(), 1);
 }
 
 void De10Logic::finalize() {
@@ -161,7 +161,7 @@ void De10Logic::finalize() {
 void De10Logic::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
-  table_.write_variable(inputs_[id], *b);
+  table_.write_var(inputs_[id], *b);
 }
 
 void De10Logic::evaluate() {
@@ -173,12 +173,12 @@ void De10Logic::evaluate() {
 
 bool De10Logic::there_are_updates() const {
   // Read there_are_updates flag
-  return table_.read_control_variable(table_.there_are_updates_index()) != 0;
+  return table_.read_control_var(table_.there_are_updates_index()) != 0;
 }
 
 void De10Logic::update() {
   // Throw the update trigger
-  table_.write_control_variable(table_.apply_update_index(), 1);
+  table_.write_control_var(table_.apply_update_index(), 1);
   // Read outputs and handle tasks
   wait_until_done();
   handle_outputs();
@@ -203,11 +203,11 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
 
   // Go into open loop mode and handle tasks when we return. No need
   // to handle outputs. This methods assumes that we don't have any.
-  table_.write_control_variable(table_.open_loop_index(), itr);
+  table_.write_control_var(table_.open_loop_index(), itr);
   handle_sys_tasks();
 
   // Return the number of iterations that we ran for
-  return table_.read_control_variable(table_.open_loop_index());
+  return table_.read_control_var(table_.open_loop_index());
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -244,23 +244,39 @@ interfacestream* De10Logic::get_stream(FId fd) {
   return is;
 }
 
+void De10Logic::update_eofs() {
+  // NOTE: This is only correct for so long as the only expressions we put in
+  // the expression segment of the variable table are feofs.
+
+  Evaluate eval;
+  Sync sync(this);
+  for (auto i = table_.expr_begin(), ie = table_.expr_end(); i != ie; ++i) {
+    assert(i->first->is(Node::Tag::feof_expression));
+    const auto* fe = static_cast<const FeofExpression*>(i->first);
+    fe->accept_fd(&sync);
+
+    auto* is = get_stream(eval.get_value(fe->get_fd()).to_int());
+    table_.write_expr(i->first, is->eof() ? 1 : 0);
+  }
+}
+
 void De10Logic::wait_until_done() {
-  while (!table_.read_control_variable(table_.done_index())) {
+  while (!table_.read_control_var(table_.done_index())) {
     handle_io_tasks();
-    table_.write_control_variable(table_.resume_index(), 1);
+    table_.write_control_var(table_.resume_index(), 1);
   }
   handle_io_tasks();
 }
 
 void De10Logic::handle_outputs() {
   for (const auto& o : outputs_) {
-    table_.read_variable(o.first);
+    table_.read_var(o.first);
     interface()->write(o.second, &Evaluate().get_value(o.first));
   }
 }
 
 void De10Logic::handle_io_tasks() {
-  volatile auto queue = table_.read_control_variable(table_.io_task_index());
+  volatile auto queue = table_.read_control_var(table_.io_task_index());
   if (queue == 0) {
     return;
   }
@@ -295,8 +311,8 @@ void De10Logic::handle_io_tasks() {
         is->clear();
         is->seekg(offset, way); 
         is->seekp(offset, way); 
+        update_eofs();
 
-        // TODO(eschkufz) update eofs
         break;
       }
       case Node::Tag::get_statement: {
@@ -307,8 +323,13 @@ void De10Logic::handle_io_tasks() {
         auto* is = get_stream(fd);
         Scanf().read(*is, &eval, gs);
 
-        // TODO(eschkufz) write get back to fpga
-        // TODO(eschkufz) update eofs
+        if (gs->is_non_null_var()) {
+          const auto* r = Resolve().get_resolution(gs->get_var());
+          assert(r != nullptr);
+          table_.write_var(r, eval.get_value(r));
+        }
+        update_eofs();
+
         break;
       }  
       case Node::Tag::put_statement: {
@@ -319,8 +340,8 @@ void De10Logic::handle_io_tasks() {
         const auto fd = eval.get_value(ps->get_fd()).to_int();
         auto* is = get_stream(fd);
         Printf().write(*is, &eval, ps);
+        update_eofs();
 
-        // TODO(eschkufz) update eofs
         break;
       }
       default:
@@ -330,13 +351,13 @@ void De10Logic::handle_io_tasks() {
   }
 
   // Reset the task mask
-  table_.write_control_variable(table_.io_task_index(), 0);
+  table_.write_control_var(table_.io_task_index(), 0);
 }
 
 void De10Logic::handle_sys_tasks() {
   // By default, we'll assume there were no tasks
   there_were_tasks_ = false;
-  volatile auto queue = table_.read_control_variable(table_.sys_task_index());
+  volatile auto queue = table_.read_control_var(table_.sys_task_index());
   if (queue == 0) {
     return;
   }
@@ -378,7 +399,7 @@ void De10Logic::handle_sys_tasks() {
   }
 
   // Reset the task mask
-  table_.write_control_variable(table_.sys_task_index(), 0);
+  table_.write_control_var(table_.sys_task_index(), 0);
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
@@ -387,15 +408,21 @@ De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
 }
 
 void De10Logic::Inserter::visit(const Identifier* id) {
-  if (in_args_ && (de_->table_.find(id) == de_->table_.end())) {
-    de_->table_.insert(id);
+  if (in_args_ && (de_->table_.var_find(id) == de_->table_.var_end())) {
+    de_->table_.insert_var(id);
   }
 }
 
 void De10Logic::Inserter::visit(const FeofExpression* fe) {
-  de_->eofs_.push_back(fe);
-  // TODO(eschkufz) The variable table component of this is broken now that fds
-  // can be expressions
+  // We need *both* an image of this expression in the variable table to
+  // represent its value, *and also* images of its arguments so that we can
+  // inspect an feof expression and know what stream it refers to.
+
+  assert(de_->table_.expr_find(fe) == de_->table_.expr_end());
+  de_->table_.insert_expr(fe); 
+  in_args_ = true;
+  fe->accept_fd(this);
+  in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const FinishStatement* fs) {
@@ -453,8 +480,8 @@ De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
 }
 
 void De10Logic::Sync::visit(const Identifier* id) {
-  assert(de_->table_.find(id) != de_->table_.end());
-  de_->table_.read_variable(id);
+  assert(de_->table_.var_find(id) != de_->table_.var_end());
+  de_->table_.read_var(id);
 }
 
 } // namespace cascade

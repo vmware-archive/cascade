@@ -149,9 +149,13 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
+  const auto var_table_dim = max(static_cast<size_t>(16), de->get_table().var_size());
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(table_dim, 0)), false, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(var_table_dim, 0)), false, new RangeExpression(32, 0), nullptr
+  ));
+  const auto expr_table_dim = max(static_cast<size_t>(16), de->get_table().expr_size());
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier(new Id("__expr"), new RangeExpression(expr_table_dim, 0)), false, new RangeExpression(32, 0), nullptr
   ));
 }
 
@@ -160,7 +164,7 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
   // update(). These declarations are sorted lexicographically to ensure
   // deterministic code.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
+  const auto table_dim = max(static_cast<size_t>(32), de->get_table().var_size());
 
   map<string, RegDeclaration*> shadows;
   for (auto* s : ModuleInfo(md).stateful()) {
@@ -216,7 +220,7 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
   // lexicograhically to ensure deterministic code.
 
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
-  for (auto v = de->get_table().begin(), ve = de->get_table().end(); v != ve; ++v) {
+  for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
     // Ignore variables which have not be reified into the state table (ie: non-stateful outputs)
     if (!ModuleInfo(md).is_stateful(v->first)) {
       continue;
@@ -334,7 +338,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   // counterpart. Updates are triggered whenever the user forces a read of the
   // update latch or we are in open loop mode.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->get_table().size());
+  const auto table_dim = max(static_cast<size_t>(32), de->get_table().var_size());
 
   res->push_back_items(new NetDeclaration(
     new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__update_queue"), false, new RangeExpression(table_dim, 0)
@@ -526,7 +530,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   // logic is sorted lexicographically to guarantee deterministic code.
 
   map<size_t, NonblockingAssign*> logic;
-  for (auto t = de->get_table().begin(), te = de->get_table().end(); t != te; ++t) {
+  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
     const auto* p = t->first->get_parent();
     const auto in_push_task = 
       p->is(Node::Tag::put_statement) ||
@@ -583,12 +587,28 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
           );
         }
 
-        auto* na = new NonblockingAssign(new VariableAssign(lhs, rhs));
-        logic[idx] = na;
+        logic[idx] = new NonblockingAssign(new VariableAssign(lhs, rhs));
         ++idx;
       }
     }
   }
+  for (auto t = de->get_table().expr_begin(), te = de->get_table().expr_end(); t != te; ++t) {
+    assert(t->second.elements == 1);
+    assert(t->second.words_per_element == 1);
+    
+    auto* lhs = new Identifier(new Id("__expr"), new Number(Bits(32, t->second.begin)));
+    auto* rhs = new ConditionalExpression(
+      new BinaryExpression(
+        new Identifier("__read"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().var_size() + t->second.begin)))
+      ),
+      new Identifier("__in"),
+      lhs->clone()
+    );
+    logic[de->get_table().var_size() + t->second.begin] = new NonblockingAssign(new VariableAssign(lhs, rhs));
+  }
+
   auto* lsb = new SeqBlock();
   for (auto& l : logic) {
     lsb->push_back_stmts(l.second);
@@ -669,7 +689,7 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   // Assignments are sorted lexicographically to guarantee deterministic code.
 
   map<size_t, CaseItem*> outputs;
-  for (auto t = de->get_table().begin(), te = de->get_table().end(); t != te; ++t) {
+  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
     if (ModuleInfo(md).is_stateful(t->first)) {
       continue;
     }
@@ -713,9 +733,14 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   for (auto& o : outputs) {
     cs->push_back_items(o.second);
   }
-  cs->push_back_items(new CaseItem(
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier(new Id("__var"), new Identifier("__vid"))))
-  ));
+  cs->push_back_items(new CaseItem(new BlockingAssign(new VariableAssign(
+    new Identifier("__out"), 
+    new ConditionalExpression(
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::LT, new Number(Bits(32, de->get_table().var_size()))),
+      new Identifier(new Id("__var"), new Identifier("__vid")),
+      new Identifier(new Id("__expr"), new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::MINUS, new Number(Bits(32, de->get_table().var_size()))))
+    )
+  ))));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(new EventControl(), cs))); 
 }
 
