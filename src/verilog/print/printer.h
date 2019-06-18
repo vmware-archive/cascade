@@ -98,7 +98,6 @@ class Printer : public Visitor {
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
     void visit(const WhileStatement* ws) override;
-    void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;
 

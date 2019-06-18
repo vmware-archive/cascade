@@ -321,7 +321,6 @@ void Printer::visit(const InitialConstruct* ic) {
 
 void Printer::visit(const ContinuousAssign* ca) {
   *this << Color::GREEN << "assign " << Color::RESET;
-  ca->accept_ctrl(this, []{}, [this]{*this << " ";});
   ca->accept_assign(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -363,7 +362,6 @@ void Printer::visit(const NetDeclaration* nd) {
     *this << Color::RED << "]" << Color::RESET;
   }
   *this << " ";
-  nd->accept_ctrl(this, []{}, [this]{*this << " ";});
   nd->accept_id(this);
   *this << Color::RED << ";" << Color::RESET;
 }
@@ -641,11 +639,6 @@ void Printer::visit(const WhileStatement* ws) {
   ws->accept_cond(this); 
   *this << Color::RED << ") " << Color::RESET;
   ws->accept_stmt(this);
-}
-
-void Printer::visit(const DelayControl* dc) {
-  *this << Color::RED << "#" << Color::RESET;
-  dc->accept_delay(this);
 }
 
 void Printer::visit(const EventControl* ec) {

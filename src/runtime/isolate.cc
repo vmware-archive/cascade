@@ -240,7 +240,6 @@ ModuleDeclaration* Isolate::get_shell() {
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
-          nullptr,
           to_global_id(p.second),
           is_signed,
           (width == 1) ? nullptr : new RangeExpression(width)
@@ -299,7 +298,6 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
         static_cast<Expression*>(c.second->accept(this)) : 
         c.first->accept(this);
     auto* ca = new ContinuousAssign(
-      nullptr,
       new VariableAssign(lhs, rhs)
     );
     res.push_back(ca);

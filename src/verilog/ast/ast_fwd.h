@@ -102,7 +102,6 @@ class Node;
       class RetargetStatement;
       class SaveStatement;
   class TimingControl;
-    class DelayControl;
     class EventControl;
   class VariableAssign;
 

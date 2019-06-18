@@ -161,7 +161,6 @@ void Editor::edit(InitialConstruct* ic) {
 }
 
 void Editor::edit(ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
   ca->accept_assign(this);
 }
 
@@ -179,7 +178,6 @@ void Editor::edit(LocalparamDeclaration* ld) {
 
 void Editor::edit(NetDeclaration* nd) {
   nd->accept_attrs(this);
-  nd->accept_ctrl(this);
   nd->accept_id(this);
   nd->accept_dim(this);
 }
@@ -307,10 +305,6 @@ void Editor::edit(SaveStatement* ss) {
 void Editor::edit(WhileStatement* ws) {
   ws->accept_cond(this);
   ws->accept_stmt(this); 
-}
-
-void Editor::edit(DelayControl* dc) {
-  dc->accept_delay(this); 
 }
 
 void Editor::edit(EventControl* ec) {

@@ -478,7 +478,6 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
   net_lval_ = true;
   ca->get_assign()->accept_lhs(this);
   net_lval_ = false;
@@ -563,10 +562,6 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Width and array properties
   check_width(nd->get_dim());
   check_array(nd->get_id()->begin_dim(), nd->get_id()->end_dim());
-  // CHECK: Delay control statements
-  if (nd->is_non_null_ctrl()) {
-    error("No support for delay control statements in net declarations", nd);
-  }
 }
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
@@ -741,10 +736,6 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const DelayControl* dc) {
-  error("Cascade does not currently support the use of delay controls", dc);
 }
 
 void TypeCheck::check_width(const RangeExpression* re) {

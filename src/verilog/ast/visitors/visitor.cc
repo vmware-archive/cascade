@@ -161,7 +161,6 @@ void Visitor::visit(const InitialConstruct* ic) {
 }
 
 void Visitor::visit(const ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
   ca->accept_assign(this);
 }
 
@@ -179,7 +178,6 @@ void Visitor::visit(const LocalparamDeclaration* ld) {
 
 void Visitor::visit(const NetDeclaration* nd) {
   nd->accept_attrs(this);
-  nd->accept_ctrl(this);
   nd->accept_id(this);
   nd->accept_dim(this);
 }
@@ -307,10 +305,6 @@ void Visitor::visit(const SaveStatement* ss) {
 void Visitor::visit(const WhileStatement* ws) {
   ws->accept_cond(this);
   ws->accept_stmt(this); 
-}
-
-void Visitor::visit(const DelayControl* dc) {
-  dc->accept_delay(this); 
 }
 
 void Visitor::visit(const EventControl* ec) {

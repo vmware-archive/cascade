@@ -95,7 +95,6 @@ struct Visitor {
   virtual void visit(const RetargetStatement* rs);
   virtual void visit(const SaveStatement* ss);
   virtual void visit(const WhileStatement* ws);
-  virtual void visit(const DelayControl* dc);
   virtual void visit(const EventControl* ec);
   virtual void visit(const VariableAssign* va);
 };

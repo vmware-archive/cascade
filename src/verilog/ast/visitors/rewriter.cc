@@ -185,7 +185,6 @@ ModuleItem* Rewriter::rewrite(InitialConstruct* ic) {
 }
 
 ModuleItem* Rewriter::rewrite(ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
   ca->accept_assign(this);
   return ca;
 }
@@ -206,7 +205,6 @@ ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
 
 ModuleItem* Rewriter::rewrite(NetDeclaration* nd) {
   nd->accept_attrs(this);
-  nd->accept_ctrl(this);
   nd->accept_id(this);
   nd->accept_dim(this);
   return nd;
@@ -358,11 +356,6 @@ Statement* Rewriter::rewrite(WhileStatement* ws) {
   ws->accept_cond(this);
   ws->accept_stmt(this);
   return ws;
-}
-
-TimingControl* Rewriter::rewrite(DelayControl* dc) {
-  dc->accept_delay(this);
-  return dc;
 }
 
 TimingControl* Rewriter::rewrite(EventControl* ec) {

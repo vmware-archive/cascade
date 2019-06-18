@@ -32,7 +32,6 @@
 #define CASCADE_SRC_VERILOG_AST_NET_DECLARATION_H
 
 #include "verilog/ast/types/declaration.h"
-#include "verilog/ast/types/delay_control.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/range_expression.h"
@@ -43,7 +42,7 @@ class NetDeclaration : public Declaration {
   public:
     // Constructors:
     NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__);
-    NetDeclaration(Attributes* attrs__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__);
+    NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
@@ -51,33 +50,28 @@ class NetDeclaration : public Declaration {
     NetDeclaration* clone() const override;
 
     // Get/Set:
-    MAYBE_GET_SET(NetDeclaration, DelayControl, ctrl)
     VAL_GET_SET(NetDeclaration, bool, signed)
     MAYBE_GET_SET(NetDeclaration, RangeExpression, dim)
 
   private:
-    MAYBE_ATTR(DelayControl, ctrl);
     VAL_ATTR(bool, signed);
     MAYBE_ATTR(RangeExpression, dim);
 };
 
 inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration(Node::Tag::net_declaration) {
   PTR_SETUP(attrs);
-  MAYBE_DEFAULT_SETUP(ctrl);
   PTR_SETUP(id);
   VAL_SETUP(signed);
   MAYBE_DEFAULT_SETUP(dim);
   parent_ = nullptr;
 }
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, DelayControl* ctrl__, Identifier* id__, bool signed__, RangeExpression* dim__) : NetDeclaration(attrs__, id__, signed__) {
-  MAYBE_SETUP(ctrl);
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__) : NetDeclaration(attrs__, id__, signed__) {
   MAYBE_SETUP(dim);
 }
 
 inline NetDeclaration::~NetDeclaration() {
   PTR_TEARDOWN(attrs);
-  MAYBE_TEARDOWN(ctrl);
   PTR_TEARDOWN(id);
   VAL_TEARDOWN(signed);
   MAYBE_TEARDOWN(dim);
@@ -85,7 +79,6 @@ inline NetDeclaration::~NetDeclaration() {
 
 inline NetDeclaration* NetDeclaration::clone() const {
   auto* res = new NetDeclaration(attrs_->clone(), id_->clone(), signed_);
-  MAYBE_CLONE(ctrl);
   MAYBE_CLONE(dim);
   return res;
 }

@@ -308,10 +308,6 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <bool> net_type
 %type <VariableAssign*> variable_type
 
-/* A.2.2.3 Delays */
-%type <DelayControl*> delay3
-%type <Expression*> delay_value
-
 /* A.2.3 Declaration Lists */
 %type <std::vector<VariableAssign*>> list_of_net_decl_assignments
 %type <std::vector<Identifier*>> list_of_net_identifiers
@@ -382,7 +378,6 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <Statement*> statement_or_null
 
 /* A.6.5 Timing Control Statements */
-%type <DelayControl*> delay_control
 %type <TimingControl*> delay_or_event_control
 %type <EventControl*> event_control
 %type <std::vector<Event*>> event_expression
@@ -452,7 +447,6 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<Expression*>> braced_rexp_S
 %type <std::vector<CaseGenerateItem*>> case_generate_item_P
 %type <std::vector<CaseItem*>> case_item_P
-%type <DelayControl*> delay3_Q
 %type <TimingControl*> delay_or_event_control_Q
 %type <std::vector<Expression*>> dimension_S
 %type <Expression*> eq_ce_Q
@@ -732,7 +726,7 @@ inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INOUT;
-      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -744,7 +738,7 @@ input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INPUT;
-      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -756,7 +750,7 @@ output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -791,9 +785,9 @@ integer_declaration
   }
 net_declaration 
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
-    for (auto id : $6) {
-      auto nd = new NetDeclaration($1->clone(), $5 == nullptr ? $5 : $5->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
+  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_identifiers SCOLON {
+    for (auto id : $5) {
+      auto nd = new NetDeclaration($1->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2);
       parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
@@ -802,14 +796,11 @@ net_declaration
     if ($4 != nullptr) {
       delete $4;
     }
-    if ($5 != nullptr) {
-      delete $5;
-    }
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
-    for (auto va : $6) {
-      auto nd = new NetDeclaration($1->clone(), $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
+  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_decl_assignments SCOLON {
+    for (auto va : $5) {
+      auto nd = new NetDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2);
       parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
@@ -820,9 +811,6 @@ net_declaration
     delete $1;
     if ($4 != nullptr) {
       delete $4;
-    }
-    if ($5 != nullptr) {
-      delete $5;
     }
   }
   /* TODO | ... lots of cases */
@@ -875,18 +863,8 @@ variable_type
   ;
 
 /* A.2.2.3 Delays */
-delay3 
-  : POUND delay_value { 
-    $$ = new DelayControl($2); 
-    parser->set_loc($$);
-  }
-  /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
-  ;
-delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, false); }
-  /* TODO | real_number */
-  /* TODO | identifier */
-  ;
+/* TODO delay3 */
+/* TODO delay_value */
 
 /* A.2.3 Declaration Lists */
 list_of_net_decl_assignments
@@ -1252,14 +1230,11 @@ generate_block_or_null
 
 /* A.6.1 Continuous Assignment Statements */
 continuous_assign
-  : ASSIGN /* TODO drive_strength? */ delay3_Q list_of_net_assignments SCOLON {
-    for (auto id : $3) {
-      auto ca = new ContinuousAssign($2 == nullptr ? $2 : $2->clone(), id);
+  : ASSIGN /* drive_strength? delay3? */ list_of_net_assignments SCOLON {
+    for (auto id : $2) {
+      auto ca = new ContinuousAssign(id);
       parser->set_loc(ca, ca->get_assign());
       $$.push_back(ca);
-    }
-    if ($2 != nullptr) {
-      delete $2;
     }
   }
   ;
@@ -1350,19 +1325,10 @@ statement_or_null
   ;
 
 /* A.6.5 Timing Control Statements */
-delay_control
-  : POUND delay_value { 
-    $$ = new DelayControl($2); 
-    parser->set_loc($$);
-  }
-  | POUND OPAREN mintypmax_expression CPAREN { 
-    $$ = new DelayControl($3); 
-    parser->set_loc($$);
-  }
-  ;
+/* TODO delay_control */
 delay_or_event_control 
-  : delay_control { $$ = $1; }
-  | event_control { $$ = $1; }
+  /* : TODO delay_control { $$ = $1; } */
+  : event_control { $$ = $1; }
   /* TODO | repeat (expression) event_control */
   ;
 event_control
@@ -1391,8 +1357,8 @@ event_expression
   }
   ;
 procedural_timing_control
-  : delay_control { $$ = $1; }
-  | event_control { $$ = $1; }
+  /* TODO delay_control */
+  : event_control { $$ = $1; }
   ;
 procedural_timing_control_statement
   : procedural_timing_control statement_or_null { $$ = new TimingControlStatement($1,$2); }
@@ -1997,10 +1963,6 @@ colon_Q
   : %empty
   | COLON
   ;
-delay3_Q
-  : %empty { $$ = nullptr; }
-  | delay3 { $$ = $1; }
-  ;
 delay_or_event_control_Q
   : %empty { $$ = nullptr; }
   | delay_or_event_control { $$ = $1; }
@@ -2234,7 +2196,7 @@ alt_port_declaration
     }
     auto d = $2 ? 
       (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(), nullptr, $5, $3, $4);
+      (Declaration*) new NetDeclaration(new Attributes(), $5, $3, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(), $1, d);
   }

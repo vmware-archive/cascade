@@ -506,12 +506,6 @@ void SwLogic::visit(const SaveStatement* ss) {
   notify(ss);
 }
 
-void SwLogic::visit(const DelayControl* dc) {
-  // TODO(eschkufz) Support for delay control
-  assert(false);
-  (void) dc;
-}
-
 void SwLogic::visit(const EventControl* ec) {
   notify(ec);
 }

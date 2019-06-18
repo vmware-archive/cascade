@@ -798,7 +798,6 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
 
 void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
-  nd->accept_ctrl(this);
 
   // Calculate arity
   size_t arity = 1;

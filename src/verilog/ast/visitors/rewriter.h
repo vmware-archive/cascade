@@ -97,7 +97,6 @@ struct Rewriter {
   virtual Statement* rewrite(RetargetStatement* rs);
   virtual Statement* rewrite(SaveStatement* ss);
   virtual Statement* rewrite(WhileStatement* ws);
-  virtual TimingControl* rewrite(DelayControl* dc);
   virtual TimingControl* rewrite(EventControl* ec);
   virtual VariableAssign* rewrite(VariableAssign* va);
 };

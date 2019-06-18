@@ -221,7 +221,6 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->accept_ctrl(this),
     ca->accept_assign(this)
   );
 }
@@ -246,7 +245,6 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
 ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->accept_attrs(this),
-    nd->accept_ctrl(this),
     nd->accept_id(this),
     nd->get_signed(),
     nd->accept_dim(this)
@@ -427,12 +425,6 @@ Statement* Builder::build(const WhileStatement* ws) {
   return new WhileStatement(
     ws->accept_cond(this),
     ws->accept_stmt(this)
-  ); 
-}
-
-TimingControl* Builder::build(const DelayControl* dc) {
-  return new DelayControl(
-    dc->accept_delay(this)
   ); 
 }
 

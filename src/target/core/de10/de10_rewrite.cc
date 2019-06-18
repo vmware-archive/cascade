@@ -127,22 +127,22 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
   res->push_back_ports(new ArgAssign(nullptr, new Identifier("__wait")));
 
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__clk"), false, nullptr
+    new Attributes(), new Identifier("__clk"), false, nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__read"), false, nullptr
+    new Attributes(), new Identifier("__read"), false, nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__vid"), false, new RangeExpression(14, 0)
+    new Attributes(), new Identifier("__vid"), false, new RangeExpression(14, 0)
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__in"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__in"), false, new RangeExpression(32, 0)
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new RegDeclaration(
     new Attributes(), new Identifier("__out"), false, new RangeExpression(32, 0), nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__wait"), false, nullptr
+    new Attributes(), new Identifier("__wait"), false, nullptr
   )));
 }
 
@@ -240,7 +240,7 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
     } 
    
     auto* nd = new NetDeclaration(
-      new Attributes(), nullptr, v->first->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
+      new Attributes(), v->first->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
     ); 
     vector<ContinuousAssign*> cas;
     for (size_t i = 0, ie = v->second.elements; i < ie; ++i) {
@@ -330,7 +330,7 @@ void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
     new Attributes(), new Identifier("__reset"), false, nullptr, new Number(Bits(false))
   ));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__done"), false, nullptr
+    new Attributes(), new Identifier("__done"), false, nullptr
   ));
 }
 
@@ -342,21 +342,21 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   const auto table_dim = max(static_cast<size_t>(32), de->get_table().var_size());
 
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__update_queue"), false, new RangeExpression(table_dim, 0)
+    new Attributes(), new Identifier("__update_queue"), false, new RangeExpression(table_dim, 0)
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__update_queue"), 
     new BinaryExpression(new Identifier("__update_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_update_mask"))
   )));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__there_are_updates"), false, nullptr
+    new Attributes(), new Identifier("__there_are_updates"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__there_are_updates"), 
     new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
   )));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__apply_updates"), false, nullptr
+    new Attributes(), new Identifier("__apply_updates"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__apply_updates"), 
@@ -369,7 +369,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
     )
   )));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__drop_updates"), false, nullptr
+    new Attributes(), new Identifier("__drop_updates"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__drop_updates"), 
@@ -396,14 +396,14 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
   // Both masks are cleared whenever the user forces a read of the mask.
 
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__task_queue"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__task_queue"), false, new RangeExpression(32, 0)
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__task_queue"), 
     new BinaryExpression(new Identifier("__task_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_task_mask"))
   )));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__there_were_tasks"), false, nullptr
+    new Attributes(), new Identifier("__there_were_tasks"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__there_were_tasks"), 
@@ -424,14 +424,14 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
     ))
   ))); 
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__io_queue"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__io_queue"), false, new RangeExpression(32, 0)
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__io_queue"), 
     new BinaryExpression(new Identifier("__io_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_io_mask"))
   )));
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__there_was_io"), false, nullptr
+    new Attributes(), new Identifier("__there_was_io"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__there_was_io"), 
@@ -460,7 +460,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
   // updates.
 
   res->push_back_items(new NetDeclaration(
-    new Attributes(), nullptr, new Identifier("__open_loop_tick"), false, nullptr
+    new Attributes(), new Identifier("__open_loop_tick"), false, nullptr
   ));
   res->push_back_items(new ContinuousAssign(new VariableAssign(
     new Identifier("__open_loop_tick"), 

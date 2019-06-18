@@ -543,7 +543,6 @@
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \
-  friend class DelayControl; \
   friend class EventControl; \
   friend class VariableAssign
 

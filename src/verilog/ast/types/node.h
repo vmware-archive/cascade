@@ -121,9 +121,8 @@ class Node {
       restart_statement              = 51 | system_task_enable_statement, 
       retarget_statement             = 52 | system_task_enable_statement, 
       save_statement                 = 53 | system_task_enable_statement, 
-      delay_control                  = 54 | timing_control,
-      event_control                  = 55 | timing_control,
-      variable_assign                = 56 | node
+      event_control                  = 54 | timing_control,
+      variable_assign                = 55 | node
     };
 
     // Constructors:
