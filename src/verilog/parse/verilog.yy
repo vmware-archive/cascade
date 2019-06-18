@@ -306,10 +306,15 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 /* A.2.1.3 Type Declarations */
 %type <std::vector<ModuleItem*>> integer_declaration
 %type <std::vector<ModuleItem*>> net_declaration
+%type <std::vector<ModuleItem*>> real_declaration
+%type <std::vector<ModuleItem*>> realtime_declaration
 %type <std::vector<ModuleItem*>> reg_declaration
+%type <std::vector<ModuleItem*>> time_declaration
 
 /* A.2.2.1 Net and Variable Types */
 %type <bool> net_type
+%type <bool> output_variable_type
+%type <VariableAssign*> real_type
 %type <VariableAssign*> variable_type
 
 /* A.2.3 Declaration Lists */
@@ -317,6 +322,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<Identifier*>> list_of_net_identifiers
 %type <std::vector<VariableAssign*>> list_of_param_assignments
 %type <std::vector<Identifier*>> list_of_port_identifiers
+%type <std::vector<VariableAssign*>> list_of_real_identifiers
 %type <std::vector<VariableAssign*>> list_of_variable_identifiers
 %type <std::vector<VariableAssign*>> list_of_variable_port_identifiers
 
@@ -650,9 +656,9 @@ module_or_generate_item_declaration
   : net_declaration { $$ = $1; }
   | reg_declaration { $$ = $1; }
   | integer_declaration { $$ = $1; }
-  /* TODO | real_declaration */
-  /* TODO | time_declaration */
-  /* TODO | realtime_declaration */
+  | real_declaration { $$ = $1; }
+  | time_declaration { $$ = $1; }
+  | realtime_declaration { $$ = $1; }
   /* TODO | event_declaration  */
   | genvar_declaration { $$ = $1; }
   /* TODO | task_declaration */
@@ -691,7 +697,7 @@ local_parameter_declaration
       LocalparamDeclaration* lpd = nullptr;
       switch ($3.second) {
         case 0: lpd = new LocalparamDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 1: assert(false); break; // TODO(eschkufz) add support for real types here
+        case 1: lpd = new LocalparamDeclaration($1->clone(), true, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
         case 2: lpd = new LocalparamDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
@@ -724,7 +730,7 @@ parameter_declaration
       ParameterDeclaration* pd = nullptr;
       switch ($3.second) {
         case 0: pd = new ParameterDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 1: assert(false); break; // TODO(eschkufz) add support for real types here
+        case 1: pd = new ParameterDeclaration($1->clone(), true, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
         case 2: pd = new ParameterDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
@@ -784,14 +790,23 @@ output_declaration
     for (auto va : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
       auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
-      delete va;
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
+      delete va;
     }
     if ($4 != nullptr) {
       delete $4;
     }
   }
-  /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
+  | OUTPUT output_variable_type list_of_variable_port_identifiers {
+    for (auto va : $3) {
+      auto t = PortDeclaration::Type::OUTPUT;
+      auto* rd = $2 ?
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr) :
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      $$.push_back(new PortDeclaration(new Attributes(), t, rd));
+      delete va;
+    }
+  }
   ;
 
 /* A.2.1.3 Type Declarations */
@@ -821,7 +836,7 @@ net_declaration
     }
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_decl_assignments SCOLON {
+  | attribute_instance_S net_type_L /* [drive_strength] [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_decl_assignments SCOLON {
     for (auto va : $5) {
       auto nd = new NetDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2);
@@ -836,7 +851,31 @@ net_declaration
       delete $4;
     }
   }
-  /* TODO | ... lots of cases */
+  /* TODO | trireg cases */
+  ;
+real_declaration
+  : attribute_instance_S real_L list_of_real_identifiers SCOLON { 
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
+  }
+  ;
+realtime_declaration
+  : attribute_instance_S realtime_L list_of_real_identifiers SCOLON {
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
+  }
   ;
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
@@ -851,6 +890,18 @@ reg_declaration
     if ($4 != nullptr) {
       delete $4;
     }
+  }
+  ;
+time_declaration
+  : attribute_instance_S time_L list_of_variable_identifiers SCOLON {
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
   }
   ;
 
@@ -868,6 +919,21 @@ net_type
   /* TODO | WAND */
   /* TODO | WOR */
   ;
+output_variable_type
+  : INTEGER { $$ = false; }
+  | TIME { $$ = true; }
+  ;
+real_type 
+  : identifier dimension_S { 
+    $$ = new VariableAssign($1, new Identifier("__null")); 
+    $$->get_lhs()->purge_dim(); 
+    $$->get_lhs()->push_back_dim($2.begin(), $2.end()); 
+    parser->set_loc($$, $1);
+  }
+  | identifier EQ expression { 
+    $$ = new VariableAssign($1, $3); 
+    parser->set_loc($$, $1);
+  }
 variable_type
   : identifier dimension_S { 
     $$ = new VariableAssign($1, new Identifier("__null")); 
@@ -930,6 +996,14 @@ list_of_port_identifiers
     $$.push_back($3);
   }
   ;
+list_of_real_identifiers
+  : real_type {
+    $$.push_back($1);
+  }
+  | list_of_real_identifiers COMMA real_type {
+    $$ = $1;
+    $$.push_back($3);
+  }
 list_of_variable_identifiers
   : variable_type { 
     $$.push_back($1); 
