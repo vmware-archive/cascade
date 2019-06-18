@@ -353,8 +353,7 @@ void Printer::visit(const LocalparamDeclaration* ld) {
 
 void Printer::visit(const NetDeclaration* nd) {
   nd->accept_attrs(this);
-  static array<string,1> nts_ {{"wire"}};
-  *this << Color::GREEN << nts_[static_cast<size_t>(nd->get_type())] << Color::RESET;
+  *this << Color::GREEN << "wire" << Color::RESET;
   if (nd->get_signed()) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }

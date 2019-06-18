@@ -240,7 +240,6 @@ ModuleDeclaration* Isolate::get_shell() {
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
-          NetDeclaration::Type::WIRE,
           nullptr,
           to_global_id(p.second),
           is_signed,

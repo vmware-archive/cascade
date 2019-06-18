@@ -426,6 +426,7 @@ IF_TEXT     ([^`]*)
 "output"      return yyParser::make_OUTPUT(parser->get_loc());
 "parameter"   return yyParser::make_PARAMETER(parser->get_loc());
 "posedge"     return yyParser::make_POSEDGE(parser->get_loc());
+"real"        return yyParser::make_REAL(parser->get_loc());
 "reg"         return yyParser::make_REG(parser->get_loc());
 "repeat"      return yyParser::make_REPEAT(parser->get_loc());
 "signed"      return yyParser::make_SIGNED(parser->get_loc());

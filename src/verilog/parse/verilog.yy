@@ -23,7 +23,6 @@ class Parser;
 
 // Typedefs, since Bison >3.1.2 uses a macro, and std::pair cannot be used.
 typedef std::pair<bool, std::string> SignedNumber;
-typedef std::pair<size_t, NetDeclaration::Type> NetList;
 typedef std::pair<Identifier*, RangeExpression*> ModuleIdentifier;
 typedef std::pair<size_t, std::string> IdList;
 
@@ -207,6 +206,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %token OUTPUT      "output"
 %token PARAMETER   "parameter"
 %token POSEDGE     "posedge"
+%token REAL        "real"
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
@@ -305,7 +305,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<ModuleItem*>> reg_declaration
 
 /* A.2.2.1 Net and Variable Types */
-%type <NetDeclaration::Type> net_type
+%type <bool> net_type
 %type <VariableAssign*> variable_type
 
 /* A.2.2.3 Delays */
@@ -469,8 +469,8 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<ModuleItem*>> module_or_generate_item_S
 %type <std::vector<ArgAssign*>> named_parameter_assignment_P
 %type <std::vector<ArgAssign*>> named_port_connection_P
-%type <NetList> net_type_L
-%type <NetDeclaration::Type> net_type_Q
+%type <size_t> net_type_L
+%type <bool> net_type_Q
 %type <std::vector<ModuleItem*>> non_port_module_item_S
 %type <std::vector<ArgAssign*>> ordered_parameter_assignment_P
 %type <std::vector<ArgAssign*>> ordered_port_connection_P
@@ -732,7 +732,7 @@ inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INOUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -744,7 +744,7 @@ input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INPUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -756,7 +756,7 @@ output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -793,9 +793,9 @@ net_declaration
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
     for (auto id : $6) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
-      parser->set_loc(nd, $2.first);
-      parser->set_loc(nd->get_id(), $2.first);
+      auto nd = new NetDeclaration($1->clone(), $5 == nullptr ? $5 : $5->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
+      parser->set_loc(nd, $2);
+      parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
     }
     delete $1;
@@ -809,9 +809,9 @@ net_declaration
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
     for (auto va : $6) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
-      parser->set_loc(nd, $2.first);
-      parser->set_loc(nd->get_id(), $2.first);
+      auto nd = new NetDeclaration($1->clone(), $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
+      parser->set_loc(nd, $2);
+      parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
 
       auto ca = new ContinuousAssign(va);
@@ -853,7 +853,7 @@ net_type
   /* TODO | TRI0 */ 
   /* TODO | TRI1 */
   /* TODO | UWIRE */
-  : WIRE { $$ = NetDeclaration::Type::WIRE; }
+  : WIRE { $$ = true; }
   /* TODO | WAND */
   /* TODO | WOR */
   ;
@@ -2092,10 +2092,10 @@ named_port_connection_P
   }
   ;
 net_type_L
-  : net_type { $$ = std::make_pair(parser->get_loc().begin.line, $1); }
+  : net_type { $$ = parser->get_loc().begin.line; }
   ;
-net_type_Q
-  : %empty { $$ = NetDeclaration::Type::WIRE; }
+net_type_Q 
+  : %empty { $$ = false; }
   | net_type { $$ = $1; }
   ;
 non_port_module_item_S
@@ -2234,7 +2234,7 @@ alt_port_declaration
     }
     auto d = $2 ? 
       (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(), NetDeclaration::Type::WIRE, nullptr, $5, $3, $4);
+      (Declaration*) new NetDeclaration(new Attributes(), nullptr, $5, $3, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(), $1, d);
   }

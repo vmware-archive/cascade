@@ -246,7 +246,6 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
 ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->accept_attrs(this),
-    nd->get_type(),
     nd->accept_ctrl(this),
     nd->accept_id(this),
     nd->get_signed(),
