@@ -441,9 +441,9 @@ impression of what Cascade is capable of.
 | Primitive Types       | Net Declarations          |  x        |             |                  |
 |                       | Reg Declarations          |  x        |             |                  |
 |                       | Integer Declarations      |  x        |             |                  |
-|                       | Real Declarations         |           | x           |                  |
-|                       | Time Declarations         |           | x           |                  |
-|                       | Realtime Declarations     |           | x           |                  |
+|                       | Real Declarations         |  x        |             |                  |
+|                       | Time Declarations         |  x        |             |                  |
+|                       | Realtime Declarations     |  x        |             |                  |
 |                       | Array Declarations        |  x        |             |                  |
 | Expressions           | Arithmetic Operators      |  x        |             |                  |
 |                       | Bitwise Operators         |  x        |             |                  |
@@ -452,7 +452,7 @@ impression of what Cascade is capable of.
 |                       | Conditional Operators     |  x        |             |                  |
 |                       | Bit/Part Select           |  x        |             |                  |
 |                       | Strings                   |  x        |             |                  |
-|                       | Real Constants            |           | x           |                  |
+|                       | Real Constants            |  x        |             |                  |
 | Parameters            | Parameter Declarations    |  x        |             |                  |
 |                       | Localparam Declarations   |  x        |             |                  |
 |                       | Defparam Statements       |           |             | x                |

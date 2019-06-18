@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
-#include <sstream>
+#include "base/bits/bits.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 
@@ -67,14 +67,9 @@ class RangeExpression : public Expression {
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) : Expression(Node::Tag::range_expression) {
-  std::stringstream ssu;
-  ssu << (i__-1);
-  std::stringstream ssl;
-  ssl << j__;
-
-  upper_ = new Number(ssu.str(), Number::Format::UNBASED, 32, false);
+  upper_ = new Number(Bits(32, i__-1), Number::Format::UNBASED);
   type_ = RangeExpression::Type::CONSTANT;
-  lower_ = new Number(ssl.str(), Number::Format::UNBASED, 32, false);
+  lower_ = new Number(Bits(32, j__), Number::Format::UNBASED);
 }
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression(Node::Tag::range_expression) {

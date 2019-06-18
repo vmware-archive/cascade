@@ -317,8 +317,6 @@ void SwLogic::visit(const InitialConstruct* ic) {
 }
 
 void SwLogic::visit(const ContinuousAssign* ca) {
-  // TODO(eschkufz) Support for timing control
-  assert(ca->is_null_ctrl());
   schedule_now(ca->get_assign());
 }
 

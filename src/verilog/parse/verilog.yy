@@ -22,9 +22,10 @@ namespace cascade {
 class Parser;
 
 // Typedefs, since Bison >3.1.2 uses a macro, and std::pair cannot be used.
+typedef std::pair<size_t, std::string> IdList;
 typedef std::pair<bool, std::string> SignedNumber;
 typedef std::pair<Identifier*, RangeExpression*> ModuleIdentifier;
-typedef std::pair<size_t, std::string> IdList;
+typedef std::pair<size_t, size_t> ParameterType;
 
 } // namespace cascade
 }
@@ -207,9 +208,11 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %token PARAMETER   "parameter"
 %token POSEDGE     "posedge"
 %token REAL        "real"
+%token REALTIME    "realtime"
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
+%token TIME        "time"
 %token WHILE       "while"
 %token WIRE        "wire"
 
@@ -293,6 +296,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 /* A.2.1.1 Module Parameter Declarations */
 %type <std::vector<Declaration*>> local_parameter_declaration
 %type <std::vector<Declaration*>> parameter_declaration
+%type <ParameterType> parameter_type
 
 /* A.2.1.2 Port Declarations */
 %type <std::vector<ModuleItem*>> inout_declaration
@@ -474,10 +478,13 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<ModuleItem*>> port_declaration_P
 %type <std::vector<ArgAssign*>> port_P
 %type <RangeExpression*> range_Q
+%type <size_t> real_L
+%type <size_t> realtime_L
 %type <size_t> reg_L
 %type <bool> signed_Q
 %type <IdList> simple_id_L
 %type <std::vector<Statement*>> statement_S
+%type <size_t> time_L
 
 /* Alternate Rules */
 /* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
@@ -667,7 +674,7 @@ non_port_module_item
 local_parameter_declaration
   : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto* lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -681,7 +688,13 @@ local_parameter_declaration
   }
   | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
     for (auto va : $4) {
-      auto lpd = new LocalparamDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
+      LocalparamDeclaration* lpd = nullptr;
+      switch ($3.second) {
+        case 0: lpd = new LocalparamDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        case 1: assert(false); break; // TODO(eschkufz) add support for real types here
+        case 2: lpd = new LocalparamDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        default: assert(false); break;
+      }
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -708,7 +721,13 @@ parameter_declaration
   }
   | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
     for (auto va : $4) {
-      auto pd = new ParameterDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
+      ParameterDeclaration* pd = nullptr;
+      switch ($3.second) {
+        case 0: pd = new ParameterDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        case 1: assert(false); break; // TODO(eschkufz) add support for real types here
+        case 2: pd = new ParameterDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        default: assert(false); break;
+      }
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -719,8 +738,12 @@ parameter_declaration
   }
   ;
 parameter_type
-  : integer_L 
+  : integer_L { $$ = std::make_pair($1, 0); }
+  | real_L { $$ = std::make_pair($1, 1); }
+  | realtime_L { $$ = std::make_pair($1, 1); }
+  | time_L { $$ = std::make_pair($1, 2); }
   ;
+
 /* A.2.1.2 Port Declarations */
 inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
@@ -2159,6 +2182,12 @@ range_Q
   : %empty { $$ = nullptr; }
   | range { $$ = $1; }
   ;
+real_L
+  : REAL { $$ = parser->get_loc().begin.line; }
+  ;
+realtime_L
+  : REALTIME { $$ = parser->get_loc().begin.line; }
+  ;
 reg_L
   : REG { $$ = parser->get_loc().begin.line; }
   ;
@@ -2174,6 +2203,9 @@ statement_S
     $$ = $1;
     $$.push_back($2);
   }
+  ;
+time_L
+  : TIME { $$ = parser->get_loc().begin.line; }
   ;
 
 alt_parameter_declaration

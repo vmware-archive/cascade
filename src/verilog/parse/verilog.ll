@@ -427,9 +427,11 @@ IF_TEXT     ([^`]*)
 "parameter"   return yyParser::make_PARAMETER(parser->get_loc());
 "posedge"     return yyParser::make_POSEDGE(parser->get_loc());
 "real"        return yyParser::make_REAL(parser->get_loc());
+"realtime"    return yyParser::make_REALTIME(parser->get_loc());
 "reg"         return yyParser::make_REG(parser->get_loc());
 "repeat"      return yyParser::make_REPEAT(parser->get_loc());
 "signed"      return yyParser::make_SIGNED(parser->get_loc());
+"time"        return yyParser::make_TIME(parser->get_loc());
 "while"       return yyParser::make_WHILE(parser->get_loc());
 "wire"        return yyParser::make_WIRE(parser->get_loc());
 
