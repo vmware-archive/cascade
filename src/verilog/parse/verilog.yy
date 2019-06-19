@@ -680,7 +680,7 @@ non_port_module_item
 local_parameter_declaration
   : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto* lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto* lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -696,9 +696,9 @@ local_parameter_declaration
     for (auto va : $4) {
       LocalparamDeclaration* lpd = nullptr;
       switch ($3.second) {
-        case 0: lpd = new LocalparamDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 1: lpd = new LocalparamDeclaration($1->clone(), true, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 2: lpd = new LocalparamDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        case 0: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
       delete va;
@@ -713,7 +713,7 @@ local_parameter_declaration
 parameter_declaration
   : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto pd = new ParameterDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -729,9 +729,9 @@ parameter_declaration
     for (auto va : $4) {
       ParameterDeclaration* pd = nullptr;
       switch ($3.second) {
-        case 0: pd = new ParameterDeclaration($1->clone(), true, new RangeExpression(32, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 1: pd = new ParameterDeclaration($1->clone(), true, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
-        case 2: pd = new ParameterDeclaration($1->clone(), false, new RangeExpression(64, 0), va->get_lhs()->clone(), va->get_rhs()->clone()); break;
+        case 0: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
       delete va;
@@ -2284,11 +2284,11 @@ time_L
 
 alt_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
-    $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $5->get_lhs()->clone(), $3, $4, $5->get_rhs()->clone());
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment {
-    $$ = new ParameterDeclaration($1, false, nullptr, $4->get_lhs()->clone(), $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), false, $4->get_rhs()->clone());
     delete $4;
   }
   ;

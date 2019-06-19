@@ -34,7 +34,6 @@
 #include "verilog/ast/types/declaration.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
@@ -50,13 +49,9 @@ class RegDeclaration : public Declaration {
     RegDeclaration* clone() const override;
 
     // Get/Set:
-    VAL_GET_SET(RegDeclaration, bool, signed)
-    MAYBE_GET_SET(RegDeclaration, RangeExpression, dim)
     MAYBE_GET_SET(RegDeclaration, Expression, val)
 
   private:
-    VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression, dim);
     MAYBE_ATTR(Expression, val);
 };
 

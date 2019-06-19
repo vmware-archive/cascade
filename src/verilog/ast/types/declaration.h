@@ -37,6 +37,7 @@
 #include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/module_item.h"
+#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
@@ -56,10 +57,14 @@ class Declaration : public ModuleItem {
     // Get/Set:
     PTR_GET_SET(Declaration, Attributes, attrs)
     PTR_GET_SET(Declaration, Identifier, id)
+    VAL_GET_SET(Declaration, bool, signed)
+    MAYBE_GET_SET(Declaration, RangeExpression, dim)
 
   protected:
     PTR_ATTR(Attributes, attrs);
     PTR_ATTR(Identifier, id);
+    VAL_ATTR(bool, signed);
+    MAYBE_ATTR(RangeExpression, dim);
 
     friend class Inline;
     friend class Resolve;

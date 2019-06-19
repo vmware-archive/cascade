@@ -227,17 +227,9 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
       continue;
     }
 
-    const RangeExpression* re = nullptr;
-    auto is_signed = false;
-    if (v->first->get_parent()->is(Node::Tag::net_declaration)) {
-      auto* nd = static_cast<const NetDeclaration*>(v->first->get_parent());
-      re = nd->get_dim();
-      is_signed = nd->get_signed();
-    } else if (v->first->get_parent()->is(Node::Tag::reg_declaration)) {
-      auto* rd = static_cast<const RegDeclaration*>(v->first->get_parent());
-      re = rd->get_dim();
-      is_signed = rd->get_signed();
-    } 
+    const auto* decl = static_cast<const Declaration*>(v->first->get_parent());
+    const auto* re = decl->get_dim();
+    const auto is_signed = decl->get_signed();
    
     auto* nd = new NetDeclaration(
       new Attributes(), v->first->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
@@ -275,18 +267,8 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
   }
 
   for (auto& v : vars) {
-    const RangeExpression* re = nullptr;
-    switch (v.second->get_parent()->get_tag()) {
-      case Node::Tag::net_declaration:
-        re = static_cast<const NetDeclaration*>(v.second->get_parent())->get_dim();
-        break;
-      case Node::Tag::reg_declaration:
-        re = static_cast<const RegDeclaration*>(v.second->get_parent())->get_dim();
-        break;
-      default:
-        assert(false);
-        break;
-    }
+    const auto* decl = static_cast<const Declaration*>(v.second->get_parent());
+    const auto* re = decl->get_dim();
     res->push_back_items(new RegDeclaration(
       new Attributes(), new Identifier(v.first+"_prev"), false, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
     ));

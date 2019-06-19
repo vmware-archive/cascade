@@ -116,9 +116,9 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   // value of the identifier, which may have different sign/size.
   auto* res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
+    ld->accept_id(this),
     ld->get_signed(),
     ld->accept_dim(this),
-    ld->accept_id(this),
     new Number(Evaluate().get_value(ld->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(
@@ -134,9 +134,9 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // value of the identifier, which may have different sign/size.
   auto* res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
+    pd->accept_id(this),
     pd->get_signed(),
     pd->accept_dim(this),
-    pd->accept_id(this),
     new Number(Evaluate().get_value(pd->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(

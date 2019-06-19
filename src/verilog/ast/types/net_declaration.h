@@ -34,7 +34,6 @@
 #include "verilog/ast/types/declaration.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
@@ -48,14 +47,6 @@ class NetDeclaration : public Declaration {
     // Node Interface:
     NODE(NetDeclaration)
     NetDeclaration* clone() const override;
-
-    // Get/Set:
-    VAL_GET_SET(NetDeclaration, bool, signed)
-    MAYBE_GET_SET(NetDeclaration, RangeExpression, dim)
-
-  private:
-    VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression, dim);
 };
 
 inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration(Node::Tag::net_declaration) {

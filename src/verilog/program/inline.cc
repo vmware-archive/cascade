@@ -186,9 +186,9 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       auto* pad = static_cast<ParameterDeclaration*>(item);
       auto* ld = new LocalparamDeclaration(
         new Attributes(),
+        pad->get_id()->clone(),
         pad->get_signed(),
         pad->clone_dim(),
-        pad->get_id()->clone(),
         pad->get_val()->clone()
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
@@ -257,9 +257,9 @@ void Inline::outline_source(ModuleInstantiation* mi) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto* pd = new ParameterDeclaration(
           new Attributes(),
+          ld->get_id()->clone(),
           ld->get_signed(),
           ld->clone_dim(),
-          ld->get_id()->clone(),
           ld->get_val()->clone()
         );
         pd->swap_id(ld);
