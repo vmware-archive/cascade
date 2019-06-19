@@ -40,8 +40,8 @@ namespace cascade {
 class NetDeclaration : public Declaration {
   public:
     // Constructors:
-    NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__);
-    NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__);
+    NetDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__);
+    NetDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__);
     ~NetDeclaration() override;
 
     // Node Interface:
@@ -49,27 +49,27 @@ class NetDeclaration : public Declaration {
     NetDeclaration* clone() const override;
 };
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration(Node::Tag::net_declaration) {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__) : Declaration(Node::Tag::net_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
-  VAL_SETUP(signed);
+  VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(dim);
   parent_ = nullptr;
 }
 
-inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__) : NetDeclaration(attrs__, id__, signed__) {
+inline NetDeclaration::NetDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__) : NetDeclaration(attrs__, id__, type__) {
   MAYBE_SETUP(dim);
 }
 
 inline NetDeclaration::~NetDeclaration() {
   PTR_TEARDOWN(attrs);
   PTR_TEARDOWN(id);
-  VAL_TEARDOWN(signed);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(dim);
 }
 
 inline NetDeclaration* NetDeclaration::clone() const {
-  auto* res = new NetDeclaration(attrs_->clone(), id_->clone(), signed_);
+  auto* res = new NetDeclaration(attrs_->clone(), id_->clone(), type_);
   MAYBE_CLONE(dim);
   return res;
 }

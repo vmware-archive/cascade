@@ -487,7 +487,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <size_t> real_L
 %type <size_t> realtime_L
 %type <size_t> reg_L
-%type <bool> signed_Q
+%type <Declaration::Type> signed_Q
 %type <IdList> simple_id_L
 %type <std::vector<Statement*>> statement_S
 %type <size_t> time_L
@@ -696,9 +696,9 @@ local_parameter_declaration
     for (auto va : $4) {
       LocalparamDeclaration* lpd = nullptr;
       switch ($3.second) {
-        case 0: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
-        case 1: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
-        case 2: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 0: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
       delete va;
@@ -729,9 +729,9 @@ parameter_declaration
     for (auto va : $4) {
       ParameterDeclaration* pd = nullptr;
       switch ($3.second) {
-        case 0: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
-        case 1: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
-        case 2: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 0: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
         default: assert(false); break;
       }
       delete va;
@@ -801,8 +801,8 @@ output_declaration
     for (auto va : $3) {
       auto t = PortDeclaration::Type::OUTPUT;
       auto* rd = $2 ?
-        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr) :
-        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr) :
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       $$.push_back(new PortDeclaration(new Attributes(), t, rd));
       delete va;
     }
@@ -813,7 +813,7 @@ output_declaration
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
-      auto id = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto id = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(id, $2);
       parser->set_loc(id->get_id(), $2);
@@ -856,7 +856,7 @@ net_declaration
 real_declaration
   : attribute_instance_S real_L list_of_real_identifiers SCOLON { 
     for (auto va : $3) {
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
       $$.push_back(rd);
@@ -868,7 +868,7 @@ real_declaration
 realtime_declaration
   : attribute_instance_S realtime_L list_of_real_identifiers SCOLON {
     for (auto va : $3) {
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), true, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
       $$.push_back(rd);
@@ -895,7 +895,7 @@ reg_declaration
 time_declaration
   : attribute_instance_S time_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), false, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
       $$.push_back(rd);
@@ -1057,13 +1057,28 @@ block_item_declaration
   }
   | attribute_instance_S integer_L list_of_block_variable_identifiers SCOLON { 
     for (auto id : $3) {
-      $$.push_back(new RegDeclaration($1->clone(), id, true, new RangeExpression(32, 0), nullptr));
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::SIGNED, new RangeExpression(32, 0), nullptr));
     }
     delete $1;
   }
-  /* TODO | attribute_instance_S TIME list_of_block_variable_identifiers SCOLON { } */
-  /* TODO | attribute_instance_S REAL list_of_block_variable_identifiers SCOLON { } */
-  /* TODO | attribute_instance_S REALTIME list_of_block_variable_identifiers SCOLON { } */
+  | attribute_instance_S time_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::UNSIGNED, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
+  | attribute_instance_S real_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::REAL, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
+  | attribute_instance_S realtime_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::REAL, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
   /* TODO | attribute_instance_S event_declaration { } */
   | /*attribute_instance_S*/ local_parameter_declaration SCOLON { $$ = $1; }
   | /*attribute_instance_S*/ parameter_declaration SCOLON { $$ = $1; }
@@ -2266,8 +2281,8 @@ reg_L
   : REG { $$ = parser->get_loc().begin.line; }
   ;
 signed_Q
-  : %empty { $$ = false; }
-  | SIGNED { $$ = true; }
+  : %empty { $$ = Declaration::Type::UNSIGNED; }
+  | SIGNED { $$ = Declaration::Type::SIGNED; }
   ;
 simple_id_L
   : SIMPLE_ID { $$ = make_pair(parser->get_loc().begin.line, $1); }
@@ -2288,7 +2303,7 @@ alt_parameter_declaration
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment {
-    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), false, $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), Declaration::Type::UNSIGNED, $4->get_rhs()->clone());
     delete $4;
   }
   ;

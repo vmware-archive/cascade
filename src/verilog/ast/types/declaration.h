@@ -43,6 +43,13 @@ namespace cascade {
 
 class Declaration : public ModuleItem {
   public:
+    // Supporting Concepts:
+    enum class Type : uint8_t {
+      UNSIGNED = 0,
+      SIGNED,
+      REAL
+    };
+
     // Constructors:
     Declaration(Node::Tag tag);
     ~Declaration() override;
@@ -57,13 +64,13 @@ class Declaration : public ModuleItem {
     // Get/Set:
     PTR_GET_SET(Declaration, Attributes, attrs)
     PTR_GET_SET(Declaration, Identifier, id)
-    VAL_GET_SET(Declaration, bool, signed)
+    VAL_GET_SET(Declaration, Type, type)
     MAYBE_GET_SET(Declaration, RangeExpression, dim)
 
   protected:
     PTR_ATTR(Attributes, attrs);
     PTR_ATTR(Identifier, id);
-    VAL_ATTR(bool, signed);
+    VAL_ATTR(Type, type);
     MAYBE_ATTR(RangeExpression, dim);
 
     friend class Inline;

@@ -117,7 +117,7 @@ ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   auto* res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
     ld->accept_id(this),
-    ld->get_signed(),
+    ld->get_type(),
     ld->accept_dim(this),
     new Number(Evaluate().get_value(ld->get_id()), Number::Format::HEX)
   );
@@ -135,7 +135,7 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   auto* res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
     pd->accept_id(this),
-    pd->get_signed(),
+    pd->get_type(),
     pd->accept_dim(this),
     new Number(Evaluate().get_value(pd->get_id()), Number::Format::HEX)
   );
@@ -224,8 +224,8 @@ ModuleDeclaration* Isolate::get_shell() {
     // promoted to an input.
 
     const auto is_signed = p.second->get_parent()->is(Node::Tag::reg_declaration) ?
-      static_cast<const RegDeclaration*>(p.second->get_parent())->get_signed() :
-      static_cast<const NetDeclaration*>(p.second->get_parent())->get_signed();
+      static_cast<const RegDeclaration*>(p.second->get_parent())->get_type() :
+      static_cast<const NetDeclaration*>(p.second->get_parent())->get_type();
 
     auto* pd = new PortDeclaration(
       new Attributes(), 

@@ -785,7 +785,7 @@ void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   // Start out with a basic allocation of bits
   ld->get_id()->bit_val_.push_back(Bits(false));
   // Parameter declaration may override size and sign
-  ld->get_id()->bit_val_[0].set_signed(ld->get_signed());
+  ld->get_id()->bit_val_[0].set_signed(ld->get_type() != Declaration::Type::UNSIGNED);
   if (ld->is_non_null_dim()) {
     const auto rng = eval_->get_range(ld->get_dim());
     ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
@@ -815,7 +815,7 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   nd->get_id()->bit_val_.resize(arity);
   for (size_t i = 0; i < arity; ++i) {
     nd->get_id()->bit_val_[i].resize(w);
-    nd->get_id()->bit_val_[i].set_signed(nd->get_signed());
+    nd->get_id()->bit_val_[i].set_signed(nd->get_type() != Declaration::Type::UNSIGNED);
   }
 
   // For whatever reason, we've chosen to materialize net declarations as
@@ -830,7 +830,7 @@ void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   // Start out with a basic allocation of bits
   pd->get_id()->bit_val_.push_back(Bits(false));
   // Parameter declaration may override size and sign
-  pd->get_id()->bit_val_[0].set_signed(pd->get_signed());
+  pd->get_id()->bit_val_[0].set_signed(pd->get_type() != Declaration::Type::UNSIGNED);
   if (pd->is_non_null_dim()) {
     const auto rng = eval_->get_range(pd->get_dim());
     pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
@@ -861,7 +861,7 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   rd->get_id()->bit_val_.resize(arity);
   for (size_t i = 0; i < arity; ++i) {
     rd->get_id()->bit_val_[i].resize(w);
-    rd->get_id()->bit_val_[i].set_signed(rd->get_signed());
+    rd->get_id()->bit_val_[i].set_signed(rd->get_type() != Declaration::Type::UNSIGNED);
   }
 
   // Hold off on initial assignment here. We may be doing some size extending
@@ -1004,7 +1004,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   // Parameters don't impose constraints on their rhs
   ld->accept_val(this);
   // But they inherit size and width from their rhs unless otherwise specified
-  if (!ld->get_signed()) {
+  if (ld->get_type() != Declaration::Type::SIGNED) {
     ld->get_id()->bit_val_[0].set_signed(ld->get_val()->bit_val_[0].is_signed());
   }
   if (ld->is_null_dim()) {
@@ -1024,7 +1024,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   // Parameters don't impose constraints on their rhs
   pd->accept_val(this);
   // But they inherit size and width from their rhs unless otherwise specified
-  if (!pd->get_signed()) {
+  if (pd->get_type() != Declaration::Type::SIGNED) {
     pd->get_id()->bit_val_[0].set_signed(pd->get_val()->bit_val_[0].is_signed());
   }
   if (pd->is_null_dim()) {

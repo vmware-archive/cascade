@@ -187,7 +187,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       auto* ld = new LocalparamDeclaration(
         new Attributes(),
         pad->get_id()->clone(),
-        pad->get_signed(),
+        pad->get_type(),
         pad->clone_dim(),
         pad->get_val()->clone()
       );
@@ -258,7 +258,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
         auto* pd = new ParameterDeclaration(
           new Attributes(),
           ld->get_id()->clone(),
-          ld->get_signed(),
+          ld->get_type(),
           ld->clone_dim(),
           ld->get_val()->clone()
         );

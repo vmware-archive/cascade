@@ -127,7 +127,7 @@ Vector<GenerateBlock*>& Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     block->push_back_items(new LocalparamDeclaration(
       new Attributes(),
       itr->clone(), 
-      false,
+      Declaration::Type::UNSIGNED,
       new RangeExpression(32, 0),
       new Number(Evaluate().get_value(itr))
     ));

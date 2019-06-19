@@ -236,7 +236,7 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->accept_attrs(this),
     ld->accept_id(this),
-    ld->get_signed(),
+    ld->get_type(),
     ld->accept_dim(this),
     ld->accept_val(this)
   );
@@ -246,7 +246,7 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->accept_attrs(this),
     nd->accept_id(this),
-    nd->get_signed(),
+    nd->get_type(),
     nd->accept_dim(this)
   );
 }
@@ -255,7 +255,7 @@ ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
     pd->accept_attrs(this),
     pd->accept_id(this),
-    pd->get_signed(),
+    pd->get_type(),
     pd->accept_dim(this),
     pd->accept_val(this)
   );
@@ -265,7 +265,7 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
   return new RegDeclaration(
     rd->accept_attrs(this),
     rd->accept_id(this),
-    rd->get_signed(),
+    rd->get_type(),
     rd->accept_dim(this),
     rd->accept_val(this)
   );

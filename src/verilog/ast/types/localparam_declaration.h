@@ -40,8 +40,8 @@ namespace cascade {
 class LocalparamDeclaration : public Declaration {
   public:
     // Constructors:
-    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Expression* val__);
-    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__);
     ~LocalparamDeclaration() override;
 
     // Node Interface:
@@ -55,29 +55,29 @@ class LocalparamDeclaration : public Declaration {
     PTR_ATTR(Expression, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, Expression* val__) : Declaration(Node::Tag::localparam_declaration) {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__) : Declaration(Node::Tag::localparam_declaration) {
   PTR_SETUP(attrs);
-  VAL_SETUP(signed);
+  VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(dim);
   PTR_SETUP(id);
   PTR_SETUP(val);
   parent_ = nullptr;
 }
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : LocalparamDeclaration(attrs__, id__, signed__, val__) {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__) : LocalparamDeclaration(attrs__, id__, type__, val__) {
   MAYBE_SETUP(dim);
 }
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
   PTR_TEARDOWN(attrs);
-  VAL_TEARDOWN(signed);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(dim);
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(val);
 }
 
 inline LocalparamDeclaration* LocalparamDeclaration::clone() const {
-  auto* res = new LocalparamDeclaration(attrs_->clone(), id_->clone(), signed_, val_->clone());
+  auto* res = new LocalparamDeclaration(attrs_->clone(), id_->clone(), type_, val_->clone());
   MAYBE_CLONE(dim);
   return res;
 }

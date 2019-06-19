@@ -84,11 +84,11 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
   auto* sb = new SeqBlock(machine_);
   sb->replace_id(name());
   sb->push_back_decls(new RegDeclaration(
-    new Attributes(), new Identifier("__state"), false, new RangeExpression(32, 0), new Number(Bits(false))
+    new Attributes(), new Identifier("__state"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(false))
   ));
   // Add a localparam declaration for final state
   sb->push_back_decls(new LocalparamDeclaration(
-    new Attributes(), new Identifier("__final"), false, new Number(Bits(32, machine_->size_items()-1))
+    new Attributes(), new Identifier("__final"), Declaration::Type::UNSIGNED, new Number(Bits(32, machine_->size_items()-1))
   ));
 
   return sb;

@@ -335,13 +335,17 @@ void Printer::visit(const GenvarDeclaration* gd) {
 void Printer::visit(const LocalparamDeclaration* ld) {
   ld->accept_attrs(this);
   *this << Color::GREEN << "localparam" << Color::RESET;
-  if (ld->get_signed()) {
-    *this << Color::GREEN << " signed" << Color::RESET;
-  }
-  if (ld->is_non_null_dim()) {
-    *this << Color::RED << "[" << Color::RESET;
-    ld->accept_dim(this);
-    *this << Color::RED << "]" << Color::RESET;
+  if (ld->get_type() == Declaration::Type::REAL) {
+    *this << Color::GREEN << " real" << Color::RESET;
+  } else {
+    if (ld->get_type() == Declaration::Type::SIGNED) {
+      *this << Color::GREEN << " signed" << Color::RESET;
+    }
+    if (ld->is_non_null_dim()) {
+      *this << Color::RED << "[" << Color::RESET;
+      ld->accept_dim(this);
+      *this << Color::RED << "]" << Color::RESET;
+    }
   }
   *this << " ";
   ld->accept_id(this);
@@ -353,7 +357,7 @@ void Printer::visit(const LocalparamDeclaration* ld) {
 void Printer::visit(const NetDeclaration* nd) {
   nd->accept_attrs(this);
   *this << Color::GREEN << "wire" << Color::RESET;
-  if (nd->get_signed()) {
+  if (nd->get_type() == Declaration::Type::SIGNED) {
     *this << Color::GREEN << " signed" << Color::RESET;
   }
   if (nd->is_non_null_dim()) {
@@ -369,13 +373,17 @@ void Printer::visit(const NetDeclaration* nd) {
 void Printer::visit(const ParameterDeclaration* pd) {
   pd->accept_attrs(this);
   *this << Color::GREEN << "parameter" << Color::RESET;
-  if (pd->get_signed()) {
-    *this << Color::GREEN << " signed" << Color::RESET;
-  }
-  if (pd->is_non_null_dim()) {
-    *this << Color::RED << "[" << Color::RESET;
-    pd->accept_dim(this);
-    *this << Color::RED << "]" << Color::RESET;
+  if (pd->get_type() == Declaration::Type::REAL) {
+    *this << Color::GREEN << " real" << Color::RESET;
+  } else {
+    if (pd->get_type() == Declaration::Type::SIGNED) {
+      *this << Color::GREEN << " signed" << Color::RESET;
+    }
+    if (pd->is_non_null_dim()) {
+      *this << Color::RED << "[" << Color::RESET;
+      pd->accept_dim(this);
+      *this << Color::RED << "]" << Color::RESET;
+    }
   }
   *this << " ";
   pd->accept_id(this);
@@ -386,14 +394,18 @@ void Printer::visit(const ParameterDeclaration* pd) {
 
 void Printer::visit(const RegDeclaration* rd) {
   rd->accept_attrs(this);
-  *this << Color::GREEN << "reg" << Color::RESET;
-  if (rd->get_signed()) {
-    *this << Color::GREEN << " signed" << Color::RESET;
-  }
-  if (rd->is_non_null_dim()) {
-    *this << Color::RED << "[" << Color::RESET;
-    rd->accept_dim(this);
-    *this << Color::RED << "]" << Color::RESET;
+  if (rd->get_type() == Declaration::Type::REAL) {
+    *this << Color::GREEN << "real" << Color::RESET;
+  } else {
+    *this << Color::GREEN << "reg" << Color::RESET;
+    if (rd->get_type() == Declaration::Type::SIGNED) {
+      *this << Color::GREEN << " signed" << Color::RESET;
+    }
+    if (rd->is_non_null_dim()) {
+      *this << Color::RED << "[" << Color::RESET;
+      rd->accept_dim(this);
+      *this << Color::RED << "]" << Color::RESET;
+    }
   }
   *this << " ";
   rd->accept_id(this);
