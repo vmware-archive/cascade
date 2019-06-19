@@ -95,11 +95,11 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
   if (size > 0) {
     bit_val_[0].resize(size);
   }
-  bit_val_[0].set_signed(is_signed);
+  bit_val_[0].set_type(is_signed ? Bits::Type::SIGNED : Bits::Type::UNSIGNED);
 
   set_format(format);
-  set_flag<5>(bit_val_[0].is_signed());
-  Node::set_val<6,26>(bit_val_[0].size());
+  Node::set_val<5,2>(static_cast<uint32_t>(bit_val_[0].get_type()));
+  Node::set_val<7,25>(bit_val_[0].size());
 }
 
 inline Number::Number(const Bits& val, Format format) : Primary(Node::Tag::number) {
@@ -107,8 +107,8 @@ inline Number::Number(const Bits& val, Format format) : Primary(Node::Tag::numbe
 
   bit_val_.push_back(val);
   set_format(format);
-  set_flag<5>(bit_val_[0].is_signed());
-  Node::set_val<6,26>(bit_val_[0].size());
+  Node::set_val<5,2>(static_cast<uint32_t>(bit_val_[0].get_type()));
+  Node::set_val<7,25>(bit_val_[0].size());
 }
 
 inline Number* Number::clone() const {

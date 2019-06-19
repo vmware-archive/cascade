@@ -76,6 +76,8 @@ class Vector {
     const_reference front() const;
     reference back();
     const_reference back() const;
+    pointer data();
+    const_pointer data() const;
 
     void push_back(const value_type& v);
     void pop_back();
@@ -223,6 +225,16 @@ template <typename T>
 inline typename Vector<T>::const_reference Vector<T>::back() const {
   assert(size_ > 0);
   return ts_[size_ - 1];
+}
+
+template <typename T>
+inline typename Vector<T>::pointer Vector<T>::data() {
+  return ts_;
+}
+
+template <typename T>
+inline typename Vector<T>::const_pointer Vector<T>::data() const {
+  return ts_;
 }
 
 template <typename T>

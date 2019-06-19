@@ -47,7 +47,8 @@ class Declaration : public ModuleItem {
     enum class Type : uint8_t {
       UNSIGNED = 0,
       SIGNED,
-      REAL
+      REAL,
+      UNTYPED
     };
 
     // Constructors:

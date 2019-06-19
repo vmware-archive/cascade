@@ -487,7 +487,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <size_t> real_L
 %type <size_t> realtime_L
 %type <size_t> reg_L
-%type <Declaration::Type> signed_Q
+%type <bool> signed_Q
 %type <IdList> simple_id_L
 %type <std::vector<Statement*>> statement_S
 %type <size_t> time_L
@@ -680,7 +680,7 @@ non_port_module_item
 local_parameter_declaration
   : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto* lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
+      auto* lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -713,7 +713,7 @@ local_parameter_declaration
 parameter_declaration
   : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -755,7 +755,7 @@ inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INOUT;
-      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -767,7 +767,7 @@ input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INPUT;
-      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -779,7 +779,7 @@ output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(), id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -789,7 +789,7 @@ output_declaration
   | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
     for (auto va : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
       delete va;
     }
@@ -825,7 +825,7 @@ net_declaration
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_identifiers SCOLON {
     for (auto id : $5) {
-      auto nd = new NetDeclaration($1->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto nd = new NetDeclaration($1->clone(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2);
       parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
@@ -838,7 +838,7 @@ net_declaration
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
   | attribute_instance_S net_type_L /* [drive_strength] [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_decl_assignments SCOLON {
     for (auto va : $5) {
-      auto nd = new NetDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
+      auto nd = new NetDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       parser->set_loc(nd, $2);
       parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
@@ -880,7 +880,7 @@ realtime_declaration
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     for (auto va : $5) {
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
@@ -1048,7 +1048,7 @@ range
 block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
     for (auto id : $5) {
-      $$.push_back(new RegDeclaration($1->clone(), id, $3, $4 == nullptr ? $4 : $4->clone(), nullptr));
+      $$.push_back(new RegDeclaration($1->clone(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), nullptr));
     }
     delete $1;
     if ($4 != nullptr) {
@@ -2281,8 +2281,8 @@ reg_L
   : REG { $$ = parser->get_loc().begin.line; }
   ;
 signed_Q
-  : %empty { $$ = Declaration::Type::UNSIGNED; }
-  | SIGNED { $$ = Declaration::Type::SIGNED; }
+  : %empty { $$ = false; }
+  | SIGNED { $$ = true; }
   ;
 simple_id_L
   : SIMPLE_ID { $$ = make_pair(parser->get_loc().begin.line, $1); }
@@ -2299,11 +2299,11 @@ time_L
 
 alt_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
-    $$ = new ParameterDeclaration($1, $5->get_lhs()->clone(), $3, $4, $5->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $5->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4, $5->get_rhs()->clone());
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment {
-    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), Declaration::Type::UNSIGNED, $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), Declaration::Type::UNTYPED, $4->get_rhs()->clone());
     delete $4;
   }
   ;
@@ -2316,8 +2316,8 @@ alt_port_declaration
       YYERROR;
     }
     auto d = $2 ? 
-      (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(), $5, $3, $4);
+      (Declaration*) new RegDeclaration(new Attributes(), $5, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4, is_null($6) ? nullptr : $6->clone()) :
+      (Declaration*) new NetDeclaration(new Attributes(), $5, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(), $1, d);
   }

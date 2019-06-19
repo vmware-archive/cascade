@@ -73,7 +73,12 @@ size_t Evaluate::get_width(const Expression* e) {
 
 bool Evaluate::get_signed(const Expression* e) {
   init(const_cast<Expression*>(e));
-  return e->bit_val_[0].is_signed();
+  return (e->bit_val_[0].get_type() != Bits::Type::UNSIGNED);
+}
+
+bool Evaluate::get_real(const Expression* e) {
+  init(const_cast<Expression*>(e));
+  return (e->bit_val_[0].get_type() == Bits::Type::REAL);
 }
 
 const Bits& Evaluate::get_value(const Expression* e) {
@@ -551,8 +556,8 @@ void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
 
 void Evaluate::Invalidate::edit(Number* n) {
   // Reset this number to its default size and sign.
-  n->bit_val_[0].set_signed(n->get_flag<5>());
-  n->bit_val_[0].resize(n->Node::get_val<6,26>());
+  n->bit_val_[0].set_type(static_cast<Bits::Type>(n->Node::get_val<5,2>()));
+  n->bit_val_[0].resize(n->Node::get_val<7,25>());
   n->set_flag<0>(true);
 }
 
@@ -599,6 +604,7 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
   Editor::edit(be);
 
   size_t w = 0;
+  bool r = false;
   bool s = false;
   switch (be->get_op()) {
     case BinaryExpression::Op::PLUS:
@@ -606,15 +612,15 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::TIMES:
     case BinaryExpression::Op::DIV:
     case BinaryExpression::Op::MOD:
-      s = be->get_lhs()->bit_val_[0].is_signed() && be->get_rhs()->bit_val_[0].is_signed();
       w = max(be->get_lhs()->bit_val_[0].size(), be->get_rhs()->bit_val_[0].size());
+      r = be->get_lhs()->bit_val_[0].is_real() || be->get_rhs()->bit_val_[0].is_real();
+      s = be->get_lhs()->bit_val_[0].is_signed() && be->get_rhs()->bit_val_[0].is_signed();
       break;
     case BinaryExpression::Op::AMP:
     case BinaryExpression::Op::PIPE:
     case BinaryExpression::Op::CARAT:
     case BinaryExpression::Op::TCARAT:
       w = max(be->get_lhs()->bit_val_[0].size(), be->get_rhs()->bit_val_[0].size());
-      s = false;
       break;
     case BinaryExpression::Op::EEEQ:
     case BinaryExpression::Op::BEEQ:
@@ -627,7 +633,6 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::AAMP:
     case BinaryExpression::Op::PPIPE:
       w = 1;
-      s = false;
       break;
     case BinaryExpression::Op::GGT:
     case BinaryExpression::Op::LLT:
@@ -636,7 +641,6 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
       break;
     case BinaryExpression::Op::TTIMES:
       w = be->get_lhs()->bit_val_[0].size();
-      s = false;
       break;
     case BinaryExpression::Op::GGGT:
     case BinaryExpression::Op::LLLT:
@@ -647,18 +651,28 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
       assert(false);
   }
   be->bit_val_.push_back(Bits(w, 0));
-  be->bit_val_[0].set_signed(s);
+  if (r) {
+    be->bit_val_[0].set_type(Bits::Type::REAL);
+  } else if (s) {
+    be->bit_val_[0].set_signed();
+  } 
 }
 
 void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   Editor::edit(ce);
 
-  // TODO(eschkufz) Are we sure that this is the right calculus for sign?  I haven't
-  // been able to find anything to this point in the spec.
-  bool s = ce->get_lhs()->bit_val_[0].is_signed() && ce->get_rhs()->bit_val_[0].is_signed();
+  // TODO(eschkufz) Are we sure that this is the right calculus for type?  I
+  // haven't been able to find anything to this point in the spec.
   size_t w = max(ce->get_lhs()->bit_val_[0].size(), ce->get_rhs()->bit_val_[0].size());
+  const auto r = ce->get_lhs()->bit_val_[0].is_real() || ce->get_rhs()->bit_val_[0].is_real();
+  const auto s = ce->get_lhs()->bit_val_[0].is_signed() && ce->get_rhs()->bit_val_[0].is_signed();
+
   ce->bit_val_.push_back(Bits(w, 0));
-  ce->bit_val_[0].set_signed(s);
+  if (r) {
+    ce->bit_val_[0].set_type(Bits::Type::REAL);
+  } else {
+    ce->bit_val_[0].set_signed();
+  } 
 }
 
 void Evaluate::SelfDetermine::edit(FeofExpression* fe) {
@@ -666,7 +680,7 @@ void Evaluate::SelfDetermine::edit(FeofExpression* fe) {
 
   // $eof() expressions return 1-bit unsigned flags
   fe->bit_val_.push_back(Bits(1, 0));
-  fe->bit_val_[0].set_signed(false);
+  fe->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
@@ -674,7 +688,7 @@ void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
 
   // $fopen() expressions return 32-bit unsigned integer file values.
   fe->bit_val_.push_back(Bits(32, 0));
-  fe->bit_val_[0].set_signed(false);
+  fe->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Concatenation* c) {
@@ -685,7 +699,7 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
     w += (*i)->bit_val_[0].size();
   }
   c->bit_val_.push_back(Bits(w, 0));
-  c->bit_val_[0].set_signed(false);
+  c->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Identifier* id) {
@@ -694,10 +708,12 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
   assert(r != nullptr);
 
   size_t w = 0;
-  bool s = false;
+  auto s = false;
+  auto t = false;
   if (id->size_dim() == r->size_dim()) {
     w = eval_->get_width(r);
     s = eval_->get_signed(r);
+    t = eval_->get_real(r);
   } else if (id->back_dim()->is(Node::Tag::range_expression)) {
     auto* re = static_cast<RangeExpression*>(id->back_dim());
     const auto lower = eval_->get_value(re->get_lower()).to_int();
@@ -707,13 +723,15 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
     } else {
       w = lower;
     }
-    s = false;
   } else {
     w = 1;
-    s = false;
   }
   id->bit_val_.push_back(Bits(w, 0));
-  id->bit_val_[0].set_signed(s);
+  if (t) {
+    id->bit_val_[0].set_real();
+  } else if (s) {
+    id->bit_val_[0].set_signed();
+  }
 }
 
 void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
@@ -722,35 +740,36 @@ void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
 
   size_t w = eval_->get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
   mc->bit_val_.push_back(Bits(w, 0));
-  mc->bit_val_[0].set_signed(false);
+  mc->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Number* n) {
   // Does nothing. We already have the value of this expression stored along
-  // with its default size and sign in the ast.
+  // with its default size and type in the ast.
   (void) n; 
 }
 
 void Evaluate::SelfDetermine::edit(String* s) {
   // Strings are always unsigned. 
   s->bit_val_.push_back(Bits(s->get_readable_val()));
-  s->bit_val_[0].set_signed(false);
+  s->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
   Editor::edit(ue);
 
   size_t w = 0;
+  auto r = false;
   auto s = false;
   switch (ue->get_op()) {
     case UnaryExpression::Op::PLUS:
     case UnaryExpression::Op::MINUS:
       w = ue->get_lhs()->bit_val_[0].size();
+      r = ue->get_lhs()->bit_val_[0].is_real();
       s = ue->get_lhs()->bit_val_[0].is_signed();
       break;
     case UnaryExpression::Op::TILDE:
       w = ue->get_lhs()->bit_val_[0].size();
-      s = false;
       break;
     case UnaryExpression::Op::AMP:
     case UnaryExpression::Op::TAMP:
@@ -760,40 +779,30 @@ void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
     case UnaryExpression::Op::TCARAT:
     case UnaryExpression::Op::BANG:
       w = 1;
-      s = false;
       break;
     default:
      assert(false); 
   }
   ue->bit_val_.push_back(Bits(w, 0));
-  ue->bit_val_[0].set_signed(s);
+  if (r) {
+    ue->bit_val_[0].set_type(Bits::Type::REAL);
+  } else if (s) {
+    ue->bit_val_[0].set_signed();
+  }
 }
 
 void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
   // Don't descend on id, we handle it below
 
-  // Genvars are treated as integers during compilation and follow the
-  // same rules.
+  // Genvars are treated as 32-bit signed integers
   gd->get_id()->bit_val_.push_back(Bits(32, 0));
-  gd->get_id()->bit_val_[0].set_signed(true);
+  gd->get_id()->bit_val_[0].set_type(Bits::Type::SIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
   ld->accept_val(this);
-
-  // Start out with a basic allocation of bits
-  ld->get_id()->bit_val_.push_back(Bits(false));
-  // Parameter declaration may override size and sign
-  ld->get_id()->bit_val_[0].set_signed(ld->get_type() != Declaration::Type::UNSIGNED);
-  if (ld->is_non_null_dim()) {
-    const auto rng = eval_->get_range(ld->get_dim());
-    ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
-  } 
-
-  // Hold off on initial assignment here. We may be doing some size extending
-  // in context-determination. We'll want to wait until then to compute the
-  // value of this variable.
+  // Hold off on initial assignment until context-determination
 }
 
 void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
@@ -815,30 +824,22 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   nd->get_id()->bit_val_.resize(arity);
   for (size_t i = 0; i < arity; ++i) {
     nd->get_id()->bit_val_[i].resize(w);
-    nd->get_id()->bit_val_[i].set_signed(nd->get_type() != Declaration::Type::UNSIGNED);
+    if (nd->get_type() == Declaration::Type::UNTYPED) {
+      nd->get_id()->bit_val_[i].set_type(Bits::Type::UNSIGNED);
+    } else {
+      nd->get_id()->bit_val_[i].set_type(static_cast<Bits::Type>(nd->get_type()));
+    }
   }
 
-  // For whatever reason, we've chosen to materialize net declarations as
-  // declarations followed by continuous assigns. So there's no initial value
-  // to worry about here.
+  // TODO(eschkufz) For whatever reason, we've chosen to materialize net
+  // declarations as declarations followed by continuous assigns. So there's no
+  // initial value to worry about here.
 }
 
 void Evaluate::SelfDetermine::edit(ParameterDeclaration* pd) {
   // Don't descend on id or dim (id we handle below, dim is a separate subtree)
   pd->accept_val(this);
-
-  // Start out with a basic allocation of bits
-  pd->get_id()->bit_val_.push_back(Bits(false));
-  // Parameter declaration may override size and sign
-  pd->get_id()->bit_val_[0].set_signed(pd->get_type() != Declaration::Type::UNSIGNED);
-  if (pd->is_non_null_dim()) {
-    const auto rng = eval_->get_range(pd->get_dim());
-    pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
-  }
-
-  // Hold off on initial assignment here. We may be doing some size extending
-  // in context-determination. We'll want to wait until then to compute the
-  // value of this variable.
+  // Hold off on initial assignment until context-determination
 }
 
 void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
@@ -861,7 +862,11 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   rd->get_id()->bit_val_.resize(arity);
   for (size_t i = 0; i < arity; ++i) {
     rd->get_id()->bit_val_[i].resize(w);
-    rd->get_id()->bit_val_[i].set_signed(rd->get_type() != Declaration::Type::UNSIGNED);
+    if (rd->get_type() == Declaration::Type::UNTYPED) {
+      rd->get_id()->bit_val_[i].set_type(Bits::Type::UNSIGNED);
+    } else {
+      rd->get_id()->bit_val_[i].set_type(static_cast<Bits::Type>(rd->get_type()));
+    }
   }
 
   // Hold off on initial assignment here. We may be doing some size extending
@@ -875,7 +880,6 @@ Evaluate::ContextDetermine::ContextDetermine(Evaluate* eval) {
 
 void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
   size_t w = 0;
-  bool s = false;
   switch (be->get_op()) {
     case BinaryExpression::Op::PLUS:
     case BinaryExpression::Op::MINUS:
@@ -887,9 +891,7 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::CARAT:
     case BinaryExpression::Op::TCARAT:
       // Both operands are context dependent
-      be->get_lhs()->bit_val_[0].set_signed(be->bit_val_[0].is_signed());
       be->get_lhs()->bit_val_[0].resize(be->bit_val_[0].size());
-      be->get_rhs()->bit_val_[0].set_signed(be->bit_val_[0].is_signed());
       be->get_rhs()->bit_val_[0].resize(be->bit_val_[0].size());
       break;
     case BinaryExpression::Op::EEEQ:
@@ -903,10 +905,7 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
       // Operands are sort-of context dependent. They affect each other
       // independently of what's going on here.
       w = max(eval_->get_width(be->get_lhs()), eval_->get_width(be->get_rhs()));
-      s = eval_->get_signed(be->get_lhs()) && eval_->get_signed(be->get_rhs());
-      be->get_lhs()->bit_val_[0].set_signed(s);
       be->get_lhs()->bit_val_[0].resize(w);
-      be->get_rhs()->bit_val_[0].set_signed(s);
       be->get_rhs()->bit_val_[0].resize(w);
       break;
     case BinaryExpression::Op::AAMP:
@@ -919,7 +918,6 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::GGGT:
     case BinaryExpression::Op::LLLT:
       // The right-hand side of these expressions is self-determined
-      be->get_lhs()->bit_val_[0].set_signed(be->bit_val_[0].is_signed());
       be->get_lhs()->bit_val_[0].resize(be->bit_val_[0].size());
       break;
     default:
@@ -931,22 +929,21 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
 
 void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   // Conditions are self-determined
-  ce->get_lhs()->bit_val_[0].set_signed(ce->bit_val_[0].is_signed());
   ce->get_lhs()->bit_val_[0].resize(ce->bit_val_[0].size());
-  ce->get_rhs()->bit_val_[0].set_signed(ce->bit_val_[0].is_signed());
   ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
 
   Editor::edit(ce);
 }
 
 void Evaluate::ContextDetermine::edit(FeofExpression* fe) {
-  // Nothing to do here. Nothing below this point will ever be evaluated by
-  // this class.
+  // Nothing to do here. Feof doesn't determine the size or type of its
+  // argument.
   (void) fe;
 }
 
 void Evaluate::ContextDetermine::edit(FopenExpression* fe) {
-  // Nothing to do here. Fopen doesn't determine the shape of its argument.
+  // Nothing to do here. Fopen doesn't determine the size or type of its
+  // argument.
   (void) fe;
 }
 
@@ -976,7 +973,6 @@ void Evaluate::ContextDetermine::edit(UnaryExpression* ue) {
     case UnaryExpression::Op::PLUS:
     case UnaryExpression::Op::MINUS:
     case UnaryExpression::Op::TILDE:
-      ue->get_lhs()->bit_val_[0].set_signed(ue->bit_val_[0].is_signed());
       ue->get_lhs()->bit_val_[0].resize(ue->bit_val_[0].size());
       break;
     case UnaryExpression::Op::AMP:
@@ -1003,15 +999,34 @@ void Evaluate::ContextDetermine::edit(GenvarDeclaration* gd) {
 void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   // Parameters don't impose constraints on their rhs
   ld->accept_val(this);
-  // But they inherit size and width from their rhs unless otherwise specified
-  if (ld->get_type() != Declaration::Type::SIGNED) {
-    ld->get_id()->bit_val_[0].set_signed(ld->get_val()->bit_val_[0].is_signed());
+  // But they inherit size and width from their rhs according to some pretty
+  // baroque rules.
+  ld->get_id()->bit_val_.push_back(Bits(false));
+  switch (ld->get_type()) {
+    case Declaration::Type::UNSIGNED:
+    case Declaration::Type::SIGNED:
+      ld->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(ld->get_type()));
+      if (ld->is_null_dim()) {
+        ld->get_id()->bit_val_[0].resize(min(static_cast<size_t>(32), ld->get_val()->bit_val_[0].size()));
+      } else {
+        const auto rng = eval_->get_range(ld->get_dim());
+        ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
+      }
+      break;
+    case Declaration::Type::REAL:
+      break;
+    default:
+      if (ld->is_null_dim()) {
+        ld->get_id()->bit_val_[0].set_type(ld->get_val()->bit_val_[0].get_type());
+        ld->get_id()->bit_val_[0].resize(ld->get_val()->bit_val_[0].size());
+      } else {
+        ld->get_id()->bit_val_[0].set_type(Bits::Type::UNSIGNED);     
+        const auto rng = eval_->get_range(ld->get_dim());
+        ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
+      }
+      break;
   }
-  if (ld->is_null_dim()) {
-    ld->get_id()->bit_val_[0].resize(ld->get_val()->bit_val_[0].size());
-  }
-
-  // Now that we're context determined, we can perform initial assignment
+  // Now that we're all done, we can perform the initial assignment
   ld->get_id()->bit_val_[0].assign(eval_->get_value(ld->get_val()));
 }
 
@@ -1023,15 +1038,34 @@ void Evaluate::ContextDetermine::edit(NetDeclaration* nd) {
 void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   // Parameters don't impose constraints on their rhs
   pd->accept_val(this);
-  // But they inherit size and width from their rhs unless otherwise specified
-  if (pd->get_type() != Declaration::Type::SIGNED) {
-    pd->get_id()->bit_val_[0].set_signed(pd->get_val()->bit_val_[0].is_signed());
+  // But they inherit size and width from their rhs according to some pretty
+  // baroque rules.
+  pd->get_id()->bit_val_.push_back(Bits(false));
+  switch (pd->get_type()) {
+    case Declaration::Type::UNSIGNED:
+    case Declaration::Type::SIGNED:
+      pd->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(pd->get_type()));
+      if (pd->is_null_dim()) {
+        pd->get_id()->bit_val_[0].resize(min(static_cast<size_t>(32), pd->get_val()->bit_val_[0].size()));
+      } else {
+        const auto rng = eval_->get_range(pd->get_dim());
+        pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
+      }
+      break;
+    case Declaration::Type::REAL:
+      break;
+    default:
+      if (pd->is_null_dim()) {
+        pd->get_id()->bit_val_[0].set_type(pd->get_val()->bit_val_[0].get_type());
+        pd->get_id()->bit_val_[0].resize(pd->get_val()->bit_val_[0].size());
+      } else {
+        pd->get_id()->bit_val_[0].set_type(Bits::Type::UNSIGNED);     
+        const auto rng = eval_->get_range(pd->get_dim());
+        pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
+      }
+      break;
   }
-  if (pd->is_null_dim()) {
-    pd->get_id()->bit_val_[0].resize(pd->get_val()->bit_val_[0].size());
-  }
-
-  // Now that we're context determined, we can perform initial assignment
+  // Now that we're all done, we can perform the initial assignment
   pd->get_id()->bit_val_[0].assign(eval_->get_value(pd->get_val()));
 }
 
@@ -1044,7 +1078,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   // have initial values.
   assert(rd->get_id()->bit_val_.size() == 1);
 
-  // Assignments impose larger sizes but not sign constraints
+  // Assignments impose larger sizes but not type constraints
   if (rd->get_id()->bit_val_[0].size() > rd->get_val()->bit_val_[0].size()) {
     rd->get_val()->bit_val_[0].resize(rd->get_id()->bit_val_[0].size());
   }
@@ -1055,7 +1089,7 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
 }
 
 void Evaluate::ContextDetermine::edit(VariableAssign* va) {
-  // Assignments impose larger sizes but not sign constraints
+  // Assignments impose larger sizes but not type constraints
   if (va->get_lhs()->bit_val_[0].size() > va->get_rhs()->bit_val_[0].size()) {
     va->get_rhs()->bit_val_[0].resize(va->get_lhs()->bit_val_[0].size());
   }

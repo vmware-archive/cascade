@@ -50,6 +50,13 @@ namespace cascade {
 template <typename T, typename BT, typename ST>
 class BitsBase : public Serializable {
   public:
+    // Supporting Concepts:
+    enum class Type : uint8_t {
+      UNSIGNED = 0,
+      SIGNED,
+      REAL
+    };
+
     // Constructors:
     BitsBase();
     explicit BitsBase(bool b);
@@ -76,23 +83,27 @@ class BitsBase : public Serializable {
 
     // Casts:
     bool to_bool() const;
-    T to_int() const;
     char to_char() const;
+    T to_int() const;
+    double to_real() const;
     std::string to_str() const;
 
-    // Size:
+    // Type Manipulation:
     size_t size() const;
     void resize(size_t n);
-
-    // Type:
     bool is_signed() const;
-    void set_signed(bool s);
+    void set_signed();
+    bool is_real() const;
+    void set_real();
+    Type get_type() const;
+    void set_type(Type t);
 
     // Bitwise Operators: 
     //
     // Apply a bitwise operator to this and rhs and store the result in res.
     // These methods all assume equivalent bit-width between operands and
-    // destination and so do not perform sign extension.
+    // destination and so do not perform sign extension. These methods are
+    // undefined for real values.
     void bitwise_and(const BitsBase& rhs, BitsBase& res) const;
     void bitwise_or(const BitsBase& rhs, BitsBase& res) const;
     void bitwise_xor(const BitsBase& rhs, BitsBase& res) const;
@@ -107,7 +118,8 @@ class BitsBase : public Serializable {
     //
     // Apply an arithmetic operator to this and rhs and store the result in
     // res.  These methods all assume equivalent bit-width between operands and
-    // destination and so do not perform sign extension.
+    // destination and so do not perform sign extension. These methods all work 
+    // on signed, unsigned, and real values.
     void arithmetic_plus(BitsBase& res) const;
     void arithmetic_plus(const BitsBase& rhs, BitsBase& res) const;
     void arithmetic_minus(BitsBase& res) const;
@@ -122,7 +134,7 @@ class BitsBase : public Serializable {
     // Apply a logical operator to this and rhs and store the result in res.
     // These methods all assume equivalent bit-width between operands and
     // single bit-width in their destination and so do not perform sign
-    // extension.
+    // extension. These methods all work on signed, unsigned, and real values.
     void logical_and(const BitsBase& rhs, BitsBase& res) const;
     void logical_or(const BitsBase& rhs, BitsBase& res) const;
     void logical_not(BitsBase& res) const;
@@ -137,7 +149,7 @@ class BitsBase : public Serializable {
     //
     // Apply a reduction operator to this and store the result in res These
     // methods all assume single bit-width in their destination and so do not
-    // perform sign extension.
+    // perform sign extension. These methods are undefined for real values.
     void reduce_and(BitsBase& res) const;
     void reduce_nand(BitsBase& res) const;
     void reduce_or(BitsBase& res) const;
@@ -186,7 +198,7 @@ class BitsBase : public Serializable {
     // Total number of bits in this string
     uint32_t size_;
     // How is this value being interpreted
-    bool signed_;
+    Type type_;
 
     // Reads a number in base 2, 8, or 16, updates size as necessary
     void read_2_8_16(std::istream& is, size_t base);
@@ -241,21 +253,21 @@ template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase() {
   val_.push_back(0);
   size_ = 1;
-  signed_ = false;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase(bool b) {
   val_.push_back(b ? static_cast<T>(1) : static_cast<T>(0));
   size_ = 1;
-  signed_ = false;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase(char c) {
   val_.push_back(static_cast<T>(c));
   size_ = 8;
-  signed_ = false;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
@@ -267,7 +279,7 @@ inline BitsBase<T, BT, ST>::BitsBase(const std::string& s) {
     val_[idx] |= (static_cast<T>(s[i]) << off);
   }
   size_ = 8*s.length();
-  signed_ = false;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
@@ -276,7 +288,7 @@ inline BitsBase<T, BT, ST>::BitsBase(size_t n, T val) : BitsBase() {
   val_.resize((n+bits_per_word()-1)/bits_per_word(), static_cast<T>(0));
   val_[0] = val;
   size_ = n;
-  signed_ = false;
+  type_ = Type::UNSIGNED;
   trim();
 }
 
@@ -314,8 +326,8 @@ inline size_t BitsBase<T, BT, ST>::deserialize(std::istream& is) {
   is.read(reinterpret_cast<char*>(&header), 4);
 
   shrink_to_bool(false);
-  resize(header & 0x7fffffffu);
-  signed_ = header & 0x80000000u;
+  resize(header & 0x3fffffffu);
+  type_ = static_cast<Type>(header >> 30);
 
   const auto n = (size_+7) / 8;
   for (size_t i = 0; i < n; ++i) {
@@ -328,7 +340,7 @@ inline size_t BitsBase<T, BT, ST>::deserialize(std::istream& is) {
 
 template <typename T, typename BT, typename ST>
 inline size_t BitsBase<T, BT, ST>::serialize(std::ostream& os) const {
-  uint32_t header = size_ | (signed_ ? 0x80000000u : 0);
+  uint32_t header = size_ | (static_cast<uint32_t>(type_) << 30);
   os.write(reinterpret_cast<char*>(&header), 4);
 
   const auto n = (size_+7) / 8;
@@ -396,13 +408,18 @@ inline bool BitsBase<T, BT, ST>::to_bool() const {
 }
 
 template <typename T, typename BT, typename ST>
-inline T BitsBase<T, BT, ST>::to_int() const {
-  return val_[0];
+inline char BitsBase<T, BT, ST>::to_char() const {
+  return static_cast<char>(val_[0] & 0xffu);
 }
 
 template <typename T, typename BT, typename ST>
-inline char BitsBase<T, BT, ST>::to_char() const {
-  return static_cast<char>(val_[0] & 0xffu);
+inline double BitsBase<T, BT, ST>::to_real() const {
+  return *static_cast<double*>(val_.data());
+}
+
+template <typename T, typename BT, typename ST>
+inline T BitsBase<T, BT, ST>::to_int() const {
+  return val_[0];
 }
 
 template <typename T, typename BT, typename ST>
@@ -433,12 +450,34 @@ inline void BitsBase<T, BT, ST>::resize(size_t n) {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::is_signed() const {
-  return signed_;
+  return type_ != Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::set_signed(bool s) {
-  signed_ = s;
+inline void BitsBase<T, BT, ST>::set_signed() {
+  if (type_ == Type::UNSIGNED) {
+    type_ = Type::SIGNED;        
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline bool BitsBase<T, BT, ST>::is_real() const {
+  return type_ == Type::REAL;
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::set_real() {
+  type_ = Type::REAL;        
+}
+
+template <typename T, typename BT, typename ST>
+inline typename BitsBase<T, BT, ST>::Type BitsBase<T, BT, ST>::get_type() const {
+  return type_;
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::set_type(Type t) {
+  type_ = t;
 }
 
 template <typename T, typename BT, typename ST>
@@ -597,7 +636,7 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
-  if (signed_ && rhs.signed_) {
+  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
     const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l / r;
@@ -616,7 +655,7 @@ inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& r
   assert(size_ == res.size_);
   assert(val_.size() == 1);
 
-  if (signed_ && rhs.signed_) {
+  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
     const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l % r;
@@ -1010,7 +1049,7 @@ template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::operator<(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
-  if (is_signed() && rhs.is_signed()) {
+  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const auto lneg = is_negative();
     const auto rneg = rhs.is_negative();
     if (lneg && !rneg) {
@@ -1034,7 +1073,7 @@ template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::operator<=(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
-  if (is_signed() && rhs.is_signed()) {
+  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const auto lneg = is_negative();
     const auto rneg = rhs.is_negative();
     if (lneg && !rneg) {
@@ -1383,12 +1422,12 @@ void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
   val_.resize(1, static_cast<T>(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
-  signed_ = false;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
 bool BitsBase<T, BT, ST>::is_negative() const {
-  return signed_ && get(size_-1);
+  return (type_ == Type::SIGNED) && get(size_-1);
 }
 
 template <typename T, typename BT, typename ST>
