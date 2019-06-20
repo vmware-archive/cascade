@@ -93,19 +93,21 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
       const auto& str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
       while (i < str.length()) {
         if (str[i] == '%') {
+          const auto ie = str.find_first_of("bBcCdDeEfFgGhHoOsSuU", i)+1;
           sb->push_back_stmts(input ?
-            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, 2)), static_cast<cascade::Identifier*>((*itr++)->clone()))) :
-            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, 2)), (*itr++)->clone()))
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)), static_cast<cascade::Identifier*>((*itr++)->clone()))) :
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)), (*itr++)->clone()))
           );
-          i += 2;
+          i = ie;
           continue;
-        } 
-        const auto ie = str.find_first_of('%', i);
-        sb->push_back_stmts(input ?
-          static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)))) :
-          static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))))
-        );
-        i = ie;
+        } else {
+          const auto ie = str.find_first_of('%', i);
+          sb->push_back_stmts(input ?
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)))) :
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))))
+          );
+          i = ie;
+        }
       }
     }
   }

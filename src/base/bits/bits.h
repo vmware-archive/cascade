@@ -237,10 +237,16 @@ class BitsBase : public Serializable {
     // Performs sign extension as necessary.
     T signed_get(size_t n) const;
 
+    // Interprets the underlying array value as an unsigned integer and returns
+    // the result as a double
+    double to_double() const;
+
     // Returns the number of bits in a word
     constexpr size_t bits_per_word() const;
     // Returns the number of bytes in a word
     constexpr size_t bytes_per_word() const;
+    // Returns the number of unique values representable by T as a double
+    constexpr double range() const;
 };
 
 #ifdef __LP64__
@@ -414,12 +420,37 @@ inline char BitsBase<T, BT, ST>::to_char() const {
 
 template <typename T, typename BT, typename ST>
 inline double BitsBase<T, BT, ST>::to_real() const {
-  return *static_cast<double*>(val_.data());
+  switch (type_) {
+    case Type::UNSIGNED:
+      return to_double();
+    case Type::SIGNED:
+      if (get(size_-1)) {
+        Bits temp = *this;
+        arithmetic_minus(temp);
+        return -temp.to_double();
+      } 
+      return to_double();
+    case Type::REAL:
+      return *reinterpret_cast<const double*>(val_.data());
+    default:
+      assert(false);
+      return 0;
+  }
 }
 
 template <typename T, typename BT, typename ST>
 inline T BitsBase<T, BT, ST>::to_int() const {
-  return val_[0];
+  switch (type_) {
+    case Type::UNSIGNED: 
+      return val_[0];
+    case Type::SIGNED: 
+      return get(size_-1) ? (~val_[0] + 1) : val_[0];
+    case Type::REAL:
+      return std::round(*reinterpret_cast<const double*>(val_.data()));
+    default:
+      assert(false);
+      return 0;
+  }
 }
 
 template <typename T, typename BT, typename ST>
@@ -1383,7 +1414,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 }
 
 template <typename T, typename BT, typename ST>
-void BitsBase<T, BT, ST>::trim() {
+inline void BitsBase<T, BT, ST>::trim() {
   // How many bits do we care about in the top word?
   const auto trailing = size_ % bits_per_word();
   // Zero means we're full
@@ -1396,7 +1427,7 @@ void BitsBase<T, BT, ST>::trim() {
 }
     
 template <typename T, typename BT, typename ST>
-void BitsBase<T, BT, ST>::extend_to(size_t n) {
+inline void BitsBase<T, BT, ST>::extend_to(size_t n) {
   const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
   if (is_negative()) {
     val_.back() |= (static_cast<T>(-1) << (size_ % bits_per_word()));
@@ -1410,7 +1441,7 @@ void BitsBase<T, BT, ST>::extend_to(size_t n) {
 }
    
 template <typename T, typename BT, typename ST>
-void BitsBase<T, BT, ST>::shrink_to(size_t n) {
+inline void BitsBase<T, BT, ST>::shrink_to(size_t n) {
   const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
   val_.resize(words, static_cast<T>(0));
   size_ = n;
@@ -1418,7 +1449,7 @@ void BitsBase<T, BT, ST>::shrink_to(size_t n) {
 }
 
 template <typename T, typename BT, typename ST>
-void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
+inline void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
   val_.resize(1, static_cast<T>(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
@@ -1426,12 +1457,12 @@ void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
 }
 
 template <typename T, typename BT, typename ST>
-bool BitsBase<T, BT, ST>::is_negative() const {
+inline bool BitsBase<T, BT, ST>::is_negative() const {
   return (type_ == Type::SIGNED) && get(size_-1);
 }
 
 template <typename T, typename BT, typename ST>
-T BitsBase<T, BT, ST>::signed_get(size_t n) const {
+inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
   // Difficult case: Do we need to sign extend this value?
   if (n == (val_.size()-1)) {
     const auto top = size_ % bits_per_word();
@@ -1451,13 +1482,29 @@ T BitsBase<T, BT, ST>::signed_get(size_t n) const {
 }
 
 template <typename T, typename BT, typename ST>
-constexpr size_t BitsBase<T, BT, ST>::bits_per_word() const {
+inline double BitsBase<T, BT, ST>::to_double() const {
+  double res = 0;
+  double base = 1;
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    res += base * val_[i];
+    base *= range();
+  }
+  return res;
+}
+
+template <typename T, typename BT, typename ST>
+inline constexpr size_t BitsBase<T, BT, ST>::bits_per_word() const {
   return 8 * bytes_per_word();
 }
 
 template <typename T, typename BT, typename ST>
-constexpr size_t BitsBase<T, BT, ST>::bytes_per_word() const {
+inline constexpr size_t BitsBase<T, BT, ST>::bytes_per_word() const {
   return sizeof(T);
+}
+
+template <typename T, typename BT, typename ST>
+inline constexpr double BitsBase<T, BT, ST>::range() const {
+  return std::pow(2, bits_per_word());
 }
 
 } // namespace cascade

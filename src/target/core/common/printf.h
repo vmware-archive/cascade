@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 #define CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 
+#include <cstdio>
 #include <iostream>
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/ast.h"
@@ -55,34 +56,38 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
     case 'b':
     case 'B': 
       eval->get_value(expr).write(os, 2);
-      break;
+      return;
     case 'c':
     case 'C':
       os << (eval->get_value(expr).to_char());
-      break;
+      return;
     case 'd':
     case 'D':
       eval->get_value(expr).write(os, 10);
-      break;
+      return;
     case 'h':
     case 'H': 
       eval->get_value(expr).write(os, 16);
-      break;
+      return;
     case 'o':
     case 'O': 
       eval->get_value(expr).write(os, 8);
-      break;
+      return;
     case 's':
     case 'S': 
       os << eval->get_value(expr).to_str();
-      break;
+      return;
     case 'u':
     case 'U':
       eval->get_value(expr).write(os, 16);
-      break;
+      return;
     default: 
-      assert(false);
-  }
+      break;
+  } 
+ 
+  char buffer[1024]; 
+  std::snprintf(buffer, 1024, format.c_str(), eval->get_value(expr).to_real());
+  os << buffer;
 }
 
 } // namespace cascade
