@@ -61,6 +61,7 @@ class BitsBase : public Serializable {
     BitsBase();
     explicit BitsBase(bool b);
     explicit BitsBase(char c);
+    explicit BitsBase(double d);
     explicit BitsBase(const std::string& s);
     BitsBase(size_t n, T val);
     BitsBase(const BitsBase& rhs) = default;
@@ -200,10 +201,14 @@ class BitsBase : public Serializable {
     // How is this value being interpreted
     Type type_;
 
+    // Reads a real number, sets type to REAL and signed to true
+    void read_real(std::istream& is);
     // Reads a number in base 2, 8, or 16, updates size as necessary
     void read_2_8_16(std::istream& is, size_t base);
     // Reads a number in base 10, updates size as necessary
     void read_10(std::istream& is);
+    // Writes a number as a real
+    void write_real(std::ostream& os) const;
     // Writes a number in base 2, 8, or 16
     void write_2_8_16(std::ostream& os, size_t base) const;
     // Writes a number in base 10
@@ -277,6 +282,14 @@ inline BitsBase<T, BT, ST>::BitsBase(char c) {
 }
 
 template <typename T, typename BT, typename ST>
+inline BitsBase<T, BT, ST>::BitsBase(double d) {
+  val_.resize(64/bits_per_word());
+  *reinterpret_cast<double*>(val_.data()) = d;
+  size_ = 64;
+  type_ = Type::REAL;
+}
+
+template <typename T, typename BT, typename ST>
 inline BitsBase<T, BT, ST>::BitsBase(const std::string& s) {
   val_.resize((s.length()+bytes_per_word()-1)/bytes_per_word(), static_cast<T>(0));
   for (int pos = 0, i = s.length()-1; i >= 0; --i, ++pos) {
@@ -301,6 +314,8 @@ inline BitsBase<T, BT, ST>::BitsBase(size_t n, T val) : BitsBase() {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read(std::istream& is, size_t base) {
   switch (base) {
+    case 1:
+      return read_real(is);
     case 2:
     case 8:
     case 16:
@@ -315,6 +330,8 @@ inline void BitsBase<T, BT, ST>::read(std::istream& is, size_t base) {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write(std::ostream& os, size_t base) const {
   switch (base) {
+    case 1:
+      return write_real(os);
     case 2:
     case 8:
     case 16:
@@ -1135,6 +1152,17 @@ inline bool BitsBase<T, BT, ST>::operator>=(const BitsBase& rhs) const {
 }
 
 template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::read_real(std::istream& is) {
+  double d;
+  is >> d;
+
+  val_.resize(64/bits_per_word());
+  *reinterpret_cast<double*>(val_.data()) = d;
+  size_ = 64;
+  type_ = Type::REAL;
+}
+
+template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
   // Input Buffer:
   std::string s;
@@ -1195,6 +1223,11 @@ inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
     set(i-1, (s.back()-'0') % 2); 
     dec_halve(s);
   }
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::write_real(std::ostream& os) const {
+  os << to_real();
 }
 
 template <typename T, typename BT, typename ST>

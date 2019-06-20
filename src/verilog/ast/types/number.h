@@ -44,6 +44,7 @@ class Number : public Primary {
     // Supporting Concepts:
     enum class Format : uint8_t {
       UNBASED = 0,
+      REAL,
       DEC,
       BIN,
       OCT,
@@ -76,6 +77,11 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
   std::stringstream ss(val);
   switch (format) {
     case Format::UNBASED:
+      bit_val_[0].read(ss, 10);  
+      break;
+    case Format::REAL:
+      bit_val_[0].read(ss, 1);
+      break;
     case Format::DEC:
       bit_val_[0].read(ss, 10);  
       break;
@@ -92,10 +98,16 @@ inline Number::Number(const std::string& val, Format format, size_t size, bool i
       assert(false);
       break;
   }
-  if (size > 0) {
-    bit_val_[0].resize(size);
+
+  if (format == Format::REAL) {
+    assert((size == 64) || (size == 0));
+    assert(is_signed);
+  } else {
+    if (size > 0) {
+      bit_val_[0].resize(size);
+    }
+    bit_val_[0].set_type(is_signed ? Bits::Type::SIGNED : Bits::Type::UNSIGNED);
   }
-  bit_val_[0].set_type(is_signed ? Bits::Type::SIGNED : Bits::Type::UNSIGNED);
 
   set_format(format);
   Node::set_val<5,2>(static_cast<uint32_t>(bit_val_[0].get_type()));

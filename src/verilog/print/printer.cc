@@ -168,6 +168,13 @@ void Printer::visit(const Number* n) {
     case Number::Format::UNBASED:
       n->get_val().write(os_, 10);
       break;
+    case Number::Format::REAL:
+      n->get_val().write(os_, 1);
+      break;
+    case Number::Format::DEC:
+      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sd" : "d");
+      n->get_val().write(os_, 10);
+      break;
     case Number::Format::BIN:
       *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sb" : "b");
       n->get_val().write(os_, 2);
@@ -181,8 +188,7 @@ void Printer::visit(const Number* n) {
       n->get_val().write(os_, 16);
       break;
     default:
-      *this << n->get_val().size() << "'" << (n->get_val().is_signed() ? "sd" : "d");
-      n->get_val().write(os_, 10);
+      assert(false);
       break;
   } 
   *this << Color::RESET;

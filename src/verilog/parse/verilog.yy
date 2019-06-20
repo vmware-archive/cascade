@@ -83,8 +83,8 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
     sb = new cascade::SeqBlock(); 
     if (simple) {
       sb->push_back_stmts(input ?
-        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String("%d"), static_cast<cascade::Identifier*>((*begin)->clone()))) :  
-        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%d"), (*begin)->clone()))
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String("%_"), static_cast<cascade::Identifier*>((*begin)->clone()))) :  
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%_"), (*begin)->clone()))
       );
     } else {
       size_t i = 0;
@@ -247,6 +247,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %token <std::string> STRING
 
 /* Numbers */
+%token <std::string> REAL_NUM
 %token <std::string> UNSIGNED_NUM
 %token <SignedNumber> DECIMAL_VALUE
 %token <SignedNumber> BINARY_VALUE
@@ -434,6 +435,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 
 /* A.8.7 Numbers */
 %type <Number*> number
+%type <Number*> real_number
 %type <Number*> decimal_number
 %type <Number*> octal_number
 %type <Number*> binary_number
@@ -1936,7 +1938,10 @@ number
   | octal_number { $$ = $1; }
   | binary_number { $$ = $1; }
   | hex_number { $$ = $1; }
-  /* TODO | real_number */
+  | real_number { $$ = $1; }
+  ;
+real_number
+  : REAL_NUM { $$ = new Number($1, Number::Format::REAL, 64, true); parser->set_loc($$); }
   ;
 decimal_number
   : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, true); parser->set_loc($$); }

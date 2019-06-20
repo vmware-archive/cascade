@@ -53,6 +53,9 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
   const auto* expr = ps->get_expr();
 
   switch (format[1]) {
+    case '_':
+      eval->get_value(expr).write(os, eval->get_real(expr) ? 1 : 10);
+      break;
     case 'b':
     case 'B': 
       eval->get_value(expr).write(os, 2);
