@@ -120,7 +120,7 @@ class BitsBase : public Serializable {
     // Apply an arithmetic operator to this and rhs and store the result in
     // res.  These methods all assume equivalent bit-width between operands and
     // destination and so do not perform sign extension. These methods all work 
-    // on signed, unsigned, and real values.
+    // on signed, unsigned, and real values (with the exception of mod).
     void arithmetic_plus(BitsBase& res) const;
     void arithmetic_plus(const BitsBase& rhs, BitsBase& res) const;
     void arithmetic_minus(BitsBase& res) const;
@@ -532,6 +532,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_and(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] & rhs.val_[i];
   }
@@ -541,6 +542,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_or(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] | rhs.val_[i];
   }
@@ -550,6 +552,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_xor(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i] ^ rhs.val_[i];
   }
@@ -559,6 +562,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_xnor(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~(val_[i] ^ rhs.val_[i]);
   }
@@ -567,6 +571,7 @@ inline void BitsBase<T, BT, ST>::bitwise_xnor(const BitsBase& rhs, BitsBase& res
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_sll(const BitsBase& rhs, BitsBase& res) const {
+  assert(!is_real() && !rhs.is_real());
   const auto samt = rhs.to_int();
   bitwise_sll_const(samt, res);
 }
@@ -579,12 +584,14 @@ inline void BitsBase<T, BT, ST>::bitwise_sal(const BitsBase& rhs, BitsBase& res)
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_slr(const BitsBase& rhs, BitsBase& res) const {
+  assert(!is_real() && !rhs.is_real());
   const auto samt = rhs.to_int();
   bitwise_sxr_const(samt, false, res);
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& rhs, BitsBase& res) const {
+  assert(!is_real() && !rhs.is_real());
   const auto samt = rhs.to_int();
   bitwise_sxr_const(samt, true, res);
 }
@@ -592,6 +599,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& rhs, BitsBase& res)
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_not(BitsBase& res) const {
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~val_[i];
   }
@@ -600,6 +608,7 @@ inline void BitsBase<T, BT, ST>::bitwise_not(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_plus(BitsBase& res) const {
+  // This is a copy; identical implementation for reals and integers
   assert(size_ == res.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = val_[i];
@@ -608,6 +617,12 @@ inline void BitsBase<T, BT, ST>::arithmetic_plus(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) const {
+  if (is_real() || rhs.is_real()) {
+    assert(res.size_ == 64);
+    *reinterpret_cast<double*>(res.val_.data()) = to_real() + rhs.to_real();
+    return;
+  }
+
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
@@ -625,6 +640,12 @@ inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& 
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
+  if (is_real()) {
+    assert(res.size_ == 64);
+    *reinterpret_cast<double*>(res.val_.data()) = -to_real();
+    return;
+  }
+
   assert(size_ == res.size_);
 
   T carry = 1;
@@ -639,6 +660,12 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) const {
+  if (is_real() || rhs.is_real()) {
+    assert(res.size_ == 64);
+    *reinterpret_cast<double*>(res.val_.data()) = to_real() - rhs.to_real();
+    return;
+  }
+
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
@@ -656,6 +683,12 @@ inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase&
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const {
+  if (is_real() || rhs.is_real()) {
+    assert(res.size_ == 64);
+    *reinterpret_cast<double*>(res.val_.data()) = to_real() * rhs.to_real();
+    return;
+  }
+
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
 
@@ -678,10 +711,15 @@ inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBa
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
-  // TODO(eschkufz) This only words for single word inputs
+  if (is_real() || rhs.is_real()) {
+    assert(res.size_ == 64);
+    *reinterpret_cast<double*>(res.val_.data()) = to_real() / rhs.to_real();
+    return;
+  }
 
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
@@ -697,10 +735,10 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
-  // TODO(eschkufz) This only words for single word inputs
-
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_ral() && !rhs.is_real());
+  // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
@@ -719,9 +757,11 @@ inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& rhs, BitsBase& r
   // TODO(eschkufz) There's a lot wrong here:
   // 1. We're not respecting verilog semantics (wrt sign and result)
   // 2. This only works for single word inputs
+  // 3. We're not supporting reals, which this should be defined for
 
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
+  assert(!is_real() && !rhs.is_real());
   assert(val_.size() == 1);
 
   // No resize. This method preserves the bit-width of lhs
@@ -785,6 +825,7 @@ inline void BitsBase<T, BT, ST>::logical_gte(const BitsBase& rhs, BitsBase& res)
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_and(BitsBase& res) const {
+  assert(!is_real());
   // Logical operations always yield unsigned results
   for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
     if (val_[i] != static_cast<T>(-1)) {
@@ -806,12 +847,14 @@ inline void BitsBase<T, BT, ST>::reduce_and(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_nand(BitsBase& res) const {
+  assert(!is_real());
   reduce_and(res);
   res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_or(BitsBase& res) const {
+  assert(!is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     if (val_[i]) {
       res.val_[0] = static_cast<T>(1);
@@ -825,12 +868,14 @@ inline void BitsBase<T, BT, ST>::reduce_or(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_nor(BitsBase& res) const {
+  assert(!is_real());
   reduce_or(res);
   res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_xor(BitsBase& res) const {
+  assert(!is_real());
   size_t cnt = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     cnt += __builtin_popcount(val_[i]);
@@ -841,6 +886,7 @@ inline void BitsBase<T, BT, ST>::reduce_xor(BitsBase& res) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::reduce_xnor(BitsBase& res) const {
+  assert(!is_real());
   reduce_xor(res);
   res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
