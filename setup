@@ -54,6 +54,11 @@ case $i in
     --debug)
     BUILD_TYPE="Debug"
     ;;
+    --pre-ci)
+    SILENT=1
+    DO_INSTALL=0
+    DO_BUILD=0
+    ;;
     --ci)
     SILENT=1
     ;;   
@@ -185,10 +190,12 @@ case "${unameOut}" in
                     echo -e "Checking for required dpkg packages..."
                     MISSING=()
                     check_dpkg g++ MISSING
+                    check_dpkg git MISSING
                     check_dpkg cmake MISSING
                     check_dpkg flex MISSING
                     check_dpkg bison MISSING
                     check_dpkg python3-venv MISSING
+                    check_dpkg python3-dev MISSING
                     MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                     MISSING_LIST=${MISSING_LIST:1}
                     if [ ${#MISSING[@]} -gt 0 ]; then 
