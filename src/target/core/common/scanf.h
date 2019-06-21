@@ -58,35 +58,78 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
     return;
   }
 
-  Bits val;
+  assert(gs->is_non_null_var());
   switch (format[1]) {
+    case '_': {
+      Bits val;
+      val.read(is, eval->get_real(gs->get_var()) ? 1 : 10);
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     case 'b':
-    case 'B': 
+    case 'B': {
+      Bits val;
       val.read(is, 2);
-      break;
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
+    case 'c':
+    case 'C': {
+      char c = is.get();
+      Bits val(c);
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     case 'd':
-    case 'D':
+    case 'D': {
+      Bits val;
       val.read(is, 10);
-      break;
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
+    case 'e':
+    case 'E':
+    case 'f':
+    case 'F':
+    case 'g':
+    case 'G': {
+      Bits val;
+      val.read(is, 1);
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     case 'h':
-    case 'H': 
+    case 'H': {
+      Bits val;
       val.read(is, 16);
-      break;
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     case 'o':
-    case 'O': 
+    case 'O': {
+      Bits val;
       val.read(is, 8);
-      break;
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
+    case 's':
+    case 'S': {
+      std::string s;
+      is >> s;
+      Bits val(s);
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     case 'u':
-    case 'U':
+    case 'U': {
+      Bits val;
       val.read(is, 16);
-      break;
+      eval->assign_value(gs->get_var(), val);
+      return;
+    }
     default: 
       assert(false);
   }
-
-  assert(gs->is_non_null_var());
-  const auto* var = gs->get_var();
-  eval->assign_value(var, val);
 }
 
 } // namespace cascade

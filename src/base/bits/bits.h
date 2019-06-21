@@ -599,7 +599,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& rhs, BitsBase& res)
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_not(BitsBase& res) const {
   assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+  assert(!is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     res.val_[i] = ~val_[i];
   }
@@ -737,7 +737,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
   assert(size_ == rhs.size_);
   assert(size_ == res.size_);
-  assert(!is_ral() && !rhs.is_real());
+  assert(!is_real() && !rhs.is_real());
   // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
 
