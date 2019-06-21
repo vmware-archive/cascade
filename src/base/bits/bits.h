@@ -244,7 +244,7 @@ class BitsBase : public Serializable {
 
     // Interprets the underlying array value as an unsigned integer and returns
     // the result as a double
-    double to_double() const;
+    double reinterpret_as_double() const;
 
     // Returns the number of bits in a word
     constexpr size_t bits_per_word() const;
@@ -439,14 +439,14 @@ template <typename T, typename BT, typename ST>
 inline double BitsBase<T, BT, ST>::to_real() const {
   switch (type_) {
     case Type::UNSIGNED:
-      return to_double();
+      return reinterpret_as_double();
     case Type::SIGNED:
       if (get(size_-1)) {
         Bits temp = *this;
         arithmetic_minus(temp);
-        return -temp.to_double();
+        return -temp.reinterpret_as_double();
       } 
-      return to_double();
+      return reinterpret_as_double();
     case Type::REAL:
       return *reinterpret_cast<const double*>(val_.data());
     default:
@@ -1561,7 +1561,7 @@ inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
 }
 
 template <typename T, typename BT, typename ST>
-inline double BitsBase<T, BT, ST>::to_double() const {
+inline double BitsBase<T, BT, ST>::reinterpret_as_double() const {
   double res = 0;
   double base = 1;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {

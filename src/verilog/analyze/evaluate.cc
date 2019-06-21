@@ -1014,6 +1014,8 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
       }
       break;
     case Declaration::Type::REAL:
+      ld->get_id()->bit_val_[0].set_type(Bits::Type::REAL);
+      ld->get_id()->bit_val_[0].resize(64);
       break;
     default:
       if (ld->is_null_dim()) {
@@ -1053,6 +1055,8 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
       }
       break;
     case Declaration::Type::REAL:
+      pd->get_id()->bit_val_[0].set_type(Bits::Type::REAL);
+      pd->get_id()->bit_val_[0].resize(64);
       break;
     default:
       if (pd->is_null_dim()) {
