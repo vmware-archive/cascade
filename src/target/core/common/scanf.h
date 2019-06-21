@@ -61,14 +61,14 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
   assert(gs->is_non_null_var());
   switch (format[1]) {
     case '_': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, eval->get_real(gs->get_var()) ? 1 : 10);
       eval->assign_value(gs->get_var(), val);
       return;
     }
     case 'b':
     case 'B': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 2);
       eval->assign_value(gs->get_var(), val);
       return;
@@ -82,7 +82,7 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
     }
     case 'd':
     case 'D': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 10);
       eval->assign_value(gs->get_var(), val);
       return;
@@ -93,21 +93,21 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
     case 'F':
     case 'g':
     case 'G': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 1);
       eval->assign_value(gs->get_var(), val);
       return;
     }
     case 'h':
     case 'H': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 16);
       eval->assign_value(gs->get_var(), val);
       return;
     }
     case 'o':
     case 'O': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 8);
       eval->assign_value(gs->get_var(), val);
       return;
@@ -122,7 +122,7 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
     }
     case 'u':
     case 'U': {
-      Bits val;
+      Bits val = eval->get_value(gs->get_var());
       val.read(is, 16);
       eval->assign_value(gs->get_var(), val);
       return;

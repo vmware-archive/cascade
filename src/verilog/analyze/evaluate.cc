@@ -1007,7 +1007,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
     case Declaration::Type::SIGNED:
       ld->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(ld->get_type()));
       if (ld->is_null_dim()) {
-        ld->get_id()->bit_val_[0].resize(min(static_cast<size_t>(32), ld->get_val()->bit_val_[0].size()));
+        ld->get_id()->bit_val_[0].resize(max(static_cast<size_t>(32), ld->get_val()->bit_val_[0].size()));
       } else {
         const auto rng = eval_->get_range(ld->get_dim());
         ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
@@ -1048,7 +1048,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
     case Declaration::Type::SIGNED:
       pd->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(pd->get_type()));
       if (pd->is_null_dim()) {
-        pd->get_id()->bit_val_[0].resize(min(static_cast<size_t>(32), pd->get_val()->bit_val_[0].size()));
+        pd->get_id()->bit_val_[0].resize(max(static_cast<size_t>(32), pd->get_val()->bit_val_[0].size()));
       } else {
         const auto rng = eval_->get_range(pd->get_dim());
         pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);

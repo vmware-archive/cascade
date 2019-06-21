@@ -222,7 +222,7 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
       new BinaryExpression(
         xre->get_lower()->clone(),
         BinaryExpression::Op::PLUS,
-        new Number("1")
+        new Number(Bits(32, 1))
       )
     );
   } else if (xre->get_type() == RangeExpression::Type::PLUS) {

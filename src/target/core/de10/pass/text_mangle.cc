@@ -216,7 +216,7 @@ void TextMangle::Mangle::visit(const Identifier* id) {
     Expression* sext = nullptr;
     if (Evaluate().get_signed(id)) {
       sext = new MultipleConcatenation(
-        new Number("32"),
+        new Number(Bits(32, 32)),
         new Concatenation((w == 1) ?
           new Identifier(id->front_ids()->clone()) :
           new Identifier(id->front_ids()->clone(), new Number(Bits(32, w-1)))

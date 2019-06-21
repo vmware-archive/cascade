@@ -23,7 +23,6 @@ class Parser;
 
 // Typedefs, since Bison >3.1.2 uses a macro, and std::pair cannot be used.
 typedef std::pair<size_t, std::string> IdList;
-typedef std::pair<bool, std::string> SignedNumber;
 typedef std::pair<Identifier*, RangeExpression*> ModuleIdentifier;
 typedef std::pair<size_t, size_t> ParameterType;
 
@@ -247,12 +246,12 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %token <std::string> STRING
 
 /* Numbers */
-%token <std::string> REAL_NUM
-%token <std::string> UNSIGNED_NUM
-%token <SignedNumber> DECIMAL_VALUE
-%token <SignedNumber> BINARY_VALUE
-%token <SignedNumber> OCTAL_VALUE
-%token <SignedNumber> HEX_VALUE
+%token <Bits> REAL_NUM
+%token <Bits> SIGNED_NUM
+%token <Bits> DECIMAL_VALUE
+%token <Bits> BINARY_VALUE
+%token <Bits> OCTAL_VALUE
+%token <Bits> HEX_VALUE
 
 /* Compiler Directive Tokens */
 %token END_INCLUDE "<end_include>"
@@ -440,7 +439,6 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <Number*> octal_number
 %type <Number*> binary_number
 %type <Number*> hex_number
-%type <size_t> size
 
 /* A.8.8 Strings */
 %type <String*> string_
@@ -1941,29 +1939,22 @@ number
   | real_number { $$ = $1; }
   ;
 real_number
-  : REAL_NUM { $$ = new Number($1, Number::Format::REAL, 64, true); parser->set_loc($$); }
+  : REAL_NUM { $$ = new Number($1, Number::Format::REAL); parser->set_loc($$); }
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, true); parser->set_loc($$); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::Format::DEC, 32, $1.first); parser->set_loc($$); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::Format::DEC, $1, $2.first); parser->set_loc($$); }
+  : SIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED); parser->set_loc($$); }
+  | DECIMAL_VALUE { $$ = new Number($1, Number::Format::DEC); parser->set_loc($$); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::Format::BIN, 32, $1.first); parser->set_loc($$); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::Format::BIN, $1, $2.first); parser->set_loc($$); }
+  : BINARY_VALUE { $$ = new Number($1, Number::Format::BIN); parser->set_loc($$); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::Format::OCT, 32, $1.first); parser->set_loc($$); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::Format::OCT, $1, $2.first); parser->set_loc($$); }
+  : OCTAL_VALUE { $$ = new Number($1, Number::Format::OCT); parser->set_loc($$); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::Format::HEX, 32, $1.first); parser->set_loc($$); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::Format::HEX, $1, $2.first); parser->set_loc($$); }
-  ;
-size
-  : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
+  : HEX_VALUE { $$ = new Number($1, Number::Format::HEX); parser->set_loc($$); }
   ;
 /* ... See Lexer */
 

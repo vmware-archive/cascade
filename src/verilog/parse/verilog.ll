@@ -1,6 +1,7 @@
 %{ 
 #include <cctype>
 #include <string>
+#include "base/bits/bits.h"
 #include "base/stream/incstream.h"
 #include "verilog_parser.hh"
 #include "verilog/parse/lexer.h"
@@ -23,8 +24,11 @@ using namespace cascade;
 #undef YY_BUF_SIZE
 #define YY_BUF_SIZE 1024*1024
 
-std::pair<bool, std::string> strip_num(const char* c, size_t n);
-std::string strip_text(const char* c, size_t n);
+Bits to_real(const char* c);
+Bits to_unbased(const char* c, size_t n);
+Bits to_based(const char* c, size_t n, size_t size);
+Bits to_sized_based(const char* c, size_t n);
+std::string to_quoted(const char* c, size_t n);
 %}
 
 SPACE       ([ \t])
@@ -458,52 +462,97 @@ IF_TEXT     ([^`]*)
 "$warning"  return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    return yyParser::make_SYS_WRITE(parser->get_loc());
 
-{DECIMAL}"."{DECIMAL}                       return yyParser::make_REAL_NUM(yytext, parser->get_loc());
-{DECIMAL}("."{DECIMAL})?[eE][\+-]?{DECIMAL} return yyParser::make_REAL_NUM(yytext, parser->get_loc());
-{DECIMAL}                                   return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
-'[sS]?[dD]{WHITESPACE}*{DECIMAL}            return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[bB]{WHITESPACE}*{BINARY}             return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[oO]{WHITESPACE}*{OCTAL}              return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[hH]{WHITESPACE}*{HEX}                return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+{DECIMAL}"."{DECIMAL}                       return yyParser::make_REAL_NUM(to_real(yytext), parser->get_loc());
+{DECIMAL}("."{DECIMAL})?[eE][\+-]?{DECIMAL} return yyParser::make_REAL_NUM(to_real(yytext), parser->get_loc());
+{DECIMAL}                                   return yyParser::make_SIGNED_NUM(to_unbased(yytext, yyleng), parser->get_loc());
+'[sS]?[dD]{WHITESPACE}*{DECIMAL}            return yyParser::make_DECIMAL_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[dD]{WHITESPACE}*{DECIMAL}   return yyParser::make_DECIMAL_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[bB]{WHITESPACE}*{BINARY}             return yyParser::make_BINARY_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[bB]{WHITESPACE}*{BINARY}    return yyParser::make_BINARY_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[oO]{WHITESPACE}*{OCTAL}              return yyParser::make_OCTAL_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[oO]{WHITESPACE}*{OCTAL}     return yyParser::make_OCTAL_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[hH]{WHITESPACE}*{HEX}                return yyParser::make_HEX_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[hH]{WHITESPACE}*{HEX}       return yyParser::make_HEX_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
 
 {IDENTIFIER} return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-{QUOTED_STR} return yyParser::make_STRING(strip_text(yytext+1, yyleng-2), parser->get_loc());
+{QUOTED_STR} return yyParser::make_STRING(to_quoted(yytext+1, yyleng-2), parser->get_loc());
 
 <<EOF>> return yyParser::make_END_OF_FILE(parser->get_loc());
 
 %%
 
-std::pair<bool, std::string> strip_num(const char* c, size_t n) {
-  auto is_signed = false;
-
-  size_t i = 1;
-  if (c[i] == 's' || c[i] == 'S') {
-    is_signed = true;
-    ++i;
-  }
-  ++i;
-
-  std::string s;
-  for (; i < n; ++i) {
-    if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
-      s += c[i];
-    }
-  }
-
-  return std::make_pair(is_signed, s);
+Bits to_real(const char* c) {
+  std::stringstream ss(c);
+  double d;
+  ss >> d;
+  return Bits(d);
 }
 
-std::string strip_text(const char* c, size_t n) {
-  std::string res = "";
-  for (auto i = 0; i < n; ++i) {
-    if ((c[i] == '\\') && (c[i+1] == 'n')) {
-      res += '\n';
-      ++i;
-    } else {
-      res += c[i];
+Bits to_unbased(const char* c, size_t n) {
+  std::stringstream ss;
+  for (size_t i = 0; i < n; ++i) {
+    if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
+      ss << c[i];
     }
   }
+  Bits res(32, 0);
+  res.set_signed();
+  res.read(ss, 10);
   return res;
+}
+
+Bits to_based(const char* c, size_t n, size_t size) {
+  const auto is_signed = (c[1] == 's' || c[1] == 'S');
+  std::stringstream ss;
+  for (size_t i = is_signed ? 3 : 2; i < n; ++i) {
+    if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
+      ss << c[i];
+    }
+  }
+  Bits res(size, 0);
+  if (is_signed) {
+    res.set_signed();
+  }
+  switch (is_signed ? c[2] : c[1]) {
+    case 'b':
+    case 'B': 
+      res.read(ss, 2); 
+      return res;
+    case 'd':
+    case 'D': 
+      res.read(ss, 10); 
+      return res;
+    case 'h':
+    case 'H': 
+      res.read(ss, 16); 
+      return res;
+    case 'o':
+    case 'O': 
+      res.read(ss, 8); 
+      return res;
+    default:  
+      assert(false); 
+      return res;
+  }
+}
+
+Bits to_sized_based(const char* c, size_t n) {
+  const auto sep = std::string(c, n).find_first_of('\'');
+  const auto size = to_unbased(c, sep).to_int();
+  return to_based(c+sep, n-sep, size);
+}
+
+std::string to_quoted(const char* c, size_t n) {
+  std::stringstream ss;
+  for (auto i = 0; i < n; ++i) {
+    if ((c[i] == '\\') && (c[i+1] == 'n')) {
+      ss << '\n';
+      ++i;
+    } else {
+      ss << c[i];
+    }
+  }
+  return ss.str();
 }
 
 int yyFlexLexer::yylex() {

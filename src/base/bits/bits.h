@@ -232,7 +232,7 @@ class BitsBase : public Serializable {
     void extend_to(size_t n); 
     // Shrinks size and calls trim
     void shrink_to(size_t n);
-    // Shrinks to size one and sets val, removes signedness
+    // Shrinks to size one and sets val
     void shrink_to_bool(bool b);
 
     // Returns true if this is a signed number with high order bit set
@@ -244,7 +244,7 @@ class BitsBase : public Serializable {
 
     // Interprets the underlying array value as an unsigned integer and returns
     // the result as a double
-    double reinterpret_as_double() const;
+    double interpret_as_double() const;
 
     // Returns the number of bits in a word
     constexpr size_t bits_per_word() const;
@@ -439,14 +439,14 @@ template <typename T, typename BT, typename ST>
 inline double BitsBase<T, BT, ST>::to_real() const {
   switch (type_) {
     case Type::UNSIGNED:
-      return reinterpret_as_double();
+      return interpret_as_double();
     case Type::SIGNED:
       if (get(size_-1)) {
         Bits temp = *this;
         arithmetic_minus(temp);
-        return -temp.reinterpret_as_double();
+        return -temp.interpret_as_double();
       } 
-      return reinterpret_as_double();
+      return interpret_as_double();
     case Type::REAL:
       return *reinterpret_cast<const double*>(val_.data());
     default:
@@ -1201,11 +1201,10 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read_real(std::istream& is) {
   double d;
   is >> d;
-
-  val_.resize(64/bits_per_word());
+  const auto size = size_;
+  resize(64/bits_per_word());
   *reinterpret_cast<double*>(val_.data()) = d;
-  size_ = 64;
-  type_ = Type::REAL;
+  resize(size_);
 }
 
 template <typename T, typename BT, typename ST>
@@ -1215,10 +1214,12 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
   is >> s;
 
   // Reset internal state
+  const auto size = size_;
+  const auto type = type_;
+  type_ = Type::UNSIGNED;
   shrink_to_bool(false);
 
   // How many bits do we generate per character? Resize internal storage.
-  // No need to worry about sign extension; shrink_to_bool reset signedness
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
   extend_to(step * s.length());
 
@@ -1246,29 +1247,43 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
     val_[word] |= (bits >> (step-idx));
   }
 
-  // Trim trailing 0s (but leave at least one if this number is zero!)
-  while ((size_ > 1) && !get(size_-1)) {
-    shrink_to(size_-1);
-  }
+  // Reset original size
+  resize(size);
+  type_ = type;
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
+  // Check for negative
+  const auto neg = is.peek() == '-';
+  if (neg) {
+    is.get();
+  }
+
   // Input Buffer:
   std::string s;
   is >> s;
 
   // Reset interal state
+  const auto size = size_;
+  const auto type = type_;
+  type_ = Type::UNSIGNED;
   shrink_to_bool(false);
 
   // Halve decimal string until it becomes zero. Add 1s when least significant
-  // digit is odd, 0s otherwise. No need to worry about sign extension;
-  // shrink_to_bool reset signedness
+  // digit is odd, 0s otherwise. 
   for (size_t i = 1; !dec_zero(s); ++i) {
     extend_to(i);
     set(i-1, (s.back()-'0') % 2); 
     dec_halve(s);
   }
+
+  // Invert if negative and reset original size
+  resize(size);
+  if (neg) {
+    arithmetic_minus(*this);
+  }
+  type_ = type;
 }
 
 template <typename T, typename BT, typename ST>
@@ -1532,7 +1547,6 @@ inline void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
   val_.resize(1, static_cast<T>(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
-  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>
@@ -1561,7 +1575,7 @@ inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
 }
 
 template <typename T, typename BT, typename ST>
-inline double BitsBase<T, BT, ST>::reinterpret_as_double() const {
+inline double BitsBase<T, BT, ST>::interpret_as_double() const {
   double res = 0;
   double base = 1;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
