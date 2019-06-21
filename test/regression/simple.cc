@@ -180,6 +180,9 @@ TEST(simple, inst_3) {
 TEST(simple, io_1) {
   run_code("minimal","data/test/regression/simple/io_1.v", "1234512345");
 }
+TEST(simple, io_2) {
+  run_code("minimal","data/test/regression/simple/io_2.v", "ffff -1 c Hello 5.55");
+}
 TEST(simple, issue_20a) {
   run_code("minimal","data/test/regression/simple/issue_20a.v", "");
 }
