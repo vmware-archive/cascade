@@ -45,12 +45,12 @@ Statement* FinishMangle::rewrite(NonblockingAssign* na) {
   if (id->eq("__1")) {
     assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
     const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
-    return tm_->get_io(Evaluate().get_value(n).to_int());
+    return tm_->get_io(Evaluate().get_value(n).to_uint());
   }
   if (id->eq("__2")) {
     assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
     const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
-    return tm_->get_task(Evaluate().get_value(n).to_int());
+    return tm_->get_task(Evaluate().get_value(n).to_uint());
   }
   return na;
 }

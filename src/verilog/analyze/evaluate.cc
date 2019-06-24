@@ -97,8 +97,8 @@ const Vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
 pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
   if (e->is(Node::Tag::range_expression)) {
     const auto* re = static_cast<const RangeExpression*>(e);
-    const auto upper = get_value(re->get_upper()).to_int();
-    const auto lower = get_value(re->get_lower()).to_int();
+    const auto upper = get_value(re->get_upper()).to_uint();
+    const auto lower = get_value(re->get_lower()).to_uint();
     switch (re->get_type()) {
       case RangeExpression::Type::CONSTANT:
         return make_pair(upper, lower);
@@ -111,7 +111,7 @@ pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
         return make_pair(0,0);
     }
   }
-  const auto idx = get_value(e).to_int();
+  const auto idx = get_value(e).to_uint();
   return make_pair(idx, idx);
 }
 
@@ -191,7 +191,7 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
     assert(!(*iitr)->is(Node::Tag::range_expression));
 
     const auto rval = get_range(*ritr);
-    const auto ival = get_value(*iitr).to_int();
+    const auto ival = get_value(*iitr).to_uint();
 
     mul /= ((rval.first-rval.second)+1);
     idx += mul * ival;
@@ -392,7 +392,7 @@ void Evaluate::edit(Identifier* id) {
 }
 
 void Evaluate::edit(MultipleConcatenation* mc) {
-  const auto lhs = get_value(mc->get_expr()).to_int();
+  const auto lhs = get_value(mc->get_expr()).to_uint();
   mc->bit_val_[0].assign(get_value(mc->get_concat()));
   for (size_t i = 1; i < lhs; ++i) {
     mc->bit_val_[0].concat(mc->get_concat()->bit_val_[0]);
@@ -551,7 +551,7 @@ void Evaluate::Invalidate::edit(MultipleConcatenation* mc) {
 
 void Evaluate::Invalidate::edit(Number* n) {
   // Reset this number to its default size and sign.
-  n->bit_val_[0].set_type(static_cast<Bits::Type>(n->Node::get_val<5,2>()));
+  n->bit_val_[0].reinterpret_type(static_cast<Bits::Type>(n->Node::get_val<5,2>()));
   n->bit_val_[0].resize(n->Node::get_val<7,25>());
   n->set_flag<0>(true);
 }
@@ -647,9 +647,9 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
   }
   be->bit_val_.push_back(Bits(w, 0));
   if (r) {
-    be->bit_val_[0].set_type(Bits::Type::REAL);
+    be->bit_val_[0].reinterpret_type(Bits::Type::REAL);
   } else if (s) {
-    be->bit_val_[0].set_type(Bits::Type::SIGNED);
+    be->bit_val_[0].reinterpret_type(Bits::Type::SIGNED);
   } 
 }
 
@@ -664,9 +664,9 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
 
   ce->bit_val_.push_back(Bits(w, 0));
   if (r) {
-    ce->bit_val_[0].set_type(Bits::Type::REAL);
+    ce->bit_val_[0].reinterpret_type(Bits::Type::REAL);
   } else {
-    ce->bit_val_[0].set_type(Bits::Type::SIGNED);
+    ce->bit_val_[0].reinterpret_type(Bits::Type::SIGNED);
   } 
 }
 
@@ -675,7 +675,6 @@ void Evaluate::SelfDetermine::edit(FeofExpression* fe) {
 
   // $eof() expressions return 1-bit unsigned flags
   fe->bit_val_.push_back(Bits(1, 0));
-  fe->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
@@ -683,7 +682,6 @@ void Evaluate::SelfDetermine::edit(FopenExpression* fe) {
 
   // $fopen() expressions return 32-bit unsigned integer file values.
   fe->bit_val_.push_back(Bits(32, 0));
-  fe->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Concatenation* c) {
@@ -694,7 +692,6 @@ void Evaluate::SelfDetermine::edit(Concatenation* c) {
     w += (*i)->bit_val_[0].size();
   }
   c->bit_val_.push_back(Bits(w, 0));
-  c->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Identifier* id) {
@@ -709,9 +706,9 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
     t = eval_->get_type(r);
   } else if (id->back_dim()->is(Node::Tag::range_expression)) {
     auto* re = static_cast<RangeExpression*>(id->back_dim());
-    const auto lower = eval_->get_value(re->get_lower()).to_int();
+    const auto lower = eval_->get_value(re->get_lower()).to_uint();
     if (re->get_type() == RangeExpression::Type::CONSTANT) {
-      const auto upper = eval_->get_value(re->get_upper()).to_int();
+      const auto upper = eval_->get_value(re->get_upper()).to_uint();
       w = (upper-lower)+1;
     } else {
       w = lower;
@@ -720,16 +717,15 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
     w = 1;
   }
   id->bit_val_.push_back(Bits(w, 0));
-  id->bit_val_[0].set_type(t);
+  id->bit_val_[0].reinterpret_type(t);
 }
 
 void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
   // Don't descend on expr, this is a separate expression tree.
   mc->accept_concat(this);
 
-  size_t w = eval_->get_value(mc->get_expr()).to_int() * mc->get_concat()->bit_val_[0].size();
+  size_t w = eval_->get_value(mc->get_expr()).to_uint() * mc->get_concat()->bit_val_[0].size();
   mc->bit_val_.push_back(Bits(w, 0));
-  mc->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(Number* n) {
@@ -741,7 +737,6 @@ void Evaluate::SelfDetermine::edit(Number* n) {
 void Evaluate::SelfDetermine::edit(String* s) {
   // Strings are always unsigned. 
   s->bit_val_.push_back(Bits(s->get_readable_val()));
-  s->bit_val_[0].set_type(Bits::Type::UNSIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
@@ -774,9 +769,9 @@ void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
   }
   ue->bit_val_.push_back(Bits(w, 0));
   if (r) {
-    ue->bit_val_[0].set_type(Bits::Type::REAL);
+    ue->bit_val_[0].reinterpret_type(Bits::Type::REAL);
   } else if (s) {
-    ue->bit_val_[0].set_type(Bits::Type::SIGNED);
+    ue->bit_val_[0].reinterpret_type(Bits::Type::SIGNED);
   }
 }
 
@@ -785,7 +780,7 @@ void Evaluate::SelfDetermine::edit(GenvarDeclaration* gd) {
 
   // Genvars are treated as 32-bit signed integers
   gd->get_id()->bit_val_.push_back(Bits(32, 0));
-  gd->get_id()->bit_val_[0].set_type(Bits::Type::SIGNED);
+  gd->get_id()->bit_val_[0].reinterpret_type(Bits::Type::SIGNED);
 }
 
 void Evaluate::SelfDetermine::edit(LocalparamDeclaration* ld) {
@@ -814,9 +809,9 @@ void Evaluate::SelfDetermine::edit(NetDeclaration* nd) {
   for (size_t i = 0; i < arity; ++i) {
     nd->get_id()->bit_val_[i].resize(w);
     if (nd->get_type() == Declaration::Type::UNTYPED) {
-      nd->get_id()->bit_val_[i].set_type(Bits::Type::UNSIGNED);
+      nd->get_id()->bit_val_[i].reinterpret_type(Bits::Type::UNSIGNED);
     } else {
-      nd->get_id()->bit_val_[i].set_type(static_cast<Bits::Type>(nd->get_type()));
+      nd->get_id()->bit_val_[i].reinterpret_type(static_cast<Bits::Type>(nd->get_type()));
     }
   }
 
@@ -852,9 +847,9 @@ void Evaluate::SelfDetermine::edit(RegDeclaration* rd) {
   for (size_t i = 0; i < arity; ++i) {
     rd->get_id()->bit_val_[i].resize(w);
     if (rd->get_type() == Declaration::Type::UNTYPED) {
-      rd->get_id()->bit_val_[i].set_type(Bits::Type::UNSIGNED);
+      rd->get_id()->bit_val_[i].reinterpret_type(Bits::Type::UNSIGNED);
     } else {
-      rd->get_id()->bit_val_[i].set_type(static_cast<Bits::Type>(rd->get_type()));
+      rd->get_id()->bit_val_[i].reinterpret_type(static_cast<Bits::Type>(rd->get_type()));
     }
   }
 
@@ -994,7 +989,7 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
   switch (ld->get_type()) {
     case Declaration::Type::UNSIGNED:
     case Declaration::Type::SIGNED:
-      ld->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(ld->get_type()));
+      ld->get_id()->bit_val_[0].reinterpret_type(static_cast<Bits::Type>(ld->get_type()));
       if (ld->is_null_dim()) {
         ld->get_id()->bit_val_[0].resize(max(static_cast<size_t>(32), ld->get_val()->bit_val_[0].size()));
       } else {
@@ -1003,15 +998,15 @@ void Evaluate::ContextDetermine::edit(LocalparamDeclaration* ld) {
       }
       break;
     case Declaration::Type::REAL:
-      ld->get_id()->bit_val_[0].set_type(Bits::Type::REAL);
+      ld->get_id()->bit_val_[0].reinterpret_type(Bits::Type::REAL);
       ld->get_id()->bit_val_[0].resize(64);
       break;
     default:
       if (ld->is_null_dim()) {
-        ld->get_id()->bit_val_[0].set_type(ld->get_val()->bit_val_[0].get_type());
+        ld->get_id()->bit_val_[0].reinterpret_type(ld->get_val()->bit_val_[0].get_type());
         ld->get_id()->bit_val_[0].resize(ld->get_val()->bit_val_[0].size());
       } else {
-        ld->get_id()->bit_val_[0].set_type(Bits::Type::UNSIGNED);     
+        ld->get_id()->bit_val_[0].reinterpret_type(Bits::Type::UNSIGNED);     
         const auto rng = eval_->get_range(ld->get_dim());
         ld->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
       }
@@ -1035,7 +1030,7 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
   switch (pd->get_type()) {
     case Declaration::Type::UNSIGNED:
     case Declaration::Type::SIGNED:
-      pd->get_id()->bit_val_[0].set_type(static_cast<Bits::Type>(pd->get_type()));
+      pd->get_id()->bit_val_[0].reinterpret_type(static_cast<Bits::Type>(pd->get_type()));
       if (pd->is_null_dim()) {
         pd->get_id()->bit_val_[0].resize(max(static_cast<size_t>(32), pd->get_val()->bit_val_[0].size()));
       } else {
@@ -1044,15 +1039,15 @@ void Evaluate::ContextDetermine::edit(ParameterDeclaration* pd) {
       }
       break;
     case Declaration::Type::REAL:
-      pd->get_id()->bit_val_[0].set_type(Bits::Type::REAL);
+      pd->get_id()->bit_val_[0].reinterpret_type(Bits::Type::REAL);
       pd->get_id()->bit_val_[0].resize(64);
       break;
     default:
       if (pd->is_null_dim()) {
-        pd->get_id()->bit_val_[0].set_type(pd->get_val()->bit_val_[0].get_type());
+        pd->get_id()->bit_val_[0].reinterpret_type(pd->get_val()->bit_val_[0].get_type());
         pd->get_id()->bit_val_[0].resize(pd->get_val()->bit_val_[0].size());
       } else {
-        pd->get_id()->bit_val_[0].set_type(Bits::Type::UNSIGNED);     
+        pd->get_id()->bit_val_[0].reinterpret_type(Bits::Type::UNSIGNED);     
         const auto rng = eval_->get_range(pd->get_dim());
         pd->get_id()->bit_val_[0].resize((rng.first-rng.second)+1);
       }

@@ -54,7 +54,7 @@ void State::read(istream& is, size_t base) {
       Bits bits;
       bits.read(is, base);
       bits.resize(width);
-      bits.set_type(static_cast<Bits::Type>(type));
+      bits.reinterpret_type(static_cast<Bits::Type>(type));
       state_[id].push_back(bits);
     }
   }  

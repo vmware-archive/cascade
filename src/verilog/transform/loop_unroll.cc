@@ -84,7 +84,7 @@ Statement* LoopUnroll::Unroll::build(const ForStatement* fs) {
 }
 
 Statement* LoopUnroll::Unroll::build(const RepeatStatement* rs) {
-  const auto n = Evaluate().get_value(rs->get_cond()).to_int();
+  const auto n = Evaluate().get_value(rs->get_cond()).to_uint();
   auto* sb = new SeqBlock();
   for (size_t i = 0; i < n; ++i) {
     auto* s = rs->get_stmt()->accept(this);

@@ -86,13 +86,13 @@ inline Input* De10Gpio::get_input() {
 inline void De10Gpio::set_input(const Input* i) {
   const auto itr = i->find(in_);
   if (itr != i->end()) {
-    DE10_WRITE(gpio_addr_, itr->second.to_int());
+    DE10_WRITE(gpio_addr_, itr->second.to_uint());
   }
 }
 
 inline void De10Gpio::read(VId id, const Bits* b) {
   (void) id;
-  DE10_WRITE(gpio_addr_, b->to_int());
+  DE10_WRITE(gpio_addr_, b->to_uint());
 }
 
 inline void De10Gpio::evaluate() {

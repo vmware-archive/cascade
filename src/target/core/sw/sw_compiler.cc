@@ -101,9 +101,9 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
       if (id == nullptr) {
         continue;
       } else if (id->back_ids()->eq("DEPTH")) {
-        depth = Evaluate().get_value(ld->get_val()).to_int();
+        depth = Evaluate().get_value(ld->get_val()).to_uint();
       } else if (id->back_ids()->eq("BYTE_SIZE")) {
-        byte_size = Evaluate().get_value(ld->get_val()).to_int();
+        byte_size = Evaluate().get_value(ld->get_val()).to_uint();
       }
     }
   }
@@ -118,7 +118,7 @@ SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
   auto* file = md->get_attrs()->get<String>("__file");
   auto* count = md->get_attrs()->get<Number>("__count");
   if (file != nullptr) {
-    const auto c = (count == nullptr) ? 1 : count->get_val().to_int();
+    const auto c = (count == nullptr) ? 1 : count->get_val().to_uint();
     const auto f = incstream(include_dirs_).find(file->get_readable_val());
     if (f == "") {
       error("Unable to compile a software fifo with an unresolvable file annotation");
@@ -209,9 +209,9 @@ SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md
       if (id == nullptr) {
         continue;
       } else if (id->back_ids()->eq("ADDR_SIZE")) {
-        addr_size = Evaluate().get_value(ld->get_val()).to_int();
+        addr_size = Evaluate().get_value(ld->get_val()).to_uint();
       } else if (id->back_ids()->eq("BYTE_SIZE")) {
-        byte_size = Evaluate().get_value(ld->get_val()).to_int();
+        byte_size = Evaluate().get_value(ld->get_val()).to_uint();
       }
     }
   }

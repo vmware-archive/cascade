@@ -59,43 +59,49 @@ class BitsBase : public Serializable {
 
     // Constructors:
     BitsBase();
+    explicit BitsBase(size_t n, Type t);
     explicit BitsBase(bool b);
     explicit BitsBase(char c);
     explicit BitsBase(double d);
     explicit BitsBase(const std::string& s);
-    BitsBase(size_t n, T val);
+    explicit BitsBase(size_t n, T val);
+
+    // Compiler-Generated Constructors:
     BitsBase(const BitsBase& rhs) = default;
     BitsBase(BitsBase&& rhs) = default;
     BitsBase& operator=(const BitsBase& rhs) = default;
     BitsBase& operator=(BitsBase&& rhs) = default;
     ~BitsBase() override = default;
     
-    // Serial I/O
+    // Serial I/O:
     void read(std::istream& is, size_t base);
     void write(std::ostream& os, size_t base) const;
     size_t deserialize(std::istream& is) override;
     size_t serialize(std::ostream& os) const override;
 
-    // Block I/O
+    // Block I/O:
     template <typename B>
     B read_word(size_t n) const;
     template <typename B>
     void write_word(size_t n, B b);
 
+    // Type Introspection:
+    size_t size() const;
+    Type get_type() const;
+    bool is_signed() const;
+    bool is_real() const;
+
     // Native Casts:
     bool to_bool() const;
     char to_char() const;
-    T to_int() const;
     double to_double() const;
     std::string to_string() const;
+    T to_uint() const;
 
-    // Type Manipulation:
-    size_t size() const;
+    // Verilog Casts:
     void resize(size_t n);
-    bool is_signed() const;
-    bool is_real() const;
-    Type get_type() const;
-    void set_type(Type t);
+    void cast_type(Type t);
+    void reinterpret_type(Type t);
 
     // Bitwise Operators: 
     //
@@ -240,9 +246,15 @@ class BitsBase : public Serializable {
     // Performs sign extension as necessary.
     T signed_get(size_t n) const;
 
-    // Interprets the underlying array value as an unsigned integer and returns
-    // the result as a double
-    double interpret_as_double() const;
+    // Inverts bits and adds one
+    void invert_add_one();
+
+    // Casts an integer to a real. Updates size and type; sets value according
+    // to the result of to_double().
+    void cast_int_to_real();
+    // Cast a real to an integer. Sets value by call to_double() and rounding
+    // the result. Sets type according to argument, size according to value.
+    void cast_real_to_int(bool s);
 
     // Returns the number of bits in a word
     constexpr size_t bits_per_word() const;
@@ -263,6 +275,20 @@ inline BitsBase<T, BT, ST>::BitsBase() {
   val_.push_back(0);
   size_ = 1;
   type_ = Type::UNSIGNED;
+}
+
+template <typename T, typename BT, typename ST>
+inline BitsBase<T, BT, ST>::BitsBase(size_t n, Type t) {
+  if (type_ == Type::REAL) {
+    assert(n == 64);
+    val_.resize(64/bits_per_word());
+    *reinterpret_cast<double*>(val_.data()) = 0.0;
+  } else {
+    assert(n > 0);
+    val_.resize((n+bits_per_word()-1)/bits_per_word(), static_cast<T>(0));
+  }
+  size_ = n;
+  type_ = t;
 }
 
 template <typename T, typename BT, typename ST>
@@ -419,79 +445,13 @@ inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
 }
 
 template <typename T, typename BT, typename ST>
-inline bool BitsBase<T, BT, ST>::to_bool() const {
-  for (const auto& v : val_) {
-    if (v) {
-      return true;
-    }
-  }
-  return false;
-}
-
-template <typename T, typename BT, typename ST>
-inline char BitsBase<T, BT, ST>::to_char() const {
-  return static_cast<char>(val_[0] & 0xffu);
-}
-
-template <typename T, typename BT, typename ST>
-inline double BitsBase<T, BT, ST>::to_double() const {
-  switch (type_) {
-    case Type::UNSIGNED:
-      return interpret_as_double();
-    case Type::SIGNED:
-      if (get(size_-1)) {
-        Bits temp = *this;
-        arithmetic_minus(temp);
-        return -temp.interpret_as_double();
-      } 
-      return interpret_as_double();
-    case Type::REAL:
-      return *reinterpret_cast<const double*>(val_.data());
-    default:
-      assert(false);
-      return 0;
-  }
-}
-
-template <typename T, typename BT, typename ST>
-inline T BitsBase<T, BT, ST>::to_int() const {
-  switch (type_) {
-    case Type::UNSIGNED: 
-      return val_[0];
-    case Type::SIGNED: 
-      return get(size_-1) ? (~val_[0] + 1) : val_[0];
-    case Type::REAL:
-      return std::round(*reinterpret_cast<const double*>(val_.data()));
-    default:
-      assert(false);
-      return 0;
-  }
-}
-
-template <typename T, typename BT, typename ST>
-inline std::string BitsBase<T, BT, ST>::to_string() const {
-  std::string res(size()/8, ' ');
-  for (int pos = 0, i = res.length()-1; i >= 0; --i, ++pos) {
-    const auto idx = pos/bytes_per_word();
-    const auto off = 8*(pos%bytes_per_word()); 
-    const auto val = (val_[idx] >> off) & static_cast<T>(0xffu);
-    res[i] = ((val == 0) ? ' ' : static_cast<char>(val));
-  }
-  return res;
-}
-
-template <typename T, typename BT, typename ST>
 inline size_t BitsBase<T, BT, ST>::size() const {
   return size_;
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::resize(size_t n) {
-  if (n < size_) {
-    shrink_to(n);
-  } else if (n > size_) {
-    extend_to(n);
-  }
+inline typename BitsBase<T, BT, ST>::Type BitsBase<T, BT, ST>::get_type() const {
+  return type_;
 }
 
 template <typename T, typename BT, typename ST>
@@ -505,13 +465,120 @@ inline bool BitsBase<T, BT, ST>::is_real() const {
 }
 
 template <typename T, typename BT, typename ST>
-inline typename BitsBase<T, BT, ST>::Type BitsBase<T, BT, ST>::get_type() const {
-  return type_;
+inline bool BitsBase<T, BT, ST>::to_bool() const {
+  // Special handling for real values.
+  if (type_ == Type::REAL) {
+    return *reinterpret_cast<const double*>(val_.data()) != 0.0;
+  }
+  // Otherwise check whether any bits are non-zero.
+  for (const auto& v : val_) {
+    if (v) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::set_type(Type t) {
+inline char BitsBase<T, BT, ST>::to_char() const {
+  return static_cast<char>(to_uint() & 0xffu);
+}
+
+template <typename T, typename BT, typename ST>
+inline double BitsBase<T, BT, ST>::to_double() const {
+  switch (type_) {
+    case Type::SIGNED:
+      if (get(size_-1)) {
+        const_cast<BitsBase*>(this)->invert_add_one();
+        const_cast<BitsBase*>(this)->type_ = Type::UNSIGNED;
+        const auto res = to_double();
+        const_cast<BitsBase*>(this)->type_ = Type::SIGNED;
+        const_cast<BitsBase*>(this)->invert_add_one();
+        return res;
+      } 
+      // Fallthrough...
+    case Type::UNSIGNED: {
+      double res = 0.0;
+      double base = 1.0;
+      for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+        res += base * val_[i];
+        base *= range();
+      }
+      return res;
+    }
+    case Type::REAL:
+      return *reinterpret_cast<const double*>(val_.data());
+    default:
+      assert(false);
+      return 0;
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline std::string BitsBase<T, BT, ST>::to_string() const {
+  // Cast real values to unsigned ints before printing.
+  if (type_ == Type::REAL) {
+    auto temp = *this;
+    temp.cast_real_to_int(false);
+    return temp.to_string();
+  }
+  // Print characters, eight bits at a time.
+  std::string res(size()/8, ' ');
+  for (int pos = 0, i = res.length()-1; i >= 0; --i, ++pos) {
+    const auto idx = pos/bytes_per_word();
+    const auto off = 8*(pos%bytes_per_word()); 
+    const auto val = (val_[idx] >> off) & static_cast<T>(0xffu);
+    res[i] = ((val == 0) ? ' ' : static_cast<char>(val));
+  }
+  return res;
+}
+
+template <typename T, typename BT, typename ST>
+inline T BitsBase<T, BT, ST>::to_uint() const {
+  switch (type_) {
+    case Type::UNSIGNED: 
+    case Type::SIGNED: 
+      return val_[0];
+    case Type::REAL:
+      return std::round(*reinterpret_cast<const double*>(val_.data()));
+    default:
+      assert(false);
+      return 0;
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::resize(size_t n) {
+  assert((type != Type::REAL) || (n == 64));
+  if (n < size_) {
+    shrink_to(n);
+  } else if (n > size_) {
+    extend_to(n);
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::cast_type(Type t) {
+  if (type_ == t) {
+    return;
+  } else if (t == Type::REAL) {
+    cast_int_to_real();
+  } else if (type_ == Type::REAL) {
+    cast_real_to_int(t == Type::SIGNED);
+  } else {
+    type_ = t;
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::reinterpret_type(Type t) {
+  if (type_ == t) {
+    return;
+  } 
   type_ = t;
+  if (type_ == Type::REAL) {
+    val_.resize(64/bits_per_word());
+  }
 }
 
 template <typename T, typename BT, typename ST>
@@ -558,7 +625,7 @@ inline void BitsBase<T, BT, ST>::bitwise_xnor(const BitsBase& rhs, BitsBase& res
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_sll(const BitsBase& rhs, BitsBase& res) const {
   assert(!is_real() && !rhs.is_real());
-  const auto samt = rhs.to_int();
+  const auto samt = rhs.to_uint();
   bitwise_sll_const(samt, res);
 }
 
@@ -571,14 +638,14 @@ inline void BitsBase<T, BT, ST>::bitwise_sal(const BitsBase& rhs, BitsBase& res)
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_slr(const BitsBase& rhs, BitsBase& res) const {
   assert(!is_real() && !rhs.is_real());
-  const auto samt = rhs.to_int();
+  const auto samt = rhs.to_uint();
   bitwise_sxr_const(samt, false, res);
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& rhs, BitsBase& res) const {
   assert(!is_real() && !rhs.is_real());
-  const auto samt = rhs.to_int();
+  const auto samt = rhs.to_uint();
   bitwise_sxr_const(samt, true, res);
 }
 
@@ -1267,7 +1334,7 @@ inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
   // Invert if negative and reset original size
   resize(size);
   if (neg) {
-    arithmetic_minus(*this);
+    invert_add_one();
   }
   type_ = type;
 }
@@ -1319,26 +1386,31 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write_10(std::ostream& os) const {
-  // If this number is negative, switch to positive value
-  Bits temp = *this;
-  if (temp.is_negative()) {
+  // Check whether this is a negative number
+  const auto is_neg = is_negative();
+   
+  // Print negative and invert if necessary
+  if (is_neg) {
     os << "-";
-    arithmetic_minus(temp);
+    const_cast<BitsBase*>(this)->invert_add_one();
   }
-
   // Output Buffer (lsb in index 0):
   std::string buf = "0";
   // Walk binary string from highest to lowest.
   // Double result each time, add 1s as they appear.
   for (int i = size_-1; i >= 0; --i) {
     dec_double(buf);
-    if (temp.get(i)) {
+    if (get(i)) {
       dec_inc(buf);
     }
   }
   // Print the result in reverse
   for (int i = buf.length()-1; i >= 0; --i) {
     os << buf[i];
+  }
+  // Restore bits if they were inverted
+  if (is_neg) {
+    const_cast<BitsBase*>(this)->invert_add_one();
   }
 }
 
@@ -1561,14 +1633,29 @@ inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
 }
 
 template <typename T, typename BT, typename ST>
-inline double BitsBase<T, BT, ST>::interpret_as_double() const {
-  double res = 0;
-  double base = 1;
+inline void BitsBase<T, BT, ST>::invert_add_one() {
+  T carry = 1;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res += base * val_[i];
-    base *= range();
+    val_[i] = ~val_[i];
+    const T sum = val_[i] + carry;
+    carry = (sum < val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
+    val_[i] = sum;
   }
-  return res;
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::cast_int_to_real() {
+  assert(type_ != Type::REAL);
+  *this = Bits(to_double());
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::cast_real_to_int(bool s) {
+  assert(type_ == Type::REAL);
+  val_.resize(1);
+  val_[0] = 0; 
+  type_ = s ? Type::SIGNED : Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>

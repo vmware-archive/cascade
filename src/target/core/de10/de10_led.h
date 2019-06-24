@@ -86,13 +86,13 @@ inline Input* De10Led::get_input() {
 inline void De10Led::set_input(const Input* i) {
   const auto itr = i->find(in_);
   if (itr != i->end()) {
-    DE10_WRITE(led_addr_, itr->second.to_int());
+    DE10_WRITE(led_addr_, itr->second.to_uint());
   }
 }
 
 inline void De10Led::read(VId id, const Bits* b) {
   (void) id;
-  DE10_WRITE(led_addr_, b->to_int());
+  DE10_WRITE(led_addr_, b->to_uint());
 }
 
 inline void De10Led::evaluate() {

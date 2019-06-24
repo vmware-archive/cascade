@@ -58,7 +58,7 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
     Monitor().init(*i);
   }
   eval_.set_feof_handler([this](Evaluate* eval, const FeofExpression* fe) {
-    const auto fd = eval_.get_value(fe->get_fd()).to_int();
+    const auto fd = eval_.get_value(fe->get_fd()).to_uint();
     return get_stream(fd)->eof();
   });
   EofIndex ei(this);
@@ -153,7 +153,7 @@ void SwLogic::finalize() {
       const auto* rd = static_cast<const RegDeclaration*>(*i);
       if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
         const auto* fe = static_cast<const FopenExpression*>(rd->get_val());
-        if (eval_.get_value(rd->get_id()).to_int() == 0) {
+        if (eval_.get_value(rd->get_id()).to_uint() == 0) {
           const auto fd = interface()->fopen(eval_.get_value(fe->get_path()).to_string());
           eval_.assign_value(rd->get_id(), Bits(32, fd));
           notify(rd->get_id());
@@ -364,10 +364,10 @@ void SwLogic::visit(const CaseStatement* cs) {
   auto& state = get_state(cs);
   if (state == 0) {
     state = 1;
-    const auto s = eval_.get_value(cs->get_cond()).to_int();
+    const auto s = eval_.get_value(cs->get_cond()).to_uint();
     for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) { 
       for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
-        const auto c = eval_.get_value(*j).to_int();
+        const auto c = eval_.get_value(*j).to_uint();
         if (s == c) {
           schedule_now((*i)->get_stmt());
           return;
@@ -421,7 +421,7 @@ void SwLogic::visit(const TimingControlStatement* tcs) {
 
 void SwLogic::visit(const FflushStatement* fs) {
   if (!silent_) {
-    const auto fd = eval_.get_value(fs->get_fd()).to_int();
+    const auto fd = eval_.get_value(fs->get_fd()).to_uint();
     auto* is = get_stream(fd);
     is->flush();
   }
@@ -430,7 +430,7 @@ void SwLogic::visit(const FflushStatement* fs) {
 
 void SwLogic::visit(const FinishStatement* fs) {
   if (!silent_) {
-    interface()->finish(eval_.get_value(fs->get_arg()).to_int());
+    interface()->finish(eval_.get_value(fs->get_arg()).to_uint());
     there_were_tasks_ = true;
   }
   notify(fs);
@@ -438,11 +438,11 @@ void SwLogic::visit(const FinishStatement* fs) {
 
 void SwLogic::visit(const FseekStatement* fs) {
   if (!silent_) {
-    const auto fd = eval_.get_value(fs->get_fd()).to_int();
+    const auto fd = eval_.get_value(fs->get_fd()).to_uint();
     auto* is = get_stream(fd);
 
-    const auto offset = eval_.get_value(fs->get_offset()).to_int();
-    const auto op = eval_.get_value(fs->get_op()).to_int();
+    const auto offset = eval_.get_value(fs->get_offset()).to_uint();
+    const auto op = eval_.get_value(fs->get_op()).to_uint();
     const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
 
     is->clear();
@@ -456,7 +456,7 @@ void SwLogic::visit(const FseekStatement* fs) {
 
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
-    const auto fd = eval_.get_value(gs->get_fd()).to_int();
+    const auto fd = eval_.get_value(gs->get_fd()).to_uint();
     auto* is = get_stream(fd);
     Scanf().read(*is, &eval_, gs);
 
@@ -472,7 +472,7 @@ void SwLogic::visit(const GetStatement* gs) {
 
 void SwLogic::visit(const PutStatement* ps) {
   if (!silent_) {
-    const auto fd = eval_.get_value(ps->get_fd()).to_int();
+    const auto fd = eval_.get_value(ps->get_fd()).to_uint();
     auto* is = get_stream(fd);
     Printf().write(*is, &eval_, ps);
     update_eofs();

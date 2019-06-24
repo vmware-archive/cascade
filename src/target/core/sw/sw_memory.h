@@ -212,9 +212,9 @@ inline void SwMemory::set_input(const Input* i) {
   }
   clock_ = i->find(clock_id_)->second.to_bool();
   wen_ = i->find(wen_id_)->second.to_bool();
-  raddr1_ = i->find(raddr1_id_)->second.to_int();
-  raddr2_ = i->find(raddr2_id_)->second.to_int();
-  waddr_ = i->find(waddr_id_)->second.to_int();
+  raddr1_ = i->find(raddr1_id_)->second.to_uint();
+  raddr2_ = i->find(raddr2_id_)->second.to_uint();
+  waddr_ = i->find(waddr_id_)->second.to_uint();
   wdata_ = i->find(wdata_id_)->second;
 }
 
@@ -236,11 +236,11 @@ inline void SwMemory::read(VId id, const Bits* b) {
   } else if (id == wen_id_) {
     wen_ = b->to_bool();
   } else if (id == raddr1_id_) {
-    raddr1_ = b->to_int();
+    raddr1_ = b->to_uint();
   } else if (id == raddr2_id_) {
-    raddr2_ = b->to_int();
+    raddr2_ = b->to_uint();
   } else if (id == waddr_id_) {
-    waddr_ = b->to_int();
+    waddr_ = b->to_uint();
   } else if (id == wdata_id_) {
     wdata_.assign(*b);
   } else {

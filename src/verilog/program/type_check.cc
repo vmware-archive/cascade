@@ -821,7 +821,7 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
       } 
     }
     // WARN: Can we say for sure that this value is out of range?
-    else if ((Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) && !decl_check_) {
+    else if ((Evaluate().get_value(*iitr).to_uint() > Evaluate().get_range(*ritr).first) && !decl_check_) {
       warn("Array subscript is out of range of declared dimension for this variable", *iitr);
     }
   }    

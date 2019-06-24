@@ -255,7 +255,7 @@ void De10Logic::update_eofs() {
     const auto* fe = static_cast<const FeofExpression*>(i->first);
     fe->accept_fd(&sync);
 
-    auto* is = get_stream(eval.get_value(fe->get_fd()).to_int());
+    auto* is = get_stream(eval.get_value(fe->get_fd()).to_uint());
     table_.write_expr(i->first, is->eof() ? 1 : 0);
   }
 }
@@ -292,7 +292,7 @@ void De10Logic::handle_io_tasks() {
         const auto* fs = static_cast<const FflushStatement*>(io_tasks_[i]);
         fs->accept_fd(&sync);
 
-        const auto fd = eval.get_value(fs->get_fd()).to_int();
+        const auto fd = eval.get_value(fs->get_fd()).to_uint();
         auto* is = get_stream(fd);
         is->flush();
         break;
@@ -301,11 +301,11 @@ void De10Logic::handle_io_tasks() {
         const auto* fs = static_cast<const FseekStatement*>(io_tasks_[i]);
         fs->accept_fd(&sync);
 
-        const auto fd = eval.get_value(fs->get_fd()).to_int();
+        const auto fd = eval.get_value(fs->get_fd()).to_uint();
         auto* is = get_stream(fd);
 
-        const auto offset = eval.get_value(fs->get_offset()).to_int();
-        const auto op = eval.get_value(fs->get_op()).to_int();
+        const auto offset = eval.get_value(fs->get_offset()).to_uint();
+        const auto op = eval.get_value(fs->get_op()).to_uint();
         const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
 
         is->clear();
@@ -319,7 +319,7 @@ void De10Logic::handle_io_tasks() {
         const auto* gs = static_cast<const GetStatement*>(io_tasks_[i]);
         gs->accept_fd(&sync);
 
-        const auto fd = eval.get_value(gs->get_fd()).to_int();
+        const auto fd = eval.get_value(gs->get_fd()).to_uint();
         auto* is = get_stream(fd);
         Scanf().read(*is, &eval, gs);
 
@@ -337,7 +337,7 @@ void De10Logic::handle_io_tasks() {
         ps->accept_fd(&sync);
         ps->accept_expr(&sync);
 
-        const auto fd = eval.get_value(ps->get_fd()).to_int();
+        const auto fd = eval.get_value(ps->get_fd()).to_uint();
         auto* is = get_stream(fd);
         Printf().write(*is, &eval, ps);
         update_eofs();
@@ -374,7 +374,7 @@ void De10Logic::handle_sys_tasks() {
       case Node::Tag::finish_statement: {
         const auto* fs = static_cast<const FinishStatement*>(sys_tasks_[i]);
         fs->accept_arg(&sync);
-        interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
+        interface()->finish(Evaluate().get_value(fs->get_arg()).to_uint());
         break;
       }
       case Node::Tag::restart_statement: {

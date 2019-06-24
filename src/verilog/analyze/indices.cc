@@ -38,7 +38,7 @@ using namespace std;
 namespace cascade {
 
 size_t HashId::operator()(const Expression* e) const {
-  return (e == nullptr) ? 0 : Evaluate().get_value(e).to_int();
+  return (e == nullptr) ? 0 : Evaluate().get_value(e).to_uint();
 }
 
 size_t HashId::operator()(const Id* id) const {
@@ -57,7 +57,7 @@ bool EqId::operator()(const Expression* e1, const Expression* e2) const {
   if ((e1 == nullptr) && (e2 == nullptr)) {
     return true;
   } else if ((e1 != nullptr) && (e2 != nullptr)) {
-    return Evaluate().get_value(e1).to_int() == Evaluate().get_value(e2).to_int();
+    return Evaluate().get_value(e1).to_uint() == Evaluate().get_value(e2).to_uint();
   } else {
     return false;
   }
