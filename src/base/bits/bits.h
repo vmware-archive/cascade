@@ -226,34 +226,31 @@ class BitsBase : public Serializable {
     // Increments a decimal value, stored as a string in reverse order
     void dec_inc(std::string& s) const;
 
-    // Shift Helpers 
+    // Shift Helpers:
     void bitwise_sll_const(size_t samt, BitsBase& res) const;
     void bitwise_sxr_const(size_t samt, bool arith, BitsBase& res) const;
-
-    // Trims additional bits down to size_
-    void trim();
-    // Extends representation to n bits and sign extends if necessary
-    void extend_to(size_t n); 
-    // Shrinks size and calls trim
-    void shrink_to(size_t n);
-    // Shrinks to size one and sets val
-    void shrink_to_bool(bool b);
-
-    // Returns true if this is a signed number with high order bit set
-    bool is_negative() const;
 
     // Returns the nth (possibly greater than val_.size()th) word of this value.
     // Performs sign extension as necessary.
     T signed_get(size_t n) const;
 
+    // Returns true if this is a signed number with high order bit set
+    bool is_neg_signed() const;
+    // Zeros out bits with index greater than size_ 
+    void trim();
+    // Extends representation to n bits and zero pads
+    void extend_to(size_t n); 
+    // Extends representation to n bits and sign extends if necessary
+    void sign_extend_to(size_t n); 
+    // Shrinks size and calls trim
+    void shrink_to(size_t n);
+    // Shrinks to size one and sets val
+    void shrink_to_bool(bool b);
     // Inverts bits and adds one
     void invert_add_one();
-
-    // Casts an integer to a real. Updates size and type; sets value according
-    // to the result of to_double().
+    // Updates size and type; sets value according to to_double().
     void cast_int_to_real();
-    // Cast a real to an integer. Sets value by call to_double() and rounding
-    // the result. Sets type according to argument, size according to value.
+    // Updates type according to arg, value and size according to_double().
     void cast_real_to_int(bool s);
 
     // Returns the number of bits in a word
@@ -516,18 +513,22 @@ inline double BitsBase<T, BT, ST>::to_double() const {
 
 template <typename T, typename BT, typename ST>
 inline std::string BitsBase<T, BT, ST>::to_string() const {
+  auto temp = *this;
   // Cast real values to unsigned ints before printing.
   if (type_ == Type::REAL) {
-    auto temp = *this;
     temp.cast_real_to_int(false);
-    return temp.to_string();
+  }
+  // Pad values out to a multiple of 8 bits.
+  const auto trailing = temp.size() % 8;
+  if (trailing > 0) {
+    temp.sign_extend_to(temp.size() + 8 - trailing);
   }
   // Print characters, eight bits at a time.
-  std::string res(size()/8, ' ');
+  std::string res(temp.size()/8, ' ');
   for (int pos = 0, i = res.length()-1; i >= 0; --i, ++pos) {
     const auto idx = pos/bytes_per_word();
     const auto off = 8*(pos%bytes_per_word()); 
-    const auto val = (val_[idx] >> off) & static_cast<T>(0xffu);
+    const auto val = (temp.val_[idx] >> off) & static_cast<T>(0xffu);
     res[i] = ((val == 0) ? ' ' : static_cast<char>(val));
   }
   return res;
@@ -553,7 +554,7 @@ inline void BitsBase<T, BT, ST>::resize(size_t n) {
   if (n < size_) {
     shrink_to(n);
   } else if (n > size_) {
-    extend_to(n);
+    sign_extend_to(n);
   }
 }
 
@@ -776,8 +777,8 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase
   assert(val_.size() == 1);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
-    const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
+    const ST l = is_neg_signed() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+    const ST r = rhs.is_neg_signed() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l / r;
   } else {
     res.val_[0] = val_[0] / rhs.val_[0];
@@ -795,8 +796,8 @@ inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& r
   assert(val_.size() == 1);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const ST l = is_negative() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
-    const ST r = rhs.is_negative() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
+    const ST l = is_neg_signed() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+    const ST r = rhs.is_neg_signed() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
     res.val_[0] = l % r;
   } else {
     res.val_[0] = val_[0] % rhs.val_[0];
@@ -1197,8 +1198,8 @@ inline bool BitsBase<T, BT, ST>::operator<(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const auto lneg = is_negative();
-    const auto rneg = rhs.is_negative();
+    const auto lneg = is_neg_signed();
+    const auto rneg = rhs.is_neg_signed();
     if (lneg && !rneg) {
       return true; 
     } else if (!lneg && rneg) {
@@ -1221,8 +1222,8 @@ inline bool BitsBase<T, BT, ST>::operator<=(const BitsBase& rhs) const {
   assert(size_ == rhs.size_);
 
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const auto lneg = is_negative();
-    const auto rneg = rhs.is_negative();
+    const auto lneg = is_neg_signed();
+    const auto rneg = rhs.is_neg_signed();
     if (lneg && !rneg) {
       return true; 
     } else if (!lneg && rneg) {
@@ -1274,7 +1275,7 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
 
   // How many bits do we generate per character? Resize internal storage.
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-  extend_to(step * s.length());
+  sign_extend_to(step * s.length());
 
   // Walk over the buffer from lowest to highest order (that's in reverse)
   size_t word = 0;
@@ -1326,7 +1327,7 @@ inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
   // Halve decimal string until it becomes zero. Add 1s when least significant
   // digit is odd, 0s otherwise. 
   for (size_t i = 1; !dec_zero(s); ++i) {
-    extend_to(i);
+    sign_extend_to(i);
     set(i-1, (s.back()-'0') % 2); 
     dec_halve(s);
   }
@@ -1387,7 +1388,7 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write_10(std::ostream& os) const {
   // Check whether this is a negative number
-  const auto is_neg = is_negative();
+  const auto is_neg = is_neg_signed();
    
   // Print negative and invert if necessary
   if (is_neg) {
@@ -1566,6 +1567,31 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 }
 
 template <typename T, typename BT, typename ST>
+inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
+  // Difficult case: Do we need to sign extend this value?
+  if (n == (val_.size()-1)) {
+    const auto top = size_ % bits_per_word();
+    if (!is_neg_signed() || (top == 0)) {
+      return val_[n];
+    }
+    return val_[n] | (static_cast<T>(-1) << top);
+  }
+  // Easier Case: Do we need to return all 1s or 0s?
+  else if (n >= val_.size()) {
+    return is_neg_signed() ? static_cast<T>(-1) : static_cast<T>(0);
+  }
+  // Easiest Case: Just return what's there
+  else {
+    return val_[n]; 
+  }
+}
+
+template <typename T, typename BT, typename ST>
+inline bool BitsBase<T, BT, ST>::is_neg_signed() const {
+  return (type_ == Type::SIGNED) && get(size_-1);
+}
+
+template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::trim() {
   // How many bits do we care about in the top word?
   const auto trailing = size_ % bits_per_word();
@@ -1580,8 +1606,17 @@ inline void BitsBase<T, BT, ST>::trim() {
     
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::extend_to(size_t n) {
+  assert(n >= size_);
   const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
-  if (is_negative()) {
+  val_.resize(words, static_cast<T>(0));
+  size_ = n;
+}
+   
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::sign_extend_to(size_t n) {
+  assert(n >= size_);
+  const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
+  if (is_neg_signed()) {
     val_.back() |= (static_cast<T>(-1) << (size_ % bits_per_word()));
     val_.resize(words, static_cast<T>(-1));
     size_ = n;
@@ -1594,6 +1629,7 @@ inline void BitsBase<T, BT, ST>::extend_to(size_t n) {
    
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::shrink_to(size_t n) {
+  assert(n <= size_);
   const auto words = ((n + bits_per_word()) - 1) / bits_per_word();
   val_.resize(words, static_cast<T>(0));
   size_ = n;
@@ -1605,31 +1641,6 @@ inline void BitsBase<T, BT, ST>::shrink_to_bool(bool b) {
   val_.resize(1, static_cast<T>(0));
   val_[0] = b ? 1 : 0;
   size_ = 1;
-}
-
-template <typename T, typename BT, typename ST>
-inline bool BitsBase<T, BT, ST>::is_negative() const {
-  return (type_ == Type::SIGNED) && get(size_-1);
-}
-
-template <typename T, typename BT, typename ST>
-inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
-  // Difficult case: Do we need to sign extend this value?
-  if (n == (val_.size()-1)) {
-    const auto top = size_ % bits_per_word();
-    if (!is_negative() || (top == 0)) {
-      return val_[n];
-    }
-    return val_[n] | (static_cast<T>(-1) << top);
-  }
-  // Easier Case: Do we need to return all 1s or 0s?
-  else if (n >= val_.size()) {
-    return is_negative() ? static_cast<T>(-1) : static_cast<T>(0);
-  }
-  // Easiest Case: Just return what's there
-  else {
-    return val_[n]; 
-  }
 }
 
 template <typename T, typename BT, typename ST>
@@ -1653,8 +1664,23 @@ inline void BitsBase<T, BT, ST>::cast_int_to_real() {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::cast_real_to_int(bool s) {
   assert(type_ == Type::REAL);
-  val_.resize(1);
-  val_[0] = 0; 
+  auto d = std::round(*reinterpret_cast<const double*>(val_.data()));
+  const auto is_neg = d < 0.0;
+  if (is_neg) {
+    d = -d;
+  }   
+
+  shrink_to_bool(false);
+  for (size_t i = 1; d > 0; d = std::floor(d/2), ++i) {
+    extend_to(i);
+    set(i-1, static_cast<T>(d) % 2);
+  }
+  if (s) {
+    extend_to(size_+1);
+  }
+  if (is_neg) {
+    invert_add_one();
+  }
   type_ = s ? Type::SIGNED : Type::UNSIGNED;
 }
 

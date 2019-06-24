@@ -38,62 +38,75 @@
 
 namespace cascade {
 
-struct Printf {
-  void write(std::ostream& os, Evaluate* eval, const PutStatement* ps);
+class Printf {
+  public:
+    void write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const;
+  private:
+    void write_real(std::ostream& os, const char* fmt, const Bits& val) const;
 };
 
-inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* ps) {
-  const auto format = ps->get_fmt()->get_readable_val();
-  if (format[0] != '%') {
-    os << format;
+inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const {
+  const auto* fmt = ps->get_fmt()->get_readable_val().c_str();
+  if (fmt[0] != '%') {
+    os << fmt;
     return;
   }
 
   assert(ps->is_non_null_expr());
-  const auto* expr = ps->get_expr();
+  auto val = eval->get_value(ps->get_expr());
 
-  switch (format[1]) {
+  switch (fmt[1]) {
     case '_':
-      if (eval->get_type(expr) == Bits::Type::REAL) {
-        eval->get_value(expr).write(os, 1);
+      if (val.get_type() == Bits::Type::REAL) {
+        write_real(os, "%g", val); 
       } else {
-        eval->get_value(expr).write(os, 10);
+        val.write(os, 10);
       }
-      break;
+      return;
     case 'b':
     case 'B': 
-      eval->get_value(expr).write(os, 2);
+      val.cast_type(Bits::Type::UNSIGNED);
+      val.write(os, 2);
       return;
     case 'c':
     case 'C':
-      os << (eval->get_value(expr).to_char());
+      os << val.to_char();
       return;
     case 'd':
     case 'D':
-      eval->get_value(expr).write(os, 10);
+      if (val.get_type() == Bits::Type::REAL) {
+        val.cast_type(Bits::Type::SIGNED);
+      }
+      val.write(os, 10);
       return;
     case 'h':
     case 'H': 
-      eval->get_value(expr).write(os, 16);
+      val.cast_type(Bits::Type::UNSIGNED);
+      val.write(os, 16);
       return;
     case 'o':
     case 'O': 
-      eval->get_value(expr).write(os, 8);
+      val.cast_type(Bits::Type::UNSIGNED);
+      val.write(os, 8);
       return;
     case 's':
     case 'S': 
-      os << eval->get_value(expr).to_string();
+      os << val.to_string();
       return;
     case 'u':
     case 'U':
-      eval->get_value(expr).write(os, 16);
+      val.cast_type(Bits::Type::UNSIGNED);
+      val.write(os, 16);
       return;
     default: 
       break;
   } 
- 
+  write_real(os, fmt, val); 
+}
+
+inline void Printf::write_real(std::ostream& os, const char* fmt, const Bits& val) const {
   char buffer[1024]; 
-  std::snprintf(buffer, 1024, format.c_str(), eval->get_value(expr).to_double());
+  std::snprintf(buffer, 1024, fmt, val.to_double());
   os << buffer;
 }
 
