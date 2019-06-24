@@ -82,20 +82,18 @@ class BitsBase : public Serializable {
     template <typename B>
     void write_word(size_t n, B b);
 
-    // Casts:
+    // Native Casts:
     bool to_bool() const;
     char to_char() const;
     T to_int() const;
-    double to_real() const;
-    std::string to_str() const;
+    double to_double() const;
+    std::string to_string() const;
 
     // Type Manipulation:
     size_t size() const;
     void resize(size_t n);
     bool is_signed() const;
-    void set_signed();
     bool is_real() const;
-    void set_real();
     Type get_type() const;
     void set_type(Type t);
 
@@ -436,7 +434,7 @@ inline char BitsBase<T, BT, ST>::to_char() const {
 }
 
 template <typename T, typename BT, typename ST>
-inline double BitsBase<T, BT, ST>::to_real() const {
+inline double BitsBase<T, BT, ST>::to_double() const {
   switch (type_) {
     case Type::UNSIGNED:
       return interpret_as_double();
@@ -471,7 +469,7 @@ inline T BitsBase<T, BT, ST>::to_int() const {
 }
 
 template <typename T, typename BT, typename ST>
-inline std::string BitsBase<T, BT, ST>::to_str() const {
+inline std::string BitsBase<T, BT, ST>::to_string() const {
   std::string res(size()/8, ' ');
   for (int pos = 0, i = res.length()-1; i >= 0; --i, ++pos) {
     const auto idx = pos/bytes_per_word();
@@ -502,20 +500,8 @@ inline bool BitsBase<T, BT, ST>::is_signed() const {
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::set_signed() {
-  if (type_ == Type::UNSIGNED) {
-    type_ = Type::SIGNED;        
-  }
-}
-
-template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::is_real() const {
   return type_ == Type::REAL;
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::set_real() {
-  type_ = Type::REAL;        
 }
 
 template <typename T, typename BT, typename ST>
@@ -619,7 +605,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) const {
   if (is_real() || rhs.is_real()) {
     assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_real() + rhs.to_real();
+    *reinterpret_cast<double*>(res.val_.data()) = to_double() + rhs.to_double();
     return;
   }
 
@@ -642,7 +628,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
   if (is_real()) {
     assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = -to_real();
+    *reinterpret_cast<double*>(res.val_.data()) = -to_double();
     return;
   }
 
@@ -662,7 +648,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) const {
   if (is_real() || rhs.is_real()) {
     assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_real() - rhs.to_real();
+    *reinterpret_cast<double*>(res.val_.data()) = to_double() - rhs.to_double();
     return;
   }
 
@@ -685,7 +671,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const {
   if (is_real() || rhs.is_real()) {
     assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_real() * rhs.to_real();
+    *reinterpret_cast<double*>(res.val_.data()) = to_double() * rhs.to_double();
     return;
   }
 
@@ -713,7 +699,7 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
   if (is_real() || rhs.is_real()) {
     assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_real() / rhs.to_real();
+    *reinterpret_cast<double*>(res.val_.data()) = to_double() / rhs.to_double();
     return;
   }
 
@@ -1288,7 +1274,7 @@ inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write_real(std::ostream& os) const {
-  os << to_real();
+  os << to_double();
 }
 
 template <typename T, typename BT, typename ST>

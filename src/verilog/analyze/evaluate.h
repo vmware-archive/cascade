@@ -81,12 +81,9 @@ class Evaluate : public Editor {
     // Returns the bit-width of the value of an expression. Returns the same
     // value for scalars and arrays.
     size_t get_width(const Expression* e);
-    // Returns true if the value of an expression is signed. Returns the same
-    // for scalars and arrays.
-    bool get_signed(const Expression* e);
-    // Returns true if the value of an expression is real. Returns the same for
+    // Returns the underlying type of an expression. Returns the same for
     // scalars and arrays.
-    bool get_real(const Expression* e);
+    Bits::Type get_type(const Expression* e);
 
     // Returns the bit value of an expression. Invoking this method on an expression
     // which evaluates to an array returns the first element of that array.

@@ -496,7 +496,7 @@ Bits to_unbased(const char* c, size_t n) {
     }
   }
   Bits res(32, 0);
-  res.set_signed();
+  res.set_type(Bits::Type::SIGNED);
   res.read(ss, 10);
   return res;
 }
@@ -511,7 +511,7 @@ Bits to_based(const char* c, size_t n, size_t size) {
   }
   Bits res(size, 0);
   if (is_signed) {
-    res.set_signed();
+    res.set_type(Bits::Type::SIGNED);
   }
   switch (is_signed ? c[2] : c[1]) {
     case 'b':

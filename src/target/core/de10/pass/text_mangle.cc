@@ -214,7 +214,7 @@ void TextMangle::Mangle::visit(const Identifier* id) {
     // Create a sign extension mask: all zeros for unsigned values, 32 copies
     // of id's highest order bit for signed values.
     Expression* sext = nullptr;
-    if (Evaluate().get_signed(id)) {
+    if (Evaluate().get_type(id) == Bits::Type::SIGNED) {
       sext = new MultipleConcatenation(
         new Number(Bits(32, 32)),
         new Concatenation((w == 1) ?

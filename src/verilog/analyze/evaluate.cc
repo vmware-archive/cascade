@@ -71,14 +71,9 @@ size_t Evaluate::get_width(const Expression* e) {
   return e->bit_val_[0].size();
 }
 
-bool Evaluate::get_signed(const Expression* e) {
+Bits::Type Evaluate::get_type(const Expression* e) {
   init(const_cast<Expression*>(e));
-  return (e->bit_val_[0].get_type() != Bits::Type::UNSIGNED);
-}
-
-bool Evaluate::get_real(const Expression* e) {
-  init(const_cast<Expression*>(e));
-  return (e->bit_val_[0].get_type() == Bits::Type::REAL);
+  return e->bit_val_[0].get_type();
 }
 
 const Bits& Evaluate::get_value(const Expression* e) {
@@ -654,7 +649,7 @@ void Evaluate::SelfDetermine::edit(BinaryExpression* be) {
   if (r) {
     be->bit_val_[0].set_type(Bits::Type::REAL);
   } else if (s) {
-    be->bit_val_[0].set_signed();
+    be->bit_val_[0].set_type(Bits::Type::SIGNED);
   } 
 }
 
@@ -671,7 +666,7 @@ void Evaluate::SelfDetermine::edit(ConditionalExpression* ce) {
   if (r) {
     ce->bit_val_[0].set_type(Bits::Type::REAL);
   } else {
-    ce->bit_val_[0].set_signed();
+    ce->bit_val_[0].set_type(Bits::Type::SIGNED);
   } 
 }
 
@@ -708,12 +703,10 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
   assert(r != nullptr);
 
   size_t w = 0;
-  auto s = false;
-  auto t = false;
+  Bits::Type t = Bits::Type::UNSIGNED;
   if (id->size_dim() == r->size_dim()) {
     w = eval_->get_width(r);
-    s = eval_->get_signed(r);
-    t = eval_->get_real(r);
+    t = eval_->get_type(r);
   } else if (id->back_dim()->is(Node::Tag::range_expression)) {
     auto* re = static_cast<RangeExpression*>(id->back_dim());
     const auto lower = eval_->get_value(re->get_lower()).to_int();
@@ -727,11 +720,7 @@ void Evaluate::SelfDetermine::edit(Identifier* id) {
     w = 1;
   }
   id->bit_val_.push_back(Bits(w, 0));
-  if (t) {
-    id->bit_val_[0].set_real();
-  } else if (s) {
-    id->bit_val_[0].set_signed();
-  }
+  id->bit_val_[0].set_type(t);
 }
 
 void Evaluate::SelfDetermine::edit(MultipleConcatenation* mc) {
@@ -787,7 +776,7 @@ void Evaluate::SelfDetermine::edit(UnaryExpression* ue) {
   if (r) {
     ue->bit_val_[0].set_type(Bits::Type::REAL);
   } else if (s) {
-    ue->bit_val_[0].set_signed();
+    ue->bit_val_[0].set_type(Bits::Type::SIGNED);
   }
 }
 

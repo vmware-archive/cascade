@@ -54,7 +54,11 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
 
   switch (format[1]) {
     case '_':
-      eval->get_value(expr).write(os, eval->get_real(expr) ? 1 : 10);
+      if (eval->get_type(expr) == Bits::Type::REAL) {
+        eval->get_value(expr).write(os, 1);
+      } else {
+        eval->get_value(expr).write(os, 10);
+      }
       break;
     case 'b':
     case 'B': 
@@ -78,7 +82,7 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
       return;
     case 's':
     case 'S': 
-      os << eval->get_value(expr).to_str();
+      os << eval->get_value(expr).to_string();
       return;
     case 'u':
     case 'U':
@@ -89,7 +93,7 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
   } 
  
   char buffer[1024]; 
-  std::snprintf(buffer, 1024, format.c_str(), eval->get_value(expr).to_real());
+  std::snprintf(buffer, 1024, format.c_str(), eval->get_value(expr).to_double());
   os << buffer;
 }
 
