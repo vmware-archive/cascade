@@ -161,6 +161,11 @@ class BitsBase : public Serializable {
     void reduce_xor(const BitsBase& lhs);
     void reduce_xnor(const BitsBase& lhs);
 
+    // Concatenation Operations:
+    //
+    // Concatenate two variables. This method is undefined for real values.
+    void concat(const BitsBase& rhs);
+
     // Comparison Operators:
     //
     // Check for value equality. These methods make no assumptions with respect
@@ -184,11 +189,6 @@ class BitsBase : public Serializable {
     void assign(size_t msb, size_t lsb, const BitsBase& rhs);
     void assign(const BitsBase& rhs, size_t idx);
     void assign(const BitsBase& rhs, size_t msb, size_t lsb);
-
-    // Concatenation Operations:
-    //
-    // Concatenate two variables. This method is undefined for real values.
-    void concat(const BitsBase& rhs);
 
     // Bitwise Operators:
     //
@@ -974,6 +974,16 @@ inline void BitsBase<T, BT, ST>::reduce_xnor(const BitsBase& lhs) {
 }
 
 template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
+  assert(!is_real() && !rhs.is_real());
+
+  bitwise_sll_const(*this, rhs.size_);
+  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
+    val_[i] |= rhs.val_[i];
+  }
+}
+
+template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
   if (is_real() && rhs.is_real()) {
     return *reinterpret_cast<const double*>(val_.data()) == *reinterpret_cast<const double*>(rhs.val_.data());
@@ -1207,16 +1217,6 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
   }
   for (size_t i = zword+1, ie = val_.size(); i < ie; ++i) {
     val_[i] = static_cast<T>(0);
-  }
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
-  assert(!is_real() && !rhs.is_real());
-
-  bitwise_sll_const(*this, rhs.size_);
-  for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
-    val_[i] |= rhs.val_[i];
   }
 }
 
