@@ -300,28 +300,28 @@ void Evaluate::edit(BinaryExpression* be) {
       get_value(be->get_lhs()).logical_gte(get_value(be->get_rhs()), be->bit_val_[0]);
       break;
     case BinaryExpression::Op::AMP:
-      get_value(be->get_lhs()).bitwise_and(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_and(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::PIPE:
-      get_value(be->get_lhs()).bitwise_or(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_or(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::CARAT:
-      get_value(be->get_lhs()).bitwise_xor(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_xor(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::TCARAT:
-      get_value(be->get_lhs()).bitwise_xnor(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_xnor(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::LLT:
-      get_value(be->get_lhs()).bitwise_sll(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_sll(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::LLLT:
-      get_value(be->get_lhs()).bitwise_sal(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_sal(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::GGT:
-      get_value(be->get_lhs()).bitwise_slr(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_slr(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::GGGT:
-      get_value(be->get_lhs()).bitwise_sar(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].bitwise_sar(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
 
     default:
@@ -421,7 +421,7 @@ void Evaluate::edit(UnaryExpression* ue) {
       get_value(ue->get_lhs()).logical_not(ue->bit_val_[0]);
       break;
     case UnaryExpression::Op::TILDE:
-      get_value(ue->get_lhs()).bitwise_not(ue->bit_val_[0]);
+      ue->bit_val_[0].bitwise_not(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::AMP:
       get_value(ue->get_lhs()).reduce_and(ue->bit_val_[0]);

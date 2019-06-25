@@ -105,19 +105,18 @@ class BitsBase : public Serializable {
 
     // Bitwise Operators: 
     //
-    // Apply a bitwise operator to this and rhs and store the result in res.
-    // These methods all assume equivalent bit-width between operands and
-    // destination and so do not perform sign extension. These methods are
-    // undefined for real values.
-    void bitwise_and(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_or(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_xor(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_xnor(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_sll(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_sal(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_slr(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_sar(const BitsBase& rhs, BitsBase& res) const;
-    void bitwise_not(BitsBase& res) const;
+    // Apply a bitwise operator to operands and store the result here.  These
+    // methods assume equivalent bit-width between operands and destination and
+    // do not sign extend. These methods are undefined for reals.
+    void bitwise_and(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_or(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_xor(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_xnor(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_sll(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_sal(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_slr(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_sar(const BitsBase& lhs, const BitsBase& rhs);
+    void bitwise_not(const BitsBase& lhs);
 
     // Arithmetic Operators:
     //
@@ -173,7 +172,8 @@ class BitsBase : public Serializable {
     // Assignment Operators:
     //
     // Assign bits. These methods make no assumptions made with respect to
-    // sizes and handle sign-extension for rhs as necessary.
+    // sizes and handle sign-extension and type conversion as necessary. 
+    // Subscripting operations are undefined for real operands.
     void assign(const BitsBase& rhs);
     void assign(size_t idx, const BitsBase& rhs);
     void assign(size_t msb, size_t lsb, const BitsBase& rhs);
@@ -227,8 +227,8 @@ class BitsBase : public Serializable {
     void dec_inc(std::string& s) const;
 
     // Shift Helpers:
-    void bitwise_sll_const(size_t samt, BitsBase& res) const;
-    void bitwise_sxr_const(size_t samt, bool arith, BitsBase& res) const;
+    void bitwise_sll_const(const BitsBase& lhs, size_t samt);
+    void bitwise_sxr_const(const BitsBase& lhs, size_t samt, bool arith);
 
     // Returns the nth (possibly greater than val_.size()th) word of this value.
     // Performs sign extension as necessary.
@@ -583,81 +583,86 @@ inline void BitsBase<T, BT, ST>::reinterpret_type(Type t) {
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_and(const BitsBase& rhs, BitsBase& res) const {
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_and(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real() && !lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
+
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i] & rhs.val_[i];
+    val_[i] = lhs.val_[i] & rhs.val_[i];
   }
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_or(const BitsBase& rhs, BitsBase& res) const {
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_or(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real() && !lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
+
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i] | rhs.val_[i];
+    val_[i] = lhs.val_[i] | rhs.val_[i];
   }
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_xor(const BitsBase& rhs, BitsBase& res) const {
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_xor(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real() && !lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
+
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i] ^ rhs.val_[i];
+    val_[i] = lhs.val_[i] ^ rhs.val_[i];
   }
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_xnor(const BitsBase& rhs, BitsBase& res) const {
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_xnor(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real() && !lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
+
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = ~(val_[i] ^ rhs.val_[i]);
+    val_[i] = ~(lhs.val_[i] ^ rhs.val_[i]);
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_sll(const BitsBase& rhs, BitsBase& res) const {
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_sll(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!rhs.is_real());
   const auto samt = rhs.to_uint();
-  bitwise_sll_const(samt, res);
+  bitwise_sll_const(lhs, samt);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_sal(const BitsBase& rhs, BitsBase& res) const {
+inline void BitsBase<T, BT, ST>::bitwise_sal(const BitsBase& lhs, const BitsBase& rhs) {
   // Equivalent to sll
-  bitwise_sll(rhs, res);
+  bitwise_sll(lhs, rhs);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_slr(const BitsBase& rhs, BitsBase& res) const {
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_slr(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!rhs.is_real());
   const auto samt = rhs.to_uint();
-  bitwise_sxr_const(samt, false, res);
+  bitwise_sxr_const(lhs, samt, false);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& rhs, BitsBase& res) const {
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::bitwise_sar(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!rhs.is_real());
   const auto samt = rhs.to_uint();
-  bitwise_sxr_const(samt, true, res);
+  bitwise_sxr_const(lhs, samt, true);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_not(BitsBase& res) const {
-  assert(size_ == res.size_);
-  assert(!is_real());
+inline void BitsBase<T, BT, ST>::bitwise_not(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
+  assert(size() == lhs.size());
+
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = ~val_[i];
+    val_[i] = ~lhs.val_[i];
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
@@ -1019,6 +1024,18 @@ inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs)
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs) {
+  if (is_real()) {
+    const auto val = rhs.is_real() ? *reinterpret_cast<const double*>(rhs.val_.data()) : rhs.to_double();
+    *reinterpret_cast<double*>(val_.data()) = val;
+    return;
+  } 
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_real_to_int(false);
+    return assign(temp);
+  }
+
+  assert(!is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     val_[i] = rhs.signed_get(i);
   }
@@ -1027,17 +1044,25 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs) {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(size_t idx, const BitsBase& rhs) {
+  assert(!is_real());
   assert(idx < size_);
-  set(idx, rhs.get(0));
+  set(idx, rhs.to_uint() & static_cast<T>(1));
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& rhs) {
-  // Corner case: Is this range one bit?
+  // Corner Case: Is this range one bit?
   if (msb == lsb) {
     return assign(msb, rhs);
   }
+  // Corner Case: Do we need to convert rhs to an integer?
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_real_to_int(false);
+    return assign(msb, lsb, temp);
+  }
 
+  assert(!is_real() && !rhs.is_real());
   assert(msb < size_);
   assert(msb >= lsb);
 
@@ -1133,7 +1158,7 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
-  bitwise_sll_const(rhs.size_, *this);
+  bitwise_sll_const(*this, rhs.size_);
   for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
     val_[i] |= rhs.val_[i];
   }
@@ -1468,13 +1493,14 @@ inline void BitsBase<T, BT, ST>::dec_inc(std::string& s) const {
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_sll_const(size_t samt, BitsBase& res) const {
-  assert(size_ == res.size_);
+inline void BitsBase<T, BT, ST>::bitwise_sll_const(const BitsBase& lhs, size_t samt) {
+  assert(!is_real() && !lhs.is_real());
+  assert(size() == lhs.size());
   
   // Easy Case: We're not actually shifting
   if (samt == 0) {
     for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-      res.val_[i] = val_[i];
+      val_[i] = lhs.val_[i];
     }
     return;
   }
@@ -1495,29 +1521,30 @@ inline void BitsBase<T, BT, ST>::bitwise_sll_const(size_t samt, BitsBase& res) c
   int w = val_.size() - 1;
   for (int b = w-delta; b >= 0; --w, --b) {
     if (bamt == 0) {
-      res.val_[w] = val_[b];
+      val_[w] = lhs.val_[b];
     } else {
-      res.val_[w] = (val_[b+1] << bamt) | ((val_[b] & mask) >> mamt);
+      val_[w] = (lhs.val_[b+1] << bamt) | ((lhs.val_[b] & mask) >> mamt);
     }
   }
   // There's one more block to build where bottom is implicitly zero
-  res.val_[w--] = (bamt == 0) ? static_cast<T>(0) : (val_[0] << bamt);
+  val_[w--] = (bamt == 0) ? static_cast<T>(0) : (lhs.val_[0] << bamt);
   // Everything else is zero
   for (; w >= 0; --w) {
-    res.val_[w] = static_cast<T>(0);
+    val_[w] = static_cast<T>(0);
   }
   // Trim the top and we're done
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, BitsBase& res) const {
-  assert(size_ == res.size_);
+inline void BitsBase<T, BT, ST>::bitwise_sxr_const(const BitsBase& lhs, size_t samt, bool arith) {
+  assert(!is_real() && !lhs.is_real());
+  assert(size() == lhs.size());
 
   // Easy Case: We're not actually shifting
   if (samt == 0) {
     for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-      res.val_[i] = val_[i];
+      val_[i] = lhs.val_[i];
     }
     return;
   }
@@ -1528,7 +1555,7 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
 
   // Is the highest order bit a 1 and do we care?
   const auto idx = (size_-1) % bits_per_word();
-  const auto hob = arith && ((val_.back() & (static_cast<T>(1) << idx)) != 0); 
+  const auto hob = arith && ((lhs.val_.back() & (static_cast<T>(1) << idx)) != 0); 
   // How many words ahead is top?
   const auto delta = ((samt + bits_per_word()) - 1) / bits_per_word();
   // How many bits are we taking from top and shifting bottom?
@@ -1540,30 +1567,30 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(size_t samt, bool arith, Bits
   // we want the top bits of the top-most word to be filled with ones.
   // This is only used in the case where hob is set and the top word is not
   // completely full.
-  const auto upper_most_word = ((static_cast<T>(-1) << idx) | val_.back());
+  const auto upper_most_word = ((static_cast<T>(-1) << idx) | lhs.val_.back());
 
   // Work our way up until top goes out of range
   size_t w = 0;
   for (size_t t = w+delta, te = val_.size(); t < te; ++w, ++t) {
     if (bamt == 0) {
-      res.val_[w] = val_[t];
+      val_[w] = lhs.val_[t];
     } else {
-      const auto upper_most = (t == (val_.size() - 1)) ? upper_most_word : val_[t];
-      res.val_[w] = (val_[t-1] >> bamt) | ((upper_most & mask) << mamt);
+      const auto upper_most = (t == (val_.size() - 1)) ? upper_most_word : lhs.val_[t];
+      val_[w] = (lhs.val_[t-1] >> bamt) | ((upper_most & mask) << mamt);
     }
   }
   // There's one more block to build where top is implicitly zero
   if (hob) {
-    res.val_[w++] = (bamt == 0) ? static_cast<T>(-1) : ((upper_most_word >> bamt) | (mask << mamt));
+    val_[w++] = (bamt == 0) ? static_cast<T>(-1) : ((upper_most_word >> bamt) | (mask << mamt));
   } else {
-    res.val_[w++] = (bamt == 0) ? static_cast<T>(0) : (val_.back() >> bamt);
+    val_[w++] = (bamt == 0) ? static_cast<T>(0) : (lhs.val_.back() >> bamt);
   }
   // Everything else is zero or padded 1s
   for (size_t we = val_.size(); w < we; ++w) {
-    res.val_[w] = hob ? static_cast<T>(-1) : static_cast<T>(0);
+    val_[w] = hob ? static_cast<T>(-1) : static_cast<T>(0);
   }
   // Trim since we could have introduced trailing 1s
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
