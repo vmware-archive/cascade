@@ -59,81 +59,59 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
   }
 
   assert(gs->is_non_null_var());
+  Bits val;
   switch (format[1]) {
-    case '_': {
-      Bits val = eval->get_value(gs->get_var());
+    case '_': 
       if (eval->get_type(gs->get_var()) == Bits::Type::REAL) {
         val.read(is, 1);
       } else {
         val.read(is, 10);
       }
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 'b':
-    case 'B': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'B':
       val.read(is, 2);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 'c':
-    case 'C': {
-      char c = is.get();
-      Bits val(c);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+    case 'C': 
+      val = Bits(static_cast<char>(is.get()));
+      break;
     case 'd':
-    case 'D': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'D': 
       val.read(is, 10);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 'e':
     case 'E':
     case 'f':
     case 'F':
     case 'g':
-    case 'G': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'G': 
       val.read(is, 1);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 'h':
-    case 'H': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'H': 
       val.read(is, 16);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 'o':
-    case 'O': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'O': 
       val.read(is, 8);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     case 's':
     case 'S': {
       std::string s;
       is >> s;
-      Bits val(s);
-      eval->assign_value(gs->get_var(), val);
-      return;
+      val = Bits(s);
+      break;
     }
     case 'u':
-    case 'U': {
-      Bits val = eval->get_value(gs->get_var());
+    case 'U': 
       val.read(is, 16);
-      eval->assign_value(gs->get_var(), val);
-      return;
-    }
+      break;
     default: 
       assert(false);
+      break;
   }
+  eval->assign_value(gs->get_var(), val);
 }
 
 } // namespace cascade

@@ -163,8 +163,8 @@ class BitsBase : public Serializable {
 
     // Comparison Operators:
     //
-    // Check for equality. These methods make no assumptions made with respect
-    // to sizes and handle sign-extension for rhs as necessary.
+    // Check for value equality. These methods make no assumptions with respect
+    // to size or type and cast rhs as necessary.
     bool eq(const BitsBase& rhs) const;
     bool eq(size_t idx, const BitsBase& rhs) const;
     bool eq(size_t msb, size_t lsb, const BitsBase& rhs) const;
@@ -186,8 +186,9 @@ class BitsBase : public Serializable {
     void concat(const BitsBase& rhs);
 
     // Bitwise Operators:
-    // 
-    // These methods are undefined for real values.
+    //
+    // These operators are meant for use outside of the constraints imposed by
+    // the verilog semantics for variables and have no restrictions on type.
     bool get(size_t idx) const;
     void set(size_t idx, bool b);
     void flip(size_t idx);
@@ -210,17 +211,17 @@ class BitsBase : public Serializable {
     // How is this value being interpreted
     Type type_;
 
-    // Reads a real number, sets type to REAL and signed to true
+    // Reads a real number, sets size to 64
     void read_real(std::istream& is);
-    // Reads a number in base 2, 8, or 16, updates size as necessary
+    // Reads an unsigned number in base 2, 8, or 16, sets size based on result 
     void read_2_8_16(std::istream& is, size_t base);
-    // Reads a number in base 10, updates size as necessary
+    // Reads a number in base 10, sets size and type based on result 
     void read_10(std::istream& is);
     // Writes a number as a real
     void write_real(std::ostream& os) const;
-    // Writes a number in base 2, 8, or 16
+    // Writes a number in base 2, 8, or 16 as an unsigned value
     void write_2_8_16(std::ostream& os, size_t base) const;
-    // Writes a number in base 10
+    // Writes a number in base 10 as a signed or unsigned value
     void write_10(std::ostream& os) const;
     // Halves a decimal value, stored as a string
     void dec_halve(std::string& s) const;
@@ -356,6 +357,8 @@ inline void BitsBase<T, BT, ST>::read(std::istream& is, size_t base) {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write(std::ostream& os, size_t base) const {
   switch (base) {
+    case 0:
+      return is_real() ? write_real(os) : write_10(os);
     case 1:
       return write_real(os);
     case 2:
@@ -375,7 +378,7 @@ inline size_t BitsBase<T, BT, ST>::deserialize(std::istream& is) {
   is.read(reinterpret_cast<char*>(&header), 4);
 
   shrink_to_bool(false);
-  resize(header & 0x3fffffffu);
+  extend_to(header & 0x3fffffffu);
   type_ = static_cast<Type>(header >> 30);
 
   const auto n = (size_+7) / 8;
@@ -966,6 +969,20 @@ inline void BitsBase<T, BT, ST>::reduce_xnor(const BitsBase& lhs) {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
+  if (is_real() && rhs.is_real()) {
+    return *reinterpret_cast<const double*>(val_.data()) == *reinterpret_cast<const double*>(rhs.val_.data());
+  } 
+  if (is_real()) {
+    auto temp = *this;
+    temp.cast_type(Type::SIGNED);
+    return temp.eq(rhs);
+  }
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    return eq(temp);
+  }
+
   size_t i = 0;
   for (size_t ie = val_.size()-1; i < ie; ++i) {
     const auto rval = rhs.signed_get(i);
@@ -973,7 +990,6 @@ inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
       return false;
     }
   }
-
   const auto rval = rhs.signed_get(i);
   const auto lover = size_ % bits_per_word();
   if (lover == 0) {
@@ -986,12 +1002,26 @@ inline bool BitsBase<T, BT, ST>::eq(const BitsBase& rhs) const {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::eq(size_t idx, const BitsBase& rhs) const {
+  assert(!is_real());
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    return eq(idx, temp);
+  }
+
   assert(idx < size_);
   return get(idx) == rhs.get(0);
 }
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::eq(size_t msb, size_t lsb, const BitsBase& rhs) const {
+  assert(!is_real());
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    return eq(msb, lsb, temp);
+  }
+
   // Corner Case: Is this a single bit range?
   if (msb == lsb) {
     return eq(msb, rhs);
@@ -1182,7 +1212,6 @@ inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::get(size_t idx) const {
-  assert(!is_real());
   assert(idx < size_);
 
   const auto widx = idx / bits_per_word();
@@ -1192,7 +1221,6 @@ inline bool BitsBase<T, BT, ST>::get(size_t idx) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::set(size_t idx, bool b) {
-  assert(!is_real());
   assert(idx < size_);
 
   const auto widx = idx / bits_per_word();
@@ -1206,7 +1234,6 @@ inline void BitsBase<T, BT, ST>::set(size_t idx, bool b) {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::flip(size_t idx) {
-  assert(!is_real());
   assert(idx < size_);
 
   const auto widx = idx / bits_per_word();
@@ -1297,10 +1324,10 @@ template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read_real(std::istream& is) {
   double d;
   is >> d;
-  const auto size = size_;
-  resize(64/bits_per_word());
+  val_.resize(64/bits_per_word());
   *reinterpret_cast<double*>(val_.data()) = d;
-  resize(size_);
+  size_ = 64;
+  type_ = Type::REAL;
 }
 
 template <typename T, typename BT, typename ST>
@@ -1309,15 +1336,18 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
   std::string s;
   is >> s;
 
-  // Reset internal state
-  const auto size = size_;
-  const auto type = type_;
-  type_ = Type::UNSIGNED;
+  // Reset to a 1-bit unsigned value
   shrink_to_bool(false);
+  type_ = Type::UNSIGNED;
+
+  // Return immediately if reading s failed.
+  if (s.empty()) {
+    return;
+  }
 
   // How many bits do we generate per character? Resize internal storage.
   const auto step = (base == 2) ? 1 : (base == 8) ? 3 : 4;
-  sign_extend_to(step * s.length());
+  extend_to(step * s.length());
 
   // Walk over the buffer from lowest to highest order (that's in reverse)
   size_t word = 0;
@@ -1342,17 +1372,13 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
     idx -= bits_per_word();
     val_[word] |= (bits >> (step-idx));
   }
-
-  // Reset original size
-  resize(size);
-  type_ = type;
 }
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
   // Check for negative
-  const auto neg = is.peek() == '-';
-  if (neg) {
+  const auto is_neg = is.peek() == '-';
+  if (is_neg) {
     is.get();
   }
 
@@ -1360,26 +1386,23 @@ inline void BitsBase<T, BT, ST>::read_10(std::istream& is) {
   std::string s;
   is >> s;
 
-  // Reset interal state
-  const auto size = size_;
-  const auto type = type_;
-  type_ = Type::UNSIGNED;
+  // Reset to 1-bit signed value
   shrink_to_bool(false);
+  type_ = is_neg ? Type::SIGNED : Type::UNSIGNED;
 
   // Halve decimal string until it becomes zero. Add 1s when least significant
-  // digit is odd, 0s otherwise. 
+  // digit is odd, 0s otherwise. An empty string will leave this loop
+  // immediately.
   for (size_t i = 1; !dec_zero(s); ++i) {
-    sign_extend_to(i);
+    extend_to(i);
     set(i-1, (s.back()-'0') % 2); 
     dec_halve(s);
   }
-
-  // Invert if negative and reset original size
-  resize(size);
-  if (neg) {
+  // Add padding for sign bit and negate if necessary
+  extend_to(size_+1);
+  if (is_neg) {
     invert_add_one();
   }
-  type_ = type;
 }
 
 template <typename T, typename BT, typename ST>
@@ -1389,6 +1412,16 @@ inline void BitsBase<T, BT, ST>::write_real(std::ostream& os) const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) const {
+  // Cast to unsigned
+  if (type_ != Type::UNSIGNED) {
+    auto temp = *this;
+    temp.cast_type(Type::UNSIGNED);
+    return temp.write_2_8_16(os, base);
+  }
+
+  // TODO(eschkufz): This would be a lot faster if we traversed the value from
+  // most to least significant bit and didn't store a temporary array.
+
   // Output Buffer:
   std::vector<uint8_t> buf;
 
@@ -1429,6 +1462,13 @@ inline void BitsBase<T, BT, ST>::write_2_8_16(std::ostream& os, size_t base) con
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::write_10(std::ostream& os) const {
+  // Cast reals down to integers
+  if (type_ == Type::REAL) {
+    auto temp = *this;
+    temp.cast_type(Type::SIGNED);
+    return temp.write_10(os); 
+  } 
+
   // Check whether this is a negative number
   const auto is_neg = is_neg_signed();
    
@@ -1702,7 +1742,11 @@ inline void BitsBase<T, BT, ST>::invert_add_one() {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::cast_int_to_real() {
   assert(type_ != Type::REAL);
-  *this = Bits(to_double());
+  const auto d = to_double();
+  val_.resize(64/bits_per_word());
+  *reinterpret_cast<double*>(val_.data()) = d;
+  size_ = 64;
+  type_ = Type::REAL;
 }
 
 template <typename T, typename BT, typename ST>

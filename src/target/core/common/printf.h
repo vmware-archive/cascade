@@ -38,11 +38,8 @@
 
 namespace cascade {
 
-class Printf {
-  public:
-    void write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const;
-  private:
-    void write_real(std::ostream& os, const char* fmt, const Bits& val) const;
+struct Printf {
+  void write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const;
 };
 
 inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const {
@@ -57,15 +54,10 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
 
   switch (fmt[1]) {
     case '_':
-      if (val.get_type() == Bits::Type::REAL) {
-        write_real(os, "%g", val); 
-      } else {
-        val.write(os, 10);
-      }
+      val.write(os, 0);
       return;
     case 'b':
     case 'B': 
-      val.cast_type(Bits::Type::UNSIGNED);
       val.write(os, 2);
       return;
     case 'c':
@@ -74,19 +66,14 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
       return;
     case 'd':
     case 'D':
-      if (val.get_type() == Bits::Type::REAL) {
-        val.cast_type(Bits::Type::SIGNED);
-      }
       val.write(os, 10);
       return;
     case 'h':
     case 'H': 
-      val.cast_type(Bits::Type::UNSIGNED);
       val.write(os, 16);
       return;
     case 'o':
     case 'O': 
-      val.cast_type(Bits::Type::UNSIGNED);
       val.write(os, 8);
       return;
     case 's':
@@ -95,16 +82,11 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
       return;
     case 'u':
     case 'U':
-      val.cast_type(Bits::Type::UNSIGNED);
       val.write(os, 16);
       return;
     default: 
       break;
   } 
-  write_real(os, fmt, val); 
-}
-
-inline void Printf::write_real(std::ostream& os, const char* fmt, const Bits& val) const {
   char buffer[1024]; 
   std::snprintf(buffer, 1024, fmt, val.to_double());
   os << buffer;
