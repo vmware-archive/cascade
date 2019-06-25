@@ -135,31 +135,31 @@ class BitsBase : public Serializable {
 
     // Logical Operators:
     //
-    // Apply a logical operator to this and rhs and store the result in res.
-    // These methods all assume equivalent bit-width between operands and
-    // single bit-width in their destination and so do not perform sign
-    // extension. These methods all work on signed, unsigned, and real values.
-    void logical_and(const BitsBase& rhs, BitsBase& res) const;
-    void logical_or(const BitsBase& rhs, BitsBase& res) const;
-    void logical_not(BitsBase& res) const;
-    void logical_eq(const BitsBase& rhs, BitsBase& res) const;
-    void logical_ne(const BitsBase& rhs, BitsBase& res) const;
-    void logical_lt(const BitsBase& rhs, BitsBase& res) const;
-    void logical_lte(const BitsBase& rhs, BitsBase& res) const;
-    void logical_gt(const BitsBase& rhs, BitsBase& res) const;
-    void logical_gte(const BitsBase& rhs, BitsBase& res) const;
+    // Apply a logical operator to operands and store the result here.  These
+    // methods all assume equivalent bit-width between operands and do not
+    // perform sign extension.  These methods all work on signed, unsigned, and
+    // real values, but assume that their desintation is not real.
+    void logical_and(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_or(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_not(const BitsBase& lhs);
+    void logical_eq(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_ne(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_lt(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_lte(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_gt(const BitsBase& lhs, const BitsBase& rhs);
+    void logical_gte(const BitsBase& lhs, const BitsBase& rhs);
 
     // Reduction Operators:
     //
-    // Apply a reduction operator to this and store the result in res These
-    // methods all assume single bit-width in their destination and so do not
-    // perform sign extension. These methods are undefined for real values.
-    void reduce_and(BitsBase& res) const;
-    void reduce_nand(BitsBase& res) const;
-    void reduce_or(BitsBase& res) const;
-    void reduce_nor(BitsBase& res) const;
-    void reduce_xor(BitsBase& res) const;
-    void reduce_xnor(BitsBase& res) const;
+    // Apply a reduction operator to an operand and store the result here.
+    // These methods all assume single bit-width in their destination and do
+    // not perform sign extension. These methods are undefined for real values.
+    void reduce_and(const BitsBase& lhs);
+    void reduce_nand(const BitsBase& lhs);
+    void reduce_or(const BitsBase& lhs);
+    void reduce_nor(const BitsBase& lhs);
+    void reduce_xor(const BitsBase& lhs);
+    void reduce_xnor(const BitsBase& lhs);
 
     // Comparison Operators:
     //
@@ -181,15 +181,20 @@ class BitsBase : public Serializable {
     void assign(const BitsBase& rhs, size_t msb, size_t lsb);
 
     // Concatenation Operations:
+    //
+    // Concatenate two variables. This method is undefined for real values.
     void concat(const BitsBase& rhs);
 
     // Bitwise Operators:
+    // 
+    // These methods are undefined for real values.
     bool get(size_t idx) const;
-    BitsBase& set(size_t idx, bool b);
-    BitsBase& flip(size_t idx);
+    void set(size_t idx, bool b);
+    void flip(size_t idx);
 
-    // Built-in Operators:
-    // Logical comparison, assumes equal operand sizes
+    // Built-in Comparison Operators:
+    //
+    // Logical comparison, assumes equal operand sizes and types
     bool operator==(const BitsBase& rhs) const;
     bool operator!=(const BitsBase& rhs) const;
     bool operator<(const BitsBase& rhs) const;
@@ -550,7 +555,7 @@ inline T BitsBase<T, BT, ST>::to_uint() const {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::resize(size_t n) {
-  assert((type != Type::REAL) || (n == 64));
+  assert((type_ != Type::REAL) || (n == 64));
   if (n < size_) {
     shrink_to(n);
   } else if (n > size_) {
@@ -668,7 +673,7 @@ inline void BitsBase<T, BT, ST>::bitwise_not(const BitsBase& lhs) {
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& lhs) {
   // This is a copy; identical implementation for reals and integers
-  assert(size() == rhs.size());
+  assert(size() == lhs.size());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     val_[i] = lhs.val_[i];
   }
@@ -795,8 +800,8 @@ inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& lhs, const Bi
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& lhs, const BitsBase& rhs) {
   assert(!lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
   assert(size() == rhs.size());
-  assert(size() == res.size());
 
   // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
@@ -819,8 +824,8 @@ inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& lhs, const BitsB
   // 3. We're not supporting reals, which this should be defined for
 
   assert(!lhs.is_real() && !rhs.is_real());
+  assert(size() == lhs.size());
   assert(size() == rhs.size());
-  assert(size() == res.size());
   assert(val_.size() == 1);
 
   // No resize. This method preserves the bit-width of lhs
@@ -829,125 +834,134 @@ inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& lhs, const BitsB
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_and(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (to_bool() && rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_or(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (to_bool() || rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_not(BitsBase& res) const {
-  res.val_[0] = to_bool() ? static_cast<T>(0) : static_cast<T>(1);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_eq(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this == rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_ne(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this != rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_lt(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this < rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_lte(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this <= rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_gt(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this > rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::logical_gte(const BitsBase& rhs, BitsBase& res) const {
-  res.val_[0] = (*this >= rhs) ? static_cast<T>(1) : static_cast<T>(0);
-  res.trim();
-}
-
-template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_and(BitsBase& res) const {
+inline void BitsBase<T, BT, ST>::logical_and(const BitsBase& lhs, const BitsBase& rhs) {
   assert(!is_real());
+  val_[0] = (lhs.to_bool() && rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_or(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs.to_bool() || rhs.to_bool()) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_not(const BitsBase& lhs) {
+  assert(!is_real());
+  val_[0] = lhs.to_bool() ? static_cast<T>(0) : static_cast<T>(1);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_eq(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs == rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_ne(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs != rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_lt(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs < rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_lte(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs <= rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_gt(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!is_real());
+  val_[0] = (lhs > rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::logical_gte(const BitsBase& lhs, const BitsBase& rhs){
+  assert(!is_real());
+  val_[0] = (lhs >= rhs) ? static_cast<T>(1) : static_cast<T>(0);
+  trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::reduce_and(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
   // Logical operations always yield unsigned results
-  for (size_t i = 0, ie = val_.size()-1; i < ie; ++i) {
-    if (val_[i] != static_cast<T>(-1)) {
-      res.val_[0] = static_cast<T>(0);
-      res.trim();
+  for (size_t i = 0, ie = lhs.val_.size()-1; i < ie; ++i) {
+    if (lhs.val_[i] != static_cast<T>(-1)) {
+      val_[0] = static_cast<T>(0);
+      trim();
       return;
     }
   }
   const auto mask = (static_cast<T>(1) << (size_ % bits_per_word())) - 1;
-  if ((val_.back() & mask) != mask) {
-    res.val_[0] = static_cast<T>(0);
-    res.trim();
+  if ((lhs.val_.back() & mask) != mask) {
+    val_[0] = static_cast<T>(0);
+    trim();
     return; 
   }
-  res.val_[0] = static_cast<T>(1);
-  res.trim();
+  val_[0] = static_cast<T>(1);
+  trim();
   return;
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_nand(BitsBase& res) const {
-  assert(!is_real());
-  reduce_and(res);
-  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
+inline void BitsBase<T, BT, ST>::reduce_nand(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
+  reduce_and(lhs);
+  val_[0] = (val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_or(BitsBase& res) const {
-  assert(!is_real());
-  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    if (val_[i]) {
-      res.val_[0] = static_cast<T>(1);
-      res.trim();
+inline void BitsBase<T, BT, ST>::reduce_or(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
+  for (size_t i = 0, ie = lhs.val_.size(); i < ie; ++i) {
+    if (lhs.val_[i]) {
+      val_[0] = static_cast<T>(1);
+      trim();
       return;
     }
   }
-  res.val_[0] = static_cast<T>(0);
-  res.trim();
+  val_[0] = static_cast<T>(0);
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_nor(BitsBase& res) const {
-  assert(!is_real());
-  reduce_or(res);
-  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
+inline void BitsBase<T, BT, ST>::reduce_nor(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
+  reduce_or(lhs);
+  val_[0] = (val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_xor(BitsBase& res) const {
-  assert(!is_real());
+inline void BitsBase<T, BT, ST>::reduce_xor(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
   size_t cnt = 0;
-  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    cnt += __builtin_popcount(val_[i]);
+  for (size_t i = 0, ie = lhs.val_.size(); i < ie; ++i) {
+    cnt += __builtin_popcount(lhs.val_[i]);
   }
-  res.val_[0] = static_cast<T>(cnt % 2);
-  res.trim();
+  val_[0] = static_cast<T>(cnt % 2);
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::reduce_xnor(BitsBase& res) const {
-  assert(!is_real());
-  reduce_xor(res);
-  res.val_[0] = (res.val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
+inline void BitsBase<T, BT, ST>::reduce_xnor(const BitsBase& lhs) {
+  assert(!is_real() && !lhs.is_real());
+  reduce_xor(lhs);
+  val_[0] = (val_[0] != 0) ? static_cast<T>(0) : static_cast<T>(1);
 }
 
 template <typename T, typename BT, typename ST>
@@ -1158,6 +1172,8 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
+  assert(!is_real() && !rhs.is_real());
+
   bitwise_sll_const(*this, rhs.size_);
   for (size_t i = 0, ie = std::min(val_.size(), rhs.val_.size()); i < ie; ++i) {
     val_[i] |= rhs.val_[i];
@@ -1166,40 +1182,41 @@ inline void BitsBase<T, BT, ST>::concat(const BitsBase& rhs) {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::get(size_t idx) const {
+  assert(!is_real());
   assert(idx < size_);
+
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
   return val_[widx] & (static_cast<T>(1) << bidx);
 }
 
 template <typename T, typename BT, typename ST>
-inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::set(size_t idx, bool b) {
+inline void BitsBase<T, BT, ST>::set(size_t idx, bool b) {
+  assert(!is_real());
   assert(idx < size_);
+
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
-
   if (b) {
     val_[widx] |= (static_cast<T>(1) << bidx);
   } else {
     val_[widx] &= ~(static_cast<T>(1) << bidx);
   }
-  return *this;
 }
 
 template <typename T, typename BT, typename ST>
-inline BitsBase<T, BT, ST>& BitsBase<T, BT, ST>::flip(size_t idx) {
+inline void BitsBase<T, BT, ST>::flip(size_t idx) {
+  assert(!is_real());
   assert(idx < size_);
+
   const auto widx = idx / bits_per_word();
   const auto bidx = idx % bits_per_word();
   const bool b = (val_[widx] >> bidx) & static_cast<T>(1);
-
   if (!b) {
     val_[widx] |= (static_cast<T>(1) << bidx);
   } else {
     val_[widx] &= ~(static_cast<T>(1) << bidx);
   }
-
-  return *this;
 }
 
 template <typename T, typename BT, typename ST>

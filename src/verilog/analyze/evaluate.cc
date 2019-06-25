@@ -271,33 +271,33 @@ void Evaluate::edit(BinaryExpression* be) {
     // NOTE: These are equivalent because we don't support x and z
     case BinaryExpression::Op::EEEQ:
     case BinaryExpression::Op::EEQ:
-      get_value(be->get_lhs()).logical_eq(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_eq(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     // NOTE: These are equivalent because we don't support x and z
     case BinaryExpression::Op::BEEQ:
     case BinaryExpression::Op::BEQ:
-      get_value(be->get_lhs()).logical_ne(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_ne(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::AAMP:
-      get_value(be->get_lhs()).logical_and(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_and(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::PPIPE:
-      get_value(be->get_lhs()).logical_or(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_or(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::TTIMES:
       be->bit_val_[0].arithmetic_pow(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::LT:
-      get_value(be->get_lhs()).logical_lt(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_lt(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::LEQ:
-      get_value(be->get_lhs()).logical_lte(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_lte(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::GT:
-      get_value(be->get_lhs()).logical_gt(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_gt(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::GEQ:
-      get_value(be->get_lhs()).logical_gte(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].logical_gte(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::AMP:
       be->bit_val_[0].bitwise_and(get_value(be->get_lhs()), get_value(be->get_rhs()));
@@ -418,28 +418,28 @@ void Evaluate::edit(UnaryExpression* ue) {
       ue->bit_val_[0].arithmetic_minus(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::BANG:
-      get_value(ue->get_lhs()).logical_not(ue->bit_val_[0]);
+      ue->bit_val_[0].logical_not(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::TILDE:
       ue->bit_val_[0].bitwise_not(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::AMP:
-      get_value(ue->get_lhs()).reduce_and(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_and(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::TAMP:
-      get_value(ue->get_lhs()).reduce_nand(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_nand(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::PIPE:
-      get_value(ue->get_lhs()).reduce_or(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_or(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::TPIPE:
-      get_value(ue->get_lhs()).reduce_nor(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_nor(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::CARAT:
-      get_value(ue->get_lhs()).reduce_xor(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_xor(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::TCARAT:
-      get_value(ue->get_lhs()).reduce_xnor(ue->bit_val_[0]);
+      ue->bit_val_[0].reduce_xnor(get_value(ue->get_lhs()));
       break;
     default:
       assert(false);
