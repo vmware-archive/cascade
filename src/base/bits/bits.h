@@ -120,18 +120,18 @@ class BitsBase : public Serializable {
 
     // Arithmetic Operators:
     //
-    // Apply an arithmetic operator to this and rhs and store the result in
-    // res.  These methods all assume equivalent bit-width between operands and
-    // destination and so do not perform sign extension. These methods all work 
-    // on signed, unsigned, and real values (with the exception of mod).
-    void arithmetic_plus(BitsBase& res) const;
-    void arithmetic_plus(const BitsBase& rhs, BitsBase& res) const;
-    void arithmetic_minus(BitsBase& res) const;
-    void arithmetic_minus(const BitsBase& rhs, BitsBase& res) const;
-    void arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const;
-    void arithmetic_divide(const BitsBase& rhs, BitsBase& res) const;
-    void arithmetic_mod(const BitsBase& rhs, BitsBase& res) const;
-    void arithmetic_pow(const BitsBase& rhs, BitsBase& res) const;
+    // Apply an arithmetic operator to operands and store the result here.
+    // These methods all assume equivalent bit-width between operands and
+    // destination and do not sign extend. These methods all work on signed,
+    // unsigned, and real values (with the exception of mod).
+    void arithmetic_plus(const BitsBase& lhs);
+    void arithmetic_plus(const BitsBase& lhs, const BitsBase& rhs);
+    void arithmetic_minus(const BitsBase& lhs);
+    void arithmetic_minus(const BitsBase& lhs, const BitsBase& rhs);
+    void arithmetic_multiply(const BitsBase& lhs, const BitsBase& rhs);
+    void arithmetic_divide(const BitsBase& lhs, const BitsBase& rhs);
+    void arithmetic_mod(const BitsBase& lhs, const BitsBase& rhs);
+    void arithmetic_pow(const BitsBase& lhs, const BitsBase& rhs);
 
     // Logical Operators:
     //
@@ -666,90 +666,90 @@ inline void BitsBase<T, BT, ST>::bitwise_not(const BitsBase& lhs) {
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_plus(BitsBase& res) const {
+inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& lhs) {
   // This is a copy; identical implementation for reals and integers
-  assert(size_ == res.size_);
+  assert(size() == rhs.size());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i];
+    val_[i] = lhs.val_[i];
   }
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& rhs, BitsBase& res) const {
-  if (is_real() || rhs.is_real()) {
-    assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_double() + rhs.to_double();
+inline void BitsBase<T, BT, ST>::arithmetic_plus(const BitsBase& lhs, const BitsBase& rhs) {
+  if (lhs.is_real() || rhs.is_real()) {
+    assert(size() == 64);
+    *reinterpret_cast<double*>(val_.data()) = lhs.to_double() + rhs.to_double();
     return;
   }
 
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
 
   T carry = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i] + rhs.val_[i] + carry;
+    val_[i] = lhs.val_[i] + rhs.val_[i] + carry;
     if (carry) {
-      carry = (res.val_[i] <= val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
+      carry = (val_[i] <= lhs.val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
     } else {
-      carry = (res.val_[i] < val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
+      carry = (val_[i] < lhs.val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
     }
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_minus(BitsBase& res) const {
-  if (is_real()) {
-    assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = -to_double();
+inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& lhs) {
+  if (lhs.is_real()) {
+    assert(size() == 64);
+    *reinterpret_cast<double*>(val_.data()) = -lhs.to_double();
     return;
   }
 
-  assert(size_ == res.size_);
+  assert(size() == lhs.size());
 
   T carry = 1;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = ~val_[i];
-    const T sum = res.val_[i] + carry;
-    carry = (sum < res.val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
-    res.val_[i] = sum;
+    val_[i] = ~lhs.val_[i];
+    const T sum = val_[i] + carry;
+    carry = (sum < val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
+    val_[i] = sum;
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& rhs, BitsBase& res) const {
-  if (is_real() || rhs.is_real()) {
-    assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_double() - rhs.to_double();
+inline void BitsBase<T, BT, ST>::arithmetic_minus(const BitsBase& lhs, const BitsBase& rhs) {
+  if (lhs.is_real() || rhs.is_real()) {
+    assert(size() == 64);
+    *reinterpret_cast<double*>(val_.data()) = lhs.to_double() - rhs.to_double();
     return;
   }
 
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
 
   T carry = 0;
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
-    res.val_[i] = val_[i] - rhs.val_[i] - carry;
+    val_[i] = lhs.val_[i] - rhs.val_[i] - carry;
     if (carry) {
-      carry = (res.val_[i] >= val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
+      carry = (val_[i] >= lhs.val_[i]) ? static_cast<T>(1) : static_cast<T>(0); 
     } else {
-      carry = (res.val_[i] > val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
+      carry = (val_[i] > lhs.val_[i]) ? static_cast<T>(1) : static_cast<T>(0);
     }
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBase& res) const {
-  if (is_real() || rhs.is_real()) {
-    assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_double() * rhs.to_double();
+inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& lhs, const BitsBase& rhs) {
+  if (lhs.is_real() || rhs.is_real()) {
+    assert(size() == 64);
+    *reinterpret_cast<double*>(val_.data()) = lhs.to_double() * rhs.to_double();
     return;
   }
 
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
 
   // This is the optimized space algorithm described in wiki's multiplication
   // algorithm article. The code is simplified here, as we can assume that both
@@ -760,72 +760,72 @@ inline void BitsBase<T, BT, ST>::arithmetic_multiply(const BitsBase& rhs, BitsBa
   for (size_t ri = 0; ri < S; ++ri) {
     for (size_t bi = 0; bi <= ri; ++bi) {
       size_t ai = ri - bi;
-      tot += static_cast<BT>(val_[ai]) * static_cast<BT>(rhs.val_[bi]);
+      tot += static_cast<BT>(lhs.val_[ai]) * static_cast<BT>(rhs.val_[bi]);
     }
-    res.val_[ri] = static_cast<T>(tot);
+    val_[ri] = static_cast<T>(tot);
     tot >>= bits_per_word();
   }
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& rhs, BitsBase& res) const {
-  if (is_real() || rhs.is_real()) {
-    assert(res.size_ == 64);
-    *reinterpret_cast<double*>(res.val_.data()) = to_double() / rhs.to_double();
+inline void BitsBase<T, BT, ST>::arithmetic_divide(const BitsBase& lhs, const BitsBase& rhs) {
+  if (lhs.is_real() || rhs.is_real()) {
+    assert(size() == 64);
+    *reinterpret_cast<double*>(val_.data()) = lhs.to_double() / rhs.to_double();
     return;
   }
 
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
+  assert(size() == lhs.size());
+  assert(size() == rhs.size());
+
   // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
 
-  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const ST l = is_neg_signed() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+  if ((lhs.type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
+    const ST l = lhs.is_neg_signed() ? (lhs.val_[0] | (static_cast<BT>(-1) << size_)) : lhs.val_[0];
     const ST r = rhs.is_neg_signed() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
-    res.val_[0] = l / r;
+    val_[0] = l / r;
   } else {
-    res.val_[0] = val_[0] / rhs.val_[0];
+    val_[0] = lhs.val_[0] / rhs.val_[0];
   }
-
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& rhs, BitsBase& res) const {
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+inline void BitsBase<T, BT, ST>::arithmetic_mod(const BitsBase& lhs, const BitsBase& rhs) {
+  assert(!lhs.is_real() && !rhs.is_real());
+  assert(size() == rhs.size());
+  assert(size() == res.size());
+
   // TODO(eschkufz) This only words for single word inputs
   assert(val_.size() == 1);
 
-  if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
-    const ST l = is_neg_signed() ? (val_[0] | (static_cast<BT>(-1) << size_)) : val_[0];
+  if ((lhs.type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
+    const ST l = lhs.is_neg_signed() ? (lhs.val_[0] | (static_cast<BT>(-1) << size_)) : lhs.val_[0];
     const ST r = rhs.is_neg_signed() ? (rhs.val_[0] | (static_cast<BT>(-1) << rhs.size_)) : rhs.val_[0]; 
-    res.val_[0] = l % r;
+    val_[0] = l % r;
   } else {
-    res.val_[0] = val_[0] % rhs.val_[0];
+    val_[0] = lhs.val_[0] % rhs.val_[0];
   }
-
-  res.trim();
+  trim();
 }
 
 template <typename T, typename BT, typename ST>
-inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& rhs, BitsBase& res) const {
+inline void BitsBase<T, BT, ST>::arithmetic_pow(const BitsBase& lhs, const BitsBase& rhs) {
   // TODO(eschkufz) There's a lot wrong here:
   // 1. We're not respecting verilog semantics (wrt sign and result)
   // 2. This only works for single word inputs
   // 3. We're not supporting reals, which this should be defined for
 
-  assert(size_ == rhs.size_);
-  assert(size_ == res.size_);
-  assert(!is_real() && !rhs.is_real());
+  assert(!lhs.is_real() && !rhs.is_real());
+  assert(size() == rhs.size());
+  assert(size() == res.size());
   assert(val_.size() == 1);
 
   // No resize. This method preserves the bit-width of lhs
-  res.val_[0] = std::pow(val_[0], rhs.val_[0]);
-  res.trim();
+  val_[0] = std::pow(lhs.val_[0], rhs.val_[0]);
+  trim();
 }
 
 template <typename T, typename BT, typename ST>

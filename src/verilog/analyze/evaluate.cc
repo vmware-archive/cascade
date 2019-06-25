@@ -254,19 +254,19 @@ void Evaluate::invalidate(const Expression* e) {
 void Evaluate::edit(BinaryExpression* be) {
   switch (be->get_op()) {
     case BinaryExpression::Op::PLUS:
-      get_value(be->get_lhs()).arithmetic_plus(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_plus(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::MINUS:
-      get_value(be->get_lhs()).arithmetic_minus(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_minus(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::TIMES:
-      get_value(be->get_lhs()).arithmetic_multiply(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_multiply(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::DIV:
-      get_value(be->get_lhs()).arithmetic_divide(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_divide(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::MOD:
-      get_value(be->get_lhs()).arithmetic_mod(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_mod(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     // NOTE: These are equivalent because we don't support x and z
     case BinaryExpression::Op::EEEQ:
@@ -285,7 +285,7 @@ void Evaluate::edit(BinaryExpression* be) {
       get_value(be->get_lhs()).logical_or(get_value(be->get_rhs()), be->bit_val_[0]);
       break;
     case BinaryExpression::Op::TTIMES:
-      get_value(be->get_lhs()).arithmetic_pow(get_value(be->get_rhs()), be->bit_val_[0]);
+      be->bit_val_[0].arithmetic_pow(get_value(be->get_lhs()), get_value(be->get_rhs()));
       break;
     case BinaryExpression::Op::LT:
       get_value(be->get_lhs()).logical_lt(get_value(be->get_rhs()), be->bit_val_[0]);
@@ -412,10 +412,10 @@ void Evaluate::edit(String* s) {
 void Evaluate::edit(UnaryExpression* ue) {
   switch (ue->get_op()) {
     case UnaryExpression::Op::PLUS:
-      get_value(ue->get_lhs()).arithmetic_plus(ue->bit_val_[0]);
+      ue->bit_val_[0].arithmetic_plus(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::MINUS:
-      get_value(ue->get_lhs()).arithmetic_minus(ue->bit_val_[0]);
+      ue->bit_val_[0].arithmetic_minus(get_value(ue->get_lhs()));
       break;
     case UnaryExpression::Op::BANG:
       get_value(ue->get_lhs()).logical_not(ue->bit_val_[0]);
