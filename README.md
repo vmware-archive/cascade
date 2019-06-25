@@ -855,15 +855,8 @@ auto* c = new Compiler();
   c->set_my_backend_compiler(mbc);
 // ...
 ```
-You'll also need to add any files you've created to the top-level ```Makefile```.
-```Makefile
-# ...
-OBJ=path/to/your/source.o \
-# ...
-HDR=path/to/your/header.h \
-# ...
-```
-Type ```make```, and everything should just work... Happy debugging!
+
+Rebuild your source and... everything should just work... Happy debugging!
 
 FAQ
 ====
