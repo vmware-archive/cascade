@@ -157,12 +157,6 @@ class Custom : public Core {
     bool is_custom() const override;
 };
 
-class Fifo : public Core { 
-  public:
-    using Core::Core;
-    bool there_were_tasks() const override;
-};
-
 class Gpio : public Core { 
   public:
     using Core::Core;
@@ -179,12 +173,6 @@ class Logic : public Core {
   public:
     using Core::Core;
     bool is_logic() const override;
-};
-
-class Memory : public Core { 
-  public:
-    using Core::Core;
-    bool there_were_tasks() const override;
 };
 
 class Pad : public Core { 
@@ -289,10 +277,6 @@ inline bool Custom::is_custom() const {
   return true;
 }
 
-inline bool Fifo::there_were_tasks() const {
-  return false;
-}
-
 inline bool Gpio::there_were_tasks() const {
   return false;
 }
@@ -303,10 +287,6 @@ inline bool Led::there_were_tasks() const {
 
 inline bool Logic::is_logic() const {
   return true;
-}
-
-inline bool Memory::there_were_tasks() const {
-  return false;
 }
 
 inline bool Pad::there_were_tasks() const {

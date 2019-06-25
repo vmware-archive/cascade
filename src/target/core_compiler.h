@@ -72,10 +72,8 @@ class CoreCompiler {
     // annotation.
     virtual Clock* compile_clock(Interface* interface, ModuleDeclaration* md);
     virtual Custom* compile_custom(Interface* interface, ModuleDeclaration* md);
-    virtual Fifo* compile_fifo(Interface* interface, ModuleDeclaration* md);
     virtual Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md);
     virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
-    virtual Memory* compile_memory(Interface* interface, ModuleDeclaration* md);
     virtual Pad* compile_pad(Interface* interface, ModuleDeclaration* md);
     virtual Reset* compile_reset(Interface* interface, ModuleDeclaration* md);
     virtual Logic* compile_logic(Interface* interface, ModuleDeclaration* md);

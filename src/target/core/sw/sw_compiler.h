@@ -34,10 +34,8 @@
 #include <mutex>
 #include <string>
 #include "target/core/sw/sw_clock.h"
-#include "target/core/sw/sw_fifo.h"
 #include "target/core/sw/sw_led.h"
 #include "target/core/sw/sw_logic.h"
-#include "target/core/sw/sw_memory.h"
 #include "target/core/sw/sw_pad.h"
 #include "target/core/sw/sw_reset.h"
 #include "target/core_compiler.h"
@@ -59,10 +57,8 @@ class SwCompiler : public CoreCompiler {
 
   private:
     SwClock* compile_clock(Interface* interface, ModuleDeclaration* md) override;
-    SwFifo* compile_fifo(Interface* interface, ModuleDeclaration* md) override;
     SwLed* compile_led(Interface* interface, ModuleDeclaration* md) override;
     SwLogic* compile_logic(Interface* interface, ModuleDeclaration* md) override;
-    SwMemory* compile_memory(Interface* interface, ModuleDeclaration* md) override;
     SwPad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
     SwReset* compile_reset(Interface* interface, ModuleDeclaration* md) override;
 

@@ -61,20 +61,12 @@ Custom* ProxyCompiler::compile_custom(Interface* interface, ModuleDeclaration* m
   return generic_compile<Custom>(interface, md);
 }
 
-Fifo* ProxyCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Fifo>(interface, md);
-}
-
 Gpio* ProxyCompiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
   return generic_compile<Gpio>(interface, md);
 }
 
 Led* ProxyCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   return generic_compile<Led>(interface, md);
-}
-
-Memory* ProxyCompiler::compile_memory(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Memory>(interface, md);
 }
 
 Pad* ProxyCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {

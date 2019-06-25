@@ -53,16 +53,12 @@ Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
     return compile_clock(interface, md); 
-  } else if (std->eq("fifo")) {
-    return compile_fifo(interface, md);
   } else if (std->eq("gpio")) {
     return compile_gpio(interface, md);
   } else if (std->eq("led")) {
     return compile_led(interface, md);
   } else if (std->eq("logic")) {
     return compile_logic(interface, md);
-  } else if (std->eq("memory")) {
-    return compile_memory(interface, md);
   } else if (std->eq("pad")) {
     return compile_pad(interface, md);
   } else if (std->eq("reset")) {
@@ -90,13 +86,6 @@ Custom* CoreCompiler::compile_custom(Interface* interface, ModuleDeclaration* md
   return nullptr;
 }
 
-Fifo* CoreCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
-  (void) interface;
-  delete md;
-  error("No compiler support available for modules of type fifo");
-  return nullptr;
-}
-
 Gpio* CoreCompiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
@@ -108,13 +97,6 @@ Led* CoreCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type led");
-  return nullptr;
-}
-
-Memory* CoreCompiler::compile_memory(Interface* interface, ModuleDeclaration* md) {
-  (void) interface;
-  delete md;
-  error("No compiler support available for modules of type memory");
   return nullptr;
 }
 
