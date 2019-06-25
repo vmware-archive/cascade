@@ -870,11 +870,19 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::TIMES:
     case BinaryExpression::Op::DIV:
     case BinaryExpression::Op::MOD:
+      // Both operands are context determined
+      if (!be->get_lhs()->bit_val_[0].is_real()) {
+        be->get_lhs()->bit_val_[0].resize(be->bit_val_[0].size());
+      }
+      if (!be->get_rhs()->bit_val_[0].is_real()) {
+        be->get_rhs()->bit_val_[0].resize(be->bit_val_[0].size());
+      }
+      break;
     case BinaryExpression::Op::AMP:
     case BinaryExpression::Op::PIPE:
     case BinaryExpression::Op::CARAT:
     case BinaryExpression::Op::TCARAT:
-      // Both operands are context dependent
+      // Both operands are context determined
       be->get_lhs()->bit_val_[0].resize(be->bit_val_[0].size());
       be->get_rhs()->bit_val_[0].resize(be->bit_val_[0].size());
       break;
@@ -886,11 +894,15 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
     case BinaryExpression::Op::GEQ:
     case BinaryExpression::Op::LT:
     case BinaryExpression::Op::LEQ:
-      // Operands are sort-of context dependent. They affect each other
+      // Operands are sort-of context determined. They affect each other
       // independently of what's going on here.
       w = max(eval_->get_width(be->get_lhs()), eval_->get_width(be->get_rhs()));
-      be->get_lhs()->bit_val_[0].resize(w);
-      be->get_rhs()->bit_val_[0].resize(w);
+      if (!be->get_lhs()->bit_val_[0].is_real()) {
+        be->get_lhs()->bit_val_[0].resize(w);
+      }
+      if (!be->get_rhs()->bit_val_[0].is_real()) {
+        be->get_rhs()->bit_val_[0].resize(w);
+      }
       break;
     case BinaryExpression::Op::AAMP:
     case BinaryExpression::Op::PPIPE:
@@ -913,9 +925,12 @@ void Evaluate::ContextDetermine::edit(BinaryExpression* be) {
 
 void Evaluate::ContextDetermine::edit(ConditionalExpression* ce) {
   // Conditions are self-determined
-  ce->get_lhs()->bit_val_[0].resize(ce->bit_val_[0].size());
-  ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
-
+  if (!ce->get_lhs()->bit_val_[0].is_real()) {
+    ce->get_lhs()->bit_val_[0].resize(ce->bit_val_[0].size());
+  }
+  if (!ce->get_rhs()->bit_val_[0].is_real()) {
+    ce->get_rhs()->bit_val_[0].resize(ce->bit_val_[0].size());
+  }
   Editor::edit(ce);
 }
 

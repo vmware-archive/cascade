@@ -285,6 +285,9 @@ TEST(simple, range_3) {
 TEST(simple, real_1) {
   run_code("minimal","data/test/regression/simple/real_1.v", "269488144269488144");
 }
+TEST(simple, real_2) {
+  run_code("minimal","data/test/regression/simple/real_2.v", "11111111111");
+}
 TEST(simple, reduce_and) {
   run_code("minimal","data/test/regression/simple/reduce_and.v", "10");
 }

@@ -172,8 +172,13 @@ class BitsBase : public Serializable {
     // Assignment Operators:
     //
     // Assign bits. These methods make no assumptions made with respect to
-    // sizes and handle sign-extension and type conversion as necessary. 
-    // Subscripting operations are undefined for real operands.
+    // sizes and handle sign-extension and type conversion as necessary.
+    // Subscripting operations are undefined for real operands. 
+    // 
+    // TODO(eschkufz> The latter two methods are undefined for reals period.
+    // This is to simplify their implementation based on the limited context in
+    // which they are called. Is this asymmetry masking a more elegant
+    // implementation?
     void assign(const BitsBase& rhs);
     void assign(size_t idx, const BitsBase& rhs);
     void assign(size_t msb, size_t lsb, const BitsBase& rhs);
@@ -195,7 +200,8 @@ class BitsBase : public Serializable {
 
     // Built-in Comparison Operators:
     //
-    // Logical comparison, assumes equal operand sizes and types
+    // Logical comparison, assumes equal operand sizes and types for integer
+    // valeus.  Will automatically cast reals to integers as necessary.
     bool operator==(const BitsBase& rhs) const;
     bool operator!=(const BitsBase& rhs) const;
     bool operator<(const BitsBase& rhs) const;
@@ -1152,6 +1158,8 @@ inline void BitsBase<T, BT, ST>::assign(size_t msb, size_t lsb, const BitsBase& 
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t idx) {
+  assert(!is_real() && !rhs.is_real());
+
   val_[0] = (idx < rhs.size()) ? rhs.get(idx) : static_cast<T>(0);
   for (size_t i = 1, ie = val_.size(); i < ie; ++i) {
     val_[i] = static_cast<T>(0);
@@ -1160,6 +1168,8 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t idx) {
 
 template <typename T, typename BT, typename ST>
 inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t lsb) {
+  assert(!is_real() && !rhs.is_real());
+
   // Corner Case: Is this range 1 bit?
   if (msb == lsb) {
     return assign(rhs, msb);
@@ -1248,6 +1258,22 @@ inline void BitsBase<T, BT, ST>::flip(size_t idx) {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::operator==(const BitsBase& rhs) const {
+  if (is_real() && rhs.is_real()) {
+    return *reinterpret_cast<const double*>(val_.data()) == *reinterpret_cast<const double*>(rhs.val_.data());
+  }
+  if (is_real()) {
+    auto temp = *this;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(rhs.size_);
+    return temp == rhs;
+  }
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(size_);
+    return *this == temp;
+  }
+
   assert(size_ == rhs.size_);
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     if (val_[i] != rhs.val_[i]) {
@@ -1264,8 +1290,23 @@ inline bool BitsBase<T, BT, ST>::operator!=(const BitsBase& rhs) const {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::operator<(const BitsBase& rhs) const {
-  assert(size_ == rhs.size_);
+  if (is_real() && rhs.is_real()) {
+    return *reinterpret_cast<const double*>(val_.data()) < *reinterpret_cast<const double*>(rhs.val_.data());
+  }
+  if (is_real()) {
+    auto temp = *this;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(rhs.size_);
+    return temp < rhs;
+  }
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(size_);
+    return *this < temp;
+  }
 
+  assert(size_ == rhs.size_);
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const auto lneg = is_neg_signed();
     const auto rneg = rhs.is_neg_signed();
@@ -1275,7 +1316,6 @@ inline bool BitsBase<T, BT, ST>::operator<(const BitsBase& rhs) const {
       return false;
     }
   }
-
   for (int i = val_.size()-1; i >= 0; --i) {
     if (val_[i] < rhs.val_[i]) {
       return true;
@@ -1288,8 +1328,23 @@ inline bool BitsBase<T, BT, ST>::operator<(const BitsBase& rhs) const {
 
 template <typename T, typename BT, typename ST>
 inline bool BitsBase<T, BT, ST>::operator<=(const BitsBase& rhs) const {
-  assert(size_ == rhs.size_);
+  if (is_real() && rhs.is_real()) {
+    return *reinterpret_cast<const double*>(val_.data()) <= *reinterpret_cast<const double*>(rhs.val_.data());
+  }
+  if (is_real()) {
+    auto temp = *this;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(rhs.size_);
+    return temp <= rhs;
+  }
+  if (rhs.is_real()) {
+    auto temp = rhs;
+    temp.cast_type(Type::SIGNED);
+    temp.resize(size_);
+    return *this <= temp;
+  }
 
+  assert(size_ == rhs.size_);
   if ((type_ == Type::SIGNED) && (rhs.type_ == Type::SIGNED)) {
     const auto lneg = is_neg_signed();
     const auto rneg = rhs.is_neg_signed();
