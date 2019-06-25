@@ -382,6 +382,10 @@ void TypeCheck::visit(const Identifier* id) {
   if (Evaluate().get_width(r) == 1) {
     return error("Found bit- or part-select in dereference of variable which was declared scalar", id);
   }
+  // CHECK: Are we providing a bit-select for a real value?
+  if (static_cast<const Declaration*>(r->get_parent())->get_type() == Declaration::Type::REAL) {
+    return error("Found bit- or part-select in dereference of variable which was declared real", id);
+  }
 
   // CHECK: Range expression bit-selects
   if ((*cdr)->is(Node::Tag::range_expression)) {
