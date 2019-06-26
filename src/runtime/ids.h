@@ -45,7 +45,7 @@ typedef uint32_t MId;
 typedef uint32_t VId;
 
 // Bottom element for module and value ids
-constexpr VId nullid() {
+constexpr uint32_t nullid() {
   return 0;
 }
 
