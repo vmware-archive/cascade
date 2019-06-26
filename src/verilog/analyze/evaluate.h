@@ -36,8 +36,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
+#include "common/bits.h"
+#include "common/vector.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/editor.h"

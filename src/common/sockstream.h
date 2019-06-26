@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_STREAM_SOCKSTREAM_H
-#define CASCADE_SRC_BASE_STREAM_SOCKSTREAM_H
+#ifndef CASCADE_SRC_COMMON_SOCKSTREAM_H
+#define CASCADE_SRC_COMMON_SOCKSTREAM_H
 
 #include <arpa/inet.h>
 #include <cstring>
@@ -38,7 +38,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include "base/stream/fdstream.h"
+#include "common/fdstream.h"
 
 namespace cascade {
 

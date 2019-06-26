@@ -36,14 +36,14 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "base/thread/asynchronous.h"
-#include "base/thread/thread_pool.h"
+#include "common/thread.h"
+#include "common/thread_pool.h"
 
 namespace cascade {
 
 class sockstream;
 
-class QuartusServer : public Asynchronous {
+class QuartusServer : public Thread {
   public:
     // RPC Interface:
     typedef uint8_t Id;

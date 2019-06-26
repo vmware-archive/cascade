@@ -32,9 +32,9 @@
 #include <signal.h>
 #include <fstream>
 #include <sstream>
-#include "base/system/system.h"
 #include "cascade/cascade.h"
 #include "cl/cl.h"
+#include "common/system.h"
 
 using namespace cascade;
 using namespace cascade::cl;

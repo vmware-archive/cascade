@@ -33,7 +33,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/analyze/indices.h"
 #include "verilog/ast/visitors/visitor.h"
 

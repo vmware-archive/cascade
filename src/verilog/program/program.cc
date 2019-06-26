@@ -32,7 +32,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include "base/log/log.h"
+#include "common/log.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/navigate.h"

@@ -32,7 +32,7 @@
 #define CASCADE_SRC_RUNTIME_DATA_PLANE_H
 
 #include <vector>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/ids.h"
 
 namespace cascade {

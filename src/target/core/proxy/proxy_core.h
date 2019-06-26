@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
 
 #include <string>
-#include "base/bits/bits.h"
-#include "base/stream/sockstream.h"
+#include "common/bits.h"
+#include "common/sockstream.h"
 #include "target/common/rpc.h"
 #include "target/core.h"
 #include "target/input.h"

@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #include <map>
 #include <unistd.h>
-#include "base/stream/sockstream.h"
+#include "common/sockstream.h"
 #include "target/core/de10/de10_rewrite.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"

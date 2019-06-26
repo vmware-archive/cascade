@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 

@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_COMMON_RPC_H
 
 #include <iostream>
-#include "base/serial/serializable.h"
+#include "common/serializable.h"
 
 namespace cascade {
 

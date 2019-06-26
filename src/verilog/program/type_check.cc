@@ -31,7 +31,7 @@
 #include "verilog/program/type_check.h"
 
 #include <sstream>
-#include "base/log/log.h"
+#include "common/log.h"
 #include "verilog/analyze/constant.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"

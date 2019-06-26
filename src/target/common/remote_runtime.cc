@@ -32,8 +32,8 @@
 
 #include <cassert>
 #include <vector>
-#include "base/log/log.h"
-#include "base/stream/sockstream.h"
+#include "common/log.h"
+#include "common/sockstream.h"
 #include "target/compiler.h"
 #include "target/engine.h"
 #include "target/interface/remote/remote_compiler.h"
@@ -46,7 +46,7 @@ using namespace std;
 
 namespace cascade {
 
-RemoteRuntime::RemoteRuntime() : Asynchronous() {
+RemoteRuntime::RemoteRuntime() : Thread() {
   compiler_ = new Compiler();
   set_path("/tmp/fpga_socket");
   set_port(8800);

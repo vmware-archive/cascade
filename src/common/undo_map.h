@@ -28,13 +28,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_MISC_UNDO_MAP_H
-#define CASCADE_SRC_MISC_UNDO_MAP_H
+#ifndef CASCADE_SRC_COMMON_UNDO_MAP_H
+#define CASCADE_SRC_COMMON_UNDO_MAP_H
 
 #include <cassert>
 #include <unordered_map>
 #include <unordered_set>
-#include "base/undo/undoable.h"
+#include "common/undoable.h"
 
 namespace cascade {
 

@@ -33,7 +33,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "base/stream/sockstream.h"
+#include "common/sockstream.h"
 #include "target/common/rpc.h"
 #include "target/core_compiler.h"
 #include "target/core/proxy/proxy_core.h"

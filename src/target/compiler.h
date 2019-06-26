@@ -33,7 +33,7 @@
 
 #include <mutex>
 #include <string>
-#include "base/thread/thread_pool.h"
+#include "common/thread_pool.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"

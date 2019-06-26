@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_H
 #define CASCADE_SRC_TARGET_CORE_H
 
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/ids.h"
 
 namespace cascade {

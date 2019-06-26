@@ -14,7 +14,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include "base/log/log.h"
+#include "common/log.h"
 #include "verilog/ast/ast.h"
 
 namespace cascade {

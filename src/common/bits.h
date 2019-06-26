@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_BITS_BITS_H
-#define CASCADE_SRC_BASE_BITS_BITS_H
+#ifndef CASCADE_SRC_COMMON_BITS_H
+#define CASCADE_SRC_COMMON_BITS_H
 
 #include <algorithm>
 #include <cassert>
@@ -40,8 +40,8 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-#include "base/container/vector.h"
-#include "base/serial/serializable.h"
+#include "common/serializable.h"
+#include "common/vector.h"
 
 namespace cascade {
 

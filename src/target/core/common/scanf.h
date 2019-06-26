@@ -33,7 +33,7 @@
 
 #include <cctype>
 #include <iostream>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/ast.h"
 

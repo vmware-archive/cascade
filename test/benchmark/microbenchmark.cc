@@ -29,10 +29,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
-#include "base/system/system.h"
 #include "benchmark/benchmark.h"
 #include "cascade/cascade.h"
 #include "cl/cl.h"
+#include "common/system.h"
 #include "harness.h"
 #include "verilog/parse/parser.h"
 

@@ -33,7 +33,7 @@
 
 #include <unordered_map>
 #include <vector>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "target/core/de10/quartus_server.h"
 #include "target/core/de10/var_table.h"

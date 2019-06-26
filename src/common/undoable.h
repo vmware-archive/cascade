@@ -28,24 +28,25 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_SERIAL_SERIALIZABLE_H
-#define CASCADE_SRC_BASE_SERIAL_SERIALIZABLE_H
-
-#include <iosfwd>
+#ifndef CASCADE_SRC_COMMON_UNDOABLE_H
+#define CASCADE_SRC_COMMON_UNDOABLE_H
 
 namespace cascade {
 
-// This class is used to represent the conecept of serialization and
-// deserialization to/from a binary string. 
+// This is a pure virtual class that represents the concept of an object with
+// an undoable interface. Actions performed following the invocation of
+// checkpoint() can either be made permanent by invoking commit() or rolled
+// back by invoking undo().
 
-struct Serializable {
+struct Undoable {
   // Constructors:
-  virtual ~Serializable() = default;
-
-  // I/O interface
-  virtual size_t deserialize(std::istream& is) = 0;
-  virtual size_t serialize(std::ostream& os) const = 0;
-}; 
+  virtual ~Undoable() = default;
+  
+  // Do/Undo Interface:
+  virtual void checkpoint() = 0;
+  virtual void commit() = 0;
+  virtual void undo() = 0;
+};
 
 } // namespace cascade
 

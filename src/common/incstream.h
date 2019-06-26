@@ -28,50 +28,74 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_TOKEN_TOKENIZE_H
-#define CASCADE_SRC_BASE_TOKEN_TOKENIZE_H
+#ifndef CASCADE_SRC_COMMON_INCSTREAM_H
+#define CASCADE_SRC_COMMON_INCSTREAM_H
 
-#include <cassert>
-#include <limits>
-#include <mutex>
+#include <fstream>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace cascade {
 
-// This class is used to represent the overhead of keeping track of string
-// variables by replacing them with integer tokens. 
+// This class is a wrapper around the c++ standard library's ifstream.  It adds
+// support for specifying multiple search paths for the filename which is
+// provided when the stream is created and the open method is called.
 
-class Tokenize {
+class incstream : public std::ifstream {
   public:
-    // Typedefs:
-    typedef uint32_t Token;
+    incstream();
+    explicit incstream(const std::string& dirs);
+    ~incstream() override = default;
 
-    // Map/Unmap:
-    Token map(const std::string& s);
-    const std::string& unmap(Token t);
+    std::string find(const std::string& path) const;
+    bool open(const std::string& path);
 
   private:
-    static std::mutex lock_;
-    static std::vector<std::string> t2s_;
-    static std::unordered_map<std::string, Token> s2t_;
+    std::vector<std::string> dirs_;
+
+    void read_dirs(const std::string& dirs);
 };
 
-inline Tokenize::Token Tokenize::map(const std::string& s) {
-  std::lock_guard<std::mutex> lg(lock_);
-  const auto res = s2t_.insert(make_pair(s, t2s_.size()));
-  if (res.second) {
-    assert(t2s_.size() < std::numeric_limits<Token>::max());
-    t2s_.push_back(s);
-  }
-  return res.first->second;
+inline incstream::incstream() : std::ifstream() {
+  read_dirs(".");
 }
 
-inline const std::string& Tokenize::unmap(Token t) {
-  assert(t < t2s_.size());
-  std::lock_guard<std::mutex> lg(lock_);
-  return t2s_[t];
+inline incstream::incstream(const std::string& dirs) : std::ifstream() {
+  read_dirs(".");
+  read_dirs(dirs);
+}
+
+inline std::string incstream::find(const std::string& path) const {
+  for (const auto& d : dirs_) {
+    const auto file = d + "/" + path;
+    std::ifstream ifs(file);
+    if (ifs.is_open()) {
+      return file;
+    }
+  }
+  return "";
+}
+
+inline bool incstream::open(const std::string& path) {
+  for (const auto& d : dirs_) {
+    std::ifstream::open(d + "/" + path);
+    if (is_open()) {
+      return true;
+    }
+    close();
+  }
+  return false;
+}
+
+inline void incstream::read_dirs(const std::string& dirs) {
+  const auto dd = dirs + ":";
+  for (size_t i = 0, j = 0; j != (dd.length()-1); i = j+1) {
+    j = dd.find_first_of(':', i);
+    const auto dir = dd.substr(i, j-i);
+    if (dir.length() > 0) {
+      dirs_.push_back(dir);
+    }
+  }
 }
 
 } // namespace cascade

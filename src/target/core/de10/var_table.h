@@ -33,8 +33,8 @@
 
 #include <cassert>
 #include <unordered_map>
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
+#include "common/bits.h"
+#include "common/vector.h"
 #include "target/core/de10/io.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/resolve.h"

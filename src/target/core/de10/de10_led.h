@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LED_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LED_H
 
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "target/core/de10/io.h"
 #include "target/input.h"

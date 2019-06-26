@@ -28,42 +28,50 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_SYSTEM_SYSTEM_H
-#define CASCADE_SRC_BASE_SYSTEM_SYSTEM_H
+#ifndef CASCADE_SRC_COMMON_TOKENIZE_H
+#define CASCADE_SRC_COMMON_TOKENIZE_H
 
-#include <cstdlib>
+#include <cassert>
+#include <limits>
+#include <mutex>
 #include <string>
-#ifdef __APPLE__
-#include <libproc.h>
-#endif
-#include <unistd.h>
+#include <unordered_map>
+#include <vector>
 
 namespace cascade {
 
-// This class is a thin wrapper aorund some basic *nix environment
-// functionality. Its goal is to abstract away platform specific differences
-// between osx and linux.
+// This class is used to represent the overhead of keeping track of string
+// variables by replacing them with integer tokens. 
 
-struct System {
-  static std::string src_root();
-  static int execute(const std::string& cmd);
+class Tokenize {
+  public:
+    // Typedefs:
+    typedef uint32_t Token;
+
+    // Map/Unmap:
+    Token map(const std::string& s);
+    const std::string& unmap(Token t);
+
+  private:
+    static std::mutex lock_;
+    static std::vector<std::string> t2s_;
+    static std::unordered_map<std::string, Token> s2t_;
 };
 
-inline std::string System::src_root() {
-  char result[1024];
-  #ifdef __APPLE__
-    const auto pid = getpid();
-    const auto count = proc_pidpath(pid, result, 1024);
-  #else
-    const auto count = readlink("/proc/self/exe", result, 1024);
-  #endif
-  const auto path = std::string(result, (count > 0) ? count : 0);
-
-  return path.substr(0, path.rfind('/')) + "/../..";
+inline Tokenize::Token Tokenize::map(const std::string& s) {
+  std::lock_guard<std::mutex> lg(lock_);
+  const auto res = s2t_.insert(make_pair(s, t2s_.size()));
+  if (res.second) {
+    assert(t2s_.size() < std::numeric_limits<Token>::max());
+    t2s_.push_back(s);
+  }
+  return res.first->second;
 }
 
-inline int System::execute(const std::string& cmd) {
-  return ::system(cmd.c_str());
+inline const std::string& Tokenize::unmap(Token t) {
+  assert(t < t2s_.size());
+  std::lock_guard<std::mutex> lg(lock_);
+  return t2s_[t];
 }
 
 } // namespace cascade

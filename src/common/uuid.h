@@ -28,74 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_STREAM_INCSTREAM_H
-#define CASCADE_SRC_BASE_STREAM_INCSTREAM_H
+#ifndef CASCADE_SRC_COMMON_UUID_H
+#define CASCADE_SRC_COMMON_UUID_H
 
-#include <fstream>
-#include <string>
-#include <vector>
+#include <iostream>
+#include <uuid/uuid.h>
+#include "base/serial/serializable.h"
 
 namespace cascade {
 
-// This class is a wrapper around the c++ standard library's ifstream.  It adds
-// support for specifying multiple search paths for the filename which is
-// provided when the stream is created and the open method is called.
+// This class is a simple wrapper around the DCE compatible Universally Unique
+// Identifier Library. It can be used wherever objects need to be uniquely
+// id'ed between different processes.
 
-class incstream : public std::ifstream {
+class Uuid : public Seializable {
   public:
-    incstream();
-    explicit incstream(const std::string& dirs);
-    ~incstream() override = default;
+    Uuid();
+    Uuid(const Uuid& rhs);
+    Uuid& operator=(const Uuid& rhs);
+    ~Uuid() override = default;
 
-    std::string find(const std::string& path) const;
-    bool open(const std::string& path);
+    size_t deserialize(std::istream& is) override;
+    size_t serialize(std::ostream& os) const override;
 
   private:
-    std::vector<std::string> dirs_;
-
-    void read_dirs(const std::string& dirs);
+    uuid_t id_;
 };
 
-inline incstream::incstream() : std::ifstream() {
-  read_dirs(".");
+inline Uuid::Uuid() : Serializable() {
+  uuid_generate(id_);
 }
 
-inline incstream::incstream(const std::string& dirs) : std::ifstream() {
-  read_dirs(".");
-  read_dirs(dirs);
+inline Uuid::Uuid(const Uuid& rhs) {
+  uuid_copy(id_, rhs.id_);
 }
 
-inline std::string incstream::find(const std::string& path) const {
-  for (const auto& d : dirs_) {
-    const auto file = d + "/" + path;
-    std::ifstream ifs(file);
-    if (ifs.is_open()) {
-      return file;
-    }
-  }
-  return "";
+inline Uuid& Uuid::operator=(const Uuid& rhs) {
+  uuid_copy(id_, rhs.id_);
+  return *this;
 }
 
-inline bool incstream::open(const std::string& path) {
-  for (const auto& d : dirs_) {
-    std::ifstream::open(d + "/" + path);
-    if (is_open()) {
-      return true;
-    }
-    close();
-  }
-  return false;
+inline size_t Uuid::deserialize(std::istream& is) {
+  is.read(reinterpret_cast<char*>(&id_), sizeof(id));
+  return sizeof(id);
 }
 
-inline void incstream::read_dirs(const std::string& dirs) {
-  const auto dd = dirs + ":";
-  for (size_t i = 0, j = 0; j != (dd.length()-1); i = j+1) {
-    j = dd.find_first_of(':', i);
-    const auto dir = dd.substr(i, j-i);
-    if (dir.length() > 0) {
-      dirs_.push_back(dir);
-    }
-  }
+inline size_t Uuid::serialize(std::ostream& os) const {
+  os.write(reinterpret_cast<const char*>(&id_), sizeof(id));
+  return sizeof(id);
 }
 
 } // namespace cascade

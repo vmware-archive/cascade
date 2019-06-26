@@ -32,8 +32,8 @@
 #include <mutex>
 #include <ncurses.h>
 #include <string>
-#include "base/bits/bits.h"
 #include "cl/cl.h"
+#include "common/bits.h"
 #include "target/common/remote_runtime.h"
 #include "target/compiler.h"
 #include "target/core/sw/sw_compiler.h"

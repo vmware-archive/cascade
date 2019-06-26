@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_INTERFACE_H
 
 #include <cassert>
-#include "base/stream/sockstream.h"
+#include "common/sockstream.h"
 #include "target/common/rpc.h"
 #include "target/interface.h"
 

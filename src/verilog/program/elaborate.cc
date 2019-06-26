@@ -32,7 +32,7 @@
 
 #include <cassert>
 #include <unordered_map>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/indices.h"
 #include "verilog/analyze/navigate.h"

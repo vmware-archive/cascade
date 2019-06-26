@@ -1,8 +1,8 @@
 %{ 
 #include <cctype>
 #include <string>
-#include "base/bits/bits.h"
-#include "base/stream/incstream.h"
+#include "common/bits.h"
+#include "common/incstream.h"
 #include "verilog_parser.hh"
 #include "verilog/parse/lexer.h"
 #include "verilog/parse/parser.h"

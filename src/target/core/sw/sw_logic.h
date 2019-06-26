@@ -35,7 +35,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/visitors/visitor.h"

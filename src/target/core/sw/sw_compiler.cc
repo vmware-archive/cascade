@@ -30,7 +30,6 @@
 
 #include "target/core/sw/sw_compiler.h"
 
-#include "base/stream/incstream.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"

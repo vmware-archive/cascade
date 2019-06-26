@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
-#define CASCADE_SRC_BASE_THREAD_ASYNCHRONOUS_H
+#ifndef CASCADE_SRC_COMMON_THREAD_H
+#define CASCADE_SRC_COMMON_THREAD_H
 
 #include <cassert>
 #include <chrono>
@@ -43,12 +43,12 @@ namespace cascade {
 // object: one that can be started and stopped independently of the main
 // program thread.
 
-class Asynchronous {
+class Thread {
   public:
     // Initializes an asynchronous object in the stopped state.
-    Asynchronous();
+    Thread();
     // Invokes stop_now().
-    virtual ~Asynchronous();
+    virtual ~Thread();
 
     // Invokes stop_now() and creates a new thread which invokes run_logic().
     // Returns immediately.  
@@ -100,44 +100,44 @@ class Asynchronous {
     bool was_terminated_;
 };
 
-inline Asynchronous::Asynchronous() : thread_() {
+inline Thread::Thread() : thread_() {
   stop_requested_ = true;
   was_terminated_ = false;
 }
 
-inline Asynchronous::~Asynchronous() {
+inline Thread::~Thread() {
   stop_now();
 }
 
-inline void Asynchronous::run() {
+inline void Thread::run() {
   stop_now();
   stop_requested_ = false;
   thread_ = std::thread([this]{run_logic();});
 }
 
-inline void Asynchronous::request_stop() {
+inline void Thread::request_stop() {
   stop_requested_ = true;
 }
 
-inline void Asynchronous::wait_for_stop() {
+inline void Thread::wait_for_stop() {
   if (thread_.joinable()) {
     thread_.join();
   }
   stop_logic();
 }
 
-inline void Asynchronous::run_to_completion() {
+inline void Thread::run_to_completion() {
   run();
   request_stop();
   wait_for_stop();
 }
 
-inline void Asynchronous::stop_now() {
+inline void Thread::stop_now() {
   request_stop();
   wait_for_stop();
 }
 
-inline void Asynchronous::terminate() {
+inline void Thread::terminate() {
   assert(!was_terminated());
   if (thread_.get_id() != std::thread::id()) {
     thread_.detach();
@@ -146,33 +146,33 @@ inline void Asynchronous::terminate() {
   }
 }
 
-inline bool Asynchronous::was_terminated() const {
+inline bool Thread::was_terminated() const {
   return was_terminated_;
 }
 
-inline void Asynchronous::run_logic() {
+inline void Thread::run_logic() {
   // Does nothing.
 }
 
-inline void Asynchronous::stop_logic() {
+inline void Thread::stop_logic() {
   // Does nothing.
 }
 
-inline void Asynchronous::sleep_for(size_t n) {
+inline void Thread::sleep_for(size_t n) {
   std::this_thread::sleep_for(std::chrono::milliseconds(n));
 }
 
-inline void Asynchronous::wait_for(size_t n) {
+inline void Thread::wait_for(size_t n) {
   std::mutex m;
   std::unique_lock<std::mutex> ul(m);
   cv_.wait_for(ul, std::chrono::milliseconds(n));
 }
 
-inline void Asynchronous::notify() {
+inline void Thread::notify() {
   cv_.notify_one();
 }
 
-inline bool Asynchronous::stop_requested() const {
+inline bool Thread::stop_requested() const {
   return stop_requested_;
 }
 

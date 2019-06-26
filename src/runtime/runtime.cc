@@ -36,9 +36,9 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include "base/stream/incstream.h"
-#include "base/stream/indstream.h"
-#include "base/system/system.h"
+#include "common/incstream.h"
+#include "common/indstream.h"
+#include "common/system.h"
 #include "runtime/data_plane.h"
 #include "runtime/isolate.h"
 #include "runtime/module.h"
@@ -54,7 +54,7 @@ using namespace std;
 
 namespace cascade {
 
-Runtime::Runtime() : Asynchronous() {
+Runtime::Runtime() : Thread() {
   log_ = new Log();
   parser_ = new Parser(log_);
   dp_ = new DataPlane();

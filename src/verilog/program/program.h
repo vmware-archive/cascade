@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_PROGRAM_PROGRAM_H
 
 #include <vector>
-#include "base/undo/undo_map.h"
+#include "common/undo_map.h"
 #include "verilog/analyze/indices.h"
 #include "verilog/ast/visitors/editor.h"
 

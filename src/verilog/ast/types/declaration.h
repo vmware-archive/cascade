@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_DECLARATION_H
 
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/ast/types/attributes.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/identifier.h"

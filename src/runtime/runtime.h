@@ -38,9 +38,9 @@
 #include <mutex>
 #include <string>
 #include <vector>
-#include "base/bits/bits.h"
-#include "base/thread/asynchronous.h"
-#include "base/log/log.h"
+#include "common/bits.h"
+#include "common/log.h"
+#include "common/thread.h"
 #include "runtime/ids.h"
 #include "verilog/ast/ast_fwd.h"
 
@@ -54,7 +54,7 @@ class Module;
 class Parser;
 class Program;
 
-class Runtime : public Asynchronous {
+class Runtime : public Thread {
   public:
     // Constexprs:
     static constexpr FId stdin_ = 0x8000'0000;

@@ -34,7 +34,7 @@
 #include <cassert>
 #include <iostream>
 #include <streambuf>
-#include "base/stream/cachestream.h"
+#include "common/cachestream.h"
 #include "runtime/runtime.h"
 #include "target/interface.h"
 #include "target/interface/remote/remote_interface.h"

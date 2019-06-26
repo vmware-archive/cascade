@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
 
 #include <string>
-#include "base/bits/bits.h"
-#include "base/thread/asynchronous.h"
+#include "common/bits.h"
+#include "common/thread.h"
 #include "target/common/rpc.h"
 
 namespace cascade {
@@ -42,7 +42,7 @@ class Compiler;
 class Engine;
 class sockstream;
 
-class RemoteRuntime : public Asynchronous {
+class RemoteRuntime : public Thread {
   public:
     RemoteRuntime();
     ~RemoteRuntime() override;
@@ -56,7 +56,7 @@ class RemoteRuntime : public Asynchronous {
     std::string path_;
     uint32_t port_;
 
-    // Asynchronous Interface:
+    // Thread Interface:
     void run_logic() override;
 
     // Compiler Interface:

@@ -34,7 +34,7 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/data_plane.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"

@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 
 #include <string>
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/ast/visitors/editor.h"
 
 namespace cascade {

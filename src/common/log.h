@@ -28,56 +28,77 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_UUID_UUID_H
-#define CASCADE_SRC_BASE_UUID_UUID_H
+#ifndef CASCADE_SRC_COMMON_LOG_H
+#define CASCADE_SRC_COMMON_LOG_H
 
-#include <iostream>
-#include <uuid/uuid.h>
-#include "base/serial/serializable.h"
+#include <string>
+#include <vector>
 
 namespace cascade {
 
-// This class is a simple wrapper around the DCE compatible Universally Unique
-// Identifier Library. It can be used wherever objects need to be uniquely
-// id'ed between different processes.
+// This class is used to attach logging facilities to objects with complex
+// behavior. It allows the user to record warnings, and errors and inspect
+// their values at a later time.
 
-class Uuid : public Seializable {
+class Log {
   public:
-    Uuid();
-    Uuid(const Uuid& rhs);
-    Uuid& operator=(const Uuid& rhs);
-    ~Uuid() override = default;
+    typedef std::vector<std::string>::const_iterator error_iterator;
+    typedef std::vector<std::string>::const_iterator warn_iterator;
 
-    size_t deserialize(std::istream& is) override;
-    size_t serialize(std::ostream& os) const override;
+    void error(const std::string& s);
+    void warn(const std::string& s);
+    void clear();
+
+    bool error() const;
+    error_iterator error_begin() const;
+    error_iterator error_end() const;
+
+    bool warning() const;
+    warn_iterator warn_begin() const;
+    warn_iterator warn_end() const;
 
   private:
-    uuid_t id_;
+    std::vector<std::string> errors_;
+    std::vector<std::string> warns_;
 };
 
-inline Uuid::Uuid() : Serializable() {
-  uuid_generate(id_);
+inline void Log::error(const std::string& s) {
+  errors_.push_back(s);
+} 
+
+inline void Log::warn(const std::string& s) {
+  warns_.push_back(s);
 }
 
-inline Uuid::Uuid(const Uuid& rhs) {
-  uuid_copy(id_, rhs.id_);
+inline void Log::clear() {
+  errors_.clear();
+  warns_.clear();
 }
 
-inline Uuid& Uuid::operator=(const Uuid& rhs) {
-  uuid_copy(id_, rhs.id_);
-  return *this;
+inline bool Log::error() const {
+  return !errors_.empty();
 }
 
-inline size_t Uuid::deserialize(std::istream& is) {
-  is.read(reinterpret_cast<char*>(&id_), sizeof(id));
-  return sizeof(id);
+inline Log::error_iterator Log::error_begin() const {
+  return errors_.begin();
 }
 
-inline size_t Uuid::serialize(std::ostream& os) const {
-  os.write(reinterpret_cast<const char*>(&id_), sizeof(id));
-  return sizeof(id);
+inline Log::error_iterator Log::error_end() const {
+  return errors_.end();
+}
+  
+inline bool Log::warning() const {
+  return !warns_.empty();
 }
 
-} // namespace cascade
+inline Log::warn_iterator Log::warn_begin() const {
+  return warns_.begin();
+}
+
+inline Log::warn_iterator Log::warn_end() const {
+  return warns_.end();
+}
+ 
+} // namespace cascade 
 
 #endif

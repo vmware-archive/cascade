@@ -28,77 +28,44 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_LOG_LOG_H
-#define CASCADE_SRC_BASE_LOG_LOG_H
+#ifndef CASCADE_SRC_COMMON_SYSTEM_H
+#define CASCADE_SRC_COMMON_SYSTEM_H
 
+#include <cstdlib>
 #include <string>
-#include <vector>
+#ifdef __APPLE__
+#include <libproc.h>
+#endif
+#include <unistd.h>
 
 namespace cascade {
 
-// This class is used to attach logging facilities to objects with complex
-// behavior. It allows the user to record warnings, and errors and inspect
-// their values at a later time.
+// This class is a thin wrapper aorund some basic *nix environment
+// functionality. Its goal is to abstract away platform specific differences
+// between osx and linux.
 
-class Log {
-  public:
-    typedef std::vector<std::string>::const_iterator error_iterator;
-    typedef std::vector<std::string>::const_iterator warn_iterator;
-
-    void error(const std::string& s);
-    void warn(const std::string& s);
-    void clear();
-
-    bool error() const;
-    error_iterator error_begin() const;
-    error_iterator error_end() const;
-
-    bool warning() const;
-    warn_iterator warn_begin() const;
-    warn_iterator warn_end() const;
-
-  private:
-    std::vector<std::string> errors_;
-    std::vector<std::string> warns_;
+struct System {
+  static std::string src_root();
+  static int execute(const std::string& cmd);
 };
 
-inline void Log::error(const std::string& s) {
-  errors_.push_back(s);
-} 
+inline std::string System::src_root() {
+  char result[1024];
+  #ifdef __APPLE__
+    const auto pid = getpid();
+    const auto count = proc_pidpath(pid, result, 1024);
+  #else
+    const auto count = readlink("/proc/self/exe", result, 1024);
+  #endif
+  const auto path = std::string(result, (count > 0) ? count : 0);
 
-inline void Log::warn(const std::string& s) {
-  warns_.push_back(s);
-}
-
-inline void Log::clear() {
-  errors_.clear();
-  warns_.clear();
-}
-
-inline bool Log::error() const {
-  return !errors_.empty();
+  return path.substr(0, path.rfind('/')) + "/../..";
 }
 
-inline Log::error_iterator Log::error_begin() const {
-  return errors_.begin();
+inline int System::execute(const std::string& cmd) {
+  return ::system(cmd.c_str());
 }
 
-inline Log::error_iterator Log::error_end() const {
-  return errors_.end();
-}
-  
-inline bool Log::warning() const {
-  return !warns_.empty();
-}
-
-inline Log::warn_iterator Log::warn_begin() const {
-  return warns_.begin();
-}
-
-inline Log::warn_iterator Log::warn_end() const {
-  return warns_.end();
-}
- 
-} // namespace cascade 
+} // namespace cascade
 
 #endif

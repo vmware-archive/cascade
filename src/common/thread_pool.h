@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_BASE_THREAD_THREAD_POOL_H
-#define CASCADE_SRC_BASE_THREAD_THREAD_POOL_H
+#ifndef CASCADE_SRC_COMMON_THREAD_POOL_H
+#define CASCADE_SRC_COMMON_THREAD_POOL_H
 
 #include <cassert>
 #include <condition_variable>
@@ -38,7 +38,7 @@
 #include <stack>
 #include <thread>
 #include <vector>
-#include "base/thread/asynchronous.h"
+#include "common/thread.h"
 
 namespace cascade {
 
@@ -46,7 +46,7 @@ namespace cascade {
 // objects can schedule Jobs (ie: methods returning void which can be handled
 // asynchronously) and block on their completion.
 
-class ThreadPool : public Asynchronous {
+class ThreadPool : public Thread {
   public:
     // Job Typedef:
     typedef std::function<void()> Job;
@@ -78,7 +78,7 @@ class ThreadPool : public Asynchronous {
     Job* get();
 };
 
-inline ThreadPool::ThreadPool() : Asynchronous() {
+inline ThreadPool::ThreadPool() : Thread() {
   set_num_threads(1);
 }
 

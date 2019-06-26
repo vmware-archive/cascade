@@ -34,7 +34,7 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
-#include "base/stream/indstream.h"
+#include "common/indstream.h"
 #include "verilog/ast/visitors/visitor.h"
 #include "verilog/print/color.h"
 

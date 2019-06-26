@@ -31,9 +31,9 @@
 #include "harness.h"
 
 #include <sstream>
-#include "base/system/system.h"
 #include "cascade/cascade.h"
 #include "cl/cl.h"
+#include "common/system.h"
 #include "gtest/gtest.h"
 #include "verilog/parse/parser.h"
 

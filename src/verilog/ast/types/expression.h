@@ -31,8 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_EXPRESSION_H
 
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
+#include "common/bits.h"
+#include "common/vector.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/node.h"
 
