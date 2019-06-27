@@ -474,10 +474,10 @@ void Printer::visit(const BlockingAssign* ba) {
 }
 
 void Printer::visit(const NonblockingAssign* na) {
-  na->get_assign()->accept_lhs(this);
+  na->accept_lhs(this);
   *this << Color::RED << " <= " << Color::RESET;
   na->accept_ctrl(this, []{}, [this]{*this << " ";});
-  na->get_assign()->accept_rhs(this);
+  na->accept_rhs(this);
   *this << Color::RED << ";" << Color::RESET;
 }
 

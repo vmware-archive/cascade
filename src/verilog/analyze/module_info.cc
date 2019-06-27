@@ -676,9 +676,12 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
 }
 
 void ModuleInfo::visit(const NonblockingAssign* na) {
-  na->accept_assign(this);
+  lhs_ = true;
+  na->accept_lhs(this);
+  lhs_ = false;
+  na->accept_rhs(this);
 
-  auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  auto* r = Resolve().get_resolution(na->get_lhs());
   assert(r != nullptr);
 
   if (md_->locals_.find(r) == md_->locals_.end()) {

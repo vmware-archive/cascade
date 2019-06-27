@@ -75,7 +75,7 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
     sb->push_back_stmts(new ConditionalStatement(
       new Identifier("__continue"),
       static_cast<SeqBlock*>(tcs->get_stmt())->front_stmts()->clone(),
-      new NonblockingAssign(new VariableAssign(
+      new NonblockingAssign(
         new Identifier("__state"),
         new ConditionalExpression(
           new Identifier("__reset"),
@@ -87,7 +87,7 @@ void TriggerReschedule::edit(AlwaysConstruct* ac) {
           )
         )
       ))
-    ));
+    );
   }
 
   // Push the new block down into a new always @(posedge __clk)        

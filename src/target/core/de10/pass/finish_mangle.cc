@@ -41,15 +41,15 @@ FinishMangle::FinishMangle(TextMangle* tm) : Rewriter() {
 }
 
 Statement* FinishMangle::rewrite(NonblockingAssign* na) {
-  const auto* id = na->get_assign()->get_lhs();
+  const auto* id = na->get_lhs();
   if (id->eq("__1")) {
-    assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
-    const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
+    assert(na->get_rhs()->is(Node::Tag::number));
+    const auto* n = static_cast<const Number*>(na->get_rhs());
     return tm_->get_io(Evaluate().get_value(n).to_uint());
   }
   if (id->eq("__2")) {
-    assert(na->get_assign()->get_rhs()->is(Node::Tag::number));
-    const auto* n = static_cast<const Number*>(na->get_assign()->get_rhs());
+    assert(na->get_rhs()->is(Node::Tag::number));
+    const auto* n = static_cast<const Number*>(na->get_rhs());
     return tm_->get_task(Evaluate().get_value(n).to_uint());
   }
   return na;

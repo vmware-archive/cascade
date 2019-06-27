@@ -222,7 +222,8 @@ void Editor::edit(BlockingAssign* ba) {
 
 void Editor::edit(NonblockingAssign* na) {
   na->accept_ctrl(this);
-  na->accept_assign(this);
+  na->accept_lhs(this);
+  na->accept_rhs(this);
 }
 
 void Editor::edit(CaseStatement* cs) {

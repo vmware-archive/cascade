@@ -1384,7 +1384,7 @@ blocking_assignment
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
-    $$ = new NonblockingAssign($3, new VariableAssign($1,$4));
+    $$ = new NonblockingAssign($3, $1, $4);
     parser->set_loc($$, $1);
   }
   ;

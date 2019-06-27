@@ -335,10 +335,10 @@ void SwLogic::visit(const NonblockingAssign* na) {
   assert(na->is_null_ctrl());
   
   if (!silent_) {
-    const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
+    const auto* r = Resolve().get_resolution(na->get_lhs());
     assert(r != nullptr);
-    const auto target = eval_.dereference(r, na->get_assign()->get_lhs());
-    const auto& res = eval_.get_value(na->get_assign()->get_rhs());
+    const auto target = eval_.dereference(r, na->get_lhs());
+    const auto& res = eval_.get_value(na->get_rhs());
 
     const auto idx = updates_.size();
     if (idx >= update_pool_.size()) {

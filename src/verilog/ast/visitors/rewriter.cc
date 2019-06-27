@@ -256,7 +256,8 @@ Statement* Rewriter::rewrite(BlockingAssign* ba) {
 
 Statement* Rewriter::rewrite(NonblockingAssign* na) {
   na->accept_ctrl(this);
-  na->accept_assign(this);
+  na->accept_lhs(this);
+  na->accept_rhs(this);
   return na;
 }
 

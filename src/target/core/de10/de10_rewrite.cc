@@ -363,7 +363,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
+    new NonblockingAssign(
       new Identifier("__update_mask"),
       new ConditionalExpression(
         new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
@@ -371,7 +371,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
         new Identifier("__update_mask")
       )
     ))
-  ))); 
+  )); 
 }
 
 void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
@@ -393,7 +393,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
   ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
+    new NonblockingAssign(
       new Identifier("__task_mask"),
       new ConditionalExpression(
         new BinaryExpression(
@@ -404,7 +404,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
         new Identifier("__next_task_mask"), 
         new Identifier("__task_mask"))
     ))
-  ))); 
+  )); 
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__io_queue"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
   ));
@@ -421,7 +421,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
   ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
+    new NonblockingAssign(
       new Identifier("__io_mask"),
       new ConditionalExpression(
         new BinaryExpression(
@@ -432,7 +432,7 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
         new Identifier("__next_io_mask"), 
         new Identifier("__io_mask"))
     ))
-  ))); 
+  )); 
 }
 
 void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de) {
@@ -457,7 +457,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
     )
   ));
   auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+  sb->push_back_stmts(new NonblockingAssign(
     new Identifier("__open_loop"),
     new ConditionalExpression(
       new BinaryExpression(
@@ -476,8 +476,8 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
         )
       )
     )
-    )));
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+    ));
+  sb->push_back_stmts(new NonblockingAssign(
     new Identifier("__open_loop_itrs"),
     new ConditionalExpression(
       new BinaryExpression(
@@ -492,7 +492,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
         new Identifier("__open_loop_itrs")
       )
     )
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     sb
@@ -571,7 +571,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
           );
         }
 
-        logic[idx] = new NonblockingAssign(new VariableAssign(lhs, rhs));
+        logic[idx] = new NonblockingAssign(lhs, rhs);
         ++idx;
       }
     }
@@ -590,7 +590,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
       new Identifier("__in"),
       lhs->clone()
     );
-    logic[de->get_table().var_size() + t->second.begin] = new NonblockingAssign(new VariableAssign(lhs, rhs));
+    logic[de->get_table().var_size() + t->second.begin] = new NonblockingAssign(lhs, rhs);
   }
 
   auto* lsb = new SeqBlock();
@@ -615,10 +615,10 @@ void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex*
 
   auto* sb = new SeqBlock();
   for (auto& v : vars) {
-    sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+    sb->push_back_stmts(new NonblockingAssign(
       new Identifier(v.first+"_prev"),
       v.second->clone()
-    )));
+    ));
   }
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
@@ -631,7 +631,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
   // the user forces a read
 
   auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+  sb->push_back_stmts(new NonblockingAssign(
     new Identifier("__continue"),
     new BinaryExpression(
       new BinaryExpression(
@@ -650,8 +650,8 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
         )  
       )
     )
-  )));
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+  ));
+  sb->push_back_stmts(new NonblockingAssign(
     new Identifier("__reset"),
     new ConditionalExpression(
       new BinaryExpression(
@@ -662,7 +662,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) 
       new Number(Bits(true)),
       new Number(Bits(false))
     )
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     sb

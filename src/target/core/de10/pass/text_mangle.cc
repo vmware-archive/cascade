@@ -121,10 +121,10 @@ Statement* TextMangle::save_io(const Statement* s) {
   Mangle m(de_, true, ios_.size(), tasks_.size());
   s->accept(&m);
 
-  auto* res = new NonblockingAssign(new VariableAssign(
+  auto* res = new NonblockingAssign(
     new Identifier("__1"), 
     new Number(Bits(32, ios_.size()))
-  ));
+  );
   ios_.push_back(m.res_);
 
   return res;
@@ -134,10 +134,10 @@ Statement* TextMangle::save_task(const Statement* s) {
   Mangle m(de_, true, ios_.size(), tasks_.size());
   s->accept(&m);
 
-  auto* res = new NonblockingAssign(new VariableAssign(
+  auto* res = new NonblockingAssign(
     new Identifier("__2"), 
     new Number(Bits(32, tasks_.size()))
-  ));
+  );
   tasks_.push_back(m.res_);
 
   return res;
@@ -156,7 +156,7 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
 
   // Look up the target of this assignment and the indices it spans in the
   // variable table
-  const auto* lhs = na->get_assign()->get_lhs();
+  const auto* lhs = na->get_lhs();
   const auto* r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
   
@@ -166,25 +166,21 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
   next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
   res_->push_back_stmts(new NonblockingAssign(
     na->clone_ctrl(),
-    new VariableAssign(
-      next,
-      na->get_assign()->get_rhs()->clone()
-    )
+    next,
+    na->get_rhs()->clone()
   ));
 
   // Insert a new assignment to the next mask
   res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
+    new Identifier(
+      new Id("__next_update_mask"),
+      get_table_range(r, lhs)
+    ),
+    new UnaryExpression(
+      UnaryExpression::Op::TILDE,
       new Identifier(
         new Id("__next_update_mask"),
         get_table_range(r, lhs)
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_update_mask"),
-          get_table_range(r, lhs)
-        )
       )
     )
   ));
@@ -242,10 +238,8 @@ void TextMangle::Mangle::visit(const Identifier* id) {
 
     // Attach the concatenation to an assignment, we'll always have enough bits now
     res_->push_back_stmts(new NonblockingAssign(
-      new VariableAssign(
-        new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+i))),
-        rhs
-      )
+      new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+i))),
+      rhs
     ));
   }
 }
@@ -288,38 +282,34 @@ void TextMangle::Mangle::visit(const SaveStatement* ss) {
 void TextMangle::Mangle::begin_mangle_io() {
   res_ = new SeqBlock();
   res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
+    new Identifier(
+      new Id("__next_io_mask"),
+      new Number(Bits(32, io_idx_))
+    ),
+    new UnaryExpression(
+      UnaryExpression::Op::TILDE,
       new Identifier(
         new Id("__next_io_mask"),
         new Number(Bits(32, io_idx_))
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_io_mask"),
-          new Number(Bits(32, io_idx_))
-        )
       )
-    )    
+    )
   ));
 }
 
 void TextMangle::Mangle::begin_mangle_task() {
   res_ = new SeqBlock();
   res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
+    new Identifier(
+      new Id("__next_task_mask"),
+      new Number(Bits(32, task_idx_))
+    ),
+    new UnaryExpression(
+      UnaryExpression::Op::TILDE,
       new Identifier(
         new Id("__next_task_mask"),
         new Number(Bits(32, task_idx_))
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_task_mask"),
-          new Number(Bits(32, task_idx_))
-        )
       )
-    )    
+    )
   ));
 }
 

@@ -222,7 +222,8 @@ void Visitor::visit(const BlockingAssign* ba) {
 
 void Visitor::visit(const NonblockingAssign* na) {
   na->accept_ctrl(this);
-  na->accept_assign(this);
+  na->accept_lhs(this);
+  na->accept_rhs(this);
 }
 
 void Visitor::visit(const CaseStatement* cs) {

@@ -308,7 +308,8 @@ Statement* Builder::build(const BlockingAssign* ba) {
 Statement* Builder::build(const NonblockingAssign* na) {
   return new NonblockingAssign(
     na->accept_ctrl(this),
-    na->accept_assign(this)
+    na->accept_lhs(this),
+    na->accept_rhs(this)
   );
 }
 

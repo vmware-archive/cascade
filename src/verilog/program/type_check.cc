@@ -671,7 +671,7 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   // RECURSE:
   Visitor::visit(na);
   // CHECK: Target must be register or integer
-  const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
+  const auto* r = Resolve().get_resolution(na->get_lhs());
   if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
     error("Found a non-blocking assignments to a variable with type other than reg", na);
   }

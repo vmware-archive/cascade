@@ -47,7 +47,7 @@ bool Machinify::IoCheck::run(const Node* n) {
 }
 
 void Machinify::IoCheck::visit(const NonblockingAssign* na) {
-  const auto* i = na->get_assign()->get_lhs();
+  const auto* i = na->get_lhs();
   if (i->eq("__1")) {
     res_ = true;
   }
@@ -74,10 +74,10 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
     transition(c.first);
   } else {
     transition(c.second, c.first+1);
-    machine_->push_back_items(new CaseItem(new NonblockingAssign(new VariableAssign(
+    machine_->push_back_items(new CaseItem(new NonblockingAssign(
       new Identifier("__state"),
       new Number(Bits(32, c.first+1))
-    ))));
+    )));
   }
 
   // Add declaration for state register 
@@ -126,7 +126,7 @@ void Machinify::Generate::visit(const NonblockingAssign* na) {
 
   // Otherwise, if this is an io statement, we'll need to break for a state
   // transition.
-  const auto* id = na->get_assign()->get_lhs();
+  const auto* id = na->get_lhs();
   if (id->eq("__1")) {
     transition(current().first+1);
     next_state();
@@ -161,10 +161,10 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
   size_t idx = 0;
   for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
     branch->push_back_items(new CaseItem(
-      new NonblockingAssign(new VariableAssign(
+      new NonblockingAssign(
         new Identifier("__state"),
         new Number(Bits(32, begins[idx++].first))
-      ))
+      )
     ));
     for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) {
       branch->back_items()->push_back_exprs((*j)->clone());
@@ -223,14 +223,14 @@ void Machinify::Generate::visit(const ConditionalStatement* cs) {
   // to the beginning of the else state or one past the end of the then state.
   auto* branch = new ConditionalStatement(
     cs->get_if()->clone(),
-    new NonblockingAssign(new VariableAssign(
+    new NonblockingAssign(
       new Identifier("__state"),
       new Number(Bits(32, then_begin.first))
-    )),
-    new NonblockingAssign(new VariableAssign(
+    ),
+    new NonblockingAssign(
       new Identifier("__state"),
       new Number(Bits(32, !empty_else ? else_begin.first : (then_end.first + 1)))
-    ))
+    )
   );
   append(begin.second, branch);
 
@@ -266,10 +266,10 @@ void Machinify::Generate::transition(size_t n) {
 }
 
 void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
+  sb->push_back_stmts(new NonblockingAssign(
     new Identifier("__state"),
     new Number(Bits(32, n))
-  )));
+  ));
 }
 
 void Machinify::Generate::next_state() {

@@ -31,6 +31,8 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/module_item.h"
 
