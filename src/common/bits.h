@@ -190,6 +190,11 @@ class BitsBase : public Serializable {
     void assign(const BitsBase& rhs, size_t idx);
     void assign(const BitsBase& rhs, size_t msb, size_t lsb);
 
+    // Copy Operators:
+    //
+    // Nothing fancy. Copies the state of the rhs.
+    void copy(const BitsBase& rhs);
+
     // Bitwise Operators:
     //
     // These operators are meant for use outside of the constraints imposed by
@@ -335,7 +340,7 @@ inline BitsBase<T, BT, ST>::BitsBase(const std::string& s) {
 }
 
 template <typename T, typename BT, typename ST>
-inline BitsBase<T, BT, ST>::BitsBase(size_t n, T val) : BitsBase() { 
+inline BitsBase<T, BT, ST>::BitsBase(size_t n, T val) { 
   assert(n > 0);
   val_.resize((n+bits_per_word()-1)/bits_per_word(), static_cast<T>(0));
   val_[0] = val;
@@ -1218,6 +1223,16 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs, size_t msb, size_t 
   for (size_t i = zword+1, ie = val_.size(); i < ie; ++i) {
     val_[i] = static_cast<T>(0);
   }
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::copy(const BitsBase& rhs) {
+  val_.resize(rhs.val_.size());
+  for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+    val_[i] = rhs.val_[i];
+  }
+  size_ = rhs.size_;
+  type_ = rhs.type_;
 }
 
 template <typename T, typename BT, typename ST>

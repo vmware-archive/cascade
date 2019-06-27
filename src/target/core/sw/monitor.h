@@ -95,7 +95,7 @@ inline void Monitor::edit(Event* e) {
 
 inline void Monitor::edit(ContinuousAssign* ca) {
   Editor::edit(ca);
-  wait_on_reads(ca, ca->get_assign()->get_rhs());
+  wait_on_reads(ca, ca->get_rhs());
 }
 
 } // namespace cascade

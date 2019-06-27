@@ -185,7 +185,8 @@ ModuleItem* Rewriter::rewrite(InitialConstruct* ic) {
 }
 
 ModuleItem* Rewriter::rewrite(ContinuousAssign* ca) {
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  ca->accept_rhs(this);
   return ca;
 }
 

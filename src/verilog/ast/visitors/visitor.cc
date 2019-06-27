@@ -161,7 +161,8 @@ void Visitor::visit(const InitialConstruct* ic) {
 }
 
 void Visitor::visit(const ContinuousAssign* ca) {
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  ca->accept_rhs(this);
 }
 
 void Visitor::visit(const GenvarDeclaration* gd) {

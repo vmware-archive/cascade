@@ -120,15 +120,15 @@ Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
 
 void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   // Ignore assignments with sliced left-hand-sides
-  const auto* lhs = ca->get_assign()->get_lhs();
+  const auto* lhs = ca->get_lhs();
   if (Resolve().is_slice(lhs)) {
     return;
   }
   // Ignore assignments with right-hand-sides which aren't identifiers
-  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
+  if (!ca->get_rhs()->is(Node::Tag::identifier)) {
     return;
   }
-  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
+  const auto* rhs = static_cast<const Identifier*>(ca->get_rhs());
   // Ignore assignments which don't preserve bit-width
   if (Resolve().is_slice(rhs)) {
     if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
@@ -255,12 +255,12 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
 }
 
 bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
-  const auto* lhs = ca->get_assign()->get_lhs();
+  const auto* lhs = ca->get_lhs();
   // An rhs which isn't an identifier can't be a self-assignment
-  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
+  if (!ca->get_rhs()->is(Node::Tag::identifier)) {
     return false;
   } 
-  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
+  const auto* rhs = static_cast<const Identifier*>(ca->get_rhs());
   // Identifiers which point to different variables can't be self assignments
   if (Resolve().get_resolution(lhs) != Resolve().get_resolution(rhs)) {
     return false;

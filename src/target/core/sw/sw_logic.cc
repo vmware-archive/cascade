@@ -317,7 +317,9 @@ void SwLogic::visit(const InitialConstruct* ic) {
 }
 
 void SwLogic::visit(const ContinuousAssign* ca) {
-  schedule_now(ca->get_assign());
+  const auto& res = eval_.get_value(ca->get_rhs());
+  eval_.assign_value(ca->get_lhs(), res);
+  notify(Resolve().get_resolution(ca->get_lhs()));
 }
 
 void SwLogic::visit(const BlockingAssign* ba) {
@@ -344,7 +346,7 @@ void SwLogic::visit(const NonblockingAssign* na) {
     } 
 
     updates_.push_back(make_tuple(r, get<0>(target), get<1>(target), get<2>(target)));
-    update_pool_[idx] = res;
+    update_pool_[idx].copy(res);
   }
   notify(na);
 }

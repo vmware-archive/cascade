@@ -283,10 +283,10 @@ void Machinify::edit(ModuleDeclaration* md) {
 
   // If we didn't emit any state machines, we can hardwire __done to 1
   if (generators_.empty()) {
-    md->push_back_items(new ContinuousAssign(new VariableAssign(
+    md->push_back_items(new ContinuousAssign(
       new Identifier("__done"),
       new Number(Bits(true))
-    ))); 
+    )); 
     return;
   }
 
@@ -304,10 +304,10 @@ void Machinify::edit(ModuleDeclaration* md) {
       fin
     ));
   }
-  md->push_back_items(new ContinuousAssign(new VariableAssign(
+  md->push_back_items(new ContinuousAssign(
     new Identifier("__done"),
     new UnaryExpression(UnaryExpression::Op::AMP, c)
-  )));
+  ));
 }
 
 void Machinify::edit(AlwaysConstruct* ac) {

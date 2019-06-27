@@ -327,7 +327,9 @@ void Printer::visit(const InitialConstruct* ic) {
 
 void Printer::visit(const ContinuousAssign* ca) {
   *this << Color::GREEN << "assign " << Color::RESET;
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  *this << Color::RED << " = " << Color::RESET;
+  ca->accept_rhs(this);
   *this << Color::RED << ";" << Color::RESET;
 }
 

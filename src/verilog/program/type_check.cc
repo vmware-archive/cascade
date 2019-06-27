@@ -483,11 +483,11 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
   net_lval_ = true;
-  ca->get_assign()->accept_lhs(this);
+  ca->accept_lhs(this);
   net_lval_ = false;
-  ca->get_assign()->accept_rhs(this);
+  ca->accept_rhs(this);
 
-  const auto* l = Resolve().get_resolution(ca->get_assign()->get_lhs());
+  const auto* l = Resolve().get_resolution(ca->get_lhs());
   if (l == nullptr) {
     return;
   }
@@ -498,7 +498,7 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
 
   // CHECK: Recursive assignment
   // Iterate over identifiers in the RHS
-  ReadSet rs(ca->get_assign()->get_rhs());
+  ReadSet rs(ca->get_rhs());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::identifier)) {
       // If this identifier resolves to the left-hand side, this is a recursive definition

@@ -157,7 +157,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     auto* rhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_exp(c.second) : 
       Qualify().qualify_exp(c.first);
-    conns.push_back(new ContinuousAssign(new VariableAssign(lhs, rhs)));
+    conns.push_back(new ContinuousAssign(lhs, rhs));
   }
   // Move the contents of the instantiation into new inlined code. Downgrade
   // ports to regular declarations and parameters to localparams.

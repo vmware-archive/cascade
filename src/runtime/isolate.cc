@@ -297,9 +297,7 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
     auto* rhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
         static_cast<Expression*>(c.second->accept(this)) : 
         c.first->accept(this);
-    auto* ca = new ContinuousAssign(
-      new VariableAssign(lhs, rhs)
-    );
+    auto* ca = new ContinuousAssign(lhs, rhs);
     res.push_back(ca);
   }
 }

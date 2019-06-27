@@ -243,7 +243,7 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
       for (size_t j = 0, je = v->second.words_per_element; j < je; ++j) {
         rhs->push_back_exprs(new Identifier(new Id("__var"), new Number(Bits(32, v->second.begin + (i+1)*je-j-1))));
       }
-      auto* ca = new ContinuousAssign(new VariableAssign(lhs, rhs));
+      auto* ca = new ContinuousAssign(lhs, rhs);
       cas.push_back(ca);
     }
     views[nd->get_id()->front_ids()->get_readable_sid()] = make_pair(nd, cas);
@@ -278,27 +278,27 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
     res->push_back_items(new NetDeclaration(
       new Attributes(), new Identifier(e.first+"_negedge"), Declaration::Type::UNSIGNED
     ));
-    res->push_back_items(new ContinuousAssign(new VariableAssign(
+    res->push_back_items(new ContinuousAssign(
       new Identifier(e.first+"_negedge"),
       new BinaryExpression(
         new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(true))),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(false)))
       )  
-    )));
+    ));
   }
   for (auto& e : ti->posedges_) {
     res->push_back_items(new NetDeclaration(
       new Attributes(), new Identifier(e.first+"_posedge"), Declaration::Type::UNSIGNED
     ));
-    res->push_back_items(new ContinuousAssign(new VariableAssign(
+    res->push_back_items(new ContinuousAssign(
       new Identifier(e.first+"_posedge"),
       new BinaryExpression(
         new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(false))),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(true)))
       )  
-    )));
+    ));
   }
 }
 
@@ -326,21 +326,21 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__update_queue"), Declaration::Type::UNSIGNED, new RangeExpression(table_dim, 0)
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__update_queue"), 
     new BinaryExpression(new Identifier("__update_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_update_mask"))
-  )));
+  ));
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__there_are_updates"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__there_are_updates"), 
     new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
-  )));
+  ));
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__apply_updates"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__apply_updates"), 
     new BinaryExpression(
       new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
@@ -349,18 +349,18 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
       new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
     )
-  )));
+  ));
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__drop_updates"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__drop_updates"), 
     new BinaryExpression(
       new Identifier("__read"), 
       BinaryExpression::Op::AAMP, 
       new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
     )
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     new NonblockingAssign(new VariableAssign(
@@ -380,17 +380,17 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__task_queue"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__task_queue"), 
     new BinaryExpression(new Identifier("__task_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_task_mask"))
-  )));
+  ));
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__there_were_tasks"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__there_were_tasks"), 
     new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__task_queue"))
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     new NonblockingAssign(new VariableAssign(
@@ -408,17 +408,17 @@ void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__io_queue"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__io_queue"), 
     new BinaryExpression(new Identifier("__io_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_io_mask"))
-  )));
+  ));
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__there_was_io"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__there_was_io"), 
     new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__io_queue"))
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     new NonblockingAssign(new VariableAssign(
@@ -444,7 +444,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__open_loop_tick"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__open_loop_tick"), 
     new BinaryExpression(
       new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
@@ -455,7 +455,7 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
       )
     )
-  )));
+  ));
   auto* sb = new SeqBlock();
   sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
     new Identifier("__open_loop"),
@@ -497,14 +497,14 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     sb
   ))); 
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__wait"),
     new BinaryExpression(
       new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
       BinaryExpression::Op::PPIPE,
       new Identifier("__continue")
     )
-  )));
+  ));
 }
 
 void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {

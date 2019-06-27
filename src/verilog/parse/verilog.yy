@@ -845,7 +845,8 @@ net_declaration
       parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
 
-      auto ca = new ContinuousAssign(va);
+      auto ca = new ContinuousAssign(va->get_lhs()->clone(), va->get_rhs()->clone());
+      delete va;
       $$.push_back(ca);
     }
     delete $1;
@@ -1346,8 +1347,8 @@ generate_block_or_null
 continuous_assign
   : ASSIGN /* drive_strength? delay3? */ list_of_net_assignments SCOLON {
     for (auto id : $2) {
-      auto ca = new ContinuousAssign(id);
-      parser->set_loc(ca, ca->get_assign());
+      auto ca = new ContinuousAssign(id->get_lhs()->clone(), id->get_rhs()->clone());
+      delete id;
       $$.push_back(ca);
     }
   }

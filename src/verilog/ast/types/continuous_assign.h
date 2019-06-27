@@ -33,14 +33,13 @@
 
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/module_item.h"
-#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    explicit ContinuousAssign(VariableAssign* assign__);
+    explicit ContinuousAssign(Identifier* lhs__, Expression* rhs__);
     ~ContinuousAssign() override;
 
     // Node Interface:
@@ -48,23 +47,27 @@ class ContinuousAssign : public ModuleItem {
     ContinuousAssign* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(ContinuousAssign, VariableAssign, assign)
+    PTR_GET_SET(VariableAssign, Identifier, lhs)
+    PTR_GET_SET(VariableAssign, Expression, rhs)
 
   private:
-    PTR_ATTR(VariableAssign, assign);
+    PTR_ATTR(Identifier, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
-inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem(Node::Tag::continuous_assign) {
-  PTR_SETUP(assign);
+inline ContinuousAssign::ContinuousAssign(Identifier* lhs__, Expression* rhs__) : ModuleItem(Node::Tag::continuous_assign) {
+  PTR_SETUP(lhs);
+  PTR_SETUP(rhs);
   parent_ = nullptr;
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
-  PTR_TEARDOWN(assign);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
 }
 
 inline ContinuousAssign* ContinuousAssign::clone() const {
-  return new ContinuousAssign(assign_->clone());
+  return new ContinuousAssign(lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade 

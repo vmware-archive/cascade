@@ -221,7 +221,8 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->accept_assign(this)
+    ca->accept_lhs(this),
+    ca->accept_rhs(this)
   );
 }
 

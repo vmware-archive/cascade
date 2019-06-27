@@ -161,7 +161,8 @@ void Editor::edit(InitialConstruct* ic) {
 }
 
 void Editor::edit(ContinuousAssign* ca) {
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  ca->accept_rhs(this);
 }
 
 void Editor::edit(GenvarDeclaration* gd) {
