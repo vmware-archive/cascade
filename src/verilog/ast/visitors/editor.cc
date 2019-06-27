@@ -217,7 +217,8 @@ void Editor::edit(PortDeclaration* pd) {
 
 void Editor::edit(BlockingAssign* ba) {
   ba->accept_ctrl(this);
-  ba->accept_assign(this);
+  ba->accept_lhs(this);
+  ba->accept_rhs(this);
 }
 
 void Editor::edit(NonblockingAssign* na) {

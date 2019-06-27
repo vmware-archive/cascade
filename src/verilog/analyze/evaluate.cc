@@ -471,7 +471,9 @@ const Node* Evaluate::get_root(const Expression* e) const {
       return root->get_parent();
     }
     // Continuous, non-blocking, or blocking assigns
-    else if (root->get_parent()->is(Node::Tag::variable_assign)) {
+    else if (root->get_parent()->is(Node::Tag::continuous_assign) || 
+        root->get_parent()->is(Node::Tag::blocking_assign) ||
+        root->get_parent()->is(Node::Tag::nonblocking_assign)) {
       return root->get_parent();
     }
     // Multiple Concatenation
@@ -990,6 +992,14 @@ void Evaluate::ContextDetermine::edit(UnaryExpression* ue) {
   Editor::edit(ue);
 }
 
+void Evaluate::ContextDetermine::edit(ContinuousAssign* ca) {
+  // Identical implementations for continuous, blocking, non-blocking, and variable assigns
+  if (ca->get_lhs()->bit_val_[0].size() > ca->get_rhs()->bit_val_[0].size()) {
+    ca->get_rhs()->bit_val_[0].resize(ca->get_lhs()->bit_val_[0].size());
+  }
+  ca->accept_rhs(this);
+}
+
 void Evaluate::ContextDetermine::edit(GenvarDeclaration* gd) {
   // There's nothing left to do here. There's no rhs to worry about.
   (void) gd;
@@ -1091,13 +1101,28 @@ void Evaluate::ContextDetermine::edit(RegDeclaration* rd) {
   rd->get_id()->bit_val_[0].assign(eval_->get_value(rd->get_val()));
 }
 
+void Evaluate::ContextDetermine::edit(BlockingAssign* ba) {
+  // Identical implementations for continuous, blocking, non-blocking, and variable assigns
+  if (ba->get_lhs()->bit_val_[0].size() > ba->get_rhs()->bit_val_[0].size()) {
+    ba->get_rhs()->bit_val_[0].resize(ba->get_lhs()->bit_val_[0].size());
+  }
+  ba->accept_rhs(this);
+}
+
+void Evaluate::ContextDetermine::edit(NonblockingAssign* na) {
+  // Identical implementations for continuous, blocking, non-blocking, and variable assigns
+  if (na->get_lhs()->bit_val_[0].size() > na->get_rhs()->bit_val_[0].size()) {
+    na->get_rhs()->bit_val_[0].resize(na->get_lhs()->bit_val_[0].size());
+  }
+  na->accept_rhs(this);
+}
+
 void Evaluate::ContextDetermine::edit(VariableAssign* va) {
   // Assignments impose larger sizes but not type constraints
   if (va->get_lhs()->bit_val_[0].size() > va->get_rhs()->bit_val_[0].size()) {
     va->get_rhs()->bit_val_[0].resize(va->get_lhs()->bit_val_[0].size());
   }
   va->accept_rhs(this);
-
   // We're context determined, but these assignments happen dynamically.
   // Nothing more to do here.
 }

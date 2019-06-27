@@ -68,6 +68,20 @@ void ReadSet::visit(const Identifier* id) {
   reads_.insert(id);
 }
 
+void ReadSet::visit(const BlockingAssign* ba) {
+  lhs_ = true;
+  ba->accept_lhs(this);
+  lhs_ = false;
+  ba->accept_rhs(this);
+}
+
+void ReadSet::visit(const NonblockingAssign* na) {
+  lhs_ = true;
+  na->accept_lhs(this);
+  lhs_ = false;
+  na->accept_rhs(this);
+}
+
 void ReadSet::visit(const VariableAssign* va) {
   lhs_ = true;
   va->accept_lhs(this);

@@ -58,8 +58,8 @@ void LoopUnroll::run(ModuleDeclaration* md) {
 LoopUnroll::Unroll::Unroll() : Builder() { }
 
 Statement* LoopUnroll::Unroll::build(const BlockingAssign* ba) {
-  const auto& val = Evaluate().get_value(ba->get_assign()->get_rhs());
-  Evaluate().assign_value(ba->get_assign()->get_lhs(), val);
+  const auto& val = Evaluate().get_value(ba->get_rhs());
+  Evaluate().assign_value(ba->get_lhs(), val);
 
   return ba->clone();
 }
@@ -69,7 +69,7 @@ Statement* LoopUnroll::Unroll::build(const ForStatement* fs) {
 
   const auto& ival = Evaluate().get_value(fs->get_init()->get_rhs());
   Evaluate().assign_value(fs->get_init()->get_lhs(), ival);
-  sb->push_back_stmts(new BlockingAssign(fs->get_init()->clone()));
+  sb->push_back_stmts(new BlockingAssign(fs->get_init()->get_lhs()->clone(), fs->get_init()->get_rhs()->clone()));
 
   while (Evaluate().get_value(fs->get_cond()).to_bool()) {
     auto* s = fs->get_stmt()->accept(this);
@@ -77,7 +77,7 @@ Statement* LoopUnroll::Unroll::build(const ForStatement* fs) {
 
     const auto& uval = Evaluate().get_value(fs->get_update()->get_rhs());
     Evaluate().assign_value(fs->get_update()->get_lhs(), uval);
-    sb->push_back_stmts(new BlockingAssign(fs->get_update()->clone()));
+    sb->push_back_stmts(new BlockingAssign(fs->get_update()->get_lhs()->clone(), fs->get_update()->get_rhs()->clone()));
   }
 
   return sb;

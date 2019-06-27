@@ -326,7 +326,9 @@ void SwLogic::visit(const BlockingAssign* ba) {
   // TODO(eschkufz) Support for timing control
   assert(ba->is_null_ctrl());
 
-  schedule_now(ba->get_assign());
+  const auto& res = eval_.get_value(ba->get_rhs());
+  eval_.assign_value(ba->get_lhs(), res);
+  notify(Resolve().get_resolution(ba->get_lhs()));
   notify(ba);
 }
 

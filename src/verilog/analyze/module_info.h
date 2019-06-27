@@ -174,6 +174,7 @@ class ModuleInfo : public Visitor {
     void visit(const RegDeclaration* rd) override;
     void visit(const ModuleInstantiation* mi) override;
     void visit(const PortDeclaration* pd) override;
+    void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
     void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;

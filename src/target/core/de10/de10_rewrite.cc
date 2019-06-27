@@ -686,10 +686,10 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
       emit_slice(id, w, i);
       auto* ci = new CaseItem(
         new Number(Bits(32, t->second.begin+i)),
-        new BlockingAssign(new VariableAssign(
+        new BlockingAssign(
           new Identifier("__out"),
           id
-        ))
+        )
       );
       outputs[t->second.begin+i] = ci;
     }
@@ -697,35 +697,35 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   auto* cs = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__vid"));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().there_are_updates_index())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__there_are_updates")))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__there_are_updates"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().sys_task_index())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__task_queue")))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__task_queue"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().io_task_index())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__io_queue")))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__io_queue"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().done_index())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__done")))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__done"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().open_loop_index())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__open_loop_itrs")))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__open_loop_itrs"))
   ));
   for (auto& o : outputs) {
     cs->push_back_items(o.second);
   }
-  cs->push_back_items(new CaseItem(new BlockingAssign(new VariableAssign(
+  cs->push_back_items(new CaseItem(new BlockingAssign(
     new Identifier("__out"), 
     new ConditionalExpression(
       new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::LT, new Number(Bits(32, de->get_table().var_size()))),
       new Identifier(new Id("__var"), new Identifier("__vid")),
       new Identifier(new Id("__expr"), new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::MINUS, new Number(Bits(32, de->get_table().var_size()))))
     )
-  ))));
+  )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(new EventControl(), cs))); 
 }
 

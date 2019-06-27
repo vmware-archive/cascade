@@ -301,7 +301,8 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 Statement* Builder::build(const BlockingAssign* ba) {
   return new BlockingAssign(
     ba->accept_ctrl(this),
-    ba->accept_assign(this)
+    ba->accept_lhs(this),
+    ba->accept_rhs(this)
   );
 }
 

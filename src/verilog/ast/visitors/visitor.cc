@@ -217,7 +217,8 @@ void Visitor::visit(const PortDeclaration* pd) {
 
 void Visitor::visit(const BlockingAssign* ba) {
   ba->accept_ctrl(this);
-  ba->accept_assign(this);
+  ba->accept_lhs(this);
+  ba->accept_rhs(this);
 }
 
 void Visitor::visit(const NonblockingAssign* na) {

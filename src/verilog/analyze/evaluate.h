@@ -207,10 +207,13 @@ class Evaluate : public Editor {
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
       void edit(GenvarDeclaration* gd) override;
+      void edit(ContinuousAssign* ca) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
+      void edit(BlockingAssign* ba) override;
+      void edit(NonblockingAssign* na) override;
       void edit(VariableAssign* va) override;
       Evaluate* eval_;
     };

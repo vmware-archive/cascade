@@ -1378,7 +1378,7 @@ always_construct
   ;
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
-    $$ = new BlockingAssign($3, new VariableAssign($1,$4));
+    $$ = new BlockingAssign($3, $1, $4);
     parser->set_loc($$, $1);
   }
   ;

@@ -466,10 +466,10 @@ void Printer::visit(const PortDeclaration* pd) {
 }
 
 void Printer::visit(const BlockingAssign* ba) {
-  ba->get_assign()->accept_lhs(this);
+  ba->accept_lhs(this);
   *this << Color::RED << " = " << Color::RESET;
   ba->accept_ctrl(this, []{}, [this]{*this << " ";});
-  ba->get_assign()->accept_rhs(this);
+  ba->accept_rhs(this);
   *this << Color::RED << ";" << Color::RESET;
 }
 

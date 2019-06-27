@@ -250,7 +250,8 @@ ModuleItem* Rewriter::rewrite(PortDeclaration* pd) {
 
 Statement* Rewriter::rewrite(BlockingAssign* ba) {
   ba->accept_ctrl(this);
-  ba->accept_assign(this);
+  ba->accept_lhs(this);
+  ba->accept_rhs(this);
   return ba;
 }
 

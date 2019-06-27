@@ -64,6 +64,8 @@ class ReadSet : public Visitor {
     // Editor Interface:
     void visit(const FeofExpression* fe) override;
     void visit(const Identifier* id) override;
+    void visit(const BlockingAssign* ba) override;
+    void visit(const NonblockingAssign* ba) override;
     void visit(const VariableAssign* va) override;
 };
 

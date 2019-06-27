@@ -515,8 +515,16 @@ void ModuleInfo::record_external_use(const Identifier* id) {
         }
       }
     }    
-    // Identifiers on the left hand side of VariableAssigns are writes
+    // Identifiers on the left hand side of VariableAssigns are writes Due to
+    // AST refactorings, we need to check the three types that used to contain
+    // VariableAssign's as well.
     else if (p->is(Node::Tag::variable_assign) && static_cast<const VariableAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::continuous_assign) && static_cast<const ContinuousAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::blocking_assign) && static_cast<const BlockingAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::nonblocking_assign) && static_cast<const NonblockingAssign*>(p)->get_lhs() == eid) {
       record_local_write(id);
     } 
     // Everything else is a read
@@ -603,9 +611,21 @@ void ModuleInfo::visit(const RegDeclaration* rd) {
     md_->stateful_.insert(rd->get_id());
   }
   for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
-    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
-        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
-      return;
+    switch((*i)->get_parent()->get_tag()) {
+      case Node::Tag::variable_assign:
+        if (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::continuous_assign:
+        if (static_cast<const ContinuousAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::blocking_assign:
+        if (static_cast<const BlockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::nonblocking_assign:
+        if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      default:
+        break;
     }
   }
   md_->stateful_.insert(rd->get_id());
@@ -673,6 +693,13 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
   } else {
     ordered_parent_conn(mi, pd, md_->ordered_ports_.size()-1);
   }
+}
+
+void ModuleInfo::visit(const BlockingAssign* ba) {
+  lhs_ = true;
+  ba->accept_lhs(this);
+  lhs_ = false;
+  ba->accept_rhs(this);
 }
 
 void ModuleInfo::visit(const NonblockingAssign* na) {
