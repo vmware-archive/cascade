@@ -48,20 +48,26 @@ void ModuleInfo::invalidate() {
   if (md_->next_update_ == 0) {
     return;
   }
+  
+  // NOTE: It's important that we don't *just* call clear here. There's a
+  // potential for a pretty large soft-leak as we inline the user's program
+  // from leaf to root and each node's module info comes to encompass
+  // everything below it.
+
   md_->next_update_ = 0;
-  md_->locals_.clear();
-  md_->externals_.clear();
-  md_->inputs_.clear();
-  md_->outputs_.clear();
-  md_->stateful_.clear();
-  md_->reads_.clear();
-  md_->writes_.clear();
-  md_->named_params_.clear();
-  md_->ordered_params_.clear();
-  md_->named_ports_.clear();
-  md_->ordered_ports_.clear();
-  md_->connections_.clear();
-  md_->children_.clear();
+  unordered_set<const Identifier*>().swap(md_->locals_);
+  unordered_set<const Identifier*>().swap(md_->externals_);
+  unordered_set<const Identifier*>().swap(md_->inputs_);
+  unordered_set<const Identifier*>().swap(md_->outputs_);
+  unordered_set<const Identifier*>().swap(md_->stateful_);
+  unordered_set<const Identifier*>().swap(md_->reads_);
+  unordered_set<const Identifier*>().swap(md_->writes_);
+  ModuleDeclaration::ParamSet().swap(md_->named_params_);
+  Vector<const Identifier*>().swap(md_->ordered_params_);
+  ModuleDeclaration::PortSet().swap(md_->named_ports_);
+  Vector<const Identifier*>().swap(md_->ordered_ports_);
+  ModuleDeclaration::ConnMap().swap(md_->connections_);
+  ModuleDeclaration::ChildMap().swap(md_->children_);
 }
 
 bool ModuleInfo::is_declaration() {
