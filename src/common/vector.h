@@ -38,6 +38,10 @@
 
 namespace cascade {
 
+// This class a space-optimized implementation of std::vector. It assumes no
+// more than 2^16 elements, and won't over-provision when a call to resize
+// exceeds capacity.
+
 template <typename T>
 class Vector {
   public:
@@ -94,8 +98,8 @@ class Vector {
 
   private:
     T* ts_;
-    uint32_t size_;
-    uint32_t capacity_;    
+    uint16_t size_;
+    uint16_t capacity_;    
 };
 
 template <typename T>

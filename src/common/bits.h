@@ -1100,7 +1100,7 @@ inline void BitsBase<T, BT, ST>::assign(const BitsBase& rhs) {
     return assign(temp);
   }
 
-  assert(!is_real());
+  assert(!is_real() && !rhs.is_real());
   for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
     val_[i] = rhs.signed_get(i);
   }
@@ -1722,21 +1722,22 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(const BitsBase& lhs, size_t s
 
 template <typename T, typename BT, typename ST>
 inline T BitsBase<T, BT, ST>::signed_get(size_t n) const {
-  // Difficult case: Do we need to sign extend this value?
-  if (n == (val_.size()-1)) {
-    const auto top = size_ % bits_per_word();
-    if (!is_neg_signed() || (top == 0)) {
-      return val_[n];
-    }
-    return val_[n] | (static_cast<T>(-1) << top);
-  }
-  // Easier Case: Do we need to return all 1s or 0s?
-  else if (n >= val_.size()) {
-    return is_neg_signed() ? static_cast<T>(-1) : static_cast<T>(0);
-  }
-  // Easiest Case: Just return what's there
-  else {
+  // Easiest Case: This is an unisgned value, so return what's in range or zero
+  if (!is_neg_signed()) {
+    return (n < val_.size()) ? val_[n] : static_cast<T>(0);
+  } 
+  // Another Case: An in bounds signed value
+  else if (n < (val_.size()-1)) {
     return val_[n]; 
+  }
+  // One More Easy Case: An out of bounds signed value
+  else if (n >= val_.size()) {
+    return static_cast<T>(-1);
+  }
+  // The Hard Case: We need to sign extend
+  else { 
+    const auto top = size_ % bits_per_word();
+    return (top == 0) ? val_[n] : (val_[n] | (static_cast<T>(-1) << top));
   }
 }
 
