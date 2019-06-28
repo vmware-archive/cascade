@@ -37,6 +37,10 @@
 
 namespace cascade {
 
+// TODO(eschkufz) Making this class a subclass of Expression places an unused
+// Bits decoration in this node. If we need to shrink cascade's memory
+// footprint, a little shuffling of the Expression hierarchy can fix this.
+
 class RangeExpression : public Expression {
   public:
     // Supporting Concepts:
@@ -64,6 +68,10 @@ class RangeExpression : public Expression {
     PTR_ATTR(Expression, upper);
     VAL_ATTR(Type, type);
     PTR_ATTR(Expression, lower);
+
+    friend class Evaluate;
+    DECORATION(uint32_t, vupper);
+    DECORATION(uint32_t, vlower);
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) : Expression(Node::Tag::range_expression) {

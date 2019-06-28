@@ -105,19 +105,29 @@ const Vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
 pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
   if (e->is(Node::Tag::range_expression)) {
     const auto* re = static_cast<const RangeExpression*>(e);
-    const auto upper = get_value(re->get_upper()).to_uint();
-    const auto lower = get_value(re->get_lower()).to_uint();
-    switch (re->get_type()) {
-      case RangeExpression::Type::CONSTANT:
-        return make_pair(upper, lower);
-      case RangeExpression::Type::PLUS:
-        return make_pair((upper+lower)-1, upper);
-      case RangeExpression::Type::MINUS:
-        return make_pair(upper, (upper-lower)+1);
-      default:
-        assert(false);
-        return make_pair(0,0);
+    if (e->get_flag<0>()) {
+      const auto upper = get_value(re->get_upper()).to_uint();
+      const auto lower = get_value(re->get_lower()).to_uint();
+      switch (re->get_type()) {
+        case RangeExpression::Type::CONSTANT:
+          const_cast<RangeExpression*>(re)->vupper_ = upper;
+          const_cast<RangeExpression*>(re)->vlower_ = lower;
+          break;
+        case RangeExpression::Type::PLUS:
+          const_cast<RangeExpression*>(re)->vupper_ = upper+lower-1;
+          const_cast<RangeExpression*>(re)->vlower_ = upper;
+          break;
+        case RangeExpression::Type::MINUS:
+          const_cast<RangeExpression*>(re)->vupper_ = upper;
+          const_cast<RangeExpression*>(re)->vlower_ = upper-lower+1;
+          break;
+        default:
+          assert(false);
+          break;
+      }
+      const_cast<RangeExpression*>(re)->set_flag<0>(false);
     }
+    return make_pair(re->vupper_, re->vlower_);
   }
   const auto idx = get_value(e).to_uint();
   return make_pair(idx, idx);
