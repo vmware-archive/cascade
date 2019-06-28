@@ -67,17 +67,23 @@ vector<size_t> Evaluate::get_arity(const Identifier* id) {
 }
 
 size_t Evaluate::get_width(const Expression* e) {
-  init(const_cast<Expression*>(e));
+  if (e->bit_val_.empty()) {
+    init(const_cast<Expression*>(e));
+  }
   return e->bit_val_[0].size();
 }
 
 Bits::Type Evaluate::get_type(const Expression* e) {
-  init(const_cast<Expression*>(e));
+  if (e->bit_val_.empty()) {
+    init(const_cast<Expression*>(e));
+  }
   return e->bit_val_[0].get_type();
 }
 
 const Bits& Evaluate::get_value(const Expression* e) {
-  init(const_cast<Expression*>(e));
+  if (e->bit_val_.empty()) {
+    init(const_cast<Expression*>(e));
+  }
   if (e->get_flag<0>()) {
     const_cast<Expression*>(e)->accept(this);
     const_cast<Expression*>(e)->set_flag<0>(false);
@@ -86,7 +92,9 @@ const Bits& Evaluate::get_value(const Expression* e) {
 }
 
 const Vector<Bits>& Evaluate::get_array_value(const Identifier* i) {
-  init(const_cast<Identifier*>(i));
+  if (i->bit_val_.empty()) {
+    init(const_cast<Identifier*>(i));
+  }
   if (i->get_flag<0>()) {
     const_cast<Identifier*>(i)->accept(this);
     const_cast<Identifier*>(i)->set_flag<0>(false);
@@ -119,7 +127,10 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
   // Find the variable that we're referring to. 
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  init(const_cast<Identifier*>(r));
+  if (r->bit_val_.empty()) {
+    init(const_cast<Identifier*>(r));
+  }
+
   // Calculate its index
   const auto dres = dereference(r, id);
   const auto idx = static_cast<size_t>(get<0>(dres));
@@ -154,7 +165,9 @@ void Evaluate::assign_array_value(const Identifier* id, const Vector<Bits>& val)
   // Find the variable that we're referring to. 
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  init(const_cast<Identifier*>(r));
+  if (r->bit_val_.empty()) {
+    init(const_cast<Identifier*>(r));
+  }
 
   // Perform the assignment
   // TODO(eschkufz) Is it worthwhile to check whether anything has changed here?
@@ -203,7 +216,9 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
 }
 
 void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
-  init(const_cast<Identifier*>(id));
+  if (id->bit_val_.empty()) {
+    init(const_cast<Identifier*>(id));
+  }
 
   // Corner Case: Ignore writes to out of bounds indices
   if (idx >= id->bit_val_.size()) {
@@ -493,10 +508,10 @@ const Node* Evaluate::get_root(const Expression* e) const {
 }
 
 void Evaluate::init(Expression* e) {
-  // Nothing to do if this expression has bits allocated for it.
-  if (!e->bit_val_.empty()) {
-    return;
-  }
+  // This function is on the critical path for most things Evaluate-related.
+  // It's slightly faster to put the guard around this method where it's used
+  // rather than here, since it avoids a nested function call on every
+  // invocation of get_value, assign_value, etc...
 
   // Find the root of this subtree
   const auto* root = get_root(e);
