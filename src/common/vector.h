@@ -164,6 +164,7 @@ inline typename Vector<T>::size_type Vector<T>::size() const {
 
 template <typename T>
 inline void Vector<T>::resize(size_type n, const value_type& v) {
+  assert(n <= static_cast<size_t>(0xffffu));
   if (n <= size_) {
     size_ = n;
   } else {
@@ -183,6 +184,7 @@ inline bool Vector<T>::empty() const {
 
 template <typename T>
 inline void Vector<T>::reserve(size_type n) {
+  assert(n <= static_cast<size_t>(0xffffu));
   if (capacity_ >= n) {
     return;
   }
