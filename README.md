@@ -458,7 +458,7 @@ impression of what Cascade is capable of.
 |                       | Defparam Statements       |           |             | x                |
 | Module Declarations   | Input Ports               |  x        |             |                  |
 |                       | Output Ports              |  x        |             |                  |
-|                       | Inout Ports               |           | x           |                  |
+|                       | Inout Ports               |           |             | x                |
 | Module Instantiations | Named Parameter Binding   |  x        |             |                  |
 |                       | Ordered Parameter Binding |  x        |             |                  |
 |                       | Named Port Binding        |  x        |             |                  |
