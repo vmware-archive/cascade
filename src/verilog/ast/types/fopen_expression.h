@@ -39,7 +39,7 @@ namespace cascade {
 class FopenExpression : public Expression {
   public:
     // Constructors:
-    explicit FopenExpression(Expression* path__);
+    explicit FopenExpression(Expression* path__, Expression* type__);
     ~FopenExpression() override;
 
     // Node Interface:
@@ -48,22 +48,26 @@ class FopenExpression : public Expression {
 
     // Get/Set:
     PTR_GET_SET(FopenExpression, Expression, path)
+    PTR_GET_SET(FopenExpression, Expression, type)
 
   private:
     PTR_ATTR(Expression, path);
+    PTR_ATTR(Expression, type);
 };
 
-inline FopenExpression::FopenExpression(Expression* path__) : Expression(Node::Tag::fopen_expression) {
+inline FopenExpression::FopenExpression(Expression* path__, Expression* type__) : Expression(Node::Tag::fopen_expression) {
   PTR_SETUP(path);
+  PTR_SETUP(type);
   parent_ = nullptr;
 }
 
 inline FopenExpression::~FopenExpression() {
   PTR_TEARDOWN(path);
+  PTR_TEARDOWN(type);
 }
 
 inline FopenExpression* FopenExpression::clone() const {
-  return new FopenExpression(path_->clone());
+  return new FopenExpression(path_->clone(), type_->clone());
 }
 
 } // namespace cascade 

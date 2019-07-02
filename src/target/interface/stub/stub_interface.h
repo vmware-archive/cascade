@@ -48,7 +48,7 @@ class StubInterface : public Interface {
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
 
-    FId fopen(const std::string& path) override;
+    FId fopen(const std::string& path, uint8_t mode) override;
     int32_t in_avail(FId id) override;
     uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
     uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
@@ -94,9 +94,10 @@ inline void StubInterface::save(const std::string& s) {
   (void) s;
 }
 
-inline FId StubInterface::fopen(const std::string& path) {
+inline FId StubInterface::fopen(const std::string& path, uint8_t mode) {
   // Does nothing
   (void) path;
+  (void) mode;
   return 0;
 }
 

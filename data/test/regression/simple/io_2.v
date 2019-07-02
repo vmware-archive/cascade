@@ -1,4 +1,4 @@
-integer s = $fopen("data/test/regression/simple/io_2.dat");
+integer s = $fopen("data/test/regression/simple/io_2.dat", "r");
 reg [15:0] r1 = 0;
 reg signed[31:0] r2 = 0;
 reg [31:0] r3 = 0;

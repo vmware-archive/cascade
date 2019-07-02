@@ -5,7 +5,7 @@ reg[31:0] ie = 0;
 reg[7:0] char;
 
 integer itr = 1;
-integer s = $fopen("data/test/benchmark/regex/iliad.hex");
+integer s = $fopen("data/test/benchmark/regex/iliad.hex", "r");
 
 always @(posedge clock.val) begin
   $fread(s, char);

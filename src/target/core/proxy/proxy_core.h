@@ -267,9 +267,11 @@ inline void ProxyCore<T>::recv() {
 
       case Rpc::Type::FOPEN: {
         std::string path = "";
+        uint8_t mode = 0;
         getline(*sock_, path, '\0');
+        sock_->read(reinterpret_cast<char*>(&mode), sizeof(mode));
 
-        FId res = T::interface()->fopen(path);
+        FId res = T::interface()->fopen(path, mode);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;

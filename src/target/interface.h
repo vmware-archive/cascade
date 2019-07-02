@@ -60,7 +60,7 @@ class Interface {
 
     // These methods must perform whatever target-specific logic is necessary
     // to invoke the corresponding stream calls on the runtime.
-    virtual FId fopen(const std::string& path) = 0;
+    virtual FId fopen(const std::string& path, uint8_t mode) = 0;
     virtual int32_t in_avail(FId id) = 0;
     virtual uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) = 0;
     virtual uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) = 0;

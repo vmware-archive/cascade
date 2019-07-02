@@ -154,7 +154,23 @@ void SwLogic::finalize() {
       if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
         const auto* fe = static_cast<const FopenExpression*>(rd->get_val());
         if (eval_.get_value(rd->get_id()).to_uint() == 0) {
-          const auto fd = interface()->fopen(eval_.get_value(fe->get_path()).to_string());
+          const auto path = eval_.get_value(fe->get_path()).to_string();
+          const auto type = eval_.get_value(fe->get_type()).to_string();
+          uint8_t mode = 0;
+          if (type == "r" || type == "rb") {
+            mode = 0;
+          } else if (type == "w" || type == "wb") {
+            mode = 1;
+          } else if (type == "a" || type == "ab") {
+            mode = 2;
+          } else if (type == "r+" || type == "r+b" || type == "rb+") {
+            mode = 3;
+          } else if (type == "w+" || type == "w+b" || type == "wb+") {
+            mode = 4;
+          } else if (type == "a+" || type == "a+b" || type == "ab+") {
+            mode = 5;
+          } 
+          const auto fd = interface()->fopen(path, mode);
           eval_.assign_value(rd->get_id(), Bits(32, fd));
           notify(rd->get_id());
         }

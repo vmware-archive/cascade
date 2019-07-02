@@ -50,7 +50,7 @@ class LocalInterface : public Interface {
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
 
-    FId fopen(const std::string& path) override;
+    FId fopen(const std::string& path, uint8_t mode) override;
     int32_t in_avail(FId id) override;
     uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
     uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
@@ -93,8 +93,8 @@ inline void LocalInterface::save(const std::string& s) {
   rt_->save(s);
 }
 
-inline FId LocalInterface::fopen(const std::string& path) {
-  return rt_->fopen(path);
+inline FId LocalInterface::fopen(const std::string& path, uint8_t mode) {
+  return rt_->fopen(path, mode);
 }
 
 inline int32_t LocalInterface::in_avail(FId id) {

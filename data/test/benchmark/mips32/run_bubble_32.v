@@ -2,7 +2,7 @@
 
 reg[31:0] imem[63:0];
 
-integer s = $fopen("data/test/benchmark/mips32/run_bubble_32.hex");
+integer s = $fopen("data/test/benchmark/mips32/run_bubble_32.hex", "r");
 integer i = 0;
 reg[31:0] val = 0;
 initial begin

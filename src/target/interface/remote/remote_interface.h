@@ -51,7 +51,7 @@ class RemoteInterface : public Interface {
     void retarget(const std::string& s) override;
     void save(const std::string& s) override;
 
-    FId fopen(const std::string& path) override;
+    FId fopen(const std::string& path, uint8_t mode) override;
     int32_t in_avail(FId id) override;
     uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) override;
     uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) override;
@@ -107,10 +107,11 @@ inline void RemoteInterface::save(const std::string& s) {
   sock_->put('\0');
 }
 
-inline FId RemoteInterface::fopen(const std::string& path) {
+inline FId RemoteInterface::fopen(const std::string& path, uint8_t mode) {
   Rpc(Rpc::Type::FOPEN, id_).serialize(*sock_);
   sock_->write(path.c_str(), path.length());
   sock_->put('\0');
+  sock_->write(reinterpret_cast<const char*>(&mode), sizeof(mode));
   sock_->flush();
 
   FId res;

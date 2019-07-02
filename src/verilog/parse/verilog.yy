@@ -948,8 +948,12 @@ variable_type
     $$ = new VariableAssign($1, $3); 
     parser->set_loc($$, $1);
   }
-  | identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
-    $$ = new VariableAssign($1, new FopenExpression($5)); 
+  | identifier EQ SYS_FOPEN OPAREN expression CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5, new String("w"))); 
+    parser->set_loc($$, $1);
+  }
+  | identifier EQ SYS_FOPEN OPAREN expression COMMA expression CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5, $7)); 
     parser->set_loc($$, $1);
   }
   ;

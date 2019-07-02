@@ -322,13 +322,18 @@ void Runtime::save(const string& path) {
   });
 }
 
-FId Runtime::fopen(const std::string& path) {
-  // Create a file if it doesn't already exist
-  ofstream temp(path, ios_base::app);
-  temp.close();
-
+FId Runtime::fopen(const std::string& path, uint8_t mode) {
   auto* fb = new filebuf();
-  fb->open(path.c_str(), (ios_base::in | ios_base::out));
+  auto m = ios_base::in;
+  switch (mode) {
+    case 1: m = ios_base::out; break;
+    case 2: m = ios_base::app; break;
+    case 3: m = ios_base::in | ios_base::out; break;
+    case 4: m = ios_base::in | ios_base::trunc; break;
+    case 5: m = ios_base::in | ios_base::app; break;
+    default: break;
+  }
+  fb->open(path.c_str(), m);
   streambufs_.push_back(fb);
 
   return (streambufs_.size()-1);;

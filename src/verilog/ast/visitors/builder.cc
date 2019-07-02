@@ -100,7 +100,8 @@ Expression* Builder::build(const FeofExpression* fe) {
 
 Expression* Builder::build(const FopenExpression* fe) {
   return new FopenExpression(
-    fe->accept_path(this)
+    fe->accept_path(this),
+    fe->accept_type(this)
   );
 }
 

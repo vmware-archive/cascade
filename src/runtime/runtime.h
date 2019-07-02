@@ -138,8 +138,8 @@ class Runtime : public Thread {
     std::streambuf* rdbuf(FId id) const;
     // Replaces an entry in the stream table and returns its previous value
     std::streambuf* rdbuf(FId id, std::streambuf* sb);
-    // Creates an entry in the stream table by calling new filebuf(path, in|out).
-    FId fopen(const std::string& path);
+    // Creates an entry in the stream table 
+    FId fopen(const std::string& path, uint8_t mode);
     // Streambuf operators:
     int32_t in_avail(FId id);
     uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which);
