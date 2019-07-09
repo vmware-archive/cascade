@@ -43,9 +43,7 @@
 namespace cascade {
 
 // This class is a specialized instance of an fdsrream which is used to
-// encapsulate the behavior of a TCP or UNIX Domain socket. Clients may create
-// instances of this class directly. Servers can create instances in response
-// to incoming connections using the sockserver class below.
+// encapsulate the behavior of a TCP or UNIX Domain socket. 
 
 class sockstream : public fdstream {
   public:
