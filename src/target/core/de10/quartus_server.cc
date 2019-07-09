@@ -32,6 +32,7 @@
 
 #include <fstream>
 #include <sstream>
+#include "common/sockserver.h"
 #include "common/sockstream.h"
 #include "common/system.h"
 #include "target/core/de10/program_boxer.h"

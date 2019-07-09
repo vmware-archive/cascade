@@ -68,25 +68,6 @@ class sockstream : public fdstream {
     int fd_;
 };
 
-class sockserver {
-  public:
-    sockserver(uint32_t port, size_t backlog);
-    sockserver(const char* path, size_t backlog);  
-    ~sockserver();
-
-    sockstream* accept();
-
-    // Returns true if an error occurred while creating this socket
-    bool error() const;
-    // Returns true if the file descriptor underlying this socket is valid
-    bool valid() const;
-    // Returns the file descriptor underlying this socket
-    int descriptor() const;
-
-  private:
-    int fd_; 
-};
-
 inline sockstream::sockstream(int fd) : fdstream(raw_fd(fd)) { }
 
 inline sockstream::sockstream(const char* path) : fdstream(unix_sock(path)) { }
@@ -142,63 +123,6 @@ inline int sockstream::inet_sock(const char* host, uint32_t port) {
   if ((fd_ != -1) && (::connect(fd_, (struct sockaddr*)&dest, sizeof(dest)) != 0)) {
     fd_ = -1;
   } 
-  return fd_;
-}
-
-inline sockserver::sockserver(uint32_t port, size_t backlog) {
-  struct sockaddr_in addr;
-  bzero(&addr, sizeof(addr));
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = INADDR_ANY;
-
-  fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (fd_ == -1) {
-    return;
-  } else if (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) {
-    fd_ = -1;
-  } else if (::listen(fd_, backlog) != 0) {
-    fd_ = -1;
-  } 
-}
-
-inline sockserver::sockserver(const char* path, size_t backlog) {
-  struct sockaddr_un addr;
-  bzero(&addr, sizeof(addr));
-  addr.sun_family = AF_UNIX;
-  strncpy(addr.sun_path, path, sizeof(addr.sun_path)-1);
-  unlink(path);
-
-  fd_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd_ == -1) {
-    return;
-  } else if (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) {
-    fd_ = -1;
-  } else if (::listen(fd_, backlog) != 0) {
-    fd_ = -1;
-  } 
-}
-
-inline sockserver::~sockserver() {
-  if (fd_ != -1) {
-    ::close(fd_);
-  }
-}
-
-inline sockstream* sockserver::accept() {
-  return fd_ == -1 ? new sockstream(-1) : new sockstream(::accept(fd_, nullptr, nullptr));
-}
-
-inline bool sockserver::error() const {
-  return fd_ == -1;
-}
-
-inline bool sockserver::valid() const {
-  errno = 0;
-  return (fcntl(fd_, F_GETFD) != -1) || (errno != EBADF);
-}
-
-inline int sockserver::descriptor() const {
   return fd_;
 }
 

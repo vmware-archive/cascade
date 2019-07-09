@@ -33,6 +33,7 @@
 #include <cassert>
 #include <vector>
 #include "common/log.h"
+#include "common/sockserver.h"
 #include "common/sockstream.h"
 #include "target/compiler.h"
 #include "target/engine.h"
