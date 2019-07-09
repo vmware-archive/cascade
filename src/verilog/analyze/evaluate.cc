@@ -133,7 +133,7 @@ pair<size_t, size_t> Evaluate::get_range(const Expression* e) {
   return make_pair(idx, idx);
 }
 
-void Evaluate::assign_value(const Identifier* id, const Bits& val) {
+bool Evaluate::assign_value(const Identifier* id, const Bits& val) {
   // Find the variable that we're referring to. 
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
@@ -147,28 +147,30 @@ void Evaluate::assign_value(const Identifier* id, const Bits& val) {
 
   // Corner Case: Ignore writes to out of range indices
   if (idx >= r->bit_val_.size()) {
-    return;
+    return false;
   }
   // Simple Case: Full Assignment
-  else if (get<1>(dres) == -1) {
+  if (get<1>(dres) == -1) {
     if (!r->bit_val_[idx].eq(val)) {
       const_cast<Identifier*>(r)->bit_val_[idx].assign(val);
       flag_changed(r);
+      return true;
     }
+    return false;
   } 
   // Corner Case: Ignore writes to bit ranges which are entirely out of range
-  else if (static_cast<size_t>(get<2>(dres)) >= get_width(r)) {
-    return;
+  if (static_cast<size_t>(get<2>(dres)) >= get_width(r)) {
+    return false;
   }
   // Partial Case: Write as much as possible to a partially valid range
-  else {
-    const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
-    const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
-    if (!r->bit_val_[idx].eq(msb, lsb, val)) {
-      const_cast<Identifier*>(r)->bit_val_[idx].assign(msb, lsb, val);
-      flag_changed(r);
-    }
+  const auto msb = min(static_cast<size_t>(get<1>(dres)), get_width(r)-1);
+  const auto lsb = min(static_cast<size_t>(get<2>(dres)), get_width(r)-1);
+  if (!r->bit_val_[idx].eq(msb, lsb, val)) {
+    const_cast<Identifier*>(r)->bit_val_[idx].assign(msb, lsb, val);
+    flag_changed(r);
+    return true;
   }
+  return false;
 }
 
 void Evaluate::assign_array_value(const Identifier* id, const Vector<Bits>& val) {
@@ -179,8 +181,8 @@ void Evaluate::assign_array_value(const Identifier* id, const Vector<Bits>& val)
     init(const_cast<Identifier*>(r));
   }
 
-  // Perform the assignment
-  // TODO(eschkufz) Is it worthwhile to check whether anything has changed here?
+  // Perform the assignment. This method is never invoked along the critical
+  // path. There's no need to short-circuit after performing an equality check.
   assert(val.size() == id->bit_val_.size());
   for (size_t i = 0, ie = id->bit_val_.size(); i < ie; ++i) {
     const_cast<Identifier*>(r)->bit_val_[i].assign(val[i]);
@@ -225,35 +227,37 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
   return make_tuple(idx, rng.first, rng.second);
 }
 
-void Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
+bool Evaluate::assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val) {
   if (id->bit_val_.empty()) {
     init(const_cast<Identifier*>(id));
   }
 
   // Corner Case: Ignore writes to out of bounds indices
   if (idx >= id->bit_val_.size()) {
-    return;
+    return false;
   }
   // Fast Path: Single bit assignments are easy to check
-  else if (msb == -1) {
+  if (msb == -1) {
     if (!id->bit_val_[idx].eq(val)) {
       const_cast<Identifier*>(id)->bit_val_[idx].assign(val);
       flag_changed(id);
+      return true;
     }
+    return false;
   } 
   // Corner Case: Ignore writes to bit ranges which are completely out of bounds
   else if (static_cast<size_t>(lsb) >= get_width(id)) {
-    return;
+    return false;
   }
   // Partial Case: Perform as much of the assignment as possible
-  else {
-    const auto m = min(static_cast<size_t>(msb), get_width(id)-1);
-    const auto l = min(static_cast<size_t>(lsb), get_width(id)-1);
-    if (!id->bit_val_[idx].eq(m, l, val)) {
-      const_cast<Identifier*>(id)->bit_val_[idx].assign(m, l, val);
-      flag_changed(id);
-    }
+  const auto m = min(static_cast<size_t>(msb), get_width(id)-1);
+  const auto l = min(static_cast<size_t>(lsb), get_width(id)-1);
+  if (!id->bit_val_[idx].eq(m, l, val)) {
+    const_cast<Identifier*>(id)->bit_val_[idx].assign(m, l, val);
+    flag_changed(id);
+    return true;
   }
+  return false;
 }
 
 void Evaluate::flag_changed(const Identifier* id) {

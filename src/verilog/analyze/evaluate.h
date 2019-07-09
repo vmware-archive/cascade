@@ -96,8 +96,8 @@ class Evaluate : public Editor {
 
     // High-level interface: Resolves id and sets the value of its target val.
     // Invoking this method on an unresolvable id or one which refers to an
-    // array is undefined.
-    void assign_value(const Identifier* id, const Bits& val);
+    // array is undefined. Returns true if the value of id was changed.
+    bool assign_value(const Identifier* id, const Bits& val);
     // High-level interface: Resolves id and sets the value of its target to
     // val. Invoking this method on an unresolvable id or one which refers to
     // an array subscript is undefined.
@@ -111,7 +111,8 @@ class Evaluate : public Editor {
     // Low-level interface: Sets the value of the ss'th element in id's
     // underlying array. Note that this value is set *in place*. This method
     // DOES NOT resolve id and then update the value which it finds there.
-    void assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val);
+    // Returns true if the value of id was changed.
+    bool assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val);
     // Low-level interface: Sets the value of the idx'th element in id's
     // underlying array. Note that this value is set *in place*. This method
     // DOES NOT resolve id and then update the value which it finds there.

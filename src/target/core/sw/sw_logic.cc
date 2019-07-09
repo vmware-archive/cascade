@@ -333,9 +333,11 @@ void SwLogic::visit(const InitialConstruct* ic) {
 }
 
 void SwLogic::visit(const ContinuousAssign* ca) {
-  const auto& res = eval_.get_value(ca->get_rhs());
-  eval_.assign_value(ca->get_lhs(), res);
-  notify(Resolve().get_resolution(ca->get_lhs()));
+  const auto& val = eval_.get_value(ca->get_rhs());
+  const auto delta = eval_.assign_value(ca->get_lhs(), val);
+  if (delta) {
+    notify(Resolve().get_resolution(ca->get_lhs()));
+  }
 }
 
 void SwLogic::visit(const BlockingAssign* ba) {

@@ -1352,6 +1352,7 @@ continuous_assign
   : ASSIGN /* drive_strength? delay3? */ list_of_net_assignments SCOLON {
     for (auto id : $2) {
       auto ca = new ContinuousAssign(id->get_lhs()->clone(), id->get_rhs()->clone());
+      parser->set_loc(ca, id->get_lhs());
       delete id;
       $$.push_back(ca);
     }

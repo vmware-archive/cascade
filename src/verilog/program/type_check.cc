@@ -501,11 +501,22 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
   ReadSet rs(ca->get_rhs());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::identifier)) {
-      // If this identifier resolves to the left-hand side, this is a recursive definition
+      // If this identifier resolves to the left-hand side, this might be a
+      // recursive definition.
       const auto* id = static_cast<const Identifier*>(*i);
       const auto* r = Resolve().get_resolution(id);
-      if (r != nullptr && r == l) {
+      if ((r == nullptr) || (r != l)) {
+        continue;
+      }
+
+      // If both sides are scalar, it's definitely recursive.
+      if (l->empty_dim() && id->empty_dim()) {
         error("Cannot assign a wire to itself", ca);
+      } 
+      // The alternative is more complicated. And there are some cases we can
+      // check statically, but for now let's just emit a blanket warning.
+      else {
+        warn("Found a potentially zero-time assignment from a variable to iteself", ca);
       }
     }
   }
