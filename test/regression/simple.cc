@@ -126,6 +126,9 @@ TEST(simple, concat_3) {
 TEST(simple, cond_1) {
   run_code("minimal","data/test/regression/simple/cond_1.v", "123");
 }
+TEST(simple, declaration_1) {
+  run_code("minimal","data/test/regression/simple/declaration_1.v", "8");
+}
 TEST(simple, define_1) {
   run_code("minimal","data/test/regression/simple/define_1.v", "22");
 }
