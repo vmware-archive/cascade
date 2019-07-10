@@ -66,6 +66,24 @@ vector<size_t> Evaluate::get_arity(const Identifier* id) {
   return res;
 }
 
+size_t Evaluate::get_msb(const Identifier* id) {
+  const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  const auto* p = r->get_parent();
+  assert((p != nullptr) && (p->is_subclass_of(Node::Tag::declaration)));
+  const auto* d = static_cast<const Declaration*>(p);
+  return d->is_null_dim() ? 0 : get_range(d->get_dim()).first;
+}
+
+size_t Evaluate::get_lsb(const Identifier* id) {
+  const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  const auto* p = r->get_parent();
+  assert((p != nullptr) && (p->is_subclass_of(Node::Tag::declaration)));
+  const auto* d = static_cast<const Declaration*>(p);
+  return d->is_null_dim() ? 0 : get_range(d->get_dim()).second;
+}
+
 size_t Evaluate::get_width(const Expression* e) {
   if (e->bit_val_.empty()) {
     init(const_cast<Expression*>(e));
@@ -591,6 +609,16 @@ void Evaluate::Invalidate::edit(String* s) {
   // Nowhere left to descend to. This is a primary.
   s->bit_val_.clear();
   s->set_flag<0>(true);
+}
+
+void Evaluate::Invalidate::edit(RangeExpression* re) {
+  // Nowhere left to descend to. This is a primary.
+  re->vupper_ = -1;
+  re->vlower_ = -1;
+  re->set_flag<0>(true);
+
+  re->accept_upper(this);
+  re->accept_lower(this);
 }
 
 void Evaluate::Invalidate::edit(UnaryExpression* ue) {

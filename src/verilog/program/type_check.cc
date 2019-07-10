@@ -415,8 +415,11 @@ void TypeCheck::visit(const Identifier* id) {
   else {
     // WARN: Can we say for sure that selects are out of range
     const auto rng = Evaluate().get_range(*cdr);
-    if (((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) && !decl_check_) {
-      warn("Found bit- or part-select which is out of range of declared width for this variable", id);
+    if (((rng.first > Evaluate().get_msb(r)) || (rng.second > Evaluate().get_msb(r))) && !decl_check_) {
+      warn("Found bit- or part-select outside the upper-bound of the declared indices for this variable", id);
+    }
+    if (((rng.first < Evaluate().get_lsb(r)) || (rng.second < Evaluate().get_lsb(r))) && !decl_check_) {
+      warn("Found bit- or part-select outside the lower-bound of the declared indices for this variable", id);
     }
   } 
 }
@@ -771,9 +774,6 @@ void TypeCheck::check_width(const RangeExpression* re) {
   if (rng.first <= rng.second) {
     error("Cascade does not currently support little-endian vector declarations", re);
   }
-  if (rng.second != 0) {
-    error("Cascade does not currently support vector declarations with lower bounds not equal to zero", re);
-  }
 }
 
 void TypeCheck::check_array(Identifier::const_iterator_dim begin, Identifier::const_iterator_dim end) {
@@ -795,9 +795,6 @@ void TypeCheck::check_array(Identifier::const_iterator_dim begin, Identifier::co
     if (rng.first <= rng.second) {
       return error("Cascade does not currently support little-endian array declarations", (*i)->get_parent()->get_parent());
     } 
-    if (rng.second != 0) {
-      return error("Cascade does not currently support array declarations with lower bounds not equal to zero", (*i)->get_parent()->get_parent());
-    }
   }
 }
 
@@ -836,8 +833,14 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
       } 
     }
     // WARN: Can we say for sure that this value is out of range?
-    else if ((Evaluate().get_value(*iitr).to_uint() > Evaluate().get_range(*ritr).first) && !decl_check_) {
-      warn("Array subscript is out of range of declared dimension for this variable", *iitr);
+    else {
+      const auto rng = Evaluate().get_range(*ritr);
+      if ((Evaluate().get_value(*iitr).to_uint() > rng.first) && !decl_check_) {
+        warn("Array subscript is outside the upper-bound of a declared dimension for this variable", *iitr);
+      }
+      if ((Evaluate().get_value(*iitr).to_uint() < rng.second) && !decl_check_) {
+        warn("Array subscript is outside the lower-bound of a declared dimension for this variable", *iitr);
+      }
     }
   }    
   return iitr;

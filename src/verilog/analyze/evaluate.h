@@ -74,9 +74,16 @@ class Evaluate : public Editor {
     Evaluate& set_feof_handler(FeofHandler h);
     Evaluate& set_fopen_handler(FopenHandler h);
 
-    // Returns the arity of an expression: an empty vector for scalars, one 
-    // value for the length of each dimension for arrays.
+    // Returns the arity of a variable: an empty vector for scalars, one value
+    // for the length of each dimension for arrays. This method is undefined
+    // for identifiers which cannot be resolved.
     std::vector<size_t> get_arity(const Identifier* id);
+    // Returns the msb of a variable. Returns the same for scalars and arrays.
+    // This method is undefined for indentifiers which cannot be resolved.
+    size_t get_msb(const Identifier* id);
+    // Returns the lsb of a variable. Returns the same for scalars and arrays.
+    // This method is undefined for indentifiers which cannot be resolved.
+    size_t get_lsb(const Identifier* id);
 
     // Returns the bit-width of the value of an expression. Returns the same
     // value for scalars and arrays.
@@ -167,6 +174,7 @@ class Evaluate : public Editor {
       void edit(MultipleConcatenation* mc) override;
       void edit(Number* n) override;
       void edit(String* s) override;
+      void edit(RangeExpression* re) override;
       void edit(UnaryExpression* ue) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
