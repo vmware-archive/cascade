@@ -223,7 +223,7 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
 
     const auto* p = v->first->get_parent();
     assert(p != nullptr);
-    assert(p->is_subtype_of(Node::Tag::declaration));
+    assert(p->is_subclass_of(Node::Tag::declaration));
     const auto* decl = static_cast<const Declaration*>(p);
     const auto* re = decl->get_dim();
     const auto type = decl->get_type();
