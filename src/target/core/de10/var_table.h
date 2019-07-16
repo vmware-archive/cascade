@@ -96,10 +96,8 @@ class VarTable {
     size_t apply_update_index() const;
     // Returns the address of the drop_update control variable.
     size_t drop_update_index() const;
-    // Returns the address of the sys_task control variable.
-    size_t sys_task_index() const;
-    // Returns the address of the io_task control variable.
-    size_t io_task_index() const;
+    // Returns the address of the task control variable.
+    size_t task_index() const;
     // Returns the address of the resume control variable.
     size_t resume_index() const;
     // Returns the address of the reset control variable.
@@ -247,33 +245,28 @@ inline size_t VarTable<T>::drop_update_index() const {
 }
 
 template <typename T>
-inline size_t VarTable<T>::sys_task_index() const {
+inline size_t VarTable<T>::task_index() const {
   return next_index_ + 3;
 }
 
 template <typename T>
-inline size_t VarTable<T>::io_task_index() const {
+inline size_t VarTable<T>::resume_index() const {
   return next_index_ + 4;
 }
 
 template <typename T>
-inline size_t VarTable<T>::resume_index() const {
+inline size_t VarTable<T>::reset_index() const {
   return next_index_ + 5;
 }
 
 template <typename T>
-inline size_t VarTable<T>::reset_index() const {
+inline size_t VarTable<T>::done_index() const {
   return next_index_ + 6;
 }
 
 template <typename T>
-inline size_t VarTable<T>::done_index() const {
-  return next_index_ + 7;
-}
-
-template <typename T>
 inline size_t VarTable<T>::open_loop_index() const {
-  return next_index_ + 8;
+  return next_index_ + 7;
 }
 
 template <typename T>

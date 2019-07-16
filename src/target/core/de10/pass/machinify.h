@@ -42,9 +42,8 @@ namespace cascade {
 // Pass 2: 
 //        
 // Transform always blocks into continuation-passing state machines if they
-// contain io tasks. This pass uses system tasks and io tasks as landmarks,
-// but recall that they've been replaced by non-blocking assigns to sentinal
-// locations in pass 1.
+// contain tasks. This pass uses system tasks as landmarks, but recall that
+// they've been replaced by non-blocking assigns to __next_task_id in pass 1.
 
 class Machinify : public Editor {
   public:
@@ -52,12 +51,12 @@ class Machinify : public Editor {
     ~Machinify() override = default;
 
   private:
-    // Checks whether an always construct contains any i/o statements which
-    // require us to trap into the runtime (ie: get() $put() or seek()). 
-    struct IoCheck : public Visitor {
+    // Checks whether an always construct contains any task statements which
+    // require us to trap into the runtime.
+    struct TaskCheck : public Visitor {
       public:
-        IoCheck();
-        ~IoCheck() override = default;
+        TaskCheck();
+        ~TaskCheck() override = default;
 
         bool run(const Node* n);
 

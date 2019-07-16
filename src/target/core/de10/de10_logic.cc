@@ -94,14 +94,6 @@ const VarTable32& De10Logic::get_table() const {
   return table_;
 }
 
-size_t De10Logic::num_sys_tasks() const {
-  return sys_tasks_.size();
-}
-
-size_t De10Logic::num_io_tasks() const {
-  return io_tasks_.size();
-}
-
 State* De10Logic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
@@ -120,8 +112,7 @@ void De10Logic::set_state(const State* s) {
   }
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.io_task_index(), 1);
-  table_.write_control_var(table_.sys_task_index(), 1);
+  table_.write_control_var(table_.task_index(), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -150,8 +141,7 @@ void De10Logic::set_input(const Input* i) {
   }
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.io_task_index(), 1);
-  table_.write_control_var(table_.sys_task_index(), 1);
+  table_.write_control_var(table_.task_index(), 1);
 }
 
 void De10Logic::finalize() {
@@ -168,7 +158,6 @@ void De10Logic::evaluate() {
   // Read outputs and handle tasks
   wait_until_done();
   handle_outputs();
-  handle_sys_tasks();
 }
 
 bool De10Logic::there_are_updates() const {
@@ -182,7 +171,6 @@ void De10Logic::update() {
   // Read outputs and handle tasks
   wait_until_done();
   handle_outputs();
-  handle_sys_tasks();
 }
 
 bool De10Logic::there_were_tasks() const {
@@ -190,23 +178,18 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
-  // If there are io tasks we're not going to stay in open loop for
-  // very long, so just fall back to the default implementation which
-  // is based on calls to evaluate and update.
-  if (!io_tasks_.empty()) {
-    return Core::open_loop(clk, val, itr);
-  }
-
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
 
-  // Go into open loop mode and handle tasks when we return. No need
-  // to handle outputs. This methods assumes that we don't have any.
+  // Go into open loop mode.  Invoke wait_until_done() just in case we're in a
+  // state where a system task forced the exit of the loop and we need to
+  // finish the current iteration.
   table_.write_control_var(table_.open_loop_index(), itr);
-  handle_sys_tasks();
+  wait_until_done();
 
-  // Return the number of iterations that we ran for
+  // No need to handle outputs; this optimization assumes we don't have any.
+  // Simply return the number of iterations that we ran for
   return table_.read_control_var(table_.open_loop_index());
 }
 
@@ -245,8 +228,12 @@ interfacestream* De10Logic::get_stream(FId fd) {
 }
 
 void De10Logic::update_eofs() {
-  // NOTE: This is only correct for so long as the only expressions we put in
-  // the expression segment of the variable table are feofs.
+  // TODO(eschkufz): The correctness of this method relies on two invariants:
+  // 
+  // 1. The only expressions in the expression segment of the variable table
+  //    are feofs (this is a property of our code and tru by current construction)
+  // 2. feofs only refer to streams by static constants. This is a property of
+  //    the program and we don't currently verify it.
 
   Evaluate eval;
   Sync sync(this);
@@ -261,11 +248,12 @@ void De10Logic::update_eofs() {
 }
 
 void De10Logic::wait_until_done() {
+  there_were_tasks_ = false;
   while (!table_.read_control_var(table_.done_index())) {
-    handle_io_tasks();
+    handle_tasks();
     table_.write_control_var(table_.resume_index(), 1);
   }
-  handle_io_tasks();
+  handle_tasks();
 }
 
 void De10Logic::handle_outputs() {
@@ -275,131 +263,104 @@ void De10Logic::handle_outputs() {
   }
 }
 
-void De10Logic::handle_io_tasks() {
-  volatile auto queue = table_.read_control_var(table_.io_task_index());
-  if (queue == 0) {
+void De10Logic::handle_tasks() {
+  volatile auto task_id = table_.read_control_var(table_.task_index());
+  if (task_id == 0) {
     return;
   }
 
-  Evaluate eval;
-  Sync sync(this);
-  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
-    if ((queue & 0x1) == 0) {
-      continue;
-    }
-    switch (io_tasks_[i]->get_tag()) {
-      case Node::Tag::fflush_statement: {
-        const auto* fs = static_cast<const FflushStatement*>(io_tasks_[i]);
-        fs->accept_fd(&sync);
-
-        const auto fd = eval.get_value(fs->get_fd()).to_uint();
-        auto* is = get_stream(fd);
-        is->flush();
-        break;
-      }
-      case Node::Tag::fseek_statement: {
-        const auto* fs = static_cast<const FseekStatement*>(io_tasks_[i]);
-        fs->accept_fd(&sync);
-
-        const auto fd = eval.get_value(fs->get_fd()).to_uint();
-        auto* is = get_stream(fd);
-
-        const auto offset = eval.get_value(fs->get_offset()).to_uint();
-        const auto op = eval.get_value(fs->get_op()).to_uint();
-        const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
-
-        is->clear();
-        is->seekg(offset, way); 
-        is->seekp(offset, way); 
-        update_eofs();
-
-        break;
-      }
-      case Node::Tag::get_statement: {
-        const auto* gs = static_cast<const GetStatement*>(io_tasks_[i]);
-        gs->accept_fd(&sync);
-
-        const auto fd = eval.get_value(gs->get_fd()).to_uint();
-        auto* is = get_stream(fd);
-        Scanf().read(*is, &eval, gs);
-
-        if (gs->is_non_null_var()) {
-          const auto* r = Resolve().get_resolution(gs->get_var());
-          assert(r != nullptr);
-          table_.write_var(r, eval.get_value(r));
-        }
-        update_eofs();
-
-        break;
-      }  
-      case Node::Tag::put_statement: {
-        const auto* ps = static_cast<const PutStatement*>(io_tasks_[i]);
-        ps->accept_fd(&sync);
-        ps->accept_expr(&sync);
-
-        const auto fd = eval.get_value(ps->get_fd()).to_uint();
-        auto* is = get_stream(fd);
-        Printf().write(*is, &eval, ps);
-        update_eofs();
-
-        break;
-      }
-      default:
-        assert(false);
-        break;
-    }
-  }
-
-  // Reset the task mask
-  table_.write_control_var(table_.io_task_index(), 0);
-}
-
-void De10Logic::handle_sys_tasks() {
-  // By default, we'll assume there were no tasks
-  there_were_tasks_ = false;
-  volatile auto queue = table_.read_control_var(table_.sys_task_index());
-  if (queue == 0) {
-    return;
-  }
-
-  // There were tasks after all; we need to empty the queue
-  Evaluate eval;
-  Sync sync(this);
+  const auto* task = tasks_[task_id];
   there_were_tasks_ = true;
-  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
-    if ((queue & 0x1) == 0) {
-      continue;
+
+  Evaluate eval;
+  Sync sync(this);
+  switch (task->get_tag()) {
+    case Node::Tag::finish_statement: {
+      const auto* fs = static_cast<const FinishStatement*>(task);
+      fs->accept_arg(&sync);
+      interface()->finish(eval.get_value(fs->get_arg()).to_uint());
+      break;
     }
-    switch (sys_tasks_[i]->get_tag()) {
-      case Node::Tag::finish_statement: {
-        const auto* fs = static_cast<const FinishStatement*>(sys_tasks_[i]);
-        fs->accept_arg(&sync);
-        interface()->finish(Evaluate().get_value(fs->get_arg()).to_uint());
-        break;
-      }
-      case Node::Tag::restart_statement: {
-        const auto* rs = static_cast<const RestartStatement*>(sys_tasks_[i]);
-        interface()->restart(rs->get_arg()->get_readable_val());
-        break;
-      }
-      case Node::Tag::retarget_statement: {
-        const auto* rs = static_cast<const RetargetStatement*>(sys_tasks_[i]);
-        interface()->retarget(rs->get_arg()->get_readable_val());
-        break;
-      }
-      case Node::Tag::save_statement: {
-        const auto* ss = static_cast<const SaveStatement*>(sys_tasks_[i]);
-        interface()->save(ss->get_arg()->get_readable_val());
-        break;
-      }
-      default:
-        assert(false);
-        break;
+    case Node::Tag::fflush_statement: {
+      const auto* fs = static_cast<const FflushStatement*>(task);
+      fs->accept_fd(&sync);
+
+      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      is->flush();
+      update_eofs();
+
+      break;
     }
+    case Node::Tag::fseek_statement: {
+      const auto* fs = static_cast<const FseekStatement*>(task);
+      fs->accept_fd(&sync);
+
+      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+
+      const auto offset = eval.get_value(fs->get_offset()).to_uint();
+      const auto op = eval.get_value(fs->get_op()).to_uint();
+      const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
+
+      is->clear();
+      is->seekg(offset, way); 
+      is->seekp(offset, way); 
+      update_eofs();
+
+      break;
+    }
+    case Node::Tag::get_statement: {
+      const auto* gs = static_cast<const GetStatement*>(task);
+      gs->accept_fd(&sync);
+
+      const auto fd = eval.get_value(gs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      Scanf().read(*is, &eval, gs);
+
+      if (gs->is_non_null_var()) {
+        const auto* r = Resolve().get_resolution(gs->get_var());
+        assert(r != nullptr);
+        table_.write_var(r, eval.get_value(r));
+      }
+      update_eofs();
+
+      break;
+    }  
+    case Node::Tag::put_statement: {
+      const auto* ps = static_cast<const PutStatement*>(task);
+      ps->accept_fd(&sync);
+      ps->accept_expr(&sync);
+
+      const auto fd = eval.get_value(ps->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      Printf().write(*is, &eval, ps);
+      update_eofs();
+
+      break;
+    }
+    case Node::Tag::restart_statement: {
+      const auto* rs = static_cast<const RestartStatement*>(task);
+      interface()->restart(rs->get_arg()->get_readable_val());
+      break;
+    }
+    case Node::Tag::retarget_statement: {
+      const auto* rs = static_cast<const RetargetStatement*>(task);
+      interface()->retarget(rs->get_arg()->get_readable_val());
+      break;
+    }
+    case Node::Tag::save_statement: {
+      const auto* ss = static_cast<const SaveStatement*>(task);
+      interface()->save(ss->get_arg()->get_readable_val());
+      break;
+    }
+    default:
+      assert(false);
+      break;
   }
 
   // Reset the task mask
-  table_.write_control_var(table_.sys_task_index(), 0);
+  table_.write_control_var(table_.task_index(), 1);
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
@@ -408,8 +369,10 @@ De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
 }
 
 void De10Logic::Inserter::visit(const Identifier* id) {
-  if (in_args_ && (de_->table_.var_find(id) == de_->table_.var_end())) {
-    de_->table_.insert_var(id);
+  Visitor::visit(id);
+  const auto* r = Resolve().get_resolution(id);
+  if (in_args_ && (de_->table_.var_find(r) == de_->table_.var_end())) {
+    de_->table_.insert_var(r);
   }
 }
 
@@ -418,36 +381,42 @@ void De10Logic::Inserter::visit(const FeofExpression* fe) {
   // represent its value, *and also* images of its arguments so that we can
   // inspect an feof expression and know what stream it refers to.
 
-  assert(de_->table_.expr_find(fe) == de_->table_.expr_end());
   de_->table_.insert_expr(fe); 
   in_args_ = true;
   fe->accept_fd(this);
   in_args_ = false;
 }
 
+void De10Logic::Inserter::visit(const FflushStatement* fs) {
+  de_->tasks_.push_back(fs);
+  in_args_ = true;
+  fs->accept_fd(this);
+  in_args_ = false;
+}
+
 void De10Logic::Inserter::visit(const FinishStatement* fs) {
-  de_->sys_tasks_.push_back(fs);
+  de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_arg(this);
   in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const FseekStatement* fs) {
-  de_->io_tasks_.push_back(fs);
+  de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const GetStatement* gs) {
-  de_->io_tasks_.push_back(gs);
+  de_->tasks_.push_back(gs);
   in_args_ = true;
   gs->accept_fd(this);
   in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const PutStatement* ps) {
-  de_->io_tasks_.push_back(ps);
+  de_->tasks_.push_back(ps);
   in_args_ = true;
   ps->accept_fd(this);
   ps->accept_expr(this);
@@ -455,21 +424,21 @@ void De10Logic::Inserter::visit(const PutStatement* ps) {
 }
 
 void De10Logic::Inserter::visit(const RestartStatement* rs) {
-  de_->sys_tasks_.push_back(rs);
+  de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const RetargetStatement* rs) {
-  de_->sys_tasks_.push_back(rs);
+  de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const SaveStatement* ss) {
-  de_->sys_tasks_.push_back(ss);
+  de_->tasks_.push_back(ss);
   in_args_ = true;
   ss->accept_arg(this);
   in_args_ = false;
@@ -480,8 +449,10 @@ De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
 }
 
 void De10Logic::Sync::visit(const Identifier* id) {
-  assert(de_->table_.var_find(id) != de_->table_.var_end());
-  de_->table_.read_var(id);
+  Visitor::visit(id);
+  const auto* r = Resolve().get_resolution(id);
+  assert(de_->table_.var_find(r) != de_->table_.var_end());
+  de_->table_.read_var(r);
 }
 
 } // namespace cascade

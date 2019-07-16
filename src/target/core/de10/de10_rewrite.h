@@ -62,7 +62,7 @@ class De10Rewrite {
     void emit_port_vars(ModuleDeclaration* res);
     void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
     void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_mask_vars(ModuleDeclaration* res);
+    void emit_task_vars(ModuleDeclaration* res);
     void emit_control_vars(ModuleDeclaration* res);
     void emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
     void emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti);

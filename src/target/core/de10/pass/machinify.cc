@@ -38,17 +38,17 @@ namespace cascade {
 
 Machinify::Machinify() : Editor() { }
 
-Machinify::IoCheck::IoCheck() : Visitor() { }
+Machinify::TaskCheck::TaskCheck() : Visitor() { }
 
-bool Machinify::IoCheck::run(const Node* n) {
+bool Machinify::TaskCheck::run(const Node* n) {
   res_ = false; 
   n->accept(this);
   return res_;
 }
 
-void Machinify::IoCheck::visit(const NonblockingAssign* na) {
+void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
   const auto* i = na->get_lhs();
-  if (i->eq("__1")) {
+  if (i->eq("__next_task_id")) {
     res_ = true;
   }
 }
@@ -141,7 +141,7 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
   // TODO(eschkufz) There are similar optimizations to the ones in
   // ConditionalStatement that can still be made here.
 
-  if (!IoCheck().run(cs)) {
+  if (!TaskCheck().run(cs)) {
     append(cs);
     return;
   } 
@@ -180,7 +180,7 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
 
 void Machinify::Generate::visit(const ConditionalStatement* cs) {
   // No need to split a conditional statement that doesn't have any io
-  if (!IoCheck().run(cs)) {
+  if (!TaskCheck().run(cs)) {
     append(cs);
     return;
   }
@@ -321,7 +321,7 @@ void Machinify::edit(AlwaysConstruct* ac) {
     return;
   }
   // Also nothing to do if there's no file i/o in this block
-  if (!IoCheck().run(ac)) {
+  if (!TaskCheck().run(ac)) {
     return;
   }
   // Otherwise, replace this block with a reentrant state machine

@@ -32,7 +32,6 @@
 
 #include <sstream>
 #include "target/core/de10/de10_logic.h"
-#include "target/core/de10/pass/finish_mangle.h"
 #include "target/core/de10/pass/machinify.h"
 #include "target/core/de10/pass/text_mangle.h"
 #include "target/core/de10/pass/trigger_reschedule.h"
@@ -64,7 +63,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_port_vars(res);
   emit_var_table(res, de);
   emit_shadow_vars(res, md, de);
-  emit_mask_vars(res);
+  emit_task_vars(res);
   emit_control_vars(res);
   emit_view_vars(res, md, de);
   emit_trigger_vars(res, &ti);
@@ -75,8 +74,6 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   md->accept_items(&tm, res->back_inserter_items());
   Machinify mfy;
   res->accept(&mfy);
-  FinishMangle fm(&tm);
-  res->accept(&fm);
   TriggerReschedule tr;
   res->accept(&tr);
 
@@ -186,20 +183,17 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
   ));
 }
 
-void De10Rewrite::emit_mask_vars(ModuleDeclaration* res) {
-  // These variables track the activation of system tasks and io tasks.
+void De10Rewrite::emit_task_vars(ModuleDeclaration* res) {
+  // These variables track the activation of system tasks. 
 
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__task_mask"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_task_mask"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__next_task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__io_mask"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_io_mask"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__active_task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
 }
 
@@ -227,7 +221,10 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
       continue;
     }
 
-    const auto* decl = static_cast<const Declaration*>(v->first->get_parent());
+    const auto* p = v->first->get_parent();
+    assert(p != nullptr);
+    assert(p->is_subtype_of(Node::Tag::declaration));
+    const auto* decl = static_cast<const Declaration*>(p);
     const auto* re = decl->get_dim();
     const auto type = decl->get_type();
    
@@ -375,64 +372,33 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
 }
 
 void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // Both masks are cleared whenever the user forces a read of the mask.
+  // Task variables are cleared whenever the user forces a read of the mask.
 
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__task_queue"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
+  auto* sb = new SeqBlock();
+  sb->push_back_stmts(new NonblockingAssign(
+    new Identifier("__next_task_id"),
+    new Identifier("__task_id")
   ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__task_queue"), 
-    new BinaryExpression(new Identifier("__task_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_task_mask"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__there_were_tasks"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__there_were_tasks"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__task_queue"))
+  sb->push_back_stmts(new NonblockingAssign(
+    new Identifier("__active_task_id"), 
+    new ConditionalExpression(
+      new BinaryExpression(
+        new Identifier("__read"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().task_index())))
+      ),
+      new Number(Bits(32, 0)),
+      new ConditionalExpression(
+        new BinaryExpression(new Identifier("__task_id"), BinaryExpression::Op::BEQ, new Identifier("__next_task_id")),
+        new Identifier("__next_task_id"),
+        new Identifier("__active_task_id")    
+      )
+    )
   ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(
-      new Identifier("__task_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(
-          new Identifier("__read"),
-          BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().sys_task_index())))
-        ),
-        new Identifier("__next_task_mask"), 
-        new Identifier("__task_mask"))
-    ))
-  )); 
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__io_queue"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__io_queue"), 
-    new BinaryExpression(new Identifier("__io_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_io_mask"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__there_was_io"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__there_was_io"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__io_queue"))
-  ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(
-      new Identifier("__io_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(
-          new Identifier("__read"),
-          BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().io_task_index())))
-        ),
-        new Identifier("__next_io_mask"), 
-        new Identifier("__io_mask"))
-    ))
-  )); 
+    sb 
+  ))); 
 }
 
 void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de) {
@@ -514,18 +480,10 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 
   map<size_t, NonblockingAssign*> logic;
   for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
-    const auto* p = t->first->get_parent();
-    const auto in_push_task = 
-      p->is(Node::Tag::put_statement) ||
-      p->is(Node::Tag::finish_statement);
-    const auto in_pull_task = 
-      p->is(Node::Tag::feof_expression);
-
-    // If this variable hasn't been reified into the variable table or is
-    // inside of a push task (one that only sends data to the host) we don't
+    // If this variable hasn't been reified into the variable table we don't
     // need to emit any update logic.
     ModuleInfo info(md);
-    if (in_push_task || (info.is_output(t->first) && !info.is_stateful(t->first))) {
+    if (info.is_output(t->first) && !info.is_stateful(t->first)) {
       continue;
     }
 
@@ -538,7 +496,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
         auto* lhs = new Identifier(new Id("__var"), new Number(Bits(32, idx)));
 
         Expression* rhs = lhs->clone();
-        if (info.is_stateful(t->first) && !in_pull_task) {
+        if (info.is_stateful(t->first)) {
           auto* id = new Identifier(t->first->front_ids()->get_readable_sid() + "_next");
           emit_subscript(id, i, ie, arity);
           emit_slice(id, w, j);
@@ -700,12 +658,8 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
     new BlockingAssign(new Identifier("__out"), new Identifier("__there_are_updates"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->get_table().sys_task_index())),
-    new BlockingAssign(new Identifier("__out"), new Identifier("__task_queue"))
-  ));
-  cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->get_table().io_task_index())),
-    new BlockingAssign(new Identifier("__out"), new Identifier("__io_queue"))
+    new Number(Bits(32, de->get_table().task_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__active_task_id"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().done_index())),

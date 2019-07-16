@@ -224,16 +224,6 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
     delete de;
     return nullptr;
   }
-  if (de->num_sys_tasks() > 32) {
-    error("Unable to compile a module with more than 32 system task invocations");
-    delete de;
-    return nullptr;
-  }
-  if (de->num_io_tasks() > 32) {
-    error("Unable to compile a module with more than 32 file i/o task invocations");
-    delete de;
-    return nullptr;
-  }
 
   // Blocking call to compile.  At this point, we don't expect compilations to
   // fail.  A non-zero return value indicates that the compilation was aborted. 

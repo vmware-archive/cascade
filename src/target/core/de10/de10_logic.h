@@ -57,8 +57,6 @@ class De10Logic : public Logic {
 
     // Configuraton Properties:
     const VarTable32& get_table() const;
-    size_t num_sys_tasks() const;
-    size_t num_io_tasks() const;
 
     // Core Interface:
     State* get_state() override;
@@ -90,8 +88,7 @@ class De10Logic : public Logic {
     std::vector<const Identifier*> inputs_;
     std::unordered_map<VId, const Identifier*> state_;
     std::vector<std::pair<const Identifier*, VId>> outputs_;
-    std::vector<const SystemTaskEnableStatement*> sys_tasks_;
-    std::vector<const SystemTaskEnableStatement*> io_tasks_;
+    std::vector<const SystemTaskEnableStatement*> tasks_;
 
     // Control State:
     bool there_were_tasks_;
@@ -103,8 +100,7 @@ class De10Logic : public Logic {
     void update_eofs();
     void wait_until_done();
     void handle_outputs();
-    void handle_io_tasks();
-    void handle_sys_tasks();
+    void handle_tasks();
 
     // Indexes system tasks and inserts the identifiers which appear in those
     // tasks into the variable table.
@@ -117,6 +113,7 @@ class De10Logic : public Logic {
         bool in_args_;
         void visit(const Identifier* id) override;
         void visit(const FeofExpression* fe) override;
+        void visit(const FflushStatement* fs) override;
         void visit(const FinishStatement* fs) override;
         void visit(const FseekStatement* fs) override;
         void visit(const GetStatement* gs) override;
