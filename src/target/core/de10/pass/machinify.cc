@@ -38,57 +38,47 @@ namespace cascade {
 
 Machinify::Machinify() : Editor() { }
 
-Machinify::TaskCheck::TaskCheck() : Visitor() { }
-
-bool Machinify::TaskCheck::run(const Node* n) {
-  res_ = false; 
-  n->accept(this);
-  return res_;
-}
-
-void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
-  const auto* i = na->get_lhs();
-  if (i->eq("__next_task_id")) {
-    res_ = true;
-  }
-}
-
 Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
 }
 
 SeqBlock* Machinify::Generate::run(const Statement* s) {
-  // Create a state machine for this statement
+  // Create a state machine with a single state
   machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
   next_state();
+
+  // Populate the state machine
   s->accept(this);
 
   // Now we need a done state. If the last state in the machine is currently
   // empty, then we can use that one. Otherwise, we'll have to create one last
-  // transition to a new state.
+  // transition to an empty state.
   auto c = current();
-  if (c.second->empty_stmts()) {
-    assert(c.second->get_parent()->is(Node::Tag::case_item));
-    auto* ci = static_cast<CaseItem*>(c.second->get_parent());
-    ci->purge_exprs();
-    transition(c.first);
-  } else {
+  if (!c.second->empty_stmts()) {
+    if (task_states_.empty() || (task_states_.back() != c.first)) {
+      c.second->push_back_stmts(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
+    }
     transition(c.second, c.first+1);
-    machine_->push_back_items(new CaseItem(new NonblockingAssign(
-      new Identifier("__state"),
-      new Number(Bits(32, c.first+1))
-    )));
+    next_state();
+    c = current();
   }
+  assert(c.second->get_parent()->is(Node::Tag::case_item));
+  auto* ci = static_cast<CaseItem*>(c.second->get_parent());
+  ci->purge_exprs();
+  c.second->push_back_stmts(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
+  c.second->push_back_stmts(new NonblockingAssign(new Identifier("__state"), new Identifier("__final")));
 
-  // Add declaration for state register 
+  // Add declaration for state registers
   auto* sb = new SeqBlock(machine_);
   sb->replace_id(name());
-  sb->push_back_decls(new RegDeclaration(
-    new Attributes(), new Identifier("__state"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(false))
-  ));
-  // Add a localparam declaration for final state
   sb->push_back_decls(new LocalparamDeclaration(
     new Attributes(), new Identifier("__final"), Declaration::Type::UNSIGNED, new Number(Bits(32, machine_->size_items()-1))
+  ));
+  sb->push_back_decls(new RegDeclaration(
+    new Attributes(), new Identifier("__state"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Identifier("__final")
+  ));
+  sb->push_back_decls(new RegDeclaration(
+    new Attributes(), new Identifier("__task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(false))
   ));
 
   return sb;
@@ -104,6 +94,14 @@ size_t Machinify::Generate::final_state() const {
   return current().first;
 }
 
+Machinify::Generate::task_iterator Machinify::Generate::task_begin() const {
+  return task_states_.begin();
+}
+
+Machinify::Generate::task_iterator Machinify::Generate::task_end() const {
+  return task_states_.end();
+}
+
 void Machinify::Generate::visit(const BlockingAssign* ba) {
   append(ba);
 }
@@ -111,11 +109,18 @@ void Machinify::Generate::visit(const BlockingAssign* ba) {
 void Machinify::Generate::visit(const NonblockingAssign* na) {
   append(na);
 
-  // We have the invariant that our code doesn't have any nested seq blocks
-  // (which we didn't introduce ourselves, and those by construction won't have
-  // any io tasks inside them).  So if this is the last statement in a seq
-  // block, it's already sitting at a state boundary, and there's no need to
-  // introduce another break.
+  // If this is a task, we need to record the state that it appears in
+  const auto is_task = na->get_lhs()->eq("__task_id");
+  if (is_task) {
+    task_states_.push_back(current().first);
+  }
+
+  // NOTE: We have the invariant that our code doesn't have any nested seq
+  // blocks (which we didn't introduce ourselves, and by construction won't
+  // have any tasks inside them).  
+  
+  // If this is the last statement in a seq block, it's already sitting at a
+  // state boundary, and there's no need to introduce another break.
   const auto* p = na->get_parent();
   if (p->is(Node::Tag::seq_block)) {
     const auto* sb = static_cast<const SeqBlock*>(p);
@@ -123,11 +128,8 @@ void Machinify::Generate::visit(const NonblockingAssign* na) {
       return;
     }
   }
-
-  // Otherwise, if this is an io statement, we'll need to break for a state
-  // transition.
-  const auto* id = na->get_lhs();
-  if (id->eq("__1")) {
+  // Otherwise, if this is a task, we'll need to break for a state transition.
+  if (is_task) {
     transition(current().first+1);
     next_state();
   }
@@ -273,41 +275,41 @@ void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
 }
 
 void Machinify::Generate::next_state() {
+  if (!machine_->empty_items()) {
+    if (task_states_.empty() || (task_states_.back() != current().first)) {
+      append(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
+    }
+  }
   auto* ci = new CaseItem(new SeqBlock());
   ci->push_back_exprs(new Number(Bits(32, machine_->size_items())));
   machine_->push_back_items(ci);
 }
 
+Machinify::const_iterator Machinify::begin() const {
+  return generators_.begin();
+}
+
+Machinify::const_iterator Machinify::end() const {
+  return generators_.end();
+}
+
+Machinify::TaskCheck::TaskCheck() : Visitor() { }
+
+bool Machinify::TaskCheck::run(const Node* n) {
+  res_ = false; 
+  n->accept(this);
+  return res_;
+}
+
+void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
+  const auto* i = na->get_lhs();
+  if (i->eq("__task_id")) {
+    res_ = true;
+  }
+}
+
 void Machinify::edit(ModuleDeclaration* md) {
   md->accept_items(this);
-
-  // If we didn't emit any state machines, we can hardwire __done to 1
-  if (generators_.empty()) {
-    md->push_back_items(new ContinuousAssign(
-      new Identifier("__done"),
-      new Number(Bits(true))
-    )); 
-    return;
-  }
-
-  // Otherwise, the done signal is the concatenation of every state machine
-  // being in its terminal state
-  auto* c = new Concatenation();
-  for (auto& g : generators_) {
-    auto* var = g.name();
-    var->push_back_ids(new Id("__state"));
-    auto* fin = g.name();
-    fin->push_back_ids(new Id("__final"));
-    c->push_back_exprs(new BinaryExpression(
-      var,
-      BinaryExpression::Op::EEQ,
-      fin
-    ));
-  }
-  md->push_back_items(new ContinuousAssign(
-    new Identifier("__done"),
-    new UnaryExpression(UnaryExpression::Op::AMP, c)
-  ));
 }
 
 void Machinify::edit(AlwaysConstruct* ac) {

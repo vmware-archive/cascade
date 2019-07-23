@@ -48,6 +48,7 @@ namespace cascade {
 De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), table_(addr) { 
   id_ = id;
   src_ = src;
+  tasks_.push_back(nullptr);
 }
 
 De10Logic::~De10Logic() {
@@ -112,7 +113,6 @@ void De10Logic::set_state(const State* s) {
   }
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.task_index(), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -141,7 +141,6 @@ void De10Logic::set_input(const Input* i) {
   }
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.task_index(), 1);
 }
 
 void De10Logic::finalize() {
@@ -156,7 +155,7 @@ void De10Logic::read(VId id, const Bits* b) {
 
 void De10Logic::evaluate() {
   // Read outputs and handle tasks
-  wait_until_done();
+  loop_until_done();
   handle_outputs();
 }
 
@@ -169,7 +168,7 @@ void De10Logic::update() {
   // Throw the update trigger
   table_.write_control_var(table_.apply_update_index(), 1);
   // Read outputs and handle tasks
-  wait_until_done();
+  loop_until_done();
   handle_outputs();
 }
 
@@ -182,15 +181,15 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   (void) clk;
   (void) val;
 
-  // Go into open loop mode.  Invoke wait_until_done() just in case we're in a
+  // Go into open loop mode.  Invoke loop_until_done() just in case we're in a
   // state where a system task forced the exit of the loop and we need to
   // finish the current iteration.
   table_.write_control_var(table_.open_loop_index(), itr);
-  wait_until_done();
+  loop_until_done();
 
   // No need to handle outputs; this optimization assumes we don't have any.
   // Simply return the number of iterations that we ran for
-  return table_.read_control_var(table_.open_loop_index());
+  return itr - table_.read_control_var(table_.open_loop_index());
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -247,13 +246,15 @@ void De10Logic::update_eofs() {
   }
 }
 
-void De10Logic::wait_until_done() {
-  there_were_tasks_ = false;
-  while (!table_.read_control_var(table_.done_index())) {
+void De10Logic::loop_until_done() {
+  // This method is invokved from evaluate, update, and open_loop.  The only
+  // thing that prevents done from being true is the occurrence of a system
+  // task. If this happens, continue asserting __continue (resume_index) and
+  // handling tasks until done returns true.
+  for (there_were_tasks_ = false; !table_.read_control_var(table_.done_index()); ) {
     handle_tasks();
     table_.write_control_var(table_.resume_index(), 1);
   }
-  handle_tasks();
 }
 
 void De10Logic::handle_outputs() {
@@ -264,7 +265,9 @@ void De10Logic::handle_outputs() {
 }
 
 void De10Logic::handle_tasks() {
-  volatile auto task_id = table_.read_control_var(table_.task_index());
+  // TODO(eschkufz) we'll need to support multiple task ids and iterate over all of them
+
+  volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
   if (task_id == 0) {
     return;
   }
@@ -279,6 +282,7 @@ void De10Logic::handle_tasks() {
       const auto* fs = static_cast<const FinishStatement*>(task);
       fs->accept_arg(&sync);
       interface()->finish(eval.get_value(fs->get_arg()).to_uint());
+      there_were_tasks_ = true;
       break;
     }
     case Node::Tag::fflush_statement: {
@@ -342,25 +346,25 @@ void De10Logic::handle_tasks() {
     case Node::Tag::restart_statement: {
       const auto* rs = static_cast<const RestartStatement*>(task);
       interface()->restart(rs->get_arg()->get_readable_val());
+      there_were_tasks_ = true;
       break;
     }
     case Node::Tag::retarget_statement: {
       const auto* rs = static_cast<const RetargetStatement*>(task);
       interface()->retarget(rs->get_arg()->get_readable_val());
+      there_were_tasks_ = true;
       break;
     }
     case Node::Tag::save_statement: {
       const auto* ss = static_cast<const SaveStatement*>(task);
       interface()->save(ss->get_arg()->get_readable_val());
+      there_were_tasks_ = true;
       break;
     }
     default:
       assert(false);
       break;
   }
-
-  // Reset the task mask
-  table_.write_control_var(table_.task_index(), 1);
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {

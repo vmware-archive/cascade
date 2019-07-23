@@ -97,7 +97,7 @@ class VarTable {
     // Returns the address of the drop_update control variable.
     size_t drop_update_index() const;
     // Returns the address of the task control variable.
-    size_t task_index() const;
+    size_t there_were_tasks_index() const;
     // Returns the address of the resume control variable.
     size_t resume_index() const;
     // Returns the address of the reset control variable.
@@ -245,7 +245,7 @@ inline size_t VarTable<T>::drop_update_index() const {
 }
 
 template <typename T>
-inline size_t VarTable<T>::task_index() const {
+inline size_t VarTable<T>::there_were_tasks_index() const {
   return next_index_ + 3;
 }
 

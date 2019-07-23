@@ -47,8 +47,55 @@ namespace cascade {
 
 class Machinify : public Editor {
   public:
+    // State Machine Construction Helpers:
+    class Generate : public Visitor {
+      public:
+        typedef typename std::vector<size_t>::const_iterator task_iterator;
+
+        Generate(size_t idx);
+        ~Generate() = default;
+
+        SeqBlock* run(const Statement* s);
+        Identifier* name() const;
+        size_t final_state() const;
+        task_iterator task_begin() const;
+        task_iterator task_end() const;
+
+      private:
+        CaseStatement* machine_;
+        std::vector<size_t> task_states_;
+        size_t idx_;
+
+        void visit(const BlockingAssign* ba) override;
+        void visit(const NonblockingAssign* na) override;
+        void visit(const SeqBlock* sb) override;
+        void visit(const CaseStatement* cs) override;
+        void visit(const ConditionalStatement* cs) override;
+
+        // Returns the index of the current state and a pointer to the
+        // corresponding case item.
+        std::pair<size_t, SeqBlock*> current() const;
+        // Copies a statement into the current state
+        void append(const Statement* s);
+        // Copies a statement into a sequential block
+        void append(SeqBlock* sb, const Statement* s);
+        // Appends a transition to state n to the current state
+        void transition(size_t n);
+        // Appends a transition to state n to a sequential block 
+        void transition(SeqBlock* sb, size_t n);
+        // Appends a new state to the state machine. If the machine is
+        // non-empty and the current state is not a task state, appends a
+        // non-blocking assign task_id <= 0;
+        void next_state();
+    };
+
+    typedef typename std::vector<Generate>::const_iterator const_iterator;
+
     Machinify();
     ~Machinify() override = default;
+
+    const_iterator begin() const;
+    const_iterator end() const;
 
   private:
     // Checks whether an always construct contains any task statements which
@@ -63,34 +110,6 @@ class Machinify : public Editor {
       private:
         bool res_;
         void visit(const NonblockingAssign* na) override;
-    };
-
-    // State Machine Construction Helpers:
-    class Generate : public Visitor {
-      public:
-        Generate(size_t idx);
-        ~Generate() = default;
-
-        SeqBlock* run(const Statement* s);
-        Identifier* name() const;
-        size_t final_state() const;
-
-      private:
-        CaseStatement* machine_;
-        size_t idx_;
-
-        void visit(const BlockingAssign* ba) override;
-        void visit(const NonblockingAssign* na) override;
-        void visit(const SeqBlock* sb) override;
-        void visit(const CaseStatement* cs) override;
-        void visit(const ConditionalStatement* cs) override;
-
-        std::pair<size_t, SeqBlock*> current() const;
-        void append(const Statement* s);
-        void append(SeqBlock* sb, const Statement* s);
-        void transition(size_t n);
-        void transition(SeqBlock* sb, size_t n);
-        void next_state();
     };
 
     std::vector<Generate> generators_;

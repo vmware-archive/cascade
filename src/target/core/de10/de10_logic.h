@@ -98,7 +98,7 @@ class De10Logic : public Logic {
     // Control Helpers:
     interfacestream* get_stream(FId fd);
     void update_eofs();
-    void wait_until_done();
+    void loop_until_done();
     void handle_outputs();
     void handle_tasks();
 

@@ -43,7 +43,7 @@ namespace cascade {
 TextMangle::TextMangle(const ModuleDeclaration* md, const De10Logic* de) : Builder() {
   md_ = md;
   de_ = de;
-  task_index_ = 0;
+  task_index_ = 1;
 }
 
 Attributes* TextMangle::build(const Attributes* as) {
@@ -96,13 +96,13 @@ Statement* TextMangle::build(const NonblockingAssign* na) {
   // Insert a new assignment to the next mask
   res->push_back_stmts(new NonblockingAssign(
     new Identifier(
-      new Id("__next_update_mask"),
+      new Id("__update_mask"),
       get_table_range(r, lhs)
     ),
     new UnaryExpression(
       UnaryExpression::Op::TILDE,
       new Identifier(
-        new Id("__next_update_mask"),
+        new Id("__prev_update_mask"),
         get_table_range(r, lhs)
       )
     )
@@ -113,56 +113,56 @@ Statement* TextMangle::build(const NonblockingAssign* na) {
 
 Statement* TextMangle::build(const FflushStatement* fs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const FinishStatement* fs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const FseekStatement* fs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const GetStatement* gs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const PutStatement* ps) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const RestartStatement* rs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const RetargetStatement* rs) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
 Statement* TextMangle::build(const SaveStatement* ss) {
   return new NonblockingAssign(
-    new Identifier("__next_task_id"), 
+    new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }

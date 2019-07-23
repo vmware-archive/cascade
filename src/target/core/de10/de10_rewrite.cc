@@ -63,11 +63,8 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_port_vars(res);
   emit_var_table(res, de);
   emit_shadow_vars(res, md, de);
-  emit_task_vars(res);
-  emit_control_vars(res);
   emit_view_vars(res, md, de);
   emit_trigger_vars(res, &ti);
-  emit_state_vars(res);
 
   // Emit original program logic
   TextMangle tm(md, de);
@@ -78,11 +75,10 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   res->accept(&tr);
 
   emit_update_logic(res, de);
-  emit_task_logic(res, de);
-  emit_control_logic(res, de);
-  emit_var_logic(res, md, de);
+  emit_state_logic(res, de, &mfy);
   emit_trigger_logic(res, &ti);
-  emit_state_logic(res, de);
+  emit_open_loop_logic(res, de);
+  emit_var_logic(res, md, de);
   emit_output_logic(res, md, de);
 
   // Holy cow! We're done!
@@ -145,14 +141,15 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
 
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
+  // We emit a separate variable for each segment: variables and expressions.
 
-  const auto var_table_dim = max(static_cast<size_t>(16), de->get_table().var_size());
+  const auto var_seg_arity = max(static_cast<size_t>(16), de->get_table().var_size());
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(var_table_dim, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(var_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
   ));
-  const auto expr_table_dim = max(static_cast<size_t>(16), de->get_table().expr_size());
+  const auto expr_seg_arity = max(static_cast<size_t>(16), de->get_table().expr_size());
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__expr"), new RangeExpression(expr_table_dim, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__expr"), new RangeExpression(expr_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
   ));
 }
 
@@ -161,7 +158,7 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
   // update(). These declarations are sorted lexicographically to ensure
   // deterministic code.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->get_table().var_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
 
   map<string, RegDeclaration*> shadows;
   for (auto* s : ModuleInfo(md).stateful()) {
@@ -176,35 +173,10 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
     res->push_back_items(s.second);
   }
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(table_dim, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__prev_update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
   ));
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(table_dim, 0), new Number(Bits(32, 0))
-  ));
-}
-
-void De10Rewrite::emit_task_vars(ModuleDeclaration* res) {
-  // These variables track the activation of system tasks. 
-
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__active_task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-}
-
-void De10Rewrite::emit_control_vars(ModuleDeclaration* res) {
-  // These variables control the transition to and from open loop mode.
-
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__open_loop"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__open_loop_itrs"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
   ));
 }
 
@@ -270,7 +242,172 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
       new Attributes(), new Identifier(v.first+"_prev"), Declaration::Type::UNSIGNED, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
     ));
   }
+}
 
+void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {
+  // An update is pending whenever a shadow variable's value differs from its
+  // counterpart. Updates are triggered whenever the user forces a read of the
+  // update latch or we are in open loop mode.
+
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
+
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__update_queue"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0)
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__update_queue"), 
+    new BinaryExpression(new Identifier("__prev_update_mask"), BinaryExpression::Op::CARAT, new Identifier("__update_mask"))
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__there_are_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__there_are_updates"), 
+    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__apply_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__apply_updates"), 
+    new BinaryExpression(
+      new BinaryExpression(
+        new Identifier("__read"), 
+        BinaryExpression::Op::AAMP, 
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))
+      ),
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new Identifier("__there_are_updates"), 
+        BinaryExpression::Op::AAMP,
+        new Identifier("__open_loop_tick")
+      )
+    )
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__drop_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__drop_updates"), 
+    new BinaryExpression(
+      new Identifier("__read"), 
+      BinaryExpression::Op::AAMP, 
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
+    )
+  ));
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    new NonblockingAssign(
+      new Identifier("__prev_update_mask"),
+      new ConditionalExpression(
+        new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
+        new Identifier("__update_mask"), 
+        new Identifier("__prev_update_mask")
+      )
+    ))
+  )); 
+}
+
+void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, const Machinify* mfy) {
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__there_were_tasks"), Declaration::Type::UNSIGNED
+  ));
+  if (mfy->begin() == mfy->end()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__there_were_tasks"),
+      new Number(Bits(false))
+    )); 
+  } else {
+    auto* c = new Concatenation();
+    for (auto& g : *mfy) {
+      auto* var = g.name();
+      var->push_back_ids(new Id("__task_id"));
+      c->push_back_exprs(new BinaryExpression(var, BinaryExpression::Op::BEQ, new Number(Bits(32, 0))));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__there_were_tasks"),
+      new UnaryExpression(UnaryExpression::Op::PIPE, c)
+    ));
+  }
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__done"), Declaration::Type::UNSIGNED
+  ));
+  if (mfy->begin() == mfy->end()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__done"),
+      new Number(Bits(true))
+    )); 
+  } else {
+    auto* c = new Concatenation();
+    for (auto& g : *mfy) {
+      auto* var = g.name();
+      var->push_back_ids(new Id("__state"));
+      auto* fin = g.name();
+      fin->push_back_ids(new Id("__final"));
+      c->push_back_exprs(new BinaryExpression(var, BinaryExpression::Op::EEQ, fin));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__done"),
+      new UnaryExpression(UnaryExpression::Op::AMP, c)
+    ));
+  }
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__continue"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__continue"),
+    new BinaryExpression(
+      new BinaryExpression(
+        new Identifier("__read"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().resume_index())))
+      ),
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done")),
+        BinaryExpression::Op::AAMP,
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
+      )
+    )
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__reset"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__reset"),
+    new BinaryExpression(
+      new Identifier("__read"),
+      BinaryExpression::Op::AAMP,
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().reset_index())))
+    )
+  ));
+}
+
+void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
+  // We're munging both of these sets together to avoid duplicate assignments. But by
+  // doing this, we're losing the deterministic ordering we have thanks to the way 
+  // these sets are built. This means we need to sort these assignments by name.
+  map<string, const Identifier*> vars;
+  for (auto& e : ti->negedges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->posedges_) {
+    vars[e.first] = e.second;
+  }
+
+  auto* sb = new SeqBlock();
+  for (auto& v : vars) {
+    sb->push_back_stmts(new NonblockingAssign(
+      new Identifier(v.first+"_prev"),
+      v.second->clone()
+    ));
+  }
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    sb
+  ))); 
+
+  // Everything else should be deterministic
   for (auto& e : ti->negedges_) {
     res->push_back_items(new NetDeclaration(
       new Attributes(), new Identifier(e.first+"_negedge"), Declaration::Type::UNSIGNED
@@ -297,130 +434,32 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
       )  
     ));
   }
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__any_triggers"), Declaration::Type::UNSIGNED
+  ));
+  if (ti->posedges_.empty() && ti->negedges_.empty()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__any_triggers"),
+      new Number(Bits(32, 0))
+    ));
+  } else {
+    auto* c = new Concatenation();
+    for (auto& e : ti->negedges_) {
+      c->push_back_exprs(new Identifier(e.first+"_negedge"));
+    }
+    for (auto& e : ti->posedges_) {
+      c->push_back_exprs(new Identifier(e.first+"_posedge"));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__any_triggers"),
+      new UnaryExpression(UnaryExpression::Op::PIPE, c)
+    ));
+  }
 }
 
-void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
-  // These are variables which control transitions through state machines.
-
+void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* de) {
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__continue"), Declaration::Type::UNSIGNED, nullptr, new Number(Bits(false))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__reset"), Declaration::Type::UNSIGNED, nullptr, new Number(Bits(false))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__done"), Declaration::Type::UNSIGNED
-  ));
-}
-
-void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // An update is pending whenever a shadow variable's value differs from its
-  // counterpart. Updates are triggered whenever the user forces a read of the
-  // update latch or we are in open loop mode.
-
-  const auto table_dim = max(static_cast<size_t>(32), de->get_table().var_size());
-
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__update_queue"), Declaration::Type::UNSIGNED, new RangeExpression(table_dim, 0)
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__update_queue"), 
-    new BinaryExpression(new Identifier("__update_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_update_mask"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__there_are_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__there_are_updates"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__apply_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__apply_updates"), 
-    new BinaryExpression(
-      new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))),
-      BinaryExpression::Op::PPIPE,
-      new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
-    )
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__drop_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__drop_updates"), 
-    new BinaryExpression(
-      new Identifier("__read"), 
-      BinaryExpression::Op::AAMP, 
-      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
-    )
-  ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(
-      new Identifier("__update_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
-        new Identifier("__next_update_mask"), 
-        new Identifier("__update_mask")
-      )
-    ))
-  )); 
-}
-
-void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // Task variables are cleared whenever the user forces a read of the mask.
-
-  auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__next_task_id"),
-    new Identifier("__task_id")
-  ));
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__active_task_id"), 
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().task_index())))
-      ),
-      new Number(Bits(32, 0)),
-      new ConditionalExpression(
-        new BinaryExpression(new Identifier("__task_id"), BinaryExpression::Op::BEQ, new Identifier("__next_task_id")),
-        new Identifier("__next_task_id"),
-        new Identifier("__active_task_id")    
-      )
-    )
-  ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb 
-  ))); 
-}
-
-void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // The live and open loop variables are set in response to user-initiated
-  // reads. The open loop iteration counter is reset whenever we go into open
-  // loop and ticks whenever we are in open loop and there are no tasks or
-  // updates.
-
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__open_loop_tick"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__open_loop_tick"), 
-    new BinaryExpression(
-      new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
-      BinaryExpression::Op::AAMP,
-      new BinaryExpression(
-        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_are_updates")),
-        BinaryExpression::Op::AAMP,
-        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
-      )
-    )
+    new Attributes(), new Identifier("__open_loop"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
   auto* sb = new SeqBlock();
   sb->push_back_stmts(new NonblockingAssign(
@@ -435,40 +474,24 @@ void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de
       new ConditionalExpression(
         new Identifier("__open_loop_tick"),
         new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
-        new ConditionalExpression(
-          new Identifier("__there_were_tasks"), 
-          new Number(Bits(false)), 
-          new Identifier("__open_loop")
-        )
-      )
-    )
-    ));
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__open_loop_itrs"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
-      ),
-      new Number(Bits(false)),
-      new ConditionalExpression(
-        new Identifier("__open_loop_tick"),
-        new BinaryExpression(new Identifier("__open_loop_itrs"), BinaryExpression::Op::PLUS, new Number(Bits(true))),
-        new Identifier("__open_loop_itrs")
+        new Identifier("__open_loop")
       )
     )
   ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb
-  ))); 
+
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__open_loop_tick"), Declaration::Type::UNSIGNED
+  ));
   res->push_back_items(new ContinuousAssign(
-    new Identifier("__wait"),
+    new Identifier("__open_loop_tick"), 
     new BinaryExpression(
-      new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
-      BinaryExpression::Op::PPIPE,
-      new Identifier("__continue")
+      new Identifier("__done"), 
+      BinaryExpression::Op::AAMP,
+      new BinaryExpression(
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__any_triggers")),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(32, 0)))
+      )
     )
   ));
 }
@@ -561,72 +584,6 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   ))); 
 }
 
-void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
-  // Emit logic lexicographically to ensure deterministic code
-  map<string, const Identifier*> vars;
-  for (auto& e : ti->negedges_) {
-    vars[e.first] = e.second;
-  }
-  for (auto& e : ti->posedges_) {
-    vars[e.first] = e.second;
-  }
-
-  auto* sb = new SeqBlock();
-  for (auto& v : vars) {
-    sb->push_back_stmts(new NonblockingAssign(
-      new Identifier(v.first+"_prev"),
-      v.second->clone()
-    ));
-  }
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb
-  ))); 
-}
-
-void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // The resume and reset flags stay high for exactly one clock tick whenever
-  // the user forces a read
-
-  auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__continue"),
-    new BinaryExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().resume_index())))
-      ),
-      BinaryExpression::Op::PPIPE,
-      new BinaryExpression(
-        new Identifier("__continue"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(
-          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_was_io")),
-          BinaryExpression::Op::AAMP, 
-          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done"))
-        )  
-      )
-    )
-  ));
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__reset"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().reset_index())))
-      ),
-      new Number(Bits(true)),
-      new Number(Bits(false))
-    )
-  ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb
-  ))); 
-}
-
 void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // Assignments are sorted lexicographically to guarantee deterministic code.
 
@@ -658,8 +615,8 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
     new BlockingAssign(new Identifier("__out"), new Identifier("__there_are_updates"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->get_table().task_index())),
-    new BlockingAssign(new Identifier("__out"), new Identifier("__active_task_id"))
+    new Number(Bits(32, de->get_table().there_were_tasks_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__task_id"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().done_index())),
@@ -667,7 +624,7 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().open_loop_index())),
-    new BlockingAssign(new Identifier("__out"), new Identifier("__open_loop_itrs"))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__open_loop"))
   ));
   for (auto& o : outputs) {
     cs->push_back_items(o.second);
@@ -681,6 +638,19 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
     )
   )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(new EventControl(), cs))); 
+
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__wait"),
+    new BinaryExpression(
+      new Identifier("__open_loop_tick"),
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new Identifier("__any_triggers"),
+        BinaryExpression::Op::PPIPE,
+        new Identifier("__continue")
+      )
+    )
+  ));
 }
 
 void De10Rewrite::emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const {
