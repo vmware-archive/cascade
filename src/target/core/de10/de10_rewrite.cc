@@ -616,7 +616,7 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().there_were_tasks_index())),
-    new BlockingAssign(new Identifier("__out"), new Identifier("__task_id"))
+    new BlockingAssign(new Identifier("__out"), new Identifier("__machine_0.__task_id"))
   ));
   cs->push_back_items(new CaseItem(
     new Number(Bits(32, de->get_table().done_index())),
