@@ -194,9 +194,12 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
 
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
   for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
-    // Ignore variables which have not be reified into the state table (ie: non-stateful outputs)
+    // Ignore variables whose state we don't set directly (non-stateful outputs)
+    // or things that are only in the variable table because they appear in
+    // tasks. 
+
     ModuleInfo info(md);
-    if (info.is_output(v->first) && !info.is_stateful(v->first)) {
+    if (!info.is_input(v->first) && !info.is_stateful(v->first)) {
       continue;
     }
 
@@ -526,7 +529,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     // If this variable hasn't been reified into the variable table we don't
     // need to emit any update logic.
     ModuleInfo info(md);
-    if (info.is_output(t->first) && !info.is_stateful(t->first)) {
+    if (!info.is_input(t->first) && !info.is_stateful(t->first)) {
       continue;
     }
 
@@ -610,7 +613,7 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   map<size_t, CaseItem*> outputs;
   for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
     ModuleInfo info(md);      
-    if (!info.is_output(t->first) || info.is_stateful(t->first)) {
+    if (info.is_input(t->first) || info.is_stateful(t->first)) {
       continue;
     }
     assert(t->second.elements == 1);
