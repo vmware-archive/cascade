@@ -479,23 +479,25 @@ void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* 
   res->push_back_items(new RegDeclaration(
     new Attributes(), new Identifier("__open_loop"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
   ));
-  auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__open_loop"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read_request"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
-      ),
-      new Identifier("__in"),
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    new NonblockingAssign(
+      new Identifier("__open_loop"),
       new ConditionalExpression(
-        new Identifier("__open_loop_tick"),
-        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
-        new Identifier("__open_loop")
+        new BinaryExpression(
+          new Identifier("__read_request"),
+          BinaryExpression::Op::AAMP,
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
+        ),
+        new Identifier("__in"),
+        new ConditionalExpression(
+          new Identifier("__open_loop_tick"),
+          new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
+          new Identifier("__open_loop")
+        )
       )
-    )
-  ));
+    )  
+  )));
 
   res->push_back_items(new NetDeclaration(
     new Attributes(), new Identifier("__open_loop_tick"), Declaration::Type::UNSIGNED

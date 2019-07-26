@@ -177,24 +177,29 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
-  return Logic::open_loop(clk, val, itr);
-        /*
-  cout << "OPEN LOOP " << itr << endl;
-
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
 
-  // Go into open loop mode.  Invoke loop_until_done() just in case we're in a
-  // state where a system task forced the exit of the loop and we need to
-  // finish the current iteration.
+  // Reset the tasks flag and go into open loop mode. If we exit in a done
+  // state, then we performed every iteration.
+  there_were_tasks_ = false;
   table_.write_control_var(table_.open_loop_index(), itr);
-  loop_until_done();
-
-  // No need to handle outputs; this optimization assumes we don't have any.
-  // Simply return the number of iterations that we ran for
-  return itr - table_.read_control_var(table_.open_loop_index());
-  */
+  if (table_.read_control_var(table_.done_index())) {
+    assert(table_.read_control_var(table_.open_loop_index()) == 0);
+    return itr;
+  }
+  // Otherwise, check how many iterations we made it through, reset the open
+  // loop counter, and finish evaluating this iteration.
+  const size_t counter = table_.read_control_var(table_.open_loop_index());
+  table_.write_control_var(table_.open_loop_index(), 0);
+  while (!table_.read_control_var(table_.done_index())) {
+    handle_tasks();
+    table_.write_control_var(table_.resume_index(), 1);
+  }
+  // No need to handle outputs here (or above). This optimization assumes that
+  // this module doesn't have any.
+  return itr - counter;
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
