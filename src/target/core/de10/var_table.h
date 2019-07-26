@@ -342,7 +342,7 @@ inline T VarTable<T>::read_expr(const Expression* e) const {
   assert(itr->second.elements == 1);
   assert(itr->words_per_element == 1);
 
-  return DE19_READ(mangle(itr->second.begin));
+  return DE10_READ(mangle(var_size() + itr->second.begin));
 }
 
 template <typename T>
@@ -352,7 +352,7 @@ inline void VarTable<T>::write_expr(const Expression* e, T val) {
   assert(itr->second.elements == 1);
   assert(itr->second.words_per_element == 1);
 
-  DE10_WRITE(mangle(itr->second.begin), val);
+  DE10_WRITE(mangle(var_size() + itr->second.begin), val);
 }
 
 template <typename T>
