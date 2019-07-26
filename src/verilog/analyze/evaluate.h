@@ -230,7 +230,9 @@ class Evaluate : public Editor {
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t idx, size_t n, B b) {
-  init(const_cast<Identifier*>(id));
+  if (id->bit_val_.empty()) {      
+    init(const_cast<Identifier*>(id));
+  }
   assert(idx < id->bit_val_.size());
   const_cast<Identifier*>(id)->bit_val_[idx].write_word<B>(n, b);
   flag_changed(id);

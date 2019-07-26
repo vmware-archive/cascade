@@ -106,6 +106,8 @@ class VarTable {
     size_t done_index() const;
     // Returns the address of the open_loop control variable.
     size_t open_loop_index() const;
+    // Reserved for debugging
+    size_t debug_index() const;
 
     // Reads the value of a control variable
     T read_control_var(size_t index) const;
@@ -179,7 +181,7 @@ inline void VarTable<T>::insert_expr(const Expression* e) {
 
 template <typename T>
 inline size_t VarTable<T>::var_size() const {
-  return open_loop_index() + 1;
+  return debug_index() + 1;
 }
 
 template <typename T>
@@ -270,16 +272,21 @@ inline size_t VarTable<T>::open_loop_index() const {
 }
 
 template <typename T>
+inline size_t VarTable<T>::debug_index() const {
+  return next_index_ + 8;
+}
+
+template <typename T>
 inline T VarTable<T>::read_control_var(size_t index) const {
   assert(index >= there_are_updates_index());
-  assert(index <= open_loop_index());
+  assert(index <= debug_index());
   return DE10_READ(mangle(index));
 }
 
 template <typename T>
 inline void VarTable<T>::write_control_var(size_t index, T val) {
   assert(index >= there_are_updates_index());
-  assert(index <= open_loop_index());
+  assert(index <= debug_index());
   DE10_WRITE(mangle(index), val);
 }
 

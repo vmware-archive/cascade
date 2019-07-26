@@ -50,7 +50,7 @@ inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* 
   }
 
   assert(ps->is_non_null_expr());
-  auto val = eval->get_value(ps->get_expr());
+  const auto& val = eval->get_value(ps->get_expr());
 
   switch (fmt[1]) {
     case '_':

@@ -177,6 +177,10 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
+  return Logic::open_loop(clk, val, itr);
+        /*
+  cout << "OPEN LOOP " << itr << endl;
+
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
@@ -190,6 +194,7 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   // No need to handle outputs; this optimization assumes we don't have any.
   // Simply return the number of iterations that we ran for
   return itr - table_.read_control_var(table_.open_loop_index());
+  */
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -271,9 +276,7 @@ void De10Logic::handle_tasks() {
   if (task_id == 0) {
     return;
   }
-
   const auto* task = tasks_[task_id];
-  there_were_tasks_ = true;
 
   Evaluate eval;
   Sync sync(this);
@@ -455,6 +458,7 @@ De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
 void De10Logic::Sync::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
   assert(de_->table_.var_find(r) != de_->table_.var_end());
   de_->table_.read_var(r);
 }

@@ -137,6 +137,13 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new NetDeclaration(
     new Attributes(), new Identifier("__wait"), Declaration::Type::UNSIGNED, nullptr
   )));
+
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier("__read_prev"), Declaration::Type::UNSIGNED, nullptr, new Number(Bits(32, 0))
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__read_request"), Declaration::Type::UNSIGNED
+  ));
 }
 
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
@@ -272,7 +279,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
     new Identifier("__apply_updates"), 
     new BinaryExpression(
       new BinaryExpression(
-        new Identifier("__read"), 
+        new Identifier("__read_request"), 
         BinaryExpression::Op::AAMP, 
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))
       ),
@@ -290,7 +297,7 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   res->push_back_items(new ContinuousAssign(
     new Identifier("__drop_updates"), 
     new BinaryExpression(
-      new Identifier("__read"), 
+      new Identifier("__read_request"), 
       BinaryExpression::Op::AAMP, 
       new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
     )
@@ -330,11 +337,11 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
     ));
   }
   res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__done"), Declaration::Type::UNSIGNED
+    new Attributes(), new Identifier("__all_final"), Declaration::Type::UNSIGNED
   ));
   if (mfy->begin() == mfy->end()) {
     res->push_back_items(new ContinuousAssign(
-      new Identifier("__done"),
+      new Identifier("__all_final"),
       new Number(Bits(true))
     )); 
   } else {
@@ -347,7 +354,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
       c->push_back_exprs(new BinaryExpression(var, BinaryExpression::Op::EEQ, fin));
     }
     res->push_back_items(new ContinuousAssign(
-      new Identifier("__done"),
+      new Identifier("__all_final"),
       new UnaryExpression(UnaryExpression::Op::AMP, c)
     ));
   }
@@ -358,13 +365,13 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
     new Identifier("__continue"),
     new BinaryExpression(
       new BinaryExpression(
-        new Identifier("__read"),
+        new Identifier("__read_request"),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().resume_index())))
       ),
       BinaryExpression::Op::PPIPE,
       new BinaryExpression(
-        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done")),
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__all_final")),
         BinaryExpression::Op::AAMP,
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
       )
@@ -376,9 +383,20 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
   res->push_back_items(new ContinuousAssign(
     new Identifier("__reset"),
     new BinaryExpression(
-      new Identifier("__read"),
+      new Identifier("__read_request"),
       BinaryExpression::Op::AAMP,
       new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().reset_index())))
+    )
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__done"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__done"),
+    new BinaryExpression(
+      new Identifier("__all_final"),
+      BinaryExpression::Op::AAMP,
+      new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
     )
   ));
 }
@@ -466,7 +484,7 @@ void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* 
     new Identifier("__open_loop"),
     new ConditionalExpression(
       new BinaryExpression(
-        new Identifier("__read"),
+        new Identifier("__read_request"),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
       ),
@@ -485,7 +503,7 @@ void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* 
   res->push_back_items(new ContinuousAssign(
     new Identifier("__open_loop_tick"), 
     new BinaryExpression(
-      new Identifier("__done"), 
+      new Identifier("__all_final"), 
       BinaryExpression::Op::AAMP,
       new BinaryExpression(
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__any_triggers")),
@@ -534,7 +552,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
         } 
         rhs = new ConditionalExpression(
           new BinaryExpression(
-            new Identifier("__read"),
+            new Identifier("__read_request"),
             BinaryExpression::Op::AAMP,
             new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, idx)))
           ),
@@ -564,7 +582,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     auto* lhs = new Identifier(new Id("__expr"), new Number(Bits(32, t->second.begin)));
     auto* rhs = new ConditionalExpression(
       new BinaryExpression(
-        new Identifier("__read"),
+        new Identifier("__read_request"),
         BinaryExpression::Op::AAMP,
         new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().var_size() + t->second.begin)))
       ),
@@ -626,6 +644,10 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
     new Number(Bits(32, de->get_table().open_loop_index())),
     new BlockingAssign(new Identifier("__out"), new Identifier("__open_loop"))
   ));
+  cs->push_back_items(new CaseItem(
+    new Number(Bits(32, de->get_table().debug_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__machine_0.__state"))
+  ));
   for (auto& o : outputs) {
     cs->push_back_items(o.second);
   }
@@ -639,6 +661,18 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(new EventControl(), cs))); 
 
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    new NonblockingAssign(new Identifier("__read_prev"), new Identifier("__read"))
+    )));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__read_request"), 
+    new BinaryExpression(
+      new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__read_prev")),
+      BinaryExpression::Op::AAMP,
+      new Identifier("__read")
+    )
+  ));
   res->push_back_items(new ContinuousAssign(
     new Identifier("__wait"),
     new BinaryExpression(
