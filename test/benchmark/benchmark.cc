@@ -70,7 +70,7 @@ BENCHMARK(BM_Regex)->Unit(benchmark::kMillisecond);
 
 static void BM_Nw(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
+    run_benchmark("data/test/benchmark/nw/run_8.v", "-32768");
   }
 }
 BENCHMARK(BM_Nw)->Unit(benchmark::kMillisecond);

@@ -111,8 +111,10 @@ void De10Logic::set_state(const State* s) {
       table_.write_var(sv.second, itr->second);
     }
   }
+  // Drop updates and reset state (continue once to clear any pending tasks
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.resume_index(), 1);
 }
 
 Input* De10Logic::get_input() {
@@ -139,8 +141,10 @@ void De10Logic::set_input(const Input* i) {
       table_.write_var(id, itr->second);
     }
   }
+  // Drop updates and reset state (continue once to clear any pending tasks
   table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.resume_index(), 1);
 }
 
 void De10Logic::finalize() {
