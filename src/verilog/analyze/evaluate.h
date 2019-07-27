@@ -36,8 +36,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
+#include "common/bits.h"
+#include "common/vector.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/editor.h"
@@ -63,7 +63,7 @@ namespace cascade {
 class Evaluate : public Editor {
   public:
     // Typedefs:
-    typedef std::function<bool(Evaluate*, const EofExpression*)> EofHandler;
+    typedef std::function<bool(Evaluate*, const FeofExpression*)> FeofHandler;
     typedef std::function<uint32_t(Evaluate*, const FopenExpression*)> FopenHandler;
 
     // Constructors:
@@ -71,19 +71,26 @@ class Evaluate : public Editor {
     ~Evaluate() override = default;
 
     // Configuration Interface:
-    Evaluate& set_eof_handler(EofHandler h);
+    Evaluate& set_feof_handler(FeofHandler h);
     Evaluate& set_fopen_handler(FopenHandler h);
 
-    // Returns the arity of an expression: an empty vector for scalars, one 
-    // value for the length of each dimension for arrays.
+    // Returns the arity of a variable: an empty vector for scalars, one value
+    // for the length of each dimension for arrays. This method is undefined
+    // for identifiers which cannot be resolved.
     std::vector<size_t> get_arity(const Identifier* id);
+    // Returns the msb of a variable. Returns the same for scalars and arrays.
+    // This method is undefined for indentifiers which cannot be resolved.
+    size_t get_msb(const Identifier* id);
+    // Returns the lsb of a variable. Returns the same for scalars and arrays.
+    // This method is undefined for indentifiers which cannot be resolved.
+    size_t get_lsb(const Identifier* id);
 
-    // Returns the bit-width of the values in an expression. Returns the same
+    // Returns the bit-width of the value of an expression. Returns the same
     // value for scalars and arrays.
     size_t get_width(const Expression* e);
-    // Returns true if the values in an expression are signed or unsigned.
-    // Returns the same for scalars and arrays.
-    bool get_signed(const Expression* e);
+    // Returns the underlying type of an expression. Returns the same for
+    // scalars and arrays.
+    Bits::Type get_type(const Expression* e);
 
     // Returns the bit value of an expression. Invoking this method on an expression
     // which evaluates to an array returns the first element of that array.
@@ -96,8 +103,8 @@ class Evaluate : public Editor {
 
     // High-level interface: Resolves id and sets the value of its target val.
     // Invoking this method on an unresolvable id or one which refers to an
-    // array is undefined.
-    void assign_value(const Identifier* id, const Bits& val);
+    // array is undefined. Returns true if the value of id was changed.
+    bool assign_value(const Identifier* id, const Bits& val);
     // High-level interface: Resolves id and sets the value of its target to
     // val. Invoking this method on an unresolvable id or one which refers to
     // an array subscript is undefined.
@@ -111,7 +118,8 @@ class Evaluate : public Editor {
     // Low-level interface: Sets the value of the ss'th element in id's
     // underlying array. Note that this value is set *in place*. This method
     // DOES NOT resolve id and then update the value which it finds there.
-    void assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val);
+    // Returns true if the value of id was changed.
+    bool assign_value(const Identifier* id, size_t idx, int msb, int lsb, const Bits& val);
     // Low-level interface: Sets the value of the idx'th element in id's
     // underlying array. Note that this value is set *in place*. This method
     // DOES NOT resolve id and then update the value which it finds there.
@@ -121,19 +129,22 @@ class Evaluate : public Editor {
     // Forced a recomputation for the next evaluation of any expression that
     // depends on this variable.
     void flag_changed(const Identifier* id);
+    // Forces a recomputation for the next evaluation of this expression or any
+    // expression that depends on this one.
+    void flag_changed(const FeofExpression* fe);
     // Invalidates bits, size, and type for this expression and the
     // sub-expressions that it consists of.
     void invalidate(const Expression* e);
 
   private:
     // Target-specific handlers:
-    EofHandler eof_;
+    FeofHandler feof_;
     FopenHandler fopen_;
 
     // Editor Interface:
     void edit(BinaryExpression* be) override;
     void edit(ConditionalExpression* ce) override;
-    void edit(EofExpression* ee) override;
+    void edit(FeofExpression* fe) override;
     void edit(FopenExpression* fe) override;
     void edit(Concatenation* c) override;
     void edit(Identifier* id) override;
@@ -156,13 +167,14 @@ class Evaluate : public Editor {
       ~Invalidate() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;
       void edit(Number* n) override;
       void edit(String* s) override;
+      void edit(RangeExpression* re) override;
       void edit(UnaryExpression* ue) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
@@ -175,7 +187,7 @@ class Evaluate : public Editor {
       ~SelfDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Concatenation* c) override;
       void edit(Identifier* id) override;
@@ -184,7 +196,6 @@ class Evaluate : public Editor {
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
@@ -197,7 +208,7 @@ class Evaluate : public Editor {
       ~ContextDetermine() override = default;
       void edit(BinaryExpression* be) override;
       void edit(ConditionalExpression* ce) override;
-      void edit(EofExpression* ee) override;
+      void edit(FeofExpression* fe) override;
       void edit(FopenExpression* fe) override;
       void edit(Identifier* id) override;
       void edit(MultipleConcatenation* mc) override;
@@ -205,11 +216,13 @@ class Evaluate : public Editor {
       void edit(String* s) override;
       void edit(UnaryExpression* ue) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
+      void edit(ContinuousAssign* ca) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override; 
       void edit(ParameterDeclaration* pd) override;
       void edit(RegDeclaration* rd) override;
+      void edit(BlockingAssign* ba) override;
+      void edit(NonblockingAssign* na) override;
       void edit(VariableAssign* va) override;
       Evaluate* eval_;
     };
@@ -217,7 +230,9 @@ class Evaluate : public Editor {
 
 template <typename B>
 inline void Evaluate::assign_word(const Identifier* id, size_t idx, size_t n, B b) {
-  init(const_cast<Identifier*>(id));
+  if (id->bit_val_.empty()) {      
+    init(const_cast<Identifier*>(id));
+  }
   assert(idx < id->bit_val_.size());
   const_cast<Identifier*>(id)->bit_val_[idx].write_word<B>(n, b);
   flag_changed(id);

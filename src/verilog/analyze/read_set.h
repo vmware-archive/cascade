@@ -37,14 +37,16 @@
 
 namespace cascade {
 
-// This class is used to record the set of free variables in an expression.
-// This class is not currently on any critical paths, so it doesn't attempt to
-// cache its results in the AST.
+// This class is used to record the set of variables and system task
+// expressions which can determine the value of an expression.  For example,
+// the expression x + y - $eof(z) depends on the values of x, y, and z, and
+// also the stream pointed to by the value of z. This class is not currently on
+// any critical paths, so it doesn't attempt to cache its results in the AST.
 
 class ReadSet : public Visitor {
   public:
     // Typedefs:
-    typedef std::unordered_set<const Identifier*>::const_iterator const_iterator;
+    typedef std::unordered_set<const Expression*>::const_iterator const_iterator;
 
     // Constructors:
     explicit ReadSet(const Expression* e);
@@ -56,11 +58,14 @@ class ReadSet : public Visitor {
     const_iterator end() const;
 
   private:
-    std::unordered_set<const Identifier*> reads_;
+    std::unordered_set<const Expression*> reads_;
     bool lhs_;
 
     // Editor Interface:
+    void visit(const FeofExpression* fe) override;
     void visit(const Identifier* id) override;
+    void visit(const BlockingAssign* ba) override;
+    void visit(const NonblockingAssign* ba) override;
     void visit(const VariableAssign* va) override;
 };
 

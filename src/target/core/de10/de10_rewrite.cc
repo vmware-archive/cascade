@@ -32,7 +32,6 @@
 
 #include <sstream>
 #include "target/core/de10/de10_logic.h"
-#include "target/core/de10/pass/finish_mangle.h"
 #include "target/core/de10/pass/machinify.h"
 #include "target/core/de10/pass/text_mangle.h"
 #include "target/core/de10/pass/trigger_reschedule.h"
@@ -64,29 +63,23 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   emit_port_vars(res);
   emit_var_table(res, de);
   emit_shadow_vars(res, md, de);
-  emit_mask_vars(res);
-  emit_control_vars(res);
-  emit_view_vars(res, de);
+  emit_view_vars(res, md, de);
   emit_trigger_vars(res, &ti);
-  emit_state_vars(res);
 
   // Emit original program logic
   TextMangle tm(md, de);
   md->accept_items(&tm, res->back_inserter_items());
   Machinify mfy;
   res->accept(&mfy);
-  FinishMangle fm(&tm);
-  res->accept(&fm);
   TriggerReschedule tr;
   res->accept(&tr);
 
   emit_update_logic(res, de);
-  emit_task_logic(res, de);
-  emit_control_logic(res, de);
-  emit_var_logic(res, md, de);
+  emit_state_logic(res, de, &mfy);
   emit_trigger_logic(res, &ti);
-  emit_state_logic(res, de);
-  emit_output_logic(res, de);
+  emit_open_loop_logic(res, de);
+  emit_var_logic(res, md, de);
+  emit_output_logic(res, md, de);
 
   // Holy cow! We're done!
   ss.str(string());
@@ -127,41 +120,52 @@ void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
   res->push_back_ports(new ArgAssign(nullptr, new Identifier("__wait")));
 
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__clk"), false, nullptr
+    new Attributes(), new Identifier("__clk"), Declaration::Type::UNSIGNED, nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__read"), false, nullptr
+    new Attributes(), new Identifier("__read"), Declaration::Type::UNSIGNED, nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__vid"), false, new RangeExpression(14, 0)
+    new Attributes(), new Identifier("__vid"), Declaration::Type::UNSIGNED, new RangeExpression(14, 0)
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__in"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__in"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new RegDeclaration(
-    new Attributes(), new Identifier("__out"), false, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier("__out"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
   )));
   res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__wait"), false, nullptr
+    new Attributes(), new Identifier("__wait"), Declaration::Type::UNSIGNED, nullptr
   )));
+
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier("__read_prev"), Declaration::Type::UNSIGNED, nullptr, new Number(Bits(32, 0))
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__read_request"), Declaration::Type::UNSIGNED
+  ));
 }
 
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
+  // We emit a separate variable for each segment: variables and expressions.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
-
+  const auto var_seg_arity = max(static_cast<size_t>(16), de->get_table().var_size());
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(table_dim, 0)), false, new RangeExpression(32, 0), nullptr
+    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(var_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
+  ));
+  const auto expr_seg_arity = max(static_cast<size_t>(16), de->get_table().expr_size());
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier(new Id("__expr"), new RangeExpression(expr_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
   ));
 }
 
 void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // These are where update values are stored between calls to evaluate() and
-  // update(). These declarations sorted lexicographically to ensure
-  // deterministic code..
+  // update(). These declarations are sorted lexicographically to ensure
+  // deterministic code.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
 
   map<string, RegDeclaration*> shadows;
   for (auto* s : ModuleInfo(md).stateful()) {
@@ -176,76 +180,49 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
     res->push_back_items(s.second);
   }
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__update_mask"), false, new RangeExpression(table_dim, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__prev_update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
   ));
   res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_update_mask"), false, new RangeExpression(table_dim, 0), new Number(Bits(32, 0))
+    new Attributes(), new Identifier("__update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
   ));
 }
 
-void De10Rewrite::emit_mask_vars(ModuleDeclaration* res) {
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__task_mask"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_task_mask"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__io_mask"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__next_io_mask"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-}
-
-void De10Rewrite::emit_control_vars(ModuleDeclaration* res) {
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__open_loop"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__open_loop_itrs"), false, new RangeExpression(32, 0), new Number(Bits(32, 0))
-  ));
-}
-
-void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const De10Logic* de) {
+void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // These are the variables from the original program which have been
   // relocated into the variable table. These declarations are sorted
   // lexicograhically to ensure deterministic code.
 
   map<string, pair<NetDeclaration*, vector<ContinuousAssign*>>> views;
-  for (auto v = de->map_begin(), ve = de->map_end(); v != ve; ++v) {
-    const auto titr = de->table_find(v->first);
-    assert(titr != de->table_end());
-    if (!titr->second.materialized()) {
+  for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
+    // Ignore variables whose state we don't set directly (non-stateful outputs)
+    // or things that are only in the variable table because they appear in
+    // tasks. 
+
+    ModuleInfo info(md);
+    if (!info.is_input(v->first) && !info.is_stateful(v->first)) {
       continue;
     }
-    const auto& vinfo = titr->second;
 
-    const RangeExpression* re = nullptr;
-    auto is_signed = false;
-    if (vinfo.id()->get_parent()->is(Node::Tag::net_declaration)) {
-      auto* nd = static_cast<const NetDeclaration*>(vinfo.id()->get_parent());
-      re = nd->get_dim();
-      is_signed = nd->get_signed();
-    } else if (vinfo.id()->get_parent()->is(Node::Tag::reg_declaration)) {
-      auto* rd = static_cast<const RegDeclaration*>(vinfo.id()->get_parent());
-      re = rd->get_dim();
-      is_signed = rd->get_signed();
-    } 
+    const auto* p = v->first->get_parent();
+    assert(p != nullptr);
+    assert(p->is_subclass_of(Node::Tag::declaration));
+    const auto* decl = static_cast<const Declaration*>(p);
+    const auto* re = decl->get_dim();
+    const auto type = decl->get_type();
    
     auto* nd = new NetDeclaration(
-      new Attributes(), NetDeclaration::Type::WIRE, nullptr, vinfo.id()->clone(), is_signed, (re == nullptr) ? nullptr : re->clone()
+      new Attributes(), v->first->clone(), type, (re == nullptr) ? nullptr : re->clone()
     ); 
     vector<ContinuousAssign*> cas;
-    for (size_t i = 0, ie = vinfo.elements(); i < ie; ++i) {
-      auto* lhs = vinfo.id()->clone();
+    for (size_t i = 0, ie = v->second.elements; i < ie; ++i) {
+      auto* lhs = v->first->clone();
       lhs->purge_dim();
-      emit_subscript(lhs, i, ie, vinfo.arity());
+      emit_subscript(lhs, i, ie, Evaluate().get_arity(v->first));
       auto* rhs = new Concatenation();
-      for (size_t j = 0, je = vinfo.element_size(); j < je; ++j) {
-        rhs->push_back_exprs(new Identifier(new Id("__var"), new Number(Bits(32, vinfo.index() + (i+1)*je-j-1))));
+      for (size_t j = 0, je = v->second.words_per_element; j < je; ++j) {
+        rhs->push_back_exprs(new Identifier(new Id("__var"), new Number(Bits(32, v->second.begin + (i+1)*je-j-1))));
       }
-      auto* ca = new ContinuousAssign(new VariableAssign(lhs, rhs));
+      auto* ca = new ContinuousAssign(lhs, rhs);
       cas.push_back(ca);
     }
     views[nd->get_id()->front_ids()->get_readable_sid()] = make_pair(nd, cas);
@@ -269,61 +246,12 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
   }
 
   for (auto& v : vars) {
-    const RangeExpression* re = nullptr;
-    switch (v.second->get_parent()->get_tag()) {
-      case Node::Tag::net_declaration:
-        re = static_cast<const NetDeclaration*>(v.second->get_parent())->get_dim();
-        break;
-      case Node::Tag::reg_declaration:
-        re = static_cast<const RegDeclaration*>(v.second->get_parent())->get_dim();
-        break;
-      default:
-        assert(false);
-        break;
-    }
+    const auto* decl = static_cast<const Declaration*>(v.second->get_parent());
+    const auto* re = decl->get_dim();
     res->push_back_items(new RegDeclaration(
-      new Attributes(), new Identifier(v.first+"_prev"), false, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
+      new Attributes(), new Identifier(v.first+"_prev"), Declaration::Type::UNSIGNED, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
     ));
   }
-
-  for (auto& e : ti->negedges_) {
-    res->push_back_items(new NetDeclaration(
-      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_negedge"), false
-    ));
-    res->push_back_items(new ContinuousAssign(new VariableAssign(
-      new Identifier(e.first+"_negedge"),
-      new BinaryExpression(
-        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(true))),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(false)))
-      )  
-    )));
-  }
-  for (auto& e : ti->posedges_) {
-    res->push_back_items(new NetDeclaration(
-      new Attributes(), NetDeclaration::Type::WIRE, new Identifier(e.first+"_posedge"), false
-    ));
-    res->push_back_items(new ContinuousAssign(new VariableAssign(
-      new Identifier(e.first+"_posedge"),
-      new BinaryExpression(
-        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(false))),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(true)))
-      )  
-    )));
-  }
-}
-
-void De10Rewrite::emit_state_vars(ModuleDeclaration* res) {
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__continue"), false, nullptr, new Number(Bits(false))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__reset"), false, nullptr, new Number(Bits(false))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__done"), false, nullptr
-  ));
 }
 
 void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {
@@ -331,190 +259,264 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
   // counterpart. Updates are triggered whenever the user forces a read of the
   // update latch or we are in open loop mode.
 
-  const auto table_dim = max(static_cast<size_t>(32), de->table_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
 
   res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__update_queue"), false, new RangeExpression(table_dim, 0)
+    new Attributes(), new Identifier("__update_queue"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0)
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__update_queue"), 
-    new BinaryExpression(new Identifier("__update_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_update_mask"))
-  )));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__there_are_updates"), false, nullptr
+    new BinaryExpression(new Identifier("__prev_update_mask"), BinaryExpression::Op::CARAT, new Identifier("__update_mask"))
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__there_are_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__there_are_updates"), 
     new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
-  )));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__apply_updates"), false, nullptr
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__apply_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__apply_updates"), 
     new BinaryExpression(
-      new BinaryExpression(new Identifier("__read"), BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->apply_update_idx())))),
+      new BinaryExpression(
+        new Identifier("__read_request"), 
+        BinaryExpression::Op::AAMP, 
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))
+      ),
       BinaryExpression::Op::PPIPE,
-      new BinaryExpression(new Identifier("__there_are_updates"), BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))))
+      new BinaryExpression(
+        new Identifier("__there_are_updates"), 
+        BinaryExpression::Op::AAMP,
+        new Identifier("__open_loop_tick")
+      )
     )
-  )));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__drop_updates"), false, nullptr
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__drop_updates"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
     new Identifier("__drop_updates"), 
     new BinaryExpression(
-      new Identifier("__read"), 
+      new Identifier("__read_request"), 
       BinaryExpression::Op::AAMP, 
-      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->drop_update_idx())))
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
     )
-  )));
+  ));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
-      new Identifier("__update_mask"),
+    new NonblockingAssign(
+      new Identifier("__prev_update_mask"),
       new ConditionalExpression(
         new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
-        new Identifier("__next_update_mask"), 
-        new Identifier("__update_mask")
+        new Identifier("__update_mask"), 
+        new Identifier("__prev_update_mask")
       )
     ))
-  ))); 
+  )); 
 }
 
-void De10Rewrite::emit_task_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // Both masks are cleared whenever the user forces a read of the mask.
-
+void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, const Machinify* mfy) {
   res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__task_queue"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__there_were_tasks"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__task_queue"), 
-    new BinaryExpression(new Identifier("__task_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_task_mask"))
-  )));
+  if (mfy->begin() == mfy->end()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__there_were_tasks"),
+      new Number(Bits(false))
+    )); 
+  } else {
+    auto* c = new Concatenation();
+    for (auto& g : *mfy) {
+      auto* var = g.name();
+      var->push_back_ids(new Id("__task_id"));
+      c->push_back_exprs(new BinaryExpression(var, BinaryExpression::Op::BEQ, new Number(Bits(32, 0))));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__there_were_tasks"),
+      new UnaryExpression(UnaryExpression::Op::PIPE, c)
+    ));
+  }
   res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__there_were_tasks"), false, nullptr
+    new Attributes(), new Identifier("__all_final"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__there_were_tasks"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__task_queue"))
-  )));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
-      new Identifier("__task_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(
-          new Identifier("__read"),
-          BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->sys_task_idx())))
-        ),
-        new Identifier("__next_task_mask"), 
-        new Identifier("__task_mask"))
-    ))
-  ))); 
+  if (mfy->begin() == mfy->end()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__all_final"),
+      new Number(Bits(true))
+    )); 
+  } else {
+    auto* c = new Concatenation();
+    for (auto& g : *mfy) {
+      auto* var = g.name();
+      var->push_back_ids(new Id("__state"));
+      auto* fin = g.name();
+      fin->push_back_ids(new Id("__final"));
+      c->push_back_exprs(new BinaryExpression(var, BinaryExpression::Op::EEQ, fin));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__all_final"),
+      new UnaryExpression(UnaryExpression::Op::AMP, c)
+    ));
+  }
   res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__io_queue"), false, new RangeExpression(32, 0)
+    new Attributes(), new Identifier("__continue"), Declaration::Type::UNSIGNED
   ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__io_queue"), 
-    new BinaryExpression(new Identifier("__io_mask"), BinaryExpression::Op::CARAT, new Identifier("__next_io_mask"))
-  )));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__there_was_io"), false, nullptr
-  ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__there_was_io"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__io_queue"))
-  )));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(new VariableAssign(
-      new Identifier("__io_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(
-          new Identifier("__read"),
-          BinaryExpression::Op::AAMP,
-          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->io_task_idx())))
-        ),
-        new Identifier("__next_io_mask"), 
-        new Identifier("__io_mask"))
-    ))
-  ))); 
-}
-
-void De10Rewrite::emit_control_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // The live and open loop variables are set in response to user-initiated
-  // reads. The open loop iteration counter is reset whenever we go into open
-  // loop and ticks whenever we are in open loop and there are no tasks or
-  // updates.
-
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), NetDeclaration::Type::WIRE, nullptr, new Identifier("__open_loop_tick"), false, nullptr
-  ));
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__open_loop_tick"), 
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__continue"),
     new BinaryExpression(
-      new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
-      BinaryExpression::Op::AAMP,
       new BinaryExpression(
-        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_are_updates")),
+        new Identifier("__read_request"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().resume_index())))
+      ),
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__all_final")),
         BinaryExpression::Op::AAMP,
         new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
       )
     )
-  )));
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__reset"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__reset"),
+    new BinaryExpression(
+      new Identifier("__read_request"),
+      BinaryExpression::Op::AAMP,
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().reset_index())))
+    )
+  ));
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__done"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__done"),
+    new BinaryExpression(
+      new Identifier("__all_final"),
+      BinaryExpression::Op::AAMP,
+      new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_were_tasks"))
+    )
+  ));
+}
+
+void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
+  // We're munging both of these sets together to avoid duplicate assignments. But by
+  // doing this, we're losing the deterministic ordering we have thanks to the way 
+  // these sets are built. This means we need to sort these assignments by name.
+  map<string, const Identifier*> vars;
+  for (auto& e : ti->negedges_) {
+    vars[e.first] = e.second;
+  }
+  for (auto& e : ti->posedges_) {
+    vars[e.first] = e.second;
+  }
+
   auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__open_loop"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
-      ),
-      new Identifier("__in"),
-      new ConditionalExpression(
-        new Identifier("__open_loop_tick"),
-        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
-        new ConditionalExpression(
-          new Identifier("__there_were_tasks"), 
-          new Number(Bits(false)), 
-          new Identifier("__open_loop")
-        )
-      )
-    )
-    )));
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__open_loop_itrs"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->open_loop_idx())))
-      ),
-      new Number(Bits(false)),
-      new ConditionalExpression(
-        new Identifier("__open_loop_tick"),
-        new BinaryExpression(new Identifier("__open_loop_itrs"), BinaryExpression::Op::PLUS, new Number(Bits(true))),
-        new Identifier("__open_loop_itrs")
-      )
-    )
-  )));
+  for (auto& v : vars) {
+    sb->push_back_stmts(new NonblockingAssign(
+      new Identifier(v.first+"_prev"),
+      v.second->clone()
+    ));
+  }
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
     new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
     sb
   ))); 
-  res->push_back_items(new ContinuousAssign(new VariableAssign(
-    new Identifier("__wait"),
-    new BinaryExpression(
-      new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(false))),
-      BinaryExpression::Op::PPIPE,
-      new Identifier("__continue")
-    )
+
+  // Everything else should be deterministic
+  for (auto& e : ti->negedges_) {
+    res->push_back_items(new NetDeclaration(
+      new Attributes(), new Identifier(e.first+"_negedge"), Declaration::Type::UNSIGNED
+    ));
+    res->push_back_items(new ContinuousAssign(
+      new Identifier(e.first+"_negedge"),
+      new BinaryExpression(
+        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(true))),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(false)))
+      )  
+    ));
+  }
+  for (auto& e : ti->posedges_) {
+    res->push_back_items(new NetDeclaration(
+      new Attributes(), new Identifier(e.first+"_posedge"), Declaration::Type::UNSIGNED
+    ));
+    res->push_back_items(new ContinuousAssign(
+      new Identifier(e.first+"_posedge"),
+      new BinaryExpression(
+        new BinaryExpression(new Identifier(e.first+"_prev"), BinaryExpression::Op::EEQ, new Number(Bits(false))),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(e.second->clone(), BinaryExpression::Op::EEQ, new Number(Bits(true)))
+      )  
+    ));
+  }
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__any_triggers"), Declaration::Type::UNSIGNED
+  ));
+  if (ti->posedges_.empty() && ti->negedges_.empty()) {
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__any_triggers"),
+      new Number(Bits(32, 0))
+    ));
+  } else {
+    auto* c = new Concatenation();
+    for (auto& e : ti->negedges_) {
+      c->push_back_exprs(new Identifier(e.first+"_negedge"));
+    }
+    for (auto& e : ti->posedges_) {
+      c->push_back_exprs(new Identifier(e.first+"_posedge"));
+    }
+    res->push_back_items(new ContinuousAssign(
+      new Identifier("__any_triggers"),
+      new UnaryExpression(UnaryExpression::Op::PIPE, c)
+    ));
+  }
+}
+
+void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* de) {
+  res->push_back_items(new RegDeclaration(
+    new Attributes(), new Identifier("__open_loop"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(32, 0))
+  ));
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    new NonblockingAssign(
+      new Identifier("__open_loop"),
+      new ConditionalExpression(
+        new BinaryExpression(
+          new Identifier("__read_request"),
+          BinaryExpression::Op::AAMP,
+          new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().open_loop_index())))
+        ),
+        new Identifier("__in"),
+        new ConditionalExpression(
+          new Identifier("__open_loop_tick"),
+          new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::MINUS, new Number(Bits(true))),
+          new Identifier("__open_loop")
+        )
+      )
+    )  
   )));
+
+  res->push_back_items(new NetDeclaration(
+    new Attributes(), new Identifier("__open_loop_tick"), Declaration::Type::UNSIGNED
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__open_loop_tick"), 
+    new BinaryExpression(
+      new Identifier("__all_final"), 
+      BinaryExpression::Op::AAMP,
+      new BinaryExpression(
+        new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__any_triggers")),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__open_loop"), BinaryExpression::Op::GT, new Number(Bits(32, 0)))
+      )
+    )
+  ));
 }
 
 void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
@@ -523,36 +525,24 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   // logic is sorted lexicographically to guarantee deterministic code.
 
   map<size_t, NonblockingAssign*> logic;
-  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
-    const auto* p = t->first->get_parent();
-    const auto in_push_task = 
-      p->is(Node::Tag::display_statement) ||
-      p->is(Node::Tag::error_statement) ||
-      p->is(Node::Tag::finish_statement) ||
-      p->is(Node::Tag::info_statement) ||
-      p->is(Node::Tag::put_statement) ||
-      p->is(Node::Tag::warning_statement) ||
-      p->is(Node::Tag::write_statement);
-    const auto in_pull_task = 
-      p->is(Node::Tag::eof_expression);
-
-    // If this variable wasn't materialized (meaning it's not in the table)
-    // or it's inside of a push task (one that only sends data to the host)
-    // we don't need to emit any update logic.
-    if (!t->second.materialized() || in_push_task) {
+  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
+    // If this variable hasn't been reified into the variable table we don't
+    // need to emit any update logic.
+    ModuleInfo info(md);
+    if (!info.is_input(t->first) && !info.is_stateful(t->first)) {
       continue;
     }
 
-    const auto arity = t->second.arity();
-    const auto w = t->second.bit_size();
+    const auto arity = Evaluate().get_arity(t->first);
+    const auto w = t->second.bits_per_element;
 
-    size_t idx = t->second.index();
-    for (size_t i = 0, ie = t->second.elements(); i < ie; ++i) {
-      for (size_t j = 0, je = t->second.element_size(); j < je; ++j) {
+    size_t idx = t->second.begin;
+    for (size_t i = 0, ie = t->second.elements; i < ie; ++i) {
+      for (size_t j = 0, je = t->second.words_per_element; j < je; ++j) {
         auto* lhs = new Identifier(new Id("__var"), new Number(Bits(32, idx)));
 
         Expression* rhs = lhs->clone();
-        if (ModuleInfo(md).is_stateful(t->first) && !in_pull_task) {
+        if (info.is_stateful(t->first)) {
           auto* id = new Identifier(t->first->front_ids()->get_readable_sid() + "_next");
           emit_subscript(id, i, ie, arity);
           emit_slice(id, w, j);
@@ -567,7 +557,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
         } 
         rhs = new ConditionalExpression(
           new BinaryExpression(
-            new Identifier("__read"),
+            new Identifier("__read_request"),
             BinaryExpression::Op::AAMP,
             new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, idx)))
           ),
@@ -585,12 +575,28 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
           );
         }
 
-        auto* na = new NonblockingAssign(new VariableAssign(lhs, rhs));
-        logic[idx] = na;
+        logic[idx] = new NonblockingAssign(lhs, rhs);
         ++idx;
       }
     }
   }
+  for (auto t = de->get_table().expr_begin(), te = de->get_table().expr_end(); t != te; ++t) {
+    assert(t->second.elements == 1);
+    assert(t->second.words_per_element == 1);
+    
+    auto* lhs = new Identifier(new Id("__expr"), new Number(Bits(32, t->second.begin)));
+    auto* rhs = new ConditionalExpression(
+      new BinaryExpression(
+        new Identifier("__read_request"),
+        BinaryExpression::Op::AAMP,
+        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().var_size() + t->second.begin)))
+      ),
+      new Identifier("__in"),
+      lhs->clone()
+    );
+    logic[de->get_table().var_size() + t->second.begin] = new NonblockingAssign(lhs, rhs);
+  }
+
   auto* lsb = new SeqBlock();
   for (auto& l : logic) {
     lsb->push_back_stmts(l.second);
@@ -601,124 +607,89 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   ))); 
 }
 
-void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
-  // Emit logic lexicographically to ensure deterministic code
-  map<string, const Identifier*> vars;
-  for (auto& e : ti->negedges_) {
-    vars[e.first] = e.second;
-  }
-  for (auto& e : ti->posedges_) {
-    vars[e.first] = e.second;
-  }
-
-  auto* sb = new SeqBlock();
-  for (auto& v : vars) {
-    sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-      new Identifier(v.first+"_prev"),
-      v.second->clone()
-    )));
-  }
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb
-  ))); 
-}
-
-void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de) {
-  // The resume and reset flags stay high for exactly one clock tick whenever
-  // the user forces a read
-
-  auto* sb = new SeqBlock();
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__continue"),
-    new BinaryExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->resume_idx())))
-      ),
-      BinaryExpression::Op::PPIPE,
-      new BinaryExpression(
-        new Identifier("__continue"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(
-          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__there_was_io")),
-          BinaryExpression::Op::AAMP, 
-          new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__done"))
-        )  
-      )
-    )
-  )));
-  sb->push_back_stmts(new NonblockingAssign(new VariableAssign(
-    new Identifier("__reset"),
-    new ConditionalExpression(
-      new BinaryExpression(
-        new Identifier("__read"),
-        BinaryExpression::Op::AAMP,
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->reset_idx())))
-      ),
-      new Number(Bits(true)),
-      new Number(Bits(false))
-    )
-  )));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    sb
-  ))); 
-}
-
-void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const De10Logic* de) {
+void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
   // Assignments are sorted lexicographically to guarantee deterministic code.
 
   map<size_t, CaseItem*> outputs;
-  for (auto t = de->table_begin(), te = de->table_end(); t != te; ++t) {
-    if (t->second.materialized()) {
+  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
+    ModuleInfo info(md);      
+    if (info.is_input(t->first) || info.is_stateful(t->first)) {
       continue;
     }
-    assert(t->second.elements() == 1);
-    const auto w = t->second.bit_size();
-    for (size_t i = 0, ie = t->second.entry_size(); i < ie; ++i) {
+    assert(t->second.elements == 1);
+    const auto w = t->second.bits_per_element;
+    for (size_t i = 0; i < t->second.words_per_element; ++i) {
       auto* id = t->first->clone();
       id->purge_dim();
       emit_slice(id, w, i);
       auto* ci = new CaseItem(
-        new Number(Bits(32, t->second.index()+i)),
-        new BlockingAssign(new VariableAssign(
+        new Number(Bits(32, t->second.begin+i)),
+        new BlockingAssign(
           new Identifier("__out"),
           id
-        ))
+        )
       );
-      outputs[t->second.index()+i] = ci;
+      outputs[t->second.begin+i] = ci;
     }
   }
   auto* cs = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__vid"));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->there_are_updates_idx())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__there_are_updates")))
+    new Number(Bits(32, de->get_table().there_are_updates_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__there_are_updates"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->sys_task_idx())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__task_queue")))
+    new Number(Bits(32, de->get_table().there_were_tasks_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__machine_0.__task_id"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->io_task_idx())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__io_queue")))
+    new Number(Bits(32, de->get_table().done_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__done"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->done_idx())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__done")))
+    new Number(Bits(32, de->get_table().open_loop_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__open_loop"))
   ));
   cs->push_back_items(new CaseItem(
-    new Number(Bits(32, de->open_loop_idx())),
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier("__open_loop_itrs")))
+    new Number(Bits(32, de->get_table().debug_index())),
+    new BlockingAssign(new Identifier("__out"), new Identifier("__machine_0.__state"))
   ));
   for (auto& o : outputs) {
     cs->push_back_items(o.second);
   }
-  cs->push_back_items(new CaseItem(
-    new BlockingAssign(new VariableAssign(new Identifier("__out"), new Identifier(new Id("__var"), new Identifier("__vid"))))
-  ));
+  cs->push_back_items(new CaseItem(new BlockingAssign(
+    new Identifier("__out"), 
+    new ConditionalExpression(
+      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::LT, new Number(Bits(32, de->get_table().var_size()))),
+      new Identifier(new Id("__var"), new Identifier("__vid")),
+      new Identifier(new Id("__expr"), new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::MINUS, new Number(Bits(32, de->get_table().var_size()))))
+    )
+  )));
   res->push_back_items(new AlwaysConstruct(new TimingControlStatement(new EventControl(), cs))); 
+
+  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
+    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
+    new NonblockingAssign(new Identifier("__read_prev"), new Identifier("__read"))
+    )));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__read_request"), 
+    new BinaryExpression(
+      new UnaryExpression(UnaryExpression::Op::BANG, new Identifier("__read_prev")),
+      BinaryExpression::Op::AAMP,
+      new Identifier("__read")
+    )
+  ));
+  res->push_back_items(new ContinuousAssign(
+    new Identifier("__wait"),
+    new BinaryExpression(
+      new Identifier("__open_loop_tick"),
+      BinaryExpression::Op::PPIPE,
+      new BinaryExpression(
+        new Identifier("__any_triggers"),
+        BinaryExpression::Op::PPIPE,
+        new Identifier("__continue")
+      )
+    )
+  ));
 }
 
 void De10Rewrite::emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const {

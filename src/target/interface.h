@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_INTERFACE_H
 
 #include <string>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/ids.h"
 
 namespace cascade {
@@ -47,48 +47,34 @@ class Interface {
     virtual ~Interface() = default;
 
     // These methods must perform whatever target-specific logic is necessary to
-    // cause the corresponding system task calls to be invoked in the runtime.
-    virtual void display(const std::string& s) = 0;
-    virtual void error(const std::string& s) = 0;
+    // invoke the corresponding data-plane methods on the runtime.
+    virtual void write(VId id, const Bits* b) = 0;
+    virtual void write(VId id, bool b) = 0;
+
+    // These methods must perform whatever target-specific logic is necessary to
+    // invoke the corresponding system task calls on the runtime.
     virtual void finish(uint32_t arg) = 0;
-    virtual void info(const std::string& s) = 0;
     virtual void restart(const std::string& s) = 0;
     virtual void retarget(const std::string& s) = 0;
     virtual void save(const std::string& s) = 0;
-    virtual void warning(const std::string& s) = 0;
-    virtual void write(const std::string& s) = 0;
-
-    // These methods must perform whatever target-specific logic is necessary to
-    // communicate changes in the value of logic elements back to the runtime.
-    virtual void write(VId id, const Bits* b) = 0;
-    // Target-specific implementations may override this method if there is a
-    // performance-specific advantage to doing so. This method may be invoked
-    // whenever a write of a single-bit variable is required.
-    virtual void write(VId id, bool b);
 
     // These methods must perform whatever target-specific logic is necessary
-    // to cause the corresponding API calls to be invoked by the runtime.
-    virtual SId fopen(const std::string& path) = 0;
-    virtual int32_t in_avail(SId id) = 0;
-    virtual uint32_t pubseekoff(SId id, int32_t n, bool r) = 0;
-    virtual uint32_t pubseekpos(SId id, int32_t n, bool r) = 0;
-    virtual int32_t pubsync(SId id) = 0;
-    virtual int32_t sbumpc(SId id) = 0;
-    virtual int32_t sgetc(SId id) = 0;
-    virtual uint32_t sgetn(SId id, char* c, uint32_t n) = 0;
-    virtual int32_t sputc(SId id, char c) = 0;
-    virtual uint32_t sputn(SId id, const char* c, uint32_t n) = 0;
+    // to invoke the corresponding stream calls on the runtime.
+    virtual FId fopen(const std::string& path, uint8_t mode) = 0;
+    virtual int32_t in_avail(FId id) = 0;
+    virtual uint32_t pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) = 0;
+    virtual uint32_t pubseekpos(FId id, int32_t pos, uint8_t which) = 0;
+    virtual int32_t pubsync(FId id) = 0;
+    virtual int32_t sbumpc(FId id) = 0;
+    virtual int32_t sgetc(FId id) = 0;
+    virtual uint32_t sgetn(FId id, char* c, uint32_t n) = 0;
+    virtual int32_t sputc(FId id, char c) = 0;
+    virtual uint32_t sputn(FId id, const char* c, uint32_t n) = 0;
 
     // Target specific implementations may override this method to perform
     // last-minute cleanup in the compiler that created this interface.
     virtual void cleanup(InterfaceCompiler* ic);
 };
-
-inline void Interface::write(VId id, bool b) {
-  Bits temp;
-  temp.set(0, b ? 1 : 0);
-  write(id, &temp);
-}
 
 inline void Interface::cleanup(InterfaceCompiler* ic) {
   // Does nothing.

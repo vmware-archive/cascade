@@ -31,7 +31,7 @@
 #include "target/core/de10/program_boxer.h"
 
 #include <sstream>
-#include "base/stream/indstream.h"
+#include "common/indstream.h"
 
 using namespace std;
 

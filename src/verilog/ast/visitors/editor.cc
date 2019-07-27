@@ -73,12 +73,13 @@ void Editor::edit(ConditionalExpression* ce) {
   ce->accept_rhs(this);
 }
 
-void Editor::edit(EofExpression* ee) {
-  ee->accept_arg(this);
+void Editor::edit(FeofExpression* fe) {
+  fe->accept_fd(this);
 }
 
 void Editor::edit(FopenExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_path(this);
+  fe->accept_type(this);
 }
 
 void Editor::edit(Concatenation* c) {
@@ -161,19 +162,13 @@ void Editor::edit(InitialConstruct* ic) {
 }
 
 void Editor::edit(ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  ca->accept_rhs(this);
 }
 
 void Editor::edit(GenvarDeclaration* gd) {
   gd->accept_attrs(this);
   gd->accept_id(this);
-}
-
-void Editor::edit(IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  id->accept_id(this); 
-  id->accept_val(this);
 }
 
 void Editor::edit(LocalparamDeclaration* ld) {
@@ -185,7 +180,6 @@ void Editor::edit(LocalparamDeclaration* ld) {
 
 void Editor::edit(NetDeclaration* nd) {
   nd->accept_attrs(this);
-  nd->accept_ctrl(this);
   nd->accept_id(this);
   nd->accept_dim(this);
 }
@@ -224,12 +218,14 @@ void Editor::edit(PortDeclaration* pd) {
 
 void Editor::edit(BlockingAssign* ba) {
   ba->accept_ctrl(this);
-  ba->accept_assign(this);
+  ba->accept_lhs(this);
+  ba->accept_rhs(this);
 }
 
 void Editor::edit(NonblockingAssign* na) {
   na->accept_ctrl(this);
-  na->accept_assign(this);
+  na->accept_lhs(this);
+  na->accept_rhs(this);
 }
 
 void Editor::edit(CaseStatement* cs) {
@@ -247,10 +243,6 @@ void Editor::edit(ForStatement* fs) {
   fs->accept_init(this);
   fs->accept_cond(this);
   fs->accept_update(this);
-  fs->accept_stmt(this);
-}
-
-void Editor::edit(ForeverStatement* fs) {
   fs->accept_stmt(this);
 }
 
@@ -276,30 +268,30 @@ void Editor::edit(TimingControlStatement* tcs) {
   tcs->accept_stmt(this);
 }
 
-void Editor::edit(DisplayStatement* ds) {
-  ds->accept_args(this);
-}
-
-void Editor::edit(ErrorStatement* es) {
-  es->accept_args(this);
+void Editor::edit(FflushStatement* fs) {
+  fs->accept_fd(this);
 }
 
 void Editor::edit(FinishStatement* fs) {
   fs->accept_arg(this);
 }
 
+void Editor::edit(FseekStatement* fs) {
+  fs->accept_fd(this);
+  fs->accept_offset(this);
+  fs->accept_op(this);
+}
+
 void Editor::edit(GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  gs->accept_fmt(this);
   gs->accept_var(this);
 }
 
-void Editor::edit(InfoStatement* is) {
-  is->accept_args(this);
-}
-
 void Editor::edit(PutStatement* ps) {
-  ps->accept_id(this);
-  ps->accept_var(this);
+  ps->accept_fd(this);
+  ps->accept_fmt(this);
+  ps->accept_expr(this);
 }
 
 void Editor::edit(RestartStatement* rs) {
@@ -314,31 +306,9 @@ void Editor::edit(SaveStatement* ss) {
   ss->accept_arg(this);
 }
 
-void Editor::edit(SeekStatement* ss) {
-  ss->accept_id(this);
-  ss->accept_pos(this);
-}
-
-void Editor::edit(WarningStatement* ws) {
-  ws->accept_args(this);
-}
-
-void Editor::edit(WriteStatement* ws) {
-  ws->accept_args(this);
-}
-
-void Editor::edit(WaitStatement* ws) {
-  ws->accept_cond(this);
-  ws->accept_stmt(this);
-}
-
 void Editor::edit(WhileStatement* ws) {
   ws->accept_cond(this);
   ws->accept_stmt(this); 
-}
-
-void Editor::edit(DelayControl* dc) {
-  dc->accept_delay(this); 
 }
 
 void Editor::edit(EventControl* ec) {

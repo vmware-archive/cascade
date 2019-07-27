@@ -28,11 +28,12 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_AST_PUT_STATEMENT_H
-#define CASCADE_SRC_VERILOG_AST_PUT_STATEMENT_H
+#ifndef CASCADE_SRC_VERILOG_AST_TYPES_PUT_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_TYPES_PUT_STATEMENT_H
 
+#include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/string.h"
 #include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
@@ -40,7 +41,8 @@ namespace cascade {
 class PutStatement : public SystemTaskEnableStatement {
   public:
     // Constructors:
-    explicit PutStatement(Identifier* id__, Identifier* var__);
+    explicit PutStatement(Expression* fd__, String* fmt__);
+    explicit PutStatement(Expression* fd__, String* fmt__, Expression* expr__);
     ~PutStatement() override;
 
     // Node Interface:
@@ -48,29 +50,40 @@ class PutStatement : public SystemTaskEnableStatement {
     PutStatement* clone() const override;
 
     // Put/Set:
-    PTR_GET_SET(PutStatement, Identifier, id)
-    PTR_GET_SET(PutStatement, Identifier, var)
+    PTR_GET_SET(PutStatement, Expression, fd)
+    PTR_GET_SET(PutStatement, String, fmt)
+    MAYBE_GET_SET(PutStatement, Expression, expr)
 
   private:
-    PTR_ATTR(Identifier, id);
-    PTR_ATTR(Identifier, var);
+    PTR_ATTR(Expression, fd);
+    PTR_ATTR(String, fmt);
+    MAYBE_ATTR(Expression, expr);
 };
 
-inline PutStatement::PutStatement(Identifier* id__, Identifier* var__) : SystemTaskEnableStatement(Node::Tag::put_statement) {
-  PTR_SETUP(id);
-  PTR_SETUP(var);
+inline PutStatement::PutStatement(Expression* fd__, String* fmt__) : SystemTaskEnableStatement(Node::Tag::put_statement) {
+  PTR_SETUP(fd);
+  PTR_SETUP(fmt);
+  MAYBE_DEFAULT_SETUP(expr);
   parent_ = nullptr;
 }
 
+inline PutStatement::PutStatement(Expression* fd__, String* fmt__, Expression* expr__) : PutStatement(fd__, fmt__) {
+  MAYBE_SETUP(expr);
+}
+
 inline PutStatement::~PutStatement() {
-  PTR_TEARDOWN(id);
-  PTR_TEARDOWN(var);
+  PTR_TEARDOWN(fd);
+  PTR_TEARDOWN(fmt);
+  MAYBE_TEARDOWN(expr);
 }
 
 inline PutStatement* PutStatement::clone() const {
-  return new PutStatement(id_->clone(), var_->clone());
+  auto* res =  new PutStatement(fd_->clone(), fmt_->clone());
+  MAYBE_CLONE(expr);
+  return res;
 }
 
 } // namespace cascade 
 
 #endif
+

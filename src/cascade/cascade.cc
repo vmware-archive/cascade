@@ -181,7 +181,7 @@ bool Cascade::is_finished() const {
   return runtime_.is_finished();
 }
 
-Cascade::EvalLoop::EvalLoop(Cascade* cascade) : Asynchronous() {
+Cascade::EvalLoop::EvalLoop(Cascade* cascade) : Thread() {
   cascade_ = cascade;
 }
 

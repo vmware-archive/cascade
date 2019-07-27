@@ -31,75 +31,65 @@
 #ifndef CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 #define CASCADE_SRC_TARGET_CORE_COMMON_PRINTF_H
 
-#include <sstream>
-#include <string>
+#include <cstdio>
+#include <iostream>
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
 
 namespace cascade {
 
-class Printf {
-  public:
-    Printf(Evaluate* eval);
-
-    template <typename InputItr>
-    std::string format(InputItr begin, InputItr end);
-
-  private:
-    Evaluate* eval_;
+struct Printf {
+  void write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const;
 };
 
-inline Printf::Printf(Evaluate* eval) {
-  eval_ = eval;
-}
-
-template <typename InputItr>
-inline std::string Printf::format(InputItr begin, InputItr end) {
-  if (begin == end) {
-    return "";
+inline void Printf::write(std::ostream& os, Evaluate* eval, const PutStatement* ps) const {
+  const auto* fmt = ps->get_fmt()->get_readable_val().c_str();
+  if (fmt[0] != '%') {
+    os << fmt;
+    return;
   }
 
-  std::stringstream ss;
-  auto a = begin;
+  assert(ps->is_non_null_expr());
+  const auto& val = eval->get_value(ps->get_expr());
 
-  if (!(*a)->is(Node::Tag::string)) {
-    eval_->get_value(*a).write(ss, 10);
-    return ss.str();
-  } 
-  auto* s = static_cast<const String*>(*a);
-
-  for (size_t i = 0, j = 0; ; i = j+2) {
-    j = s->get_readable_val().find_first_of('%', i);
-    TextPrinter(ss) << s->get_readable_val().substr(i, j-i);
-    if (j == std::string::npos) {
+  switch (fmt[1]) {
+    case '_':
+      val.write(os, 0);
+      return;
+    case 'b':
+    case 'B': 
+      val.write(os, 2);
+      return;
+    case 'c':
+    case 'C':
+      os << val.to_char();
+      return;
+    case 'd':
+    case 'D':
+      val.write(os, 10);
+      return;
+    case 'h':
+    case 'H': 
+      val.write(os, 16);
+      return;
+    case 'o':
+    case 'O': 
+      val.write(os, 8);
+      return;
+    case 's':
+    case 'S': 
+      os << val.to_string();
+      return;
+    case 'u':
+    case 'U':
+      val.write(os, 16);
+      return;
+    default: 
       break;
-    }
-    if (++a == end) {
-      continue;
-    }
-    switch (s->get_readable_val()[j+1]) {
-      case 'b':
-      case 'B': 
-        eval_->get_value(*a).write(ss, 2);
-        break;
-      case 'd':
-      case 'D':
-        eval_->get_value(*a).write(ss, 10);
-        break;
-      case 'h':
-      case 'H': 
-        eval_->get_value(*a).write(ss, 16);
-        break;
-      case 'o':
-      case 'O': 
-        eval_->get_value(*a).write(ss, 8);
-        break;
-      default: 
-        assert(false);
-    }
-  }
-  return ss.str();
+  } 
+  char buffer[1024]; 
+  std::snprintf(buffer, 1024, fmt, val.to_double());
+  os << buffer;
 }
 
 } // namespace cascade

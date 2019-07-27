@@ -5,17 +5,17 @@ reg[31:0] ie = 0;
 reg[7:0] char;
 
 integer itr = 1;
-stream s = $fopen("data/test/benchmark/regex/iliad.hex");
+integer s = $fopen("data/test/benchmark/regex/iliad.hex", "r");
 
 always @(posedge clock.val) begin
-  $get(s, char);
-  if ($eof(s)) begin
+  $fread(s, char);
+  if ($feof(s)) begin
     if (itr == 1) begin
       $write(count);
       $finish(0);
     end else begin
       itr <= itr + 1;
-      $seek(s, 0);
+      $rewind(s);
     end
   end else begin
     if (state > 0) begin

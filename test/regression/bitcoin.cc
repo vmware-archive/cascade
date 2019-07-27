@@ -40,21 +40,21 @@ TEST(bitcoin, bitcoin_2) {
   run_code("minimal","data/test/regression/bitcoin/bitcoin_2.v", "ac62db15\n428c35fb\n5eb9e502\n29ce9275\n");
 }
 TEST(bitcoin, bitcoin_3) {
-  run_code("minimal","data/test/regression/bitcoin/bitcoin_3.v", "5abb9899\n3effdcdd\n801191\n22a233b3\n");
+  run_code("minimal","data/test/regression/bitcoin/bitcoin_3.v", "5abb9899\n3effdcdd\n00801191\n22a233b3\n");
 }
 TEST(bitcoin, bitcoin_4) {
   run_code("minimal","data/test/regression/bitcoin/bitcoin_4.v", "3e90be27\n943e50c9\nca20d79b\n9f57a0ec\n");
 }
 TEST(bitcoin, bitcoin_5) {
-  run_code("minimal","data/test/regression/bitcoin/bitcoin_5.v", "99b95531\n1654565\ncdedcda9\nfefc7630\n");
+  run_code("minimal","data/test/regression/bitcoin/bitcoin_5.v", "99b95531\n01654565\ncdedcda9\nfefc7630\n");
 }
 TEST(bitcoin, bitcoin_6) {
-  run_code("minimal","data/test/regression/bitcoin/bitcoin_6.v", "111399df\n1474547\nfcdcfc98\nfefc7630\n");
+  run_code("minimal","data/test/regression/bitcoin/bitcoin_6.v", "111399df\n01474547\nfcdcfc98\nfefc7630\n");
 }
 TEST(bitcoin, bitcoin_7) {
   run_code("minimal","data/test/regression/bitcoin/bitcoin_7.v", 
     "bffb8e7e13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf 13579bdf13579bdf13579bdf0d18e67013579bdf13579bdf13579bdf515ae676\n"
-    "d7cb434202468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace 2468ace02468ace02468ace4decec0102468ace02468ace02468ace1ab7748f\n"
+    "d7cb434202468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace 02468ace02468ace02468ace4decec0102468ace02468ace02468ace1ab7748f\n"
     "c85a5e5cfedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98 fedcba98fedcba98fedcba98590989fafedcba98fedcba98fedcba98f2a445b2\n"
     "aea238bf765432107654321076543210765432107654321076543210765432107654321076543210765432107654321076543210765432107654321076543210 76543210765432107654321079738cc576543210765432107654321057528cc1\n"
   );
@@ -68,5 +68,5 @@ TEST(bitcoin, bitcoin_8) {
   );
 }
 TEST(bitcoin, run_4) {
-  run_code("minimal","data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+  run_code("minimal","data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }

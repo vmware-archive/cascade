@@ -31,17 +31,26 @@
 #ifndef CASCADE_SRC_VERILOG_AST_DECLARATION_H
 #define CASCADE_SRC_VERILOG_AST_DECLARATION_H
 
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/ast/types/attributes.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/module_item.h"
+#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
 class Declaration : public ModuleItem {
   public:
+    // Supporting Concepts:
+    enum class Type : uint8_t {
+      UNSIGNED = 0,
+      SIGNED,
+      REAL,
+      UNTYPED
+    };
+
     // Constructors:
     Declaration(Node::Tag tag);
     ~Declaration() override;
@@ -56,10 +65,14 @@ class Declaration : public ModuleItem {
     // Get/Set:
     PTR_GET_SET(Declaration, Attributes, attrs)
     PTR_GET_SET(Declaration, Identifier, id)
+    VAL_GET_SET(Declaration, Type, type)
+    MAYBE_GET_SET(Declaration, RangeExpression, dim)
 
   protected:
     PTR_ATTR(Attributes, attrs);
     PTR_ATTR(Identifier, id);
+    VAL_ATTR(Type, type);
+    MAYBE_ATTR(RangeExpression, dim);
 
     friend class Inline;
     friend class Resolve;

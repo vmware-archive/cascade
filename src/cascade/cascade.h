@@ -34,7 +34,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "base/thread/asynchronous.h"
+#include "common/thread.h"
 #include "runtime/runtime.h"
 
 namespace cascade {
@@ -73,7 +73,7 @@ class Cascade : public std::iostream {
     bool is_finished() const;
 
   private:
-    class EvalLoop : public Asynchronous {
+    class EvalLoop : public Thread {
       public:
         EvalLoop(Cascade* cascade);
         ~EvalLoop() override = default;

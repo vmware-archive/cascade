@@ -52,6 +52,7 @@
 #include "verilog/transform/de_alias.h"
 #include "verilog/transform/dead_code_eliminate.h"
 #include "verilog/transform/event_expand.h"
+#include "verilog/transform/index_normalize.h"
 #include "verilog/transform/loop_unroll.h"
 
 using namespace std;
@@ -154,10 +155,9 @@ void Module::restart(std::istream& is) {
       continue;
     }
 
-    stringstream ss;
+    ostream os(rt_->rdbuf(Runtime::stdinfo_));
     const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
-    ss << "Updated state for " << fid;
-    rt_->info(ss.str());
+    os << "Updated state for " << fid << endl;
 
     (*i)->engine_->set_input(itr->second.first);
     (*i)->engine_->set_state(itr->second.second);
@@ -315,6 +315,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
     ModuleInfo(md).invalidate();
+    IndexNormalize().run(md);
     LoopUnroll().run(md);
     DeAlias().run(md);
     ConstantProp().run(md);

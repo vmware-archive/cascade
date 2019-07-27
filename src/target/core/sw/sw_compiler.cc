@@ -30,7 +30,6 @@
 
 #include "target/core/sw/sw_compiler.h"
 
-#include "base/stream/incstream.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
@@ -88,75 +87,6 @@ SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) 
   return new SwClock(interface, id);
 }
 
-SwFifo* SwCompiler::compile_fifo(Interface* interface, ModuleDeclaration* md) {
-  ModuleInfo info(md);
-
-  // Create a memory with the appropriate size and width parameters
-  size_t depth = 0;
-  size_t byte_size = 0;
-  for (auto* l : info.locals()) {
-    if (l->get_parent()->is(Node::Tag::localparam_declaration)) {
-      auto* ld = static_cast<const LocalparamDeclaration*>(l->get_parent());
-      const auto* id = ld->get_attrs()->get<Identifier>("__id");
-      if (id == nullptr) {
-        continue;
-      } else if (id->back_ids()->eq("DEPTH")) {
-        depth = Evaluate().get_value(ld->get_val()).to_int();
-      } else if (id->back_ids()->eq("BYTE_SIZE")) {
-        byte_size = Evaluate().get_value(ld->get_val()).to_int();
-      }
-    }
-  }
-  if (depth == 0 || byte_size == 0) {
-    error("Unable to compile a software fifo with depth or byte size equal to zero");
-    delete md;
-    return nullptr;
-  }
-  auto* fifo = new SwFifo(interface, depth, byte_size);
-
-  // Set backup file if __file annotation was provided
-  auto* file = md->get_attrs()->get<String>("__file");
-  auto* count = md->get_attrs()->get<Number>("__count");
-  if (file != nullptr) {
-    const auto c = (count == nullptr) ? 1 : count->get_val().to_int();
-    const auto f = incstream(include_dirs_).find(file->get_readable_val());
-    if (f == "") {
-      error("Unable to compile a software fifo with an unresolvable file annotation");
-      delete md;
-      return nullptr;
-    }
-    fifo->set_file(f, c);
-  } 
-
-  // Set up input output connections
-  for (auto* l : info.locals()) {
-    assert(l->get_parent()->is_subclass_of(Node::Tag::declaration));
-    auto* d = static_cast<const Declaration*>(l->get_parent());
-    if (d->get_parent()->is(Node::Tag::port_declaration)) {
-      auto* pd = static_cast<const PortDeclaration*>(d->get_parent());
-      const auto* id = pd->get_attrs()->get<Identifier>("__id");
-      if (id->back_ids()->eq("clock")) {
-        fifo->set_clock(to_vid(l));
-      } else if (id->back_ids()->eq("rreq")) {
-        fifo->set_rreq(to_vid(l));
-      } else if (id->back_ids()->eq("rdata")) {
-        fifo->set_rdata(to_vid(l));
-      } else if (id->back_ids()->eq("wreq")) {
-        fifo->set_wreq(to_vid(l));
-      } else if (id->back_ids()->eq("wdata")) {
-        fifo->set_wdata(to_vid(l));
-      } else if (id->back_ids()->eq("empty")) {
-        fifo->set_empty(to_vid(l));
-      } else if (id->back_ids()->eq("full")) {
-        fifo->set_full(to_vid(l));
-      }
-    }
-  }
-
-  delete md;
-  return fifo;
-}
-
 SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   if (led_ == nullptr) {
     error("Unable to compile a software led without a reference to a software fpga");
@@ -185,83 +115,16 @@ SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) 
   ModuleInfo info(md);
   auto* c = new SwLogic(interface, md);
   for (auto* i : info.inputs()) {
-    c->set_read(i, to_vid(i));
-  }
-  for (auto* o : info.outputs()) {
-    c->set_write(o, to_vid(o));
+    c->set_input(i, to_vid(i));
   }
   for (auto* s : info.stateful()) { 
     c->set_state(s, to_vid(s));
   }
-  for (auto* s : info.streams()) {
-    c->set_stream(s, to_vid(s));
+  for (auto* o : info.outputs()) {
+    c->set_output(o, to_vid(o));
   }
   return c;
 } 
-
-SwMemory* SwCompiler::compile_memory(Interface* interface, ModuleDeclaration* md) {
-  ModuleInfo info(md);
-
-  // Create a memory with the appropriate size and width parameters
-  size_t addr_size = 0;
-  size_t byte_size = 0;
-  for (auto* l : info.locals()) {
-    if (l->get_parent()->is(Node::Tag::localparam_declaration)) {
-      auto* ld = static_cast<const LocalparamDeclaration*>(l->get_parent());
-      const auto* id = ld->get_attrs()->get<Identifier>("__id");
-      if (id == nullptr) {
-        continue;
-      } else if (id->back_ids()->eq("ADDR_SIZE")) {
-        addr_size = Evaluate().get_value(ld->get_val()).to_int();
-      } else if (id->back_ids()->eq("BYTE_SIZE")) {
-        byte_size = Evaluate().get_value(ld->get_val()).to_int();
-      }
-    }
-  }
-  if (addr_size == 0 || byte_size == 0) {
-    error("Unable to compile a software memory with address or data width equal to zero");
-    delete md;
-    return nullptr;
-  }
-  auto* mem = new SwMemory(interface, addr_size, byte_size);
-
-  // Set backup file if __file annotation was provided
-  auto* file = md->get_attrs()->get<String>("__file");
-  if (file != nullptr) {
-    const auto f = incstream(include_dirs_).find(file->get_readable_val());
-    mem->set_file((f == "") ? file->get_readable_val() : f); 
-  }
-
-  // Set up input output connections
-  for (auto* l : info.locals()) {
-    assert(l->get_parent()->is_subclass_of(Node::Tag::declaration));
-    auto* d = static_cast<const Declaration*>(l->get_parent());
-    if (d->get_parent()->is(Node::Tag::port_declaration)) {
-      auto* pd = static_cast<const PortDeclaration*>(d->get_parent());
-      const auto* id = pd->get_attrs()->get<Identifier>("__id");
-      if (id->back_ids()->eq("clock")) {
-        mem->set_clock(to_vid(l));
-      } else if (id->back_ids()->eq("wen")) {
-        mem->set_wen(to_vid(l));
-      } else if (id->back_ids()->eq("raddr1")) {
-        mem->set_raddr1(to_vid(l));
-      } else if (id->back_ids()->eq("rdata1")) {
-        mem->set_rdata1(to_vid(l));
-      } else if (id->back_ids()->eq("raddr2")) {
-        mem->set_raddr2(to_vid(l));
-      } else if (id->back_ids()->eq("rdata2")) {
-        mem->set_rdata2(to_vid(l));
-      } else if (id->back_ids()->eq("waddr")) {
-        mem->set_waddr(to_vid(l));
-      } else if (id->back_ids()->eq("wdata")) {
-        mem->set_wdata(to_vid(l));
-      }
-    }
-  }
-
-  delete md;
-  return mem;
-}
 
 SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
   if (pad_ == nullptr) {

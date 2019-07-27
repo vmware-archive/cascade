@@ -33,15 +33,14 @@
 
 #include "verilog/ast/types/declaration.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
 class ParameterDeclaration : public Declaration {
   public:
     // Constructors:
-    ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
-    ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
+    ParameterDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__);
+    ParameterDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__);
     ~ParameterDeclaration() override;
 
     // Node Interface:
@@ -49,39 +48,35 @@ class ParameterDeclaration : public Declaration {
     ParameterDeclaration* clone() const override;
 
     // Get/Set:
-    VAL_GET_SET(ParameterDeclaration, bool, signed)
-    MAYBE_GET_SET(ParameterDeclaration, RangeExpression, dim)
     PTR_GET_SET(ParameterDeclaration, Expression, val)
 
   private:
-    VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression, dim);
     PTR_ATTR(Expression, val);
 };
 
-inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration(Node::Tag::parameter_declaration) {
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__) : Declaration(Node::Tag::parameter_declaration) {
   PTR_SETUP(attrs);
-  VAL_SETUP(signed);
+  VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(dim);
   PTR_SETUP(id);
   PTR_SETUP(val);
   parent_ = nullptr;
 }
 
-inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : ParameterDeclaration(attrs__, signed__, id__, val__) {
+inline ParameterDeclaration::ParameterDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__) : ParameterDeclaration(attrs__, id__, type__, val__) {
   MAYBE_SETUP(dim);
 }
 
 inline ParameterDeclaration::~ParameterDeclaration() {
   PTR_TEARDOWN(attrs);
-  VAL_TEARDOWN(signed);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(dim);
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(val);
 }
 
 inline ParameterDeclaration* ParameterDeclaration::clone() const {
-  auto* res = new ParameterDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  auto* res = new ParameterDeclaration(attrs_->clone(), id_->clone(), type_, val_->clone());
   MAYBE_CLONE(dim);
   return res;
 }

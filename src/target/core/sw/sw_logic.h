@@ -35,10 +35,8 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
-#include "target/input.h"
-#include "target/state.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -52,10 +50,9 @@ class SwLogic : public Logic, public Visitor {
     ~SwLogic() override;
 
     // Configuration Logic:
-    SwLogic& set_read(const Identifier* id, VId vid);
-    SwLogic& set_write(const Identifier* id, VId vid);
+    SwLogic& set_input(const Identifier* id, VId vid);
     SwLogic& set_state(const Identifier* id, VId vid);
-    SwLogic& set_stream(const Identifier* id, VId vid);
+    SwLogic& set_output(const Identifier* id, VId vid);
 
     // Core Interface:
     State* get_state() override;
@@ -71,31 +68,42 @@ class SwLogic : public Logic, public Visitor {
     bool there_were_tasks() const override;
 
   private:
+    class EofIndex : public Visitor {
+      public:
+        EofIndex(SwLogic* sw);
+        void visit(const FeofExpression* fe);
+      private:
+        SwLogic* sw_;
+    };
+
     // Source Management:
     ModuleDeclaration* src_;
-    std::vector<const Identifier*> reads_;
-    std::vector<std::pair<const Identifier*, VId>> writes_;
+    std::vector<const Identifier*> inputs_;
+    std::vector<std::pair<const Identifier*, VId>> outputs_;
     std::unordered_map<VId, const Identifier*> state_;
-    std::unordered_map<const Identifier*, interfacestream*> streams_;
+    std::vector<const FeofExpression*> eofs_;
 
     // Control State:
-    Evaluate eval_;
     bool silent_;
     bool there_were_tasks_;
     std::vector<const Node*> active_;
     std::vector<std::tuple<const Identifier*,size_t,int,int>> updates_;
     std::vector<Bits> update_pool_;
+    Evaluate eval_;
+    std::unordered_map<FId, interfacestream*> streams_;
 
     // Scheduling: 
     void schedule_now(const Node* n);
     void schedule_active(const Node* n);
     void notify(const Node* n);
 
-    // Resyncing Helpers:
+    // Finalize Helpers:
     void silent_evaluate();
 
-    // Control State:
+    // Control Helpers:
     uint16_t& get_state(const Statement* s);
+    interfacestream* get_stream(FId fd);
+    void update_eofs();
 
     // Visitor Interface:
     void visit(const Event* e) override;
@@ -108,20 +116,14 @@ class SwLogic : public Logic, public Visitor {
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
     void visit(const TimingControlStatement* tcs) override;
-    void visit(const DisplayStatement* ds) override;
-    void visit(const ErrorStatement* es) override;
+    void visit(const FflushStatement* fs) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const FseekStatement* fs) override;
     void visit(const GetStatement* gs) override;
-    void visit(const InfoStatement* is) override;
     void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
-    void visit(const SeekStatement* ss) override;
-    void visit(const WarningStatement* ws) override;
-    void visit(const WriteStatement* ws) override;
-    void visit(const WaitStatement* ws) override;
-    void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;
 

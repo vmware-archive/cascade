@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_H
 #define CASCADE_SRC_TARGET_CORE_H
 
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/ids.h"
 
 namespace cascade {
@@ -102,9 +102,10 @@ class Core {
     // obtained by a call to interface().
     virtual void update() = 0;
     // This method must return true if the previous call to either evaluate()
-    // or update() resulted in at least one system task. If you don't want to
-    // think too hard about this. It's safe (though definitely less performant)
-    // to always return true.
+    // or update() resulted in at least one system task that requires attention
+    // at the end of the current time step: $finish(), $save(), $restart(), or
+    // $retarget(). If you don't want to think too hard about this. It's safe
+    // (though definitely less performant) to always return true.
     virtual bool there_were_tasks() const = 0;
 
     // Target-specific implementations may override this method if there is a
@@ -156,12 +157,6 @@ class Custom : public Core {
     bool is_custom() const override;
 };
 
-class Fifo : public Core { 
-  public:
-    using Core::Core;
-    bool there_were_tasks() const override;
-};
-
 class Gpio : public Core { 
   public:
     using Core::Core;
@@ -178,12 +173,6 @@ class Logic : public Core {
   public:
     using Core::Core;
     bool is_logic() const override;
-};
-
-class Memory : public Core { 
-  public:
-    using Core::Core;
-    bool there_were_tasks() const override;
 };
 
 class Pad : public Core { 
@@ -288,10 +277,6 @@ inline bool Custom::is_custom() const {
   return true;
 }
 
-inline bool Fifo::there_were_tasks() const {
-  return false;
-}
-
 inline bool Gpio::there_were_tasks() const {
   return false;
 }
@@ -302,10 +287,6 @@ inline bool Led::there_were_tasks() const {
 
 inline bool Logic::is_logic() const {
   return true;
-}
-
-inline bool Memory::there_were_tasks() const {
-  return false;
 }
 
 inline bool Pad::there_were_tasks() const {

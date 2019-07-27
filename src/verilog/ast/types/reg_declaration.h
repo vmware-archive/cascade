@@ -34,15 +34,14 @@
 #include "verilog/ast/types/declaration.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
 class RegDeclaration : public Declaration {
   public:
     // Constructors:
-    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__);
-    RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type);
+    RegDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type, RangeExpression* dim__, Expression* val__);
     ~RegDeclaration() override;
 
     // Node Interface:
@@ -50,26 +49,22 @@ class RegDeclaration : public Declaration {
     RegDeclaration* clone() const override;
 
     // Get/Set:
-    VAL_GET_SET(RegDeclaration, bool, signed)
-    MAYBE_GET_SET(RegDeclaration, RangeExpression, dim)
     MAYBE_GET_SET(RegDeclaration, Expression, val)
 
   private:
-    VAL_ATTR(bool, signed);
-    MAYBE_ATTR(RangeExpression, dim);
     MAYBE_ATTR(Expression, val);
 };
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__) : Declaration(Node::Tag::reg_declaration) {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__) : Declaration(Node::Tag::reg_declaration) {
   PTR_SETUP(attrs);
   PTR_SETUP(id);
-  VAL_SETUP(signed);
+  VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(dim);
   MAYBE_DEFAULT_SETUP(val);
   parent_ = nullptr;
 }
 
-inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, bool signed__, RangeExpression* dim__, Expression* val__) : RegDeclaration(attrs__, id__, signed__) {
+inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__) : RegDeclaration(attrs__, id__, type__) {
   MAYBE_SETUP(dim);
   MAYBE_SETUP(val);
 }
@@ -77,13 +72,13 @@ inline RegDeclaration::RegDeclaration(Attributes* attrs__, Identifier* id__, boo
 inline RegDeclaration::~RegDeclaration() {
   PTR_TEARDOWN(attrs);
   PTR_TEARDOWN(id);
-  VAL_TEARDOWN(signed);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(dim);
   MAYBE_TEARDOWN(val);
 }
 
 inline RegDeclaration* RegDeclaration::clone() const {
-  auto* res = new RegDeclaration(attrs_->clone(), id_->clone(), signed_);
+  auto* res = new RegDeclaration(attrs_->clone(), id_->clone(), type_);
   MAYBE_CLONE(dim);
   MAYBE_CLONE(val);
   return res;

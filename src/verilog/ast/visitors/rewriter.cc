@@ -81,13 +81,14 @@ Expression* Rewriter::rewrite(ConditionalExpression* ce) {
   return ce;
 }
 
-Expression* Rewriter::rewrite(EofExpression* ee) {
-  ee->accept_arg(this);
-  return ee;
+Expression* Rewriter::rewrite(FeofExpression* fe) {
+  fe->accept_fd(this);
+  return fe;
 }
 
 Expression* Rewriter::rewrite(FopenExpression* fe) {
-  fe->accept_arg(this);
+  fe->accept_path(this);
+  fe->accept_type(this);
   return fe;
 }
 
@@ -185,8 +186,8 @@ ModuleItem* Rewriter::rewrite(InitialConstruct* ic) {
 }
 
 ModuleItem* Rewriter::rewrite(ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
-  ca->accept_assign(this);
+  ca->accept_lhs(this);
+  ca->accept_rhs(this);
   return ca;
 }
 
@@ -194,13 +195,6 @@ ModuleItem* Rewriter::rewrite(GenvarDeclaration* gd) {
   gd->accept_attrs(this);
   gd->accept_id(this);
   return gd;
-}
-
-ModuleItem* Rewriter::rewrite(IntegerDeclaration* id) {
-  id->accept_attrs(this);
-  id->accept_id(this);
-  id->accept_val(this);
-  return id;
 }
 
 ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
@@ -213,7 +207,6 @@ ModuleItem* Rewriter::rewrite(LocalparamDeclaration* ld) {
 
 ModuleItem* Rewriter::rewrite(NetDeclaration* nd) {
   nd->accept_attrs(this);
-  nd->accept_ctrl(this);
   nd->accept_id(this);
   nd->accept_dim(this);
   return nd;
@@ -258,13 +251,15 @@ ModuleItem* Rewriter::rewrite(PortDeclaration* pd) {
 
 Statement* Rewriter::rewrite(BlockingAssign* ba) {
   ba->accept_ctrl(this);
-  ba->accept_assign(this);
+  ba->accept_lhs(this);
+  ba->accept_rhs(this);
   return ba;
 }
 
 Statement* Rewriter::rewrite(NonblockingAssign* na) {
   na->accept_ctrl(this);
-  na->accept_assign(this);
+  na->accept_lhs(this);
+  na->accept_rhs(this);
   return na;
 }
 
@@ -285,11 +280,6 @@ Statement* Rewriter::rewrite(ForStatement* fs) {
   fs->accept_init(this);
   fs->accept_cond(this);
   fs->accept_update(this);
-  fs->accept_stmt(this);
-  return fs;
-}
-
-Statement* Rewriter::rewrite(ForeverStatement* fs) {
   fs->accept_stmt(this);
   return fs;
 }
@@ -320,14 +310,9 @@ Statement* Rewriter::rewrite(TimingControlStatement* tcs) {
   return tcs;
 }
 
-Statement* Rewriter::rewrite(DisplayStatement* ds) {
-  ds->accept_args(this);
-  return ds;
-}
-
-Statement* Rewriter::rewrite(ErrorStatement* es) {
-  es->accept_args(this);
-  return es;
+Statement* Rewriter::rewrite(FflushStatement* fs) {
+  fs->accept_fd(this);
+  return fs;
 }
 
 Statement* Rewriter::rewrite(FinishStatement* fs) {
@@ -335,20 +320,24 @@ Statement* Rewriter::rewrite(FinishStatement* fs) {
   return fs;
 }
 
+Statement* Rewriter::rewrite(FseekStatement* fs) {
+  fs->accept_fd(this);
+  fs->accept_offset(this);
+  fs->accept_op(this);
+  return fs;
+}
+
 Statement* Rewriter::rewrite(GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  gs->accept_fmt(this);
   gs->accept_var(this);
   return gs;
 }
 
-Statement* Rewriter::rewrite(InfoStatement* is) {
-  is->accept_args(this);
-  return is;
-}
-
 Statement* Rewriter::rewrite(PutStatement* ps) {
-  ps->accept_id(this);
-  ps->accept_var(this);
+  ps->accept_fd(this);
+  ps->accept_fmt(this);
+  ps->accept_expr(this);
   return ps;
 }
 
@@ -367,37 +356,10 @@ Statement* Rewriter::rewrite(SaveStatement* ss) {
   return ss;
 }
 
-Statement* Rewriter::rewrite(SeekStatement* ss) {
-  ss->accept_id(this);
-  ss->accept_pos(this);
-  return ss;
-}
-
-Statement* Rewriter::rewrite(WarningStatement* ws) {
-  ws->accept_args(this);
-  return ws;
-}
-
-Statement* Rewriter::rewrite(WriteStatement* ws) {
-  ws->accept_args(this);
-  return ws;
-}
-
-Statement* Rewriter::rewrite(WaitStatement* ws) {
-  ws->accept_cond(this);
-  ws->accept_stmt(this);
-  return ws;
-}
-
 Statement* Rewriter::rewrite(WhileStatement* ws) {
   ws->accept_cond(this);
   ws->accept_stmt(this);
   return ws;
-}
-
-TimingControl* Rewriter::rewrite(DelayControl* dc) {
-  dc->accept_delay(this);
-  return dc;
 }
 
 TimingControl* Rewriter::rewrite(EventControl* ec) {

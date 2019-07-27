@@ -46,7 +46,7 @@ TEST(jit, array) {
   run_code("minimal_jit", "data/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(jit, bitcoin) {
-  run_code("minimal_jit", "data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+  run_code("minimal_jit", "data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
 TEST(jit, mips32) {
   run_code("minimal_jit", "data/test/benchmark/mips32/run_bubble_128.v", "1");

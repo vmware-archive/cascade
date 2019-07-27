@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_CLOCK_H
 
 #include <cassert>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "target/input.h"
 #include "target/interface.h"

@@ -441,9 +441,9 @@ impression of what Cascade is capable of.
 | Primitive Types       | Net Declarations          |  x        |             |                  |
 |                       | Reg Declarations          |  x        |             |                  |
 |                       | Integer Declarations      |  x        |             |                  |
-|                       | Real Declarations         |           | x           |                  |
-|                       | Time Declarations         |           | x           |                  |
-|                       | Realtime Declarations     |           | x           |                  |
+|                       | Real Declarations         |  x        |             |                  |
+|                       | Time Declarations         |  x        |             |                  |
+|                       | Realtime Declarations     |  x        |             |                  |
 |                       | Array Declarations        |  x        |             |                  |
 | Expressions           | Arithmetic Operators      |  x        |             |                  |
 |                       | Bitwise Operators         |  x        |             |                  |
@@ -451,14 +451,14 @@ impression of what Cascade is capable of.
 |                       | Concatentation Operators  |  x        |             |                  |
 |                       | Conditional Operators     |  x        |             |                  |
 |                       | Bit/Part Select           |  x        |             |                  |
-|                       | Strings                   |           | x           |                  |
-|                       | Real Constants            |           | x           |                  |
+|                       | Strings                   |  x        |             |                  |
+|                       | Real Constants            |  x        |             |                  |
 | Parameters            | Parameter Declarations    |  x        |             |                  |
 |                       | Localparam Declarations   |  x        |             |                  |
 |                       | Defparam Statements       |           |             | x                |
 | Module Declarations   | Input Ports               |  x        |             |                  |
 |                       | Output Ports              |  x        |             |                  |
-|                       | Inout Ports               |           | x           |                  |
+|                       | Inout Ports               |           |             | x                |
 | Module Instantiations | Named Parameter Binding   |  x        |             |                  |
 |                       | Ordered Parameter Binding |  x        |             |                  |
 |                       | Named Port Binding        |  x        |             |                  |
@@ -483,34 +483,51 @@ tasks are guaranteed to run correctly on every target.
 A complete listing of the system tasks which Cascade supports, along with a
 brief description of their behavior is shown below.
 
-| Feature Class         | Feature                   | Supported | In Progress | Will Not Support | 
-|:----------------------|:--------------------------|:---------:|:-----------:|:----------------:|
-| Printf                | $display(fmt, args...)    |  x        |             |                  |
-|                       | $write(fmt, args...)      |  x        |             |                  |
-| Debugging             | $monitor(var)             |           | x           |                  |
-| Logging               | $info(fmt, args...)       |  x        |             |                  |    
-|                       | $warning(fmt, args...)    |  x        |             |                  |
-|                       | $error(fmt, args...)      |  x        |             |                  |
-| Simulation Control    | $finish(code)             |  x        |             |                  |
-|                       | $fatal(code, fmt, args...)|  x        |             |                  |
-| Virtualization        | $save(file)               |  x        |             |                  |
-|                       | $restart(file)            |  x        |             |                  |
-|                       | $retarget(march)          |  x        |             |                  |
-| Stream I/O            | $fopen(file)              |  x        |             |                  |
-|                       | $eof(s)                   |  x        |             |                  |
-|                       | $get(s, var)              |  x        |             |                  |
-|                       | $put(s, var)              |  x        |             |                  |
-|                       | $seek(s, var)             |  x        |             |                  |
+| Feature Class         | Feature                     | Supported | In Progress | Will Not Support | 
+|:----------------------|:----------------------------|:---------:|:-----------:|:----------------:|
+| Printf                | $display(fmt, args...)      |  x        |             |                  |
+|                       | $write(fmt, args...)        |  x        |             |                  |
+| Scanf                 | $scanf(fmt, args...)        |  x        |             |                  |
+| Debugging             | $monitor(var)               |           | x           |                  |
+| Logging               | $info(fmt, args...)         |  x        |             |                  |    
+|                       | $warning(fmt, args...)      |  x        |             |                  |
+|                       | $error(fmt, args...)        |  x        |             |                  |
+| Simulation Control    | $finish(code)               |  x        |             |                  |
+|                       | $fatal(code, fmt, args...)  |  x        |             |                  |
+| Virtualization        | $save(file)                 |  x        |             |                  |
+|                       | $restart(file)              |  x        |             |                  |
+|                       | $retarget(march)            |  x        |             |                  |
+| File I/O              | $fopen(path)                |  x        |             |                  |
+|                       | $fclose(fd)                 |           | x           |                  |
+|                       | $fdisplay(fd, fmt, args...) |  x        |             |                  |
+|                       | $feof(fd)                   |  x        |             |                  |
+|                       | $fflush(fd)                 |  x        |             |                  |
+|                       | $fgetc(fd)                  |           | x           |                  |
+|                       | $fgets(str, fd)             |           | x           |                  |
+|                       | $fread(fd, var)             |  x        |             |                  |
+|                       | $fscanf(fd, fmt, args...)   |  x        |             |                  |
+|                       | $fseek(fd, off, dir)        |  x        |             |                  |
+|                       | $ftell(fd)                  |           | x           |                  |
+|                       | $fwrite(fd, fmt, args...)   |  x        |             |                  |
+|                       | $rewind(fd, off, dir)       |  x        |             |                  |
+|                       | $ungetc(c, dir)             |           | x           |                  |
+
 
 #### Printf Tasks
 
-The printf-of system tasks can be used to emit debugging statements to the
-REPL. Both use the same printf-style of argument passing. A formatting string
-which may be delimitted with variable placeholders (```%d, %x, etc...```) is
-followed by a list of program variables whose runtime values are substituted
-for those placeholders. Both printf-style system tasks behave identically. The
-only difference is that ```$display()``` automatically appends a newline
-character to the end of its output.
+The printf family of system tasks can be used to emit debugging statements to
+stdout (the REPL). Both use the same printf-style of argument passing. A
+formatting string which may be delimitted with variable placeholders (```%d,
+%x, etc...```) is followed by a list of program variables whose runtime values
+are substituted for those placeholders. Both printf-style system tasks behave
+identically. The only difference is that ```$display()``` automatically appends
+a newline character to the end of its output.
+
+#### Scanf
+
+The scan system task can be used to read values from stdin. However this
+feature is only useful when cascade is used as a library, as when Cascade is
+run in a REPL, it dedicates stdin to parsing code.
 
 #### Logging Tasks
 
@@ -581,30 +598,31 @@ always @(pad.val) begin
 end
 ```
 
-#### Stream I/O Tasks 
+#### File I/O Tasks 
 
-The ```$fopen()```, ```$get()```, and ```$put()``` tasks provide an abstract
-mechanism for interacting with file streams. The following example shows how to
-read the contents of a file, one cycle at a time. Note that ```$get()``` is
-sensitive to the size of its second argument and will read as many bytes as
-necessary to produce a value for that variable.
+The family of file i/o tasks provide an abstract mechanism for interacting with
+file streams. The following example shows how to read the contents of a file,
+one cycle at a time. Note that ```$fread()``` is sensitive to the size of its
+second argument and will read as many bytes as necessary to produce a value for
+that variable.
 
 ```verilog
-stream s = $fopen("path/to/file");
+integer s = $fopen("path/to/file");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
-  $get(s, x);
-  if ($eof(s)) begin
+  $fread(s, x);
+  if ($feof(s)) begin
     $finish;
   end
   $display(x);
 end
 ```
 
-The following example shows how you can use both ```$get()``` and ```$put()```
-tasks in conjunction with the ```$eof``` task to stream data to and from your
-program, regardless of whether it is running in software or hardware.
+The following example shows how you can use both ```$fread()``` and
+```$fwrite()``` tasks in conjunction with the ```$feof``` task to stream data
+to and from your program, regardless of whether it is running in software or
+hardware.
 
 ```verilog
 module Compute(
@@ -618,22 +636,23 @@ reg[31:0]  x;
 wire[31:0] y;
 Compute c(x,y);
 
-stream i = $fopen("path/to/input");
-stream o = $fopen("path/to/output");
+integer i = $fopen("path/to/input");
+integer o = $fopen("path/to/output");
 always @(posedge clock.val) begin
-  $get(i, x);
-  if ($eof(i)) begin
+  $fread(i, x);
+  if ($feof(i)) begin
     $finish;
   end  
-  $put(o, y);
+  $fwrite(o, "%x", y);
 end
 ```
 
-In addition to the tasks described above, the ```$seek()``` task can be used to
-reset the position from which ```$get()``` tasks are performed. Note that
-Cascade uses an eventual consistency model for ```$put()``` statements.
+In addition to the tasks described above, the ```$fseek()``` task can be used
+to reset the position from which ```$fread()``` tasks are performed. Note that
+Cascade uses an eventual consistency model for ```$fdisplay()``` statements.
 Attempting to interleave reads and writes to the same stream may result in
-unexpected behavior.
+unexpected behavior unless the user forces a sync by invoking the
+```$fflush()``` task.
 
 Standard Library
 =====
@@ -655,92 +674,6 @@ shown below.
 | Pad       |         | x  | x    | x        |
 | Reset     |         | x  |      |          |
 | GPIO      |         |    | x    | x        |
-
-#### Deprecated Features
-
-Cascade's Standard Library also impliclty declares two reusable data-structures
-for communicating back and forth between hardware and software, a memory and a
-FIFO queue. In contrast to the modules described above, these modules are not
-implicitly instantiated. The user may instead instantiate as many as they like.
-**These features are deprecated and should not be used. The preferred method
-for performing general-purpose portable file I/O is the family of stream I/O
-system tasks described above. Continued support may be removed at any time**
-
-Cascade memories are dual-port read, single-port write. The declaration
-provided by the Standard Library is shown below.
-```verilog
-module Memory#(
-  parameter ADDR_SIZE = 4,           // Address bit-width: A memory will have 2^ADDR_SIZE elements
-  parameter BYTE_SIZE = 8            // Value bit-width: The value at each address will have BYTE_SIZE bits
-)(
-  input  wire clock,                 // Write data is latched on the posedge of this signal
-  input  wire wen,                   // Assert to latch write data
-  input  wire[ADDR_SIZE-1:0] raddr1, // Address to read data from
-  output wire[BYTE_SIZE-1:0] rdata1, // The value at raddr1, available this clock cycle
-  input  wire[ADDR_SIZE-1:0] raddr2, // Ditto
-  output wire[BYTE_SIZE-1:0] rdata2, // Ditto
-  input  wire[ADDR_SIZE-1:0] waddr,  // Address to write data to
-  input  wire[BYTE_SIZE-1:0] wdata   // The value to write to waddr at the posedge of clock
-);
-```
-
-When instantiating a memory, an optional annotation may be provided as well.
-```verilog
-(*__file="path/to/file.mem"*)
-Memory#(4,8) mem(/* ... */);
-```
-This annotation tells Cascade that the initial values for the memory should be
-read from ```path/to/file.mem```, and that when Cascade finishes execution the
-state of the memory should be written back to that file. If the file does not
-exist when the module is instantiated, Cascade will initialize the memory to
-all zeros. As with include statements, Cascade will attempt to resolve the
-```__file``` annotation relative to the paths provided by the ```-I``` flag.  
-
-A memory file is expected to contain whitespace separated hexadecimal values,
-one for each address. For the memory instiated above (consisting of 2^4 8-bit
-values), an well-formed memory file might contain the following.
-```
-0 fc 10 6
-1 2 3 4 ff fe fd fc
-c d
-a
-b
-```
-
-Cascade FIFOs provide clocked read and write access to an arbitrary depth
-first-in-first-out queue. The declaration provided by the standard library is
-shown below.
-```verilog
-module Fifo#(
-  parameter DEPTH = 8,              // The maximum number of elements that the fifo can hold
-  parameter BYTE_SIZE = 8           // Each element in the fifo will have BYTE_SIZE bits
-)(
-  input  wire clock,                // Reads and writes happen on the posedge of this signal
-  input  wire rreq,                 // Assert to pop a value from the fifo 
-                                    // Pushing/popping at the same time, or reading an empty fifo is undefined
-  output wire[BYTE_SIZE-1:0] rdata, // The value that was popped on the last posedge of clock
-  input  wire wreq,                 // Assert to push a value onto the fifo
-                                    // Pushing/popping at the same time, or writing a full fifo is undefined
-  input  wire[BYTE_SIZE-1:0] wdata, // The value to push at the next posedge of clock
-  output wire empty,                // Is this fifo currently empty?
-  output wire full                  // Is this fifo currently full?
-);
-```
-When instantiating a fifo, an optional set of annotations may be provided as
-well.
-```verilog
-(*__file="path/to/file.mem", __count=8*)
-Fifo#(8,8) fifo(/* ... */);
-```
-The ```__file``` annotation is similar to the one described above. If provided,
-Cascade will attempt to initialize the FIFO with values drawn from this file.
-The file format is the same. If the file contains more values than the maximum
-depth of the FIFO, Cascade will automatically push the next value from the file
-as soon as there is space (```full``` reports false). This process will
-continue until the end-of-file is reached, and then repeat up to ```__count```
-times before no longer attempting to push values into the FIFO. Values are not
-written back to ```__file``` when Cascade finishes execution, and it is an
-error to instantiate a FIFO with an unresolvable ```__file``` annotation.
 
 Target-Specific Components
 =====
@@ -922,15 +855,8 @@ auto* c = new Compiler();
   c->set_my_backend_compiler(mbc);
 // ...
 ```
-You'll also need to add any files you've created to the top-level ```Makefile```.
-```Makefile
-# ...
-OBJ=path/to/your/source.o \
-# ...
-HDR=path/to/your/header.h \
-# ...
-```
-Type ```make```, and everything should just work... Happy debugging!
+
+Rebuild your source and... everything should just work... Happy debugging!
 
 FAQ
 ====

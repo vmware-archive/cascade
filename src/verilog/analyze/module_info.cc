@@ -48,21 +48,26 @@ void ModuleInfo::invalidate() {
   if (md_->next_update_ == 0) {
     return;
   }
+  
+  // NOTE: It's important that we don't *just* call clear here. There's a
+  // potential for a pretty large soft-leak as we inline the user's program
+  // from leaf to root and each node's module info comes to encompass
+  // everything below it.
+
   md_->next_update_ = 0;
-  md_->locals_.clear();
-  md_->externals_.clear();
-  md_->inputs_.clear();
-  md_->outputs_.clear();
-  md_->stateful_.clear();
-  md_->streams_.clear();
-  md_->reads_.clear();
-  md_->writes_.clear();
-  md_->named_params_.clear();
-  md_->ordered_params_.clear();
-  md_->named_ports_.clear();
-  md_->ordered_ports_.clear();
-  md_->connections_.clear();
-  md_->children_.clear();
+  unordered_set<const Identifier*>().swap(md_->locals_);
+  unordered_set<const Identifier*>().swap(md_->externals_);
+  unordered_set<const Identifier*>().swap(md_->inputs_);
+  unordered_set<const Identifier*>().swap(md_->outputs_);
+  unordered_set<const Identifier*>().swap(md_->stateful_);
+  unordered_set<const Identifier*>().swap(md_->reads_);
+  unordered_set<const Identifier*>().swap(md_->writes_);
+  ModuleDeclaration::ParamSet().swap(md_->named_params_);
+  Vector<const Identifier*>().swap(md_->ordered_params_);
+  ModuleDeclaration::PortSet().swap(md_->named_ports_);
+  Vector<const Identifier*>().swap(md_->ordered_ports_);
+  ModuleDeclaration::ConnMap().swap(md_->connections_);
+  ModuleDeclaration::ChildMap().swap(md_->children_);
 }
 
 bool ModuleInfo::is_declaration() {
@@ -99,12 +104,6 @@ bool ModuleInfo::is_stateful(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
   return (r == nullptr) ? false : (md_->stateful_.find(r) != md_->stateful_.end());
-}
-
-bool ModuleInfo::is_stream(const Identifier* id) {
-  refresh();
-  const auto* r = Resolve().get_resolution(id);
-  return (r == nullptr) ? false : (md_->streams_.find(r) != md_->streams_.end());
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
@@ -155,11 +154,6 @@ const unordered_set<const Identifier*>& ModuleInfo::outputs() {
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
   refresh();
   return md_->stateful_;
-}
-
-const unordered_set<const Identifier*>& ModuleInfo::streams() {
-  refresh();
-  return md_->streams_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::externals() {
@@ -527,8 +521,16 @@ void ModuleInfo::record_external_use(const Identifier* id) {
         }
       }
     }    
-    // Identifiers on the left hand side of VariableAssigns are writes
+    // Identifiers on the left hand side of VariableAssigns are writes Due to
+    // AST refactorings, we need to check the three types that used to contain
+    // VariableAssign's as well.
     else if (p->is(Node::Tag::variable_assign) && static_cast<const VariableAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::continuous_assign) && static_cast<const ContinuousAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::blocking_assign) && static_cast<const BlockingAssign*>(p)->get_lhs() == eid) {
+      record_local_write(id);
+    } else if (p->is(Node::Tag::nonblocking_assign) && static_cast<const NonblockingAssign*>(p)->get_lhs() == eid) {
       record_local_write(id);
     } 
     // Everything else is a read
@@ -591,22 +593,6 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
   // Nothing external should reference this
 }
 
-void ModuleInfo::visit(const IntegerDeclaration* id) {
-  md_->locals_.insert(id->get_id());   
-  record_external_use(id->get_id());
-  if (id->is_non_null_val() && id->get_val()->is(Node::Tag::fopen_expression)) {
-    md_->stateful_.insert(id->get_id());
-    md_->streams_.insert(id->get_id());
-  }
-  for (auto i = Resolve().use_begin(id->get_id()), ie = Resolve().use_end(id->get_id()); i != ie; ++i) {
-    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
-        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
-      return;
-    }
-  }
-  md_->stateful_.insert(id->get_id());
-}
-
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
   md_->locals_.insert(ld->get_id());   
   // Nothing external should reference this
@@ -629,12 +615,23 @@ void ModuleInfo::visit(const RegDeclaration* rd) {
   record_external_use(rd->get_id());
   if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
     md_->stateful_.insert(rd->get_id());
-    md_->streams_.insert(rd->get_id());
   }
   for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
-    if ((*i)->get_parent()->is(Node::Tag::variable_assign) &&
-        (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i)) {
-      return;
+    switch((*i)->get_parent()->get_tag()) {
+      case Node::Tag::variable_assign:
+        if (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::continuous_assign:
+        if (static_cast<const ContinuousAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::blocking_assign:
+        if (static_cast<const BlockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      case Node::Tag::nonblocking_assign:
+        if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
+        break;
+      default:
+        break;
     }
   }
   md_->stateful_.insert(rd->get_id());
@@ -704,10 +701,20 @@ void ModuleInfo::visit(const PortDeclaration* pd) {
   }
 }
 
-void ModuleInfo::visit(const NonblockingAssign* na) {
-  na->accept_assign(this);
+void ModuleInfo::visit(const BlockingAssign* ba) {
+  lhs_ = true;
+  ba->accept_lhs(this);
+  lhs_ = false;
+  ba->accept_rhs(this);
+}
 
-  auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
+void ModuleInfo::visit(const NonblockingAssign* na) {
+  lhs_ = true;
+  na->accept_lhs(this);
+  lhs_ = false;
+  na->accept_rhs(this);
+
+  auto* r = Resolve().get_resolution(na->get_lhs());
   assert(r != nullptr);
 
   if (md_->locals_.find(r) == md_->locals_.end()) {
@@ -721,11 +728,11 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
 
 void ModuleInfo::visit(const GetStatement* gs) {
   Visitor::visit(gs);
-
-  const auto* r = Resolve().get_resolution(gs->get_var());
-  assert(r != nullptr);
-
-  md_->stateful_.insert(r);
+  if (gs->is_non_null_var()) {
+    const auto* r = Resolve().get_resolution(gs->get_var());
+    assert(r != nullptr);
+    md_->stateful_.insert(r);
+  }
 }
 
 void ModuleInfo::visit(const VariableAssign* va) {

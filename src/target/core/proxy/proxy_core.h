@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
 
 #include <string>
-#include "base/bits/bits.h"
-#include "base/stream/sockstream.h"
+#include "common/bits.h"
+#include "common/sockstream.h"
 #include "target/common/rpc.h"
 #include "target/core.h"
 #include "target/input.h"
@@ -223,28 +223,27 @@ inline void ProxyCore<T>::recv() {
   Rpc rpc;
   while (rpc.deserialize(*sock_)) {
     switch(rpc.type_) {
-      case Rpc::Type::DISPLAY: {
-        std::string s = "";
-        getline(*sock_, s, '\0');
-        T::interface()->display(s);
+      case Rpc::Type::WRITE_BITS: {
+        VId id = 0;
+        Bits bits;
+        sock_->read(reinterpret_cast<char*>(&id), 4);
+        bits.deserialize(*sock_);
+        T::interface()->write(id, &bits);
         break;
       }
-      case Rpc::Type::ERROR: {
-        std::string s = "";
-        getline(*sock_, s, '\0');
-        T::interface()->error(s);
+      case Rpc::Type::WRITE_BOOL: {
+        VId id = 0;
+        bool b = false;
+        sock_->read(reinterpret_cast<char*>(&id), 4);
+        b = (sock_->get() == 1);
+        T::interface()->write(id, b);
         break;
       }
+
       case Rpc::Type::FINISH: {
         uint32_t code = 0;
         sock_->read(reinterpret_cast<char*>(&code), 4);
         T::interface()->finish(code);
-        break;
-      }
-      case Rpc::Type::INFO: {
-        std::string s = "";
-        getline(*sock_, s, '\0');
-        T::interface()->info(s);
         break;
       }
       case Rpc::Type::RESTART: {
@@ -265,39 +264,20 @@ inline void ProxyCore<T>::recv() {
         T::interface()->save(path);
         break;
       }
-      case Rpc::Type::WARNING: {
-        std::string path = "";
-        getline(*sock_, path, '\0');
-        T::interface()->warning(path);
-        break;
-      }
-      case Rpc::Type::WRITE: {
-        std::string s = "";
-        getline(*sock_, s, '\0');
-        T::interface()->write(s);
-        break;
-      }
-
-      case Rpc::Type::WRITE_BITS: {
-        VId id = 0;
-        Bits bits;
-        sock_->read(reinterpret_cast<char*>(&id), 4);
-        bits.deserialize(*sock_);
-        T::interface()->write(id, &bits);
-        break;
-      }
 
       case Rpc::Type::FOPEN: {
         std::string path = "";
+        uint8_t mode = 0;
         getline(*sock_, path, '\0');
+        sock_->read(reinterpret_cast<char*>(&mode), sizeof(mode));
 
-        SId res = T::interface()->fopen(path);
+        FId res = T::interface()->fopen(path, mode);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::IN_AVAIL: {
-        SId id = 0;
+        FId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
         int32_t res = T::interface()->in_avail(id);
@@ -306,31 +286,35 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::PUBSEEKOFF: {
-        SId id = 0;
-        int32_t n = 0;
+        FId id = 0;
+        int32_t off = 0;
+        uint8_t way = 0;
+        uint8_t which = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
-        sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
-        const auto r = (sock_->get() == 1);
+        sock_->read(reinterpret_cast<char*>(&off), sizeof(off));
+        sock_->read(reinterpret_cast<char*>(&way), sizeof(way));
+        sock_->read(reinterpret_cast<char*>(&which), sizeof(which));
 
-        uint32_t res = T::interface()->pubseekoff(id, n, r);
+        uint32_t res = T::interface()->pubseekoff(id, off, way, which);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::PUBSEEKPOS: {
-        SId id = 0;
-        int32_t n = 0;
+        FId id = 0;
+        int32_t pos = 0;
+        uint8_t which = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
-        sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
-        const auto r = (sock_->get() == 1);
+        sock_->read(reinterpret_cast<char*>(&pos), sizeof(pos));
+        sock_->read(reinterpret_cast<char*>(&which), sizeof(which));
 
-        uint32_t res = T::interface()->pubseekpos(id, n, r);
+        uint32_t res = T::interface()->pubseekpos(id, pos, which);
         sock_->write(reinterpret_cast<char*>(&res), sizeof(res));
         sock_->flush();
         break;
       }
       case Rpc::Type::PUBSYNC: {
-        SId id = 0;
+        FId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
         int32_t res = T::interface()->pubsync(id);
@@ -339,7 +323,7 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::SBUMPC: {
-        SId id = 0;
+        FId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
         int32_t res = T::interface()->sbumpc(id);
@@ -348,7 +332,7 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::SGETC: {
-        SId id = 0;
+        FId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
 
         int32_t res = T::interface()->sgetc(id);
@@ -357,7 +341,7 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::SGETN: {
-        SId id = 0;
+        FId id = 0;
         uint32_t n = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));
@@ -371,7 +355,7 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::SPUTC: {
-        SId id = 0;
+        FId id = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         auto c = sock_->get();
 
@@ -381,7 +365,7 @@ inline void ProxyCore<T>::recv() {
         break;
       }
       case Rpc::Type::SPUTN: {
-        SId id = 0;
+        FId id = 0;
         uint32_t n = 0;
         sock_->read(reinterpret_cast<char*>(&id), sizeof(id));
         sock_->read(reinterpret_cast<char*>(&n), sizeof(n));

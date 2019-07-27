@@ -32,7 +32,7 @@
 
 #include <cassert>
 #include <unordered_map>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/indices.h"
 #include "verilog/analyze/navigate.h"
@@ -126,9 +126,9 @@ Vector<GenerateBlock*>& Elaborate::elaborate(LoopGenerateConstruct* lgc) {
     )));
     block->push_back_items(new LocalparamDeclaration(
       new Attributes(),
-      false,
-      new RangeExpression(32, 0),
       itr->clone(), 
+      Declaration::Type::UNSIGNED,
+      new RangeExpression(32, 0),
       new Number(Evaluate().get_value(itr))
     ));
     for (auto i = lgc->get_block()->begin_items(), ie = lgc->get_block()->end_items(); i != ie; ++i) {

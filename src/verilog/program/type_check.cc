@@ -31,7 +31,7 @@
 #include "verilog/program/type_check.h"
 
 #include <sstream>
-#include "base/log/log.h"
+#include "common/log.h"
 #include "verilog/analyze/constant.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
@@ -334,23 +334,6 @@ void TypeCheck::visit(const Event* e) {
   }
 }
 
-void TypeCheck::visit(const EofExpression* ee) {
-  // RECURSE: arg
-  ee->accept_arg(this);
-
-  // EXIT: Can't continue checking if arg can't be resolved
-  const auto* r = Resolve().get_resolution(ee->get_arg());
-  if (r == nullptr) {
-    return;
-  }
-
-  // CHECK: Arg is a stream variable
-  ModuleInfo info(Resolve().get_parent(r));
-  if (!info.is_stream(r)) {
-    error("The argument of an $eof() expression must be a stream id", ee);
-  }
-}
-
 void TypeCheck::visit(const Identifier* id) {
   // CHECK: Are instance selects constant expressions?
   for (auto i = id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
@@ -399,6 +382,10 @@ void TypeCheck::visit(const Identifier* id) {
   if (Evaluate().get_width(r) == 1) {
     return error("Found bit- or part-select in dereference of variable which was declared scalar", id);
   }
+  // CHECK: Are we providing a bit-select for a real value?
+  if (static_cast<const Declaration*>(r->get_parent())->get_type() == Declaration::Type::REAL) {
+    return error("Found bit- or part-select in dereference of variable which was declared real", id);
+  }
 
   // CHECK: Range expression bit-selects
   if ((*cdr)->is(Node::Tag::range_expression)) {
@@ -428,47 +415,13 @@ void TypeCheck::visit(const Identifier* id) {
   else {
     // WARN: Can we say for sure that selects are out of range
     const auto rng = Evaluate().get_range(*cdr);
-    if (((rng.first >= Evaluate().get_width(r)) || (rng.second >= Evaluate().get_width(r))) && !decl_check_) {
-      warn("Found bit- or part-select which is out of range of declared width for this variable", id);
+    if (((rng.first > Evaluate().get_msb(r)) || (rng.second > Evaluate().get_msb(r))) && !decl_check_) {
+      warn("Found bit- or part-select outside the upper-bound of the declared indices for this variable", id);
+    }
+    if (((rng.first < Evaluate().get_lsb(r)) || (rng.second < Evaluate().get_lsb(r))) && !decl_check_) {
+      warn("Found bit- or part-select outside the lower-bound of the declared indices for this variable", id);
     }
   } 
-}
-
-void TypeCheck::visit(const String* s) {
-  auto e = false;
-  if (s->get_parent()->is(Node::Tag::fopen_expression)) {
-    // Nothing to do.
-  } else if (s->get_parent()->is(Node::Tag::display_statement)) {
-    auto* ds = static_cast<const DisplayStatement*>(s->get_parent());
-    if (ds->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::error_statement)) {
-    auto* es = static_cast<const ErrorStatement*>(s->get_parent());
-    if (es->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::info_statement)) {
-    auto* is = static_cast<const InfoStatement*>(s->get_parent());
-    if (is->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::warning_statement)) {
-    auto* ws = static_cast<const WarningStatement*>(s->get_parent());
-    if (ws->front_args() != s) {
-      e = true;
-    }
-  } else if (s->get_parent()->is(Node::Tag::write_statement)) {
-    auto* ws = static_cast<const WriteStatement*>(s->get_parent());
-    if (ws->front_args() != s) {
-      e = true;
-    }
-  } else {
-    e = true;
-  }
-  if (e) {
-    error("Cascade does not currently support the use of string constants in expressions", s);
-  }
 }
 
 void TypeCheck::visit(const GenerateBlock* gb) {
@@ -532,13 +485,12 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
-  ca->accept_ctrl(this);
   net_lval_ = true;
-  ca->get_assign()->accept_lhs(this);
+  ca->accept_lhs(this);
   net_lval_ = false;
-  ca->get_assign()->accept_rhs(this);
+  ca->accept_rhs(this);
 
-  const auto* l = Resolve().get_resolution(ca->get_assign()->get_lhs());
+  const auto* l = Resolve().get_resolution(ca->get_lhs());
   if (l == nullptr) {
     return;
   }
@@ -549,14 +501,26 @@ void TypeCheck::visit(const ContinuousAssign* ca) {
 
   // CHECK: Recursive assignment
   // Iterate over identifiers in the RHS
-  ReadSet rs(ca->get_assign()->get_rhs());
+  ReadSet rs(ca->get_rhs());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this might be a
+      // recursive definition.
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      if ((r == nullptr) || (r != l)) {
+        continue;
+      }
 
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r != nullptr && r == l) {
-      error("Cannot assign a wire to itself", ca);
+      // If both sides are scalar, it's definitely recursive.
+      if (l->empty_dim() && id->empty_dim()) {
+        error("Cannot assign a wire to itself", ca);
+      } 
+      // The alternative is more complicated. And there are some cases we can
+      // check statically, but for now let's just emit a blanket warning.
+      else {
+        warn("Found a potentially zero-time assignment from a variable to iteself", ca);
+      }
     }
   }
 }
@@ -569,25 +533,6 @@ void TypeCheck::visit(const GenvarDeclaration* gd) {
   if (Navigate(gd).find_child_ignore_subscripts(gd->get_id()->back_ids())) {
     error("A nested scope with this name already exists in this scope", gd);
   }
-}
-
-void TypeCheck::visit(const IntegerDeclaration* id) {
-  // RECURSE: Check for unsupported language features in initial value
-  id->accept_val(this);
-
-  // CHECK: Duplicate definition
-  if (Navigate(id).find_duplicate_name(id->get_id()->back_ids())) {
-    multiple_def(id->get_id());
-  }
-  if (Navigate(id).find_child_ignore_subscripts(id->get_id()->back_ids())) {
-    error("A nested scope with this name already exists in this scope", id);
-  }
-  // CHECK: Integer initialized to constant value
-  if (id->is_non_null_val() && !Constant().is_static_constant(id->get_val())) {
-    error("Integer initialization requires constant value", id);
-  }
-  // CHECK: Array properties
-  check_array(id->get_id()->begin_dim(), id->get_id()->end_dim());
 }
 
 void TypeCheck::visit(const LocalparamDeclaration* ld) {
@@ -612,13 +557,14 @@ void TypeCheck::visit(const LocalparamDeclaration* ld) {
   // Iterate over identifiers in the RHS
   ReadSet rs(ld->get_val());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
-    assert(r != nullptr);
-
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r == ld->get_id()) {
-      error("Cannot define a localparam to be equal to itself", ld);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this is a recursive definition
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      assert(r != nullptr);
+      if (r == ld->get_id()) {
+        error("Cannot define a localparam to be equal to itself", ld);
+      }
     }
   }
 }
@@ -634,10 +580,6 @@ void TypeCheck::visit(const NetDeclaration* nd) {
   // CHECK: Width and array properties
   check_width(nd->get_dim());
   check_array(nd->get_id()->begin_dim(), nd->get_id()->end_dim());
-  // CHECK: Delay control statements
-  if (nd->is_non_null_ctrl()) {
-    error("No support for delay control statements in net declarations", nd);
-  }
 }
 
 void TypeCheck::visit(const ParameterDeclaration* pd) {
@@ -662,13 +604,14 @@ void TypeCheck::visit(const ParameterDeclaration* pd) {
   // Iterate over identifiers in the RHS
   ReadSet rs(pd->get_val());
   for (auto i = rs.begin(), ie = rs.end(); i != ie; ++i) {
-    // Resolve the identifier
-    const auto* r = Resolve().get_resolution(*i);
-    assert(r != nullptr);
-
-    // If it resolves to the left-hand side, this is a recursive definition
-    if (r == pd->get_id()) {
-      error("Cannot define a parameter to be equal to itself", pd);
+    if ((*i)->is(Node::Tag::identifier)) {
+      // If this identifier resolves to the left-hand side, this is a recursive definition
+      const auto* id = static_cast<const Identifier*>(*i);
+      const auto* r = Resolve().get_resolution(id);
+      assert(r != nullptr);
+      if (r == pd->get_id()) {
+        error("Cannot define a parameter to be equal to itself", pd);
+      }
     }
   }
 }
@@ -732,11 +675,9 @@ void TypeCheck::visit(const BlockingAssign* ba) {
   // RECURSE: 
   Visitor::visit(ba);
   // CHECK: Target must be register or integer
-  const auto* r = Resolve().get_resolution(ba->get_assign()->get_lhs());
-  if ((r != nullptr) && 
-      !r->get_parent()->is(Node::Tag::reg_declaration) && 
-      !r->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("Found a blocking assignments to a variable with type other than reg or integer", ba);
+  const auto* r = Resolve().get_resolution(ba->get_lhs());
+  if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("Found a blocking assignments to a variable with type other than reg", ba);
   }
 }
 
@@ -744,11 +685,9 @@ void TypeCheck::visit(const NonblockingAssign* na) {
   // RECURSE:
   Visitor::visit(na);
   // CHECK: Target must be register or integer
-  const auto* r = Resolve().get_resolution(na->get_assign()->get_lhs());
-  if ((r != nullptr) && 
-      !r->get_parent()->is(Node::Tag::reg_declaration) && 
-      !r->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("Found a non-blocking assignments to a variable with type other than reg or integer", na);
+  const auto* r = Resolve().get_resolution(na->get_lhs());
+  if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("Found a non-blocking assignments to a variable with type other than reg", na);
   }
 }
 
@@ -765,10 +704,6 @@ void TypeCheck::visit(const ForStatement* fs) {
   Visitor::visit(fs);
 }
 
-void TypeCheck::visit(const ForeverStatement* fs) {
-  error("Cascade does not currently support the use of forever statements", fs);
-}
-
 void TypeCheck::visit(const RepeatStatement* rs) {
   warn("Cascade attempts to statically unroll all loop statements and may hang if it is not possible to do so", rs);
   Visitor::visit(rs);
@@ -779,61 +714,31 @@ void TypeCheck::visit(const WhileStatement* ws) {
   Visitor::visit(ws);
 }
 
-void TypeCheck::visit(const DisplayStatement* ds) {
-  ds->accept_args(this);
-  check_printf(ds->size_args(), ds->begin_args(), ds->end_args());
-}
-
-void TypeCheck::visit(const ErrorStatement* es) {
-  es->accept_args(this);
-  check_printf(es->size_args(), es->begin_args(), es->end_args());
-}
-
 void TypeCheck::visit(const GetStatement* gs) {
-  gs->accept_id(this);
+  gs->accept_fd(this);
+  // Don't descend on format string
   gs->accept_var(this);
-  
-  // Can't continue checking if pointers are unresolvable
-  const auto* id = Resolve().get_resolution(gs->get_id());
-  const auto* var = Resolve().get_resolution(gs->get_var());
-  if ((id == nullptr) || (var == nullptr)) {
+  if (gs->is_null_var()) {
     return;
   }
-  
-  // CHECK: First arg is stream id, second arg is stateful variable
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $get() statement must be a stream id", gs);
-  } else if (!var->get_parent()->is(Node::Tag::reg_declaration) && !var->get_parent()->is(Node::Tag::integer_declaration)) {
-    error("The second argument of a $get() statement must either be a variable of type reg or integer", gs);
-  } else if (info.is_stream(var)) {
-    error("The second argument of a $get() statement must not be a stream id", gs);
-  }
-}
 
-void TypeCheck::visit(const InfoStatement* is) {
-  is->accept_args(this);
-  check_printf(is->size_args(), is->begin_args(), is->end_args());
+  // Can't continue checking if pointers are unresolvable
+  const auto* r = Resolve().get_resolution(gs->get_var());
+  if (r == nullptr) {
+    return;
+  }
+  // CHECK: var is a stateful variable
+  const auto* src = Resolve().get_parent(r);
+  ModuleInfo info(src);
+  if (!r->get_parent()->is(Node::Tag::reg_declaration)) {
+    error("The target of a $get() statement must be a variable of type reg", gs);
+  }
 }
 
 void TypeCheck::visit(const PutStatement* ps) {
-  ps->accept_id(this);
-  ps->accept_var(this);
-  
-  // Can't continue checking if pointers are unresolvable
-  const auto* id = Resolve().get_resolution(ps->get_id());
-  const auto* var = Resolve().get_resolution(ps->get_var());
-  if ((id == nullptr) || (var == nullptr)) {
-    return;
-  }
-
-  // CHECK: First arg is stream id, second arg is stateful variable
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $put() statement must be a stream id", ps);
-  }
+  ps->accept_fd(this);
+  // Don't descend on format string.
+  ps->accept_expr(this);
 }
 
 void TypeCheck::visit(const RestartStatement* rs) {
@@ -849,41 +754,6 @@ void TypeCheck::visit(const RetargetStatement* rs) {
 void TypeCheck::visit(const SaveStatement* ss) {
   (void) ss;
   // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const SeekStatement* ss) {
-  Visitor::visit(ss);
-  
-  // Can't continue checking if arg is unreachable
-  const auto* id = Resolve().get_resolution(ss->get_id());
-  if (id == nullptr){
-    return;
-  }
-  
-  // CHECK: Arg is stream id
-  const auto* src = Resolve().get_parent(id);
-  ModuleInfo info(src);
-  if (!info.is_stream(id)) {
-    error("The first argument of a $seek() statement must be a stream id", ss);
-  } 
-}
-
-void TypeCheck::visit(const WarningStatement* ws) {
-  ws->accept_args(this);
-  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
-}
-
-void TypeCheck::visit(const WriteStatement* ws) {
-  ws->accept_args(this);
-  check_printf(ws->size_args(), ws->begin_args(), ws->end_args());
-}
-
-void TypeCheck::visit(const WaitStatement* ws) {
-  error("Cascade does not currently support the use of wait statements", ws);
-}
-
-void TypeCheck::visit(const DelayControl* dc) {
-  error("Cascade does not currently support the use of delay controls", dc);
 }
 
 void TypeCheck::check_width(const RangeExpression* re) {
@@ -903,9 +773,6 @@ void TypeCheck::check_width(const RangeExpression* re) {
   const auto rng = Evaluate().get_range(re);
   if (rng.first <= rng.second) {
     error("Cascade does not currently support little-endian vector declarations", re);
-  }
-  if (rng.second != 0) {
-    error("Cascade does not currently support vector declarations with lower bounds not equal to zero", re);
   }
 }
 
@@ -928,9 +795,6 @@ void TypeCheck::check_array(Identifier::const_iterator_dim begin, Identifier::co
     if (rng.first <= rng.second) {
       return error("Cascade does not currently support little-endian array declarations", (*i)->get_parent()->get_parent());
     } 
-    if (rng.second != 0) {
-      return error("Cascade does not currently support array declarations with lower bounds not equal to zero", (*i)->get_parent()->get_parent());
-    }
   }
 }
 
@@ -969,8 +833,14 @@ Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const
       } 
     }
     // WARN: Can we say for sure that this value is out of range?
-    else if ((Evaluate().get_value(*iitr).to_int() > Evaluate().get_range(*ritr).first) && !decl_check_) {
-      warn("Array subscript is out of range of declared dimension for this variable", *iitr);
+    else {
+      const auto rng = Evaluate().get_range(*ritr);
+      if ((Evaluate().get_value(*iitr).to_uint() > rng.first) && !decl_check_) {
+        warn("Array subscript is outside the upper-bound of a declared dimension for this variable", *iitr);
+      }
+      if ((Evaluate().get_value(*iitr).to_uint() < rng.second) && !decl_check_) {
+        warn("Array subscript is outside the lower-bound of a declared dimension for this variable", *iitr);
+      }
     }
   }    
   return iitr;

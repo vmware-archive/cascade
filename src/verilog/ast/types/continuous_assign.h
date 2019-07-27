@@ -31,18 +31,17 @@
 #ifndef CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 #define CASCADE_SRC_VERILOG_AST_CONTINUOUS_ASSIGN_H
 
-#include "verilog/ast/types/delay_control.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/module_item.h"
-#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    explicit ContinuousAssign(VariableAssign* assign__);
-    ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__);
+    explicit ContinuousAssign(Identifier* lhs__, Expression* rhs__);
     ~ContinuousAssign() override;
 
     // Node Interface:
@@ -50,33 +49,27 @@ class ContinuousAssign : public ModuleItem {
     ContinuousAssign* clone() const override;
 
     // Get/Set:
-    MAYBE_GET_SET(ContinuousAssign, DelayControl, ctrl)
-    PTR_GET_SET(ContinuousAssign, VariableAssign, assign)
+    PTR_GET_SET(VariableAssign, Identifier, lhs)
+    PTR_GET_SET(VariableAssign, Expression, rhs)
 
   private:
-    MAYBE_ATTR(DelayControl, ctrl);
-    PTR_ATTR(VariableAssign, assign);
+    PTR_ATTR(Identifier, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
-inline ContinuousAssign::ContinuousAssign(VariableAssign* assign__) : ModuleItem(Node::Tag::continuous_assign) {
-  MAYBE_DEFAULT_SETUP(ctrl);
-  PTR_SETUP(assign);
+inline ContinuousAssign::ContinuousAssign(Identifier* lhs__, Expression* rhs__) : ModuleItem(Node::Tag::continuous_assign) {
+  PTR_SETUP(lhs);
+  PTR_SETUP(rhs);
   parent_ = nullptr;
 }
 
-inline ContinuousAssign::ContinuousAssign(DelayControl* ctrl__, VariableAssign* assign__) : ContinuousAssign(assign__) {
-  MAYBE_SETUP(ctrl);
-}
-
 inline ContinuousAssign::~ContinuousAssign() {
-  MAYBE_TEARDOWN(ctrl);
-  PTR_TEARDOWN(assign);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
 }
 
 inline ContinuousAssign* ContinuousAssign::clone() const {
-  auto* res = new ContinuousAssign(assign_->clone());
-  MAYBE_CLONE(ctrl);
-  return res;
+  return new ContinuousAssign(lhs_->clone(), rhs_->clone());
 }
 
 } // namespace cascade 

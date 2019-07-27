@@ -31,53 +31,20 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_LOGIC_H
 
-#include <tuple>
 #include <unordered_map>
 #include <vector>
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
+#include "common/bits.h"
 #include "target/core.h"
-#include "target/core/common/interfacestream.h"
 #include "target/core/de10/quartus_server.h"
-#include "verilog/analyze/evaluate.h"
+#include "target/core/de10/var_table.h"
 #include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
-class De10Logic : public Logic, public Visitor {
+class interfacestream;
+
+class De10Logic : public Logic {
   public:
-    class VarInfo {
-      public:
-        VarInfo(const Identifier* id, size_t idx, bool materialized);
-
-        // Where is this variable located in the AST?
-        const Identifier* id() const;
-
-        // Was this variable allocated state on the FPGA? 
-        bool materialized() const;
-        // What index in the variable table does this variable start at?
-        size_t index() const;
-        // What are the dimensions of this variable?
-        std::vector<size_t> arity() const;
-        // How many elements are in this variable?
-        size_t elements() const;
-        // How many bits wide is each element in this variable?
-        size_t bit_size() const;
-        // How many words does each element span?
-        size_t element_size() const;
-        // How many 32-bit entries in the variable table does it span?
-        size_t entry_size() const;
-
-      private:
-        const Identifier* id_;
-        size_t idx_;
-        bool materialized_;
-    };
-
-    // Typedefs:
-    typedef std::unordered_map<const Identifier*, VId>::const_iterator map_iterator;
-    typedef std::unordered_map<const Identifier*, VarInfo>::const_iterator table_iterator;
-
     // Constructors:
     De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr);
     ~De10Logic() override;
@@ -87,6 +54,9 @@ class De10Logic : public Logic, public Visitor {
     De10Logic& set_state(const Identifier* id, VId vid);
     De10Logic& set_output(const Identifier* id, VId vid);
     De10Logic& index_tasks();
+
+    // Configuraton Properties:
+    const VarTable32& get_table() const;
 
     // Core Interface:
     State* get_state() override;
@@ -105,102 +75,63 @@ class De10Logic : public Logic, public Visitor {
 
     void cleanup(CoreCompiler* cc) override;
 
-    // Iterators over ast id to data plane id conversion:
-    map_iterator map_begin() const;
-    map_iterator map_end() const;
-
-    // Iterators over variable table:
-    table_iterator table_find(const Identifier* id) const;
-    table_iterator table_begin() const;
-    table_iterator table_end() const;
-
-    // Variable Table Properties:
-    size_t table_size() const;
-    size_t there_are_updates_idx() const;
-    size_t apply_update_idx() const;
-    size_t drop_update_idx() const;
-    size_t sys_task_idx() const;
-    size_t io_task_idx() const;
-    size_t resume_idx() const;
-    size_t reset_idx() const;
-    size_t done_idx() const;
-    size_t open_loop_idx() const;
-
-    // Task Index Properties:
-    size_t sys_task_size() const;
-    size_t io_task_size() const;
-
-    // Optimization properties:
+    // Optimization Properties:
     bool open_loop_enabled() const;
     const Identifier* open_loop_clock() const;
 
   private:
-    // Sourcei Management:
-    ModuleDeclaration* src_;
-    std::vector<interfacestream*> streams_;
-
     // Quartus Server State:
     QuartusServer::Id id_;
 
-    // FPGA Memory Map:
-    volatile uint8_t* addr_;
+    // Source Management:
+    ModuleDeclaration* src_;
+    std::vector<const Identifier*> inputs_;
+    std::unordered_map<VId, const Identifier*> state_;
+    std::vector<std::pair<const Identifier*, VId>> outputs_;
+    std::vector<const SystemTaskEnableStatement*> tasks_;
 
-    // Variable Table:
-    std::unordered_map<const Identifier*, VarInfo> var_table_;
-    size_t next_index_;
-
-    // Variable Indicies:
-    std::unordered_map<const Identifier*, VId> var_map_;
-    std::vector<VarInfo*> inputs_;
-    std::vector<std::pair<VId, VarInfo*>> outputs_;
-    std::vector<const SystemTaskEnableStatement*> sys_tasks_;
-    std::unordered_map<const Identifier*, std::vector<const Identifier*>> eof_checks_;
-    std::vector<std::tuple<const SystemTaskEnableStatement*, interfacestream*, std::vector<VarInfo>>> io_tasks_; 
-
-    // Execution State:
+    // Control State:
     bool there_were_tasks_;
+    VarTable32 table_;
+    std::unordered_map<FId, interfacestream*> streams_;
 
-    // Visitor Interface:
-    void visit(const EofExpression* ee) override;
-    void visit(const DisplayStatement* ds) override;
-    void visit(const ErrorStatement* es) override;
-    void visit(const FinishStatement* fs) override;
-    void visit(const GetStatement* gs) override;
-    void visit(const InfoStatement* is) override;
-    void visit(const PutStatement* ps) override;
-    void visit(const RetargetStatement* rs) override;
-    void visit(const SeekStatement* ss) override;
-    void visit(const WarningStatement* ws) override;
-    void visit(const WriteStatement* ws) override;
-
-    // Variable Table Building Helper:
-    void insert(const Identifier* id, bool materialized);
-
-    // I/O Helpers:
-    void read_scalar(const VarInfo& vi);
-    void read_array(const VarInfo& vi);
-    void write_scalar(const VarInfo& vi, const Bits& b);
-    void write_array(const VarInfo& vi, const Vector<Bits>& bs);
-    
-    // Evaluate / Update Helpers:
-    void wait_until_done();
+    // Control Helpers:
+    interfacestream* get_stream(FId fd);
+    void update_eofs();
+    void loop_until_done();
     void handle_outputs();
-    void handle_io_tasks();
-    void handle_sys_tasks();
+    void handle_tasks();
 
-    // Inserts the identifiers in an AST subtree into the variable table.
-    struct Inserter : Visitor {
-      explicit Inserter(De10Logic* de);
-      ~Inserter() override = default;
-      void visit(const Identifier* id) override;
-      De10Logic* de_;
+    // Indexes system tasks and inserts the identifiers which appear in those
+    // tasks into the variable table.
+    class Inserter : public Visitor {
+      public:
+        explicit Inserter(De10Logic* de);
+        ~Inserter() override = default;
+      private:
+        De10Logic* de_;
+        bool in_args_;
+        void visit(const Identifier* id) override;
+        void visit(const FeofExpression* fe) override;
+        void visit(const FflushStatement* fs) override;
+        void visit(const FinishStatement* fs) override;
+        void visit(const FseekStatement* fs) override;
+        void visit(const GetStatement* gs) override;
+        void visit(const PutStatement* ps) override;
+        void visit(const RestartStatement* rs) override;
+        void visit(const RetargetStatement* rs) override;
+        void visit(const SaveStatement* ss) override;
     };
-    // Synchronizes the values for the identifiers in an AST subtree.
-    struct Sync : Visitor {
-      explicit Sync(De10Logic* de);
-      ~Sync() override = default;
-      void visit(const Identifier* id) override;
-      De10Logic* de_;
+
+    // Synchronizes the locations in the variable table which correspond to the
+    // identifiers which appear in an AST subtree. 
+    class Sync : public Visitor {
+      public:
+        explicit Sync(De10Logic* de);
+        ~Sync() override = default;
+      private:
+        De10Logic* de_;
+        void visit(const Identifier* id) override;
     };
 };
 

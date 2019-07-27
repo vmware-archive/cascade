@@ -33,7 +33,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/analyze/indices.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -83,9 +83,6 @@ class ModuleInfo : public Visitor {
     // statement.
     // TODO(eschkufz) this semantics isn't quite correct. 
     bool is_stateful(const Identifier* id);
-    // Returns true if this is a local variable which is initialized by the
-    // $fopen() system task.
-    bool is_stream(const Identifier* id);
     // Returns true if variable resolves to a declaration outside of this
     // module.  Note that !is_external(x) =/= is_local(x).
     bool is_external(const Identifier* id);
@@ -111,8 +108,6 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*>& outputs(); 
     // Returns the set of variables for which is_stateful(x) returns true.
     const std::unordered_set<const Identifier*>& stateful(); 
-    // Returns the set of variables for which is_stream(x) returns true.
-    const std::unordered_set<const Identifier*>& streams(); 
     // Returns the set of variables for which is_external(x) returns true.
     const std::unordered_set<const Identifier*>& externals(); 
     // Returns the set of variables for which is_read(x) returns true.
@@ -173,13 +168,13 @@ class ModuleInfo : public Visitor {
     void visit(const IfGenerateConstruct* igc) override;
     void visit(const LoopGenerateConstruct* lgc) override;
     void visit(const GenvarDeclaration* gd) override;
-    void visit(const IntegerDeclaration* id) override;
     void visit(const LocalparamDeclaration* ld) override;
     void visit(const NetDeclaration* nd) override;
     void visit(const ParameterDeclaration* pd) override;
     void visit(const RegDeclaration* rd) override;
     void visit(const ModuleInstantiation* mi) override;
     void visit(const PortDeclaration* pd) override;
+    void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
     void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;

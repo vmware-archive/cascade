@@ -48,7 +48,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
   for (auto i = md->begin_items(), ie = md->end_items(); i != ie; ++i) {
     if ((*i)->is(Node::Tag::continuous_assign)) {
       auto* ca = static_cast<ContinuousAssign*>(*i);
-      const auto* lhs = ca->get_assign()->get_lhs();
+      const auto* lhs = ca->get_lhs();
       const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
@@ -70,7 +70,7 @@ void ConstantProp::run(ModuleDeclaration* md) {
   for (auto i = md->begin_items(); i != md->end_items(); ) {
     if ((*i)->is(Node::Tag::continuous_assign)) {
       auto* ca = static_cast<ContinuousAssign*>(*i);
-      const auto* lhs = ca->get_assign()->get_lhs();
+      const auto* lhs = ca->get_lhs();
       const auto* r = Resolve().get_resolution(lhs);
       assert(r != nullptr);
 
@@ -95,12 +95,9 @@ void ConstantProp::run(ModuleDeclaration* md) {
 
 bool ConstantProp::is_assign_target(const Identifier* i) const {
   const auto* p = i->get_parent();
-  if (p->is(Node::Tag::variable_assign)) {
-    auto* va = static_cast<const VariableAssign*>(p);
-    const auto* pp = p->get_parent();
-    if (pp->is(Node::Tag::continuous_assign)) {
-      return i == va->get_lhs();
-    }
+  if (p->is(Node::Tag::continuous_assign)) {
+    const auto* ca = static_cast<const ContinuousAssign*>(p);
+    return i == ca->get_lhs();
   }
   return false;
 }
@@ -141,12 +138,12 @@ void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
   // in the runtime constant set
   auto itr = cp_->net_assigns_.find(r);
   if (itr != cp_->net_assigns_.end()) {
-    const auto sc = Constant().is_static_constant(itr->second->get_assign()->get_rhs());
-    const auto rc = sc || RuntimeConstant(cp_).check(itr->second->get_assign()->get_rhs());
+    const auto sc = Constant().is_static_constant(itr->second->get_rhs());
+    const auto rc = sc || RuntimeConstant(cp_).check(itr->second->get_rhs());
     itr = cp_->net_assigns_.find(r);
     if (sc || rc) {
       cp_->runtime_constants_.insert(r);
-      Evaluate().assign_value(r, Evaluate().get_value(itr->second->get_assign()->get_rhs()));
+      Evaluate().assign_value(r, Evaluate().get_value(itr->second->get_rhs()));
     }
     cp_->net_assigns_.erase(itr);
     if (sc || rc) {

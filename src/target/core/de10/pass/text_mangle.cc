@@ -43,16 +43,7 @@ namespace cascade {
 TextMangle::TextMangle(const ModuleDeclaration* md, const De10Logic* de) : Builder() {
   md_ = md;
   de_ = de;
-}
-
-Statement* TextMangle::get_io(size_t i) {
-  assert(i < ios_.size());
-  return ios_[i];
-}
-
-Statement* TextMangle::get_task(size_t i) {
-  assert(i < tasks_.size());
-  return tasks_[i];
+  task_index_ = 1;
 }
 
 Attributes* TextMangle::build(const Attributes* as) {
@@ -73,110 +64,22 @@ ModuleItem* TextMangle::build(const PortDeclaration* pd) {
   }
 }
 
-Expression* TextMangle::build(const EofExpression* ee) {
-  // This is a bit confusing: the de10 compiler has created an entry in the
-  // variable table for the argument to this expression (like we do with
-  // arguments to display statements). Prior to transfering control to the fpga
-  // we'll place the result of this eof check into this location in hardware.
-  const auto itr = de_->table_find(ee->get_arg());
-  assert(itr != de_->table_end());
-  return new Identifier(new Id("__var"), new Number(Bits(32, itr->second.index())));
+Expression* TextMangle::build(const FeofExpression* fe) {
+  // Feof expressions are replaced by references to a location in the variable
+  // table. The software-side of the de10 logic manages the value of this variable
+  // based on invocations of other io tasks.
+
+  const auto itr = de_->get_table().expr_find(fe);
+  assert(itr != de_->get_table().expr_end());
+  return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
 }
 
 Statement* TextMangle::build(const NonblockingAssign* na) {
-  Mangle m(de_, false, ios_.size(), tasks_.size());
-  na->accept(&m);
-  return m.res_;
-}
-
-Statement* TextMangle::build(const DisplayStatement* ds) {
-  return save_task(ds);
-}
-
-Statement* TextMangle::build(const ErrorStatement* es) {
-  return save_task(es);
-}
-
-Statement* TextMangle::build(const FinishStatement* fs) {
-  return save_task(fs);
-}
-
-Statement* TextMangle::build(const GetStatement* gs) {
-  return save_io(gs);
-}
-
-Statement* TextMangle::build(const InfoStatement* is) {
-  return save_task(is);
-}
-
-Statement* TextMangle::build(const PutStatement* ps) {
-  return save_io(ps);
-}
-
-Statement* TextMangle::build(const RestartStatement* rs) {
-  return save_task(rs);
-}
-
-Statement* TextMangle::build(const RetargetStatement* rs) {
-  return save_task(rs);
-}
-
-Statement* TextMangle::build(const SaveStatement* ss) {
-  return save_task(ss);
-}
-
-Statement* TextMangle::build(const SeekStatement* ss) {
-  return save_io(ss);
-}
-
-Statement* TextMangle::build(const WarningStatement* ws) {
-  return save_task(ws);
-}
-
-Statement* TextMangle::build(const WriteStatement* ws) {
-  return save_task(ws);
-}
-
-Statement* TextMangle::save_io(const Statement* s) {
-  Mangle m(de_, true, ios_.size(), tasks_.size());
-  s->accept(&m);
-
-  auto* res = new NonblockingAssign(new VariableAssign(
-    new Identifier("__1"), 
-    new Number(Bits(32, ios_.size()))
-  ));
-  ios_.push_back(m.res_);
-
-  return res;
-}
-
-Statement* TextMangle::save_task(const Statement* s) {
-  Mangle m(de_, true, ios_.size(), tasks_.size());
-  s->accept(&m);
-
-  auto* res = new NonblockingAssign(new VariableAssign(
-    new Identifier("__2"), 
-    new Number(Bits(32, tasks_.size()))
-  ));
-  tasks_.push_back(m.res_);
-
-  return res;
-}
-
-TextMangle::Mangle::Mangle(const De10Logic* de, bool within_task, size_t io_idx, size_t task_idx) {
-  de_ = de;
-  within_task_ = within_task;
-  io_idx_ = io_idx;
-  task_idx_ = task_idx;
-  res_ = nullptr;
-}
-
-void TextMangle::Mangle::visit(const NonblockingAssign* na) {
-  res_ = new SeqBlock();
+  auto* res = new SeqBlock();
 
   // Look up the target of this assignment and the indices it spans in the
   // variable table
-  const auto* lhs = na->get_assign()->get_lhs();
+  const auto* lhs = na->get_lhs();
   const auto* r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
   
@@ -184,202 +87,98 @@ void TextMangle::Mangle::visit(const NonblockingAssign* na) {
   auto* next = lhs->clone();
   next->purge_ids();
   next->push_back_ids(new Id(lhs->front_ids()->get_readable_sid() + "_next"));
-  res_->push_back_stmts(new NonblockingAssign(
+  res->push_back_stmts(new NonblockingAssign(
     na->clone_ctrl(),
-    new VariableAssign(
-      next,
-      na->get_assign()->get_rhs()->clone()
-    )
+    next,
+    na->get_rhs()->clone()
   ));
 
   // Insert a new assignment to the next mask
-  res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
+  res->push_back_stmts(new NonblockingAssign(
+    new Identifier(
+      new Id("__update_mask"),
+      get_table_range(r, lhs)
+    ),
+    new UnaryExpression(
+      UnaryExpression::Op::TILDE,
       new Identifier(
-        new Id("__next_update_mask"),
+        new Id("__prev_update_mask"),
         get_table_range(r, lhs)
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_update_mask"),
-          get_table_range(r, lhs)
-        )
       )
     )
   ));
+
+  return res;
 }
 
-void TextMangle::Mangle::visit(const Identifier* id) {
-  if (!within_task_) {
-    return;
-  }
-
-  const auto titr = de_->table_find(id);
-  assert(titr != de_->table_end());
-
-  // This is a bit nasty. The amount of space we set aside for this argument in
-  // the variable table may exceed its actual bit-width. This is because the
-  // width of the argument may have been implicitly extended if it's part of an
-  // expression. 
-  const auto* r = Resolve().get_resolution(id);
-  assert(r != nullptr);
-  const auto w = Evaluate().get_width(r);
-
-  for (size_t i = 0; i < titr->second.entry_size(); ++i) {
-    const auto upper = min(32*(i+1),w)-1;
-    const auto lower = 32*i;
-
-    // Create a sign extension mask: all zeros for unsigned values, 32 copies
-    // of id's highest order bit for signed values.
-    Expression* sext = nullptr;
-    if (Evaluate().get_signed(id)) {
-      sext = new MultipleConcatenation(
-        new Number("32"),
-        new Concatenation((w == 1) ?
-          new Identifier(id->front_ids()->clone()) :
-          new Identifier(id->front_ids()->clone(), new Number(Bits(32, w-1)))
-        )
-      );
-    } else {
-      sext = new Number(Bits(32, 0), Number::Format::HEX);
-    }
-
-    // Concatenate the rhs with the sign extension bits
-    auto* lsbs = new Identifier(id->front_ids()->clone());
-    id->clone_dim(lsbs->back_inserter_dim());
-    if (lsbs->size_dim() > r->size_dim()) {
-      lsbs->purge_to_dim(r->size_dim());
-    }
-    if (upper == lower) {
-      lsbs->push_back_dim(new Number(Bits(32, upper)));
-    } else if (upper > lower) {
-      lsbs->push_back_dim(new RangeExpression(upper+1, lower));
-    } 
-    auto* rhs = new Concatenation(sext);
-    rhs->push_back_exprs(lsbs);
-
-    // Attach the concatenation to an assignment, we'll always have enough bits now
-    res_->push_back_stmts(new NonblockingAssign(
-      new VariableAssign(
-        new Identifier(new Id("__var"), new Number(Bits(32, titr->second.index()+i))),
-        rhs
-      )
-    ));
-  }
+Statement* TextMangle::build(const FflushStatement* fs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const DisplayStatement* ds) {
-  begin_mangle_task();
-  ds->accept_args(this);
+Statement* TextMangle::build(const FinishStatement* fs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const ErrorStatement* es) {
-  begin_mangle_task();
-  es->accept_args(this);
+Statement* TextMangle::build(const FseekStatement* fs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const FinishStatement* fs) {
-  begin_mangle_task();
-  fs->accept_arg(this);
+Statement* TextMangle::build(const GetStatement* gs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const GetStatement* gs) {
-  (void) gs;
-  begin_mangle_io();
+Statement* TextMangle::build(const PutStatement* ps) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const InfoStatement* is) {
-  begin_mangle_task();
-  is->accept_args(this);
+Statement* TextMangle::build(const RestartStatement* rs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const PutStatement* ps) {
-  (void) ps;
-  begin_mangle_io();
+Statement* TextMangle::build(const RetargetStatement* rs) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const RestartStatement* rs) {
-  (void) rs;
-  begin_mangle_task();
+Statement* TextMangle::build(const SaveStatement* ss) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
-void TextMangle::Mangle::visit(const RetargetStatement* rs) {
-  (void) rs;
-  begin_mangle_task();
-}
-
-void TextMangle::Mangle::visit(const SaveStatement* ss) {
-  (void) ss;
-  begin_mangle_task();
-}
-
-void TextMangle::Mangle::visit(const SeekStatement* ss) {
-  (void) ss;
-  begin_mangle_io();
-}
-
-void TextMangle::Mangle::visit(const WarningStatement* ws) {
-  begin_mangle_task();
-  ws->accept_args(this);
-}
-
-void TextMangle::Mangle::visit(const WriteStatement* ws) {
-  begin_mangle_task();
-  ws->accept_args(this);
-}
-
-void TextMangle::Mangle::begin_mangle_io() {
-  res_ = new SeqBlock();
-  res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
-      new Identifier(
-        new Id("__next_io_mask"),
-        new Number(Bits(32, io_idx_))
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_io_mask"),
-          new Number(Bits(32, io_idx_))
-        )
-      )
-    )    
-  ));
-}
-
-void TextMangle::Mangle::begin_mangle_task() {
-  res_ = new SeqBlock();
-  res_->push_back_stmts(new NonblockingAssign(
-    new VariableAssign(
-      new Identifier(
-        new Id("__next_task_mask"),
-        new Number(Bits(32, task_idx_))
-      ),
-      new UnaryExpression(
-        UnaryExpression::Op::TILDE,
-        new Identifier(
-          new Id("__next_task_mask"),
-          new Number(Bits(32, task_idx_))
-        )
-      )
-    )    
-  ));
-}
-
-Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Identifier* i) {
+Expression* TextMangle::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
-  const auto titr = de_->table_find(r);
-  assert(titr != de_->table_end());
-  assert(titr->second.materialized());
+  const auto titr = de_->get_table().var_find(r);
+  assert(titr != de_->get_table().var_end());
 
   // Start with an expression for where this variable begins in the variable table
-  Expression* idx = new Number(Bits(32, titr->second.index()));
+  Expression* idx = new Number(Bits(32, titr->second.begin));
 
   // Now iterate over the arity of r and compute a symbolic expression 
-  auto mul = titr->second.elements();
+  auto mul = titr->second.elements;
   auto iitr = i->begin_dim();
-  for (auto a : titr->second.arity()) {
+  for (auto a : Evaluate().get_arity(titr->first)) {
     mul /= a;
     idx = new BinaryExpression(
       idx,
@@ -387,11 +186,11 @@ Expression* TextMangle::Mangle::get_table_range(const Identifier* r, const Ident
       new BinaryExpression(
         (*iitr++)->clone(),
         BinaryExpression::Op::TIMES,
-        new Number(Bits(32, mul*titr->second.element_size()))
+        new Number(Bits(32, mul*titr->second.words_per_element))
       )
     );
   }
-  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.element_size())));
+  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.words_per_element)));
 }
 
 } // namespace cascade

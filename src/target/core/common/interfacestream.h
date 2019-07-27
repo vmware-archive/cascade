@@ -34,7 +34,7 @@
 #include <cassert>
 #include <iostream>
 #include <streambuf>
-#include "base/stream/cachestream.h"
+#include "common/cachestream.h"
 #include "runtime/runtime.h"
 #include "target/interface.h"
 #include "target/interface/remote/remote_interface.h"
@@ -51,13 +51,13 @@ class interfacebuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
 
     // Constructors:
-    explicit interfacebuf(Interface* interface, SId id);
+    explicit interfacebuf(Interface* interface, FId id);
     ~interfacebuf() override = default; 
 
   private:
     // Positioning:
-    pos_type seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
     std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
+    pos_type seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
     int sync() override;
 
     // Get Area:
@@ -72,12 +72,12 @@ class interfacebuf : public std::streambuf {
 
     // Attributes:
     Interface* interface_;
-    SId id_;
+    FId id_;
 };
 
 class interfacestream : public std::iostream {
   public:
-    explicit interfacestream(Interface* interface, SId id);
+    explicit interfacestream(Interface* interface, FId id);
     ~interfacestream() override = default;
 
   private:
@@ -87,22 +87,20 @@ class interfacestream : public std::iostream {
     std::streambuf* get_buf(Interface* interface);
 };
 
-inline interfacebuf::interfacebuf(Interface* interface, SId id) {
+inline interfacebuf::interfacebuf(Interface* interface, FId id) {
   interface_ = interface;
   id_ = id;
 }
 
-inline std::streambuf::pos_type interfacebuf::seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which) {
-  const auto res = interface_->pubseekpos(id_, pos, (which == std::ios_base::in));
-  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(res));
+inline std::streampos interfacebuf::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) {
+  const uint8_t d = (way == std::ios_base::cur) ? 0 : (way == std::ios_base::beg) ? 1 : 2;
+  const uint8_t o = ((which & std::ios_base::in) ? 1 : 0) | ((which & std::ios_base::out) ? 2 : 0);
+  return interface_->pubseekoff(id_, off, d, o);
 }
 
-inline std::streampos interfacebuf::seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which) {
-  // TODO(eschkufz) Limited support for usage until it comes up that we need it
-  assert(way == std::ios_base::cur);
-  (void) way;
-  const auto res = interface_->pubseekoff(id_, off, (which == std::ios_base::in));
-  return static_cast<std::streambuf::pos_type>(static_cast<std::streambuf::off_type>(res));
+inline std::streambuf::pos_type interfacebuf::seekpos(std::streambuf::pos_type pos, std::ios_base::openmode which) {
+  const uint8_t o = ((which & std::ios_base::in) ? 1 : 0) | ((which & std::ios_base::out) ? 2 : 0);
+  return interface_->pubseekpos(id_, pos, o);
 }
 
 inline int interfacebuf::sync() {
@@ -133,7 +131,7 @@ inline std::streambuf::int_type interfacebuf::overflow(int_type c) {
   return interface_->sputc(id_, c);
 }
 
-inline interfacestream::interfacestream(Interface* interface, SId id) : std::iostream(get_buf(interface)), buf_(interface, id), cache_(&buf_, 1024) { }
+inline interfacestream::interfacestream(Interface* interface, FId id) : std::iostream(get_buf(interface)), buf_(interface, id), cache_(&buf_, 1024) { }
 
 inline std::streambuf* interfacestream::get_buf(Interface* interface) {
   return (dynamic_cast<RemoteInterface*>(interface) != nullptr) ? static_cast<std::streambuf*>(&cache_) : static_cast<std::streambuf*>(&buf_);

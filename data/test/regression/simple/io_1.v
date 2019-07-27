@@ -1,14 +1,14 @@
-stream s = $fopen("data/test/regression/simple/io_1.dat");
+integer s = $fopen("data/test/regression/simple/io_1.dat", "r");
 reg[31:0] r;
 integer count = 1;
 always @(posedge clock.val) begin
-  $get(s, r);
-  if ($eof(s)) begin 
+  $fread(s, r);
+  if ($feof(s)) begin 
     if (count == 2) begin
       $finish; 
     end else begin
       count <= count + 1;
-      $seek(s, 0);
+      $rewind(s);
     end
   end else begin 
     $write(r); 

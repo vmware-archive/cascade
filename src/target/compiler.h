@@ -33,7 +33,7 @@
 
 #include <mutex>
 #include <string>
-#include "base/thread/thread_pool.h"
+#include "common/thread_pool.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
@@ -113,9 +113,10 @@ class Compiler {
     std::mutex lock_;
     std::string what_;
 
-    // Helper Class: Checks whether a module is a stub, that is, whether it
-    // contains system tasks or initial constructs, or it has non-empty input
-    // or output sets.
+    // Helper Class: Checks whether a module is a stub: a module with no inputs
+    // or outputs, and no side-effects.
+    // 
+    // TODO: This class has bit-rotted
     class StubCheck : public Visitor {
       public:
         ~StubCheck() override = default;
@@ -123,9 +124,7 @@ class Compiler {
       private:
         bool stub_;
         void visit(const InitialConstruct* ic) override;
-        void visit(const DisplayStatement* ds) override;
         void visit(const FinishStatement* fs) override;
-        void visit(const WriteStatement* ws) override;
     };    
 };
 

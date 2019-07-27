@@ -32,17 +32,18 @@
 #define CASCADE_SRC_VERILOG_AST_BLOCKING_ASSIGN_H
 
 #include "verilog/ast/types/assign_statement.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/timing_control.h"
-#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 
 class BlockingAssign : public AssignStatement {
   public:
     // Constructors:
-    explicit BlockingAssign(VariableAssign* assign__);
-    BlockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
+    explicit BlockingAssign(Identifier* lhs__, Expression* rhs__);
+    BlockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__);
     ~BlockingAssign() override;
 
     // Node Interface:
@@ -51,30 +52,34 @@ class BlockingAssign : public AssignStatement {
 
     // Get/Set
     MAYBE_GET_SET(BlockingAssign, TimingControl, ctrl)
-    PTR_GET_SET(BlockingAssign, VariableAssign, assign)
+    PTR_GET_SET(BlockingAssign, Identifier, lhs)
+    PTR_GET_SET(BlockingAssign, Expression, rhs)
 
   private:
     MAYBE_ATTR(TimingControl, ctrl);
-    PTR_ATTR(VariableAssign, assign);
+    PTR_ATTR(Identifier, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
-inline BlockingAssign::BlockingAssign(VariableAssign* assign__) : AssignStatement(Node::Tag::blocking_assign) {
+inline BlockingAssign::BlockingAssign(Identifier* lhs__, Expression* rhs__) : AssignStatement(Node::Tag::blocking_assign) {
   MAYBE_DEFAULT_SETUP(ctrl);
-  PTR_SETUP(assign); 
+  PTR_SETUP(lhs); 
+  PTR_SETUP(rhs); 
   parent_ = nullptr;
 }
 
-inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : BlockingAssign(assign__) {
+inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__) : BlockingAssign(lhs__, rhs__) {
   MAYBE_SETUP(ctrl);
 }
 
 inline BlockingAssign::~BlockingAssign() {
   MAYBE_TEARDOWN(ctrl);
-  PTR_TEARDOWN(assign);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
 }
 
 inline BlockingAssign* BlockingAssign::clone() const {
-  auto* res = new BlockingAssign(assign_->clone());
+  auto* res = new BlockingAssign(lhs_->clone(), rhs_->clone());
   MAYBE_CLONE(ctrl);
   return res;
 }

@@ -157,7 +157,7 @@ void Inline::inline_source(ModuleInstantiation* mi) {
     auto* rhs = ModuleInfo(src).is_input(c.first) ? 
       Qualify().qualify_exp(c.second) : 
       Qualify().qualify_exp(c.first);
-    conns.push_back(new ContinuousAssign(new VariableAssign(lhs, rhs)));
+    conns.push_back(new ContinuousAssign(lhs, rhs));
   }
   // Move the contents of the instantiation into new inlined code. Downgrade
   // ports to regular declarations and parameters to localparams.
@@ -186,9 +186,9 @@ void Inline::inline_source(ModuleInstantiation* mi) {
       auto* pad = static_cast<ParameterDeclaration*>(item);
       auto* ld = new LocalparamDeclaration(
         new Attributes(),
-        pad->get_signed(),
-        pad->clone_dim(),
         pad->get_id()->clone(),
+        pad->get_type(),
+        pad->clone_dim(),
         pad->get_val()->clone()
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
@@ -249,7 +249,7 @@ void Inline::outline_source(ModuleInstantiation* mi) {
 
   // Move this inlined code back into the instantiation. Replace port and
   // parameter delcarations, and delete the connections.
-  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_int();
+  const auto length = Evaluate().get_value(mi->inline_->get_attrs()->get<Number>("__inline")).to_uint();
   for (size_t i = 0; i < length; ++i) {
     auto* item = mi->inline_->front_clauses()->get_then()->remove_front_items();
     if (item->is(Node::Tag::localparam_declaration)) {
@@ -257,9 +257,9 @@ void Inline::outline_source(ModuleInstantiation* mi) {
       if (ld->get_attrs()->get<String>("__inline") != nullptr) {
         auto* pd = new ParameterDeclaration(
           new Attributes(),
-          ld->get_signed(),
-          ld->clone_dim(),
           ld->get_id()->clone(),
+          ld->get_type(),
+          ld->clone_dim(),
           ld->get_val()->clone()
         );
         pd->swap_id(ld);

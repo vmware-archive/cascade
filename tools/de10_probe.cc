@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
   ss2 >> val;
 
   if (w >= 0) {
+    DE10_WRITE(MANGLE(addr, w), val);      
     cout << "VID[" << w << "] = " << val << endl;
     return done(0, fd, vbase);
   }

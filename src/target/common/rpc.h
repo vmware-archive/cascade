@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_COMMON_RPC_H
 
 #include <iostream>
-#include "base/serial/serializable.h"
+#include "common/serializable.h"
 
 namespace cascade {
 
@@ -67,17 +67,13 @@ struct Rpc : Serializable {
     OPEN_LOOP,
 
     // Interface API:
-    DISPLAY,
-    ERROR,
+    WRITE_BITS,
+    WRITE_BOOL,
+
     FINISH,
-    INFO,
     RESTART,
     RETARGET,
     SAVE,
-    WARNING,
-    WRITE,
-
-    WRITE_BITS,
 
     FOPEN,
     IN_AVAIL,

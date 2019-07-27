@@ -38,7 +38,12 @@ using namespace cascade;
 using namespace cascade::cl;
 using namespace std;
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  Simple::read(argc, argv);
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  return 0;
+}
 
 static void BM_Array(benchmark::State& state) {
   for(auto _ : state) {
@@ -49,7 +54,7 @@ BENCHMARK(BM_Array)->Unit(benchmark::kMillisecond);
 
 static void BM_Bitcoin(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/bitcoin/run_20.v", "1ce5c0 1ce5c5\n");
+    run_benchmark("data/test/benchmark/bitcoin/run_20.v", "001ce5c0 001ce5c5\n");
   }
 }
 BENCHMARK(BM_Bitcoin)->Unit(benchmark::kMillisecond);
@@ -70,7 +75,7 @@ BENCHMARK(BM_Regex)->Unit(benchmark::kMillisecond);
 
 static void BM_Nw(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/nw/run_8.v", "-24576");
+    run_benchmark("data/test/benchmark/nw/run_8.v", "-32768");
   }
 }
 BENCHMARK(BM_Nw)->Unit(benchmark::kMillisecond);

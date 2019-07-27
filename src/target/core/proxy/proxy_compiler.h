@@ -33,7 +33,7 @@
 
 #include <string>
 #include <unordered_map>
-#include "base/stream/sockstream.h"
+#include "common/sockstream.h"
 #include "target/common/rpc.h"
 #include "target/core_compiler.h"
 #include "target/core/proxy/proxy_core.h"
@@ -55,10 +55,8 @@ class ProxyCompiler : public CoreCompiler {
     // Core Compiler Interface:
     Clock* compile_clock(Interface* interface, ModuleDeclaration* md) override;
     Custom* compile_custom(Interface* interface, ModuleDeclaration* md) override;
-    Fifo* compile_fifo(Interface* interface, ModuleDeclaration* md) override;
     Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md) override;
     Led* compile_led(Interface* interface, ModuleDeclaration* md) override;
-    Memory* compile_memory(Interface* interface, ModuleDeclaration* md) override;
     Pad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
     Reset* compile_reset(Interface* interface, ModuleDeclaration* md) override;
     Logic* compile_logic(Interface* interface, ModuleDeclaration* md) override;

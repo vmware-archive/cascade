@@ -52,6 +52,11 @@ ReadSet::const_iterator ReadSet::end() const {
   return reads_.end();
 }
 
+void ReadSet::visit(const FeofExpression* fe) {
+  Visitor::visit(fe);
+  reads_.insert(fe);
+}
+
 void ReadSet::visit(const Identifier* id) {
   if (lhs_) {
     return;
@@ -61,6 +66,20 @@ void ReadSet::visit(const Identifier* id) {
   id->accept_dim(this);
 
   reads_.insert(id);
+}
+
+void ReadSet::visit(const BlockingAssign* ba) {
+  lhs_ = true;
+  ba->accept_lhs(this);
+  lhs_ = false;
+  ba->accept_rhs(this);
+}
+
+void ReadSet::visit(const NonblockingAssign* na) {
+  lhs_ = true;
+  na->accept_lhs(this);
+  lhs_ = false;
+  na->accept_rhs(this);
 }
 
 void ReadSet::visit(const VariableAssign* va) {

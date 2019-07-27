@@ -32,15 +32,16 @@
 
 #include <fstream>
 #include <sstream>
-#include "base/stream/sockstream.h"
-#include "base/system/system.h"
+#include "common/sockserver.h"
+#include "common/sockstream.h"
+#include "common/system.h"
 #include "target/core/de10/program_boxer.h"
 
 using namespace std;
 
 namespace cascade {
 
-QuartusServer::QuartusServer() : Asynchronous() { 
+QuartusServer::QuartusServer() : Thread() { 
   set_cache_path("/tmp/quartus_cache/");
   set_quartus_path("");
   set_port(9900);

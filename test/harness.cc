@@ -31,9 +31,9 @@
 #include "harness.h"
 
 #include <sstream>
-#include "base/system/system.h"
 #include "cascade/cascade.h"
 #include "cl/cl.h"
+#include "common/system.h"
 #include "gtest/gtest.h"
 #include "verilog/parse/parser.h"
 
@@ -110,6 +110,7 @@ void run_benchmark(const string& path, const string& expected) {
   c.stop_now();
   ASSERT_FALSE(c.bad());
 
+  c.run();
   c.wait_for_stop();
   EXPECT_EQ(sb->str(), expected);
 }

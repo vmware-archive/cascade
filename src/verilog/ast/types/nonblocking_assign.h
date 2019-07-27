@@ -32,17 +32,18 @@
 #define CASCADE_SRC_VERILOG_AST_NONBLOCKING_ASSIGN_H
 
 #include "verilog/ast/types/assign_statement.h"
+#include "verilog/ast/types/expression.h"
+#include "verilog/ast/types/identifier.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/timing_control.h"
-#include "verilog/ast/types/variable_assign.h"
 
 namespace cascade {
 
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
-    explicit NonblockingAssign(VariableAssign* assign__);
-    NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__);
+    explicit NonblockingAssign(Identifier* lhs__, Expression* rhs__);
+    NonblockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__);
     ~NonblockingAssign() override;
 
     // Node Interface:
@@ -51,30 +52,34 @@ class NonblockingAssign : public AssignStatement {
 
     // Get/Set:
     MAYBE_GET_SET(NonblockingAssign, TimingControl, ctrl)
-    PTR_GET_SET(NonblockingAssign, VariableAssign, assign)
+    PTR_GET_SET(NonblockingAssign, Identifier, lhs)
+    PTR_GET_SET(NonblockingAssign, Expression, rhs)
 
   private:
     MAYBE_ATTR(TimingControl, ctrl);
-    PTR_ATTR(VariableAssign, assign);
+    PTR_ATTR(Identifier, lhs);
+    PTR_ATTR(Expression, rhs);
 };
 
-inline NonblockingAssign::NonblockingAssign(VariableAssign* assign__) : AssignStatement(Node::Tag::nonblocking_assign) {
+inline NonblockingAssign::NonblockingAssign(Identifier* lhs__, Expression* rhs__) : AssignStatement(Node::Tag::nonblocking_assign) {
   MAYBE_DEFAULT_SETUP(ctrl);
-  PTR_SETUP(assign); 
+  PTR_SETUP(lhs); 
+  PTR_SETUP(rhs); 
   parent_ = nullptr;
 }
 
-inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, VariableAssign* assign__) : NonblockingAssign(assign__) {
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__) : NonblockingAssign(lhs__, rhs__) {
   MAYBE_SETUP(ctrl);
 }
 
 inline NonblockingAssign::~NonblockingAssign() {
   MAYBE_TEARDOWN(ctrl);
-  PTR_TEARDOWN(assign);
+  PTR_TEARDOWN(lhs);
+  PTR_TEARDOWN(rhs);
 }
 
 inline NonblockingAssign* NonblockingAssign::clone() const {
-  auto* res = new NonblockingAssign(assign_->clone());
+  auto* res = new NonblockingAssign(lhs_->clone(), rhs_->clone());
   MAYBE_CLONE(ctrl);
   return res;
 }

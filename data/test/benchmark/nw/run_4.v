@@ -30,13 +30,13 @@ reg[DATA_WIDTH-1:0] buffer = 0;
 reg signed[SWIDTH-1:0] checksum = 0;
 
 // While there are still inputs coming out of the fifo, sum the results
-stream s = $fopen("data/test/benchmark/nw/constants_4.hex");
+integer s = $fopen("data/test/benchmark/nw/constants_4.hex", "r");
 always @(posedge clock.val) begin
-  $get(s, buffer);
+  $fread(s, buffer);
   rdata <= buffer;
 
   once <= 1;
-  if ($eof(s)) begin
+  if ($feof(s)) begin
     done <= 1;
   end
 

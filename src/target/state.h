@@ -32,9 +32,9 @@
 #define CASCADE_SRC_TARGET_CORE_STATE_H
 
 #include <unordered_map>
-#include "base/bits/bits.h"
-#include "base/container/vector.h"
-#include "base/serial/serializable.h"
+#include "common/bits.h"
+#include "common/serializable.h"
+#include "common/vector.h"
 #include "runtime/ids.h"
 
 namespace cascade {

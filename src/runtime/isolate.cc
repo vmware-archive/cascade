@@ -34,7 +34,7 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "runtime/data_plane.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
@@ -111,24 +111,14 @@ ModuleItem* Isolate::build(const GenvarDeclaration* gd) {
   return nullptr;
 }
 
-ModuleItem* Isolate::build(const IntegerDeclaration* id) {
-  return new RegDeclaration(
-    id->get_attrs()->accept(this),
-    id->accept_id(this),
-    true,
-    new RangeExpression(32, 0),
-    id->accept_val(this)
-  );
-}
-
 ModuleItem* Isolate::build(const LocalparamDeclaration* ld) {
   // Careful: We don't want what's on the rhs of the assignment, we want the
   // value of the identifier, which may have different sign/size.
   auto* res = new LocalparamDeclaration(
     ld->get_attrs()->accept(this),
-    ld->get_signed(),
-    ld->accept_dim(this),
     ld->accept_id(this),
+    ld->get_type(),
+    ld->accept_dim(this),
     new Number(Evaluate().get_value(ld->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(
@@ -144,9 +134,9 @@ ModuleItem* Isolate::build(const ParameterDeclaration* pd) {
   // value of the identifier, which may have different sign/size.
   auto* res = new LocalparamDeclaration(
     pd->get_attrs()->accept(this),
-    pd->get_signed(),
-    pd->accept_dim(this),
     pd->accept_id(this),
+    pd->get_type(),
+    pd->accept_dim(this),
     new Number(Evaluate().get_value(pd->get_id()), Number::Format::HEX)
   );
   res->get_attrs()->push_back_as(new AttrSpec(
@@ -234,8 +224,8 @@ ModuleDeclaration* Isolate::get_shell() {
     // promoted to an input.
 
     const auto is_signed = p.second->get_parent()->is(Node::Tag::reg_declaration) ?
-      static_cast<const RegDeclaration*>(p.second->get_parent())->get_signed() :
-      static_cast<const NetDeclaration*>(p.second->get_parent())->get_signed();
+      static_cast<const RegDeclaration*>(p.second->get_parent())->get_type() :
+      static_cast<const NetDeclaration*>(p.second->get_parent())->get_type();
 
     auto* pd = new PortDeclaration(
       new Attributes(), 
@@ -250,8 +240,6 @@ ModuleDeclaration* Isolate::get_shell() {
         )) : 
         static_cast<Declaration*>(new NetDeclaration(
           new Attributes(),
-          NetDeclaration::Type::WIRE,
-          nullptr,
           to_global_id(p.second),
           is_signed,
           (width == 1) ? nullptr : new RangeExpression(width)
@@ -309,10 +297,7 @@ void Isolate::replace(vector<ModuleItem*>& res, const ModuleInstantiation* mi) {
     auto* rhs = ModuleInfo(Resolve().get_origin(c.first)).is_input(c.first) ? 
         static_cast<Expression*>(c.second->accept(this)) : 
         c.first->accept(this);
-    auto* ca = new ContinuousAssign(
-      nullptr,
-      new VariableAssign(lhs, rhs)
-    );
+    auto* ca = new ContinuousAssign(lhs, rhs);
     res.push_back(ca);
   }
 }

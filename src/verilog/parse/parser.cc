@@ -30,7 +30,7 @@
 
 #include <regex>
 #include "verilog/parse/parser.h"
-#include "base/log/log.h"
+#include "common/log.h"
 
 using namespace std;
 

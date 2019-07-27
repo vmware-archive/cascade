@@ -1,7 +1,8 @@
 %{ 
 #include <cctype>
 #include <string>
-#include "base/stream/incstream.h"
+#include "common/bits.h"
+#include "common/incstream.h"
 #include "verilog_parser.hh"
 #include "verilog/parse/lexer.h"
 #include "verilog/parse/parser.h"
@@ -23,7 +24,11 @@ using namespace cascade;
 #undef YY_BUF_SIZE
 #define YY_BUF_SIZE 1024*1024
 
-std::pair<bool, std::string> strip_num(const char* c, size_t n);
+Bits to_real(const char* c);
+Bits to_unbased(const char* c, size_t n);
+Bits to_based(const char* c, size_t n, size_t size);
+Bits to_sized_based(const char* c, size_t n);
+std::string to_quoted(const char* c, size_t n);
 %}
 
 SPACE       ([ \t])
@@ -345,142 +350,212 @@ IF_TEXT     ([^`]*)
   parser->get_loc().step();
 }
 
-"&&"      return yyParser::make_AAMP(parser->get_loc());
-"&"       return yyParser::make_AMP(parser->get_loc());
-"@"       return yyParser::make_AT(parser->get_loc());
-"!"       return yyParser::make_BANG(parser->get_loc());
-"!=="     return yyParser::make_BEEQ(parser->get_loc());
-"!="      return yyParser::make_BEQ(parser->get_loc());
-"^"       return yyParser::make_CARAT(parser->get_loc());
-"}"       return yyParser::make_CCURLY(parser->get_loc());
-":"       return yyParser::make_COLON(parser->get_loc());
-","       return yyParser::make_COMMA(parser->get_loc());
-")"       return yyParser::make_CPAREN(parser->get_loc());
-"]"       return yyParser::make_CSQUARE(parser->get_loc());
-"*)"      return yyParser::make_CTIMES(parser->get_loc());
-"/"       return yyParser::make_DIV(parser->get_loc());
-"."       return yyParser::make_DOT(parser->get_loc());
-"==="     return yyParser::make_EEEQ(parser->get_loc());
-"=="      return yyParser::make_EEQ(parser->get_loc());
-"="       return yyParser::make_EQ(parser->get_loc());
-">="      return yyParser::make_GEQ(parser->get_loc());
-">>>"     return yyParser::make_GGGT(parser->get_loc());
-">>"      return yyParser::make_GGT(parser->get_loc());
-">"       return yyParser::make_GT(parser->get_loc());
-"<="      return yyParser::make_LEQ(parser->get_loc());
-"<<<"     return yyParser::make_LLLT(parser->get_loc());
-"<<"      return yyParser::make_LLT(parser->get_loc());
-"<"       return yyParser::make_LT(parser->get_loc());
-"-:"      return yyParser::make_MCOLON(parser->get_loc());
-"-"       return yyParser::make_MINUS(parser->get_loc());
-"%"       return yyParser::make_MOD(parser->get_loc());
-"{"       return yyParser::make_OCURLY(parser->get_loc());
-"("       return yyParser::make_OPAREN(parser->get_loc());
-"["       return yyParser::make_OSQUARE(parser->get_loc());
-"(*"      return yyParser::make_OTIMES(parser->get_loc());
-"+:"      return yyParser::make_PCOLON(parser->get_loc());
-"|"       return yyParser::make_PIPE(parser->get_loc());
-"||"      return yyParser::make_PPIPE(parser->get_loc());
-"+"       return yyParser::make_PLUS(parser->get_loc());
-"#"       return yyParser::make_POUND(parser->get_loc());
-"?"       return yyParser::make_QMARK(parser->get_loc());
+"&&"                  return yyParser::make_AAMP(parser->get_loc());
+"&"                   return yyParser::make_AMP(parser->get_loc());
+"@"                   return yyParser::make_AT(parser->get_loc());
+"!"                   return yyParser::make_BANG(parser->get_loc());
+"!=="                 return yyParser::make_BEEQ(parser->get_loc());
+"!="                  return yyParser::make_BEQ(parser->get_loc());
+"^"                   return yyParser::make_CARAT(parser->get_loc());
+"}"                   return yyParser::make_CCURLY(parser->get_loc());
+":"                   return yyParser::make_COLON(parser->get_loc());
+","                   return yyParser::make_COMMA(parser->get_loc());
+")"                   return yyParser::make_CPAREN(parser->get_loc());
+"]"                   return yyParser::make_CSQUARE(parser->get_loc());
+"*)"                  return yyParser::make_CTIMES(parser->get_loc());
+"/"                   return yyParser::make_DIV(parser->get_loc());
+"."                   return yyParser::make_DOT(parser->get_loc());
+"==="                 return yyParser::make_EEEQ(parser->get_loc());
+"=="                  return yyParser::make_EEQ(parser->get_loc());
+"="                   return yyParser::make_EQ(parser->get_loc());
+">="                  return yyParser::make_GEQ(parser->get_loc());
+">>>"                 return yyParser::make_GGGT(parser->get_loc());
+">>"                  return yyParser::make_GGT(parser->get_loc());
+">"                   return yyParser::make_GT(parser->get_loc());
+"<="                  return yyParser::make_LEQ(parser->get_loc());
+"<<<"                 return yyParser::make_LLLT(parser->get_loc());
+"<<"                  return yyParser::make_LLT(parser->get_loc());
+"<"                   return yyParser::make_LT(parser->get_loc());
+"-:"                  return yyParser::make_MCOLON(parser->get_loc());
+"-"                   return yyParser::make_MINUS(parser->get_loc());
+"%"                   return yyParser::make_MOD(parser->get_loc());
+"{"                   return yyParser::make_OCURLY(parser->get_loc());
+"("                   return yyParser::make_OPAREN(parser->get_loc());
+"["                   return yyParser::make_OSQUARE(parser->get_loc());
+"(*"                  return yyParser::make_OTIMES(parser->get_loc());
+"+:"                  return yyParser::make_PCOLON(parser->get_loc());
+"|"                   return yyParser::make_PIPE(parser->get_loc());
+"||"                  return yyParser::make_PPIPE(parser->get_loc());
+"+"                   return yyParser::make_PLUS(parser->get_loc());
+"#"                   return yyParser::make_POUND(parser->get_loc());
+"?"                   return yyParser::make_QMARK(parser->get_loc());
 ";"{SPACE}*{NEWLINE}? return yyParser::make_SCOLON(parser->get_loc());
-"(*)"     return yyParser::make_STAR(parser->get_loc());
-"~&"      return yyParser::make_TAMP(parser->get_loc());
-"~^"      return yyParser::make_TCARAT(parser->get_loc());
-"^~"      return yyParser::make_TCARAT(parser->get_loc());
-"~"       return yyParser::make_TILDE(parser->get_loc());
-"*"       return yyParser::make_TIMES(parser->get_loc());
-"**"      return yyParser::make_TTIMES(parser->get_loc());
-"~|"      return yyParser::make_TPIPE(parser->get_loc());
+"(*)"                 return yyParser::make_STAR(parser->get_loc());
+"~&"                  return yyParser::make_TAMP(parser->get_loc());
+"~^"                  return yyParser::make_TCARAT(parser->get_loc());
+"^~"                  return yyParser::make_TCARAT(parser->get_loc());
+"~"                   return yyParser::make_TILDE(parser->get_loc());
+"*"                   return yyParser::make_TIMES(parser->get_loc());
+"**"                  return yyParser::make_TTIMES(parser->get_loc());
+"~|"                  return yyParser::make_TPIPE(parser->get_loc());
 
-"always"      return yyParser::make_ALWAYS(parser->get_loc());
-"assign"      return yyParser::make_ASSIGN(parser->get_loc());
-"begin"       return yyParser::make_BEGIN_(parser->get_loc());
-"case"        return yyParser::make_CASE(parser->get_loc());
-"casex"       return yyParser::make_CASEX(parser->get_loc());
-"casez"       return yyParser::make_CASEZ(parser->get_loc());
-"default"     return yyParser::make_DEFAULT(parser->get_loc());
-"disable"     return yyParser::make_DISABLE(parser->get_loc());
-"else"        return yyParser::make_ELSE(parser->get_loc());
-"end"{SPACE}*{NEWLINE}? return yyParser::make_END(parser->get_loc());
-"endcase"     return yyParser::make_ENDCASE(parser->get_loc());
-"endgenerate" return yyParser::make_ENDGENERATE(parser->get_loc());
+"always"                      return yyParser::make_ALWAYS(parser->get_loc());
+"assign"                      return yyParser::make_ASSIGN(parser->get_loc());
+"begin"                       return yyParser::make_BEGIN_(parser->get_loc());
+"case"                        return yyParser::make_CASE(parser->get_loc());
+"casex"                       return yyParser::make_CASEX(parser->get_loc());
+"casez"                       return yyParser::make_CASEZ(parser->get_loc());
+"default"                     return yyParser::make_DEFAULT(parser->get_loc());
+"disable"                     return yyParser::make_DISABLE(parser->get_loc());
+"else"                        return yyParser::make_ELSE(parser->get_loc());
+"end"{SPACE}*{NEWLINE}?       return yyParser::make_END(parser->get_loc());
+"endcase"                     return yyParser::make_ENDCASE(parser->get_loc());
+"endgenerate"                 return yyParser::make_ENDGENERATE(parser->get_loc());
 "endmodule"{SPACE}*{NEWLINE}? return yyParser::make_ENDMODULE(parser->get_loc());
-"for"         return yyParser::make_FOR(parser->get_loc());
-"fork"        return yyParser::make_FORK(parser->get_loc());
-"forever"     return yyParser::make_FOREVER(parser->get_loc());
-"generate"    return yyParser::make_GENERATE(parser->get_loc());
-"genvar"      return yyParser::make_GENVAR(parser->get_loc());
-"if"          return yyParser::make_IF(parser->get_loc());
-"initial"     return yyParser::make_INITIAL_(parser->get_loc());
-"inout"       return yyParser::make_INOUT(parser->get_loc());
-"input"       return yyParser::make_INPUT(parser->get_loc());
-"integer"     return yyParser::make_INTEGER(parser->get_loc());
-"join"{SPACE}*{NEWLINE}? return yyParser::make_JOIN(parser->get_loc());
-"localparam"  return yyParser::make_LOCALPARAM(parser->get_loc());
-"macromodule" return yyParser::make_MACROMODULE(parser->get_loc());
-"module"      return yyParser::make_MODULE(parser->get_loc());
-"negedge"     return yyParser::make_NEGEDGE(parser->get_loc());
-"or"          return yyParser::make_OR(parser->get_loc());
-"output"      return yyParser::make_OUTPUT(parser->get_loc());
-"parameter"   return yyParser::make_PARAMETER(parser->get_loc());
-"posedge"     return yyParser::make_POSEDGE(parser->get_loc());
-"reg"         return yyParser::make_REG(parser->get_loc());
-"repeat"      return yyParser::make_REPEAT(parser->get_loc());
-"signed"      return yyParser::make_SIGNED(parser->get_loc());
-"stream"      return yyParser::make_STREAM(parser->get_loc());
-"wait"        return yyParser::make_WAIT(parser->get_loc());
-"while"       return yyParser::make_WHILE(parser->get_loc());
-"wire"        return yyParser::make_WIRE(parser->get_loc());
+"for"                         return yyParser::make_FOR(parser->get_loc());
+"fork"                        return yyParser::make_FORK(parser->get_loc());
+"generate"                    return yyParser::make_GENERATE(parser->get_loc());
+"genvar"                      return yyParser::make_GENVAR(parser->get_loc());
+"if"                          return yyParser::make_IF(parser->get_loc());
+"initial"                     return yyParser::make_INITIAL_(parser->get_loc());
+"inout"                       return yyParser::make_INOUT(parser->get_loc());
+"input"                       return yyParser::make_INPUT(parser->get_loc());
+"integer"                     return yyParser::make_INTEGER(parser->get_loc());
+"join"{SPACE}*{NEWLINE}?      return yyParser::make_JOIN(parser->get_loc());
+"localparam"                  return yyParser::make_LOCALPARAM(parser->get_loc());
+"macromodule"                 return yyParser::make_MACROMODULE(parser->get_loc());
+"module"                      return yyParser::make_MODULE(parser->get_loc());
+"negedge"                     return yyParser::make_NEGEDGE(parser->get_loc());
+"or"                          return yyParser::make_OR(parser->get_loc());
+"output"                      return yyParser::make_OUTPUT(parser->get_loc());
+"parameter"                   return yyParser::make_PARAMETER(parser->get_loc());
+"posedge"                     return yyParser::make_POSEDGE(parser->get_loc());
+"real"                        return yyParser::make_REAL(parser->get_loc());
+"realtime"                    return yyParser::make_REALTIME(parser->get_loc());
+"reg"                         return yyParser::make_REG(parser->get_loc());
+"repeat"                      return yyParser::make_REPEAT(parser->get_loc());
+"signed"                      return yyParser::make_SIGNED(parser->get_loc());
+"time"                        return yyParser::make_TIME(parser->get_loc());
+"while"                       return yyParser::make_WHILE(parser->get_loc());
+"wire"                        return yyParser::make_WIRE(parser->get_loc());
 
 "$display"  return yyParser::make_SYS_DISPLAY(parser->get_loc());
-"$eof"      return yyParser::make_SYS_EOF(parser->get_loc());
 "$error"    return yyParser::make_SYS_ERROR(parser->get_loc());
 "$fatal"    return yyParser::make_SYS_FATAL(parser->get_loc());
+"$fdisplay" return yyParser::make_SYS_FDISPLAY(parser->get_loc());
+"$feof"     return yyParser::make_SYS_FEOF(parser->get_loc());
+"$fflush"   return yyParser::make_SYS_FFLUSH(parser->get_loc());
 "$finish"   return yyParser::make_SYS_FINISH(parser->get_loc());
 "$fopen"    return yyParser::make_SYS_FOPEN(parser->get_loc());
-"$get"      return yyParser::make_SYS_GET(parser->get_loc());
+"$fread"    return yyParser::make_SYS_FREAD(parser->get_loc());
+"$fscanf"   return yyParser::make_SYS_FSCANF(parser->get_loc());
+"$fseek"    return yyParser::make_SYS_FSEEK(parser->get_loc());
+"$fwrite"   return yyParser::make_SYS_FWRITE(parser->get_loc());
+"$__get"    return yyParser::make_SYS_GET(parser->get_loc());
 "$info"     return yyParser::make_SYS_INFO(parser->get_loc());
-"$put"      return yyParser::make_SYS_PUT(parser->get_loc());
+"$__put"    return yyParser::make_SYS_PUT(parser->get_loc());
 "$restart"  return yyParser::make_SYS_RESTART(parser->get_loc());
 "$retarget" return yyParser::make_SYS_RETARGET(parser->get_loc());
+"$rewind"   return yyParser::make_SYS_REWIND(parser->get_loc());
 "$save"     return yyParser::make_SYS_SAVE(parser->get_loc());
-"$seek"     return yyParser::make_SYS_SEEK(parser->get_loc());
+"$scanf"    return yyParser::make_SYS_SCANF(parser->get_loc());
 "$warning"  return yyParser::make_SYS_WARNING(parser->get_loc());
 "$write"    return yyParser::make_SYS_WRITE(parser->get_loc());
 
-{DECIMAL}                        return yyParser::make_UNSIGNED_NUM(yytext, parser->get_loc());
-'[sS]?[dD]{WHITESPACE}*{DECIMAL} return yyParser::make_DECIMAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[bB]{WHITESPACE}*{BINARY}  return yyParser::make_BINARY_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[oO]{WHITESPACE}*{OCTAL}   return yyParser::make_OCTAL_VALUE(strip_num(yytext, yyleng), parser->get_loc());
-'[sS]?[hH]{WHITESPACE}*{HEX}     return yyParser::make_HEX_VALUE(strip_num(yytext, yyleng), parser->get_loc());
+{DECIMAL}"."{DECIMAL}                       return yyParser::make_REAL_NUM(to_real(yytext), parser->get_loc());
+{DECIMAL}("."{DECIMAL})?[eE][\+-]?{DECIMAL} return yyParser::make_REAL_NUM(to_real(yytext), parser->get_loc());
+{DECIMAL}                                   return yyParser::make_SIGNED_NUM(to_unbased(yytext, yyleng), parser->get_loc());
+'[sS]?[dD]{WHITESPACE}*{DECIMAL}            return yyParser::make_DECIMAL_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[dD]{WHITESPACE}*{DECIMAL}   return yyParser::make_DECIMAL_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[bB]{WHITESPACE}*{BINARY}             return yyParser::make_BINARY_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[bB]{WHITESPACE}*{BINARY}    return yyParser::make_BINARY_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[oO]{WHITESPACE}*{OCTAL}              return yyParser::make_OCTAL_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[oO]{WHITESPACE}*{OCTAL}     return yyParser::make_OCTAL_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
+'[sS]?[hH]{WHITESPACE}*{HEX}                return yyParser::make_HEX_VALUE(to_based(yytext, yyleng, 32), parser->get_loc());
+{DECIMAL}'[sS]?[hH]{WHITESPACE}*{HEX}       return yyParser::make_HEX_VALUE(to_sized_based(yytext, yyleng), parser->get_loc());
 
 {IDENTIFIER} return yyParser::make_SIMPLE_ID(yytext, parser->get_loc());
-{QUOTED_STR} return yyParser::make_STRING(std::string(yytext+1,yyleng-2), parser->get_loc());
+{QUOTED_STR} return yyParser::make_STRING(to_quoted(yytext+1, yyleng-2), parser->get_loc());
 
 <<EOF>> return yyParser::make_END_OF_FILE(parser->get_loc());
 
 %%
 
-std::pair<bool, std::string> strip_num(const char* c, size_t n) {
-  auto is_signed = false;
+Bits to_real(const char* c) {
+  std::stringstream ss(c);
+  double d;
+  ss >> d;
+  return Bits(d);
+}
 
-  size_t i = 1;
-  if (c[i] == 's' || c[i] == 'S') {
-    is_signed = true;
-    ++i;
-  }
-  ++i;
-
-  std::string s;
-  for (; i < n; ++i) {
+Bits to_unbased(const char* c, size_t n) {
+  std::stringstream ss;
+  for (size_t i = 0; i < n; ++i) {
     if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
-      s += c[i];
+      ss << c[i];
     }
   }
+  Bits res;
+  res.read(ss, 10);
+  res.cast_type(Bits::Type::SIGNED);
+  res.resize(32);
+  return res;
+}
 
-  return std::make_pair(is_signed, s);
+Bits to_based(const char* c, size_t n, size_t size) {
+  const auto is_signed = (c[1] == 's' || c[1] == 'S');
+  std::stringstream ss;
+  for (size_t i = is_signed ? 3 : 2; i < n; ++i) {
+    if (!static_cast<bool>(isspace(c[i])) && (c[i] != '_')) {
+      ss << c[i];
+    }
+  }
+  Bits res;
+  switch (is_signed ? c[2] : c[1]) {
+    case 'b':
+    case 'B': 
+      res.read(ss, 2); 
+      break;
+    case 'd':
+    case 'D': 
+      res.read(ss, 10); 
+      break;
+    case 'h':
+    case 'H': 
+      res.read(ss, 16); 
+      break;
+    case 'o':
+    case 'O': 
+      res.read(ss, 8); 
+      break;
+    default:  
+      assert(false); 
+      break;
+  }
+  if (is_signed) {
+    res.cast_type(Bits::Type::SIGNED);
+  }
+  res.resize(size);
+  return res;
+}
+
+Bits to_sized_based(const char* c, size_t n) {
+  const auto sep = std::string(c, n).find_first_of('\'');
+  const auto size = to_unbased(c, sep).to_uint();
+  return to_based(c+sep, n-sep, size);
+}
+
+std::string to_quoted(const char* c, size_t n) {
+  std::stringstream ss;
+  for (auto i = 0; i < n; ++i) {
+    if ((c[i] == '\\') && (c[i+1] == 'n')) {
+      ss << '\n';
+      ++i;
+    } else {
+      ss << c[i];
+    }
+  }
+  return ss.str();
 }
 
 int yyFlexLexer::yylex() {

@@ -14,7 +14,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
-#include "base/log/log.h"
+#include "common/log.h"
 #include "verilog/ast/ast.h"
 
 namespace cascade {
@@ -22,10 +22,9 @@ namespace cascade {
 class Parser;
 
 // Typedefs, since Bison >3.1.2 uses a macro, and std::pair cannot be used.
-typedef std::pair<bool, std::string> SignedNumber;
-typedef std::pair<size_t, NetDeclaration::Type> NetList;
-typedef std::pair<Identifier*, RangeExpression*> ModuleIdentifier;
 typedef std::pair<size_t, std::string> IdList;
+typedef std::pair<Identifier*, RangeExpression*> ModuleIdentifier;
+typedef std::pair<size_t, size_t> ParameterType;
 
 } // namespace cascade
 }
@@ -52,6 +51,73 @@ bool is_null(const cascade::Expression* e) {
     return i->eq("__null");
   }
   return false;
+}
+
+template <typename InItr>
+cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr begin, InItr end) {
+  // Check args are well-formed
+  auto error = false;
+  auto simple = false;
+  const auto n = end - begin;
+  if ((*begin)->is(cascade::Node::Tag::string)) {
+    const auto& str = static_cast<const cascade::String*>(*begin)->get_readable_val();
+    if (static_cast<size_t>(std::count(str.begin(), str.end(), '%')) != (n-1)) {
+      error = true;
+    }
+    if (input) {
+      for (auto i = begin; i != end; ++i) {
+        if (!(*i)->is(cascade::Node::Tag::identifier)) {
+          error = false;
+        }
+      }
+    }
+  } else {
+    error = (input || (n != 1));
+    simple = true;
+  }
+
+  // Only try to generate a result if args are well-formed
+  cascade::SeqBlock* sb = nullptr;
+  if (!error) {
+    sb = new cascade::SeqBlock(); 
+    if (simple) {
+      sb->push_back_stmts(input ?
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String("%_"), static_cast<cascade::Identifier*>((*begin)->clone()))) :  
+        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%_"), (*begin)->clone()))
+      );
+    } else {
+      size_t i = 0;
+      auto itr = begin;
+    
+      const auto& str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
+      while (i < str.length()) {
+        if (str[i] == '%') {
+          const auto ie = str.find_first_of("bBcCdDeEfFgGhHoOsSuU", i)+1;
+          sb->push_back_stmts(input ?
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)), static_cast<cascade::Identifier*>((*itr++)->clone()))) :
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)), (*itr++)->clone()))
+          );
+          i = ie;
+          continue;
+        } else {
+          const auto ie = str.find_first_of('%', i);
+          sb->push_back_stmts(input ?
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)))) :
+            static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i))))
+          );
+          i = ie;
+        }
+      }
+    }
+  }
+
+  // Delete args
+  delete fd;
+  for (auto i = begin; i != end; ++i) {
+    delete *i;
+  }
+
+  return sb;
 }
 
 } // namespace 
@@ -126,7 +192,6 @@ bool is_null(const cascade::Expression* e) {
 %token ENDMODULE   "endmodule"
 %token FOR         "for"
 %token FORK        "fork"
-%token FOREVER     "forever"
 %token GENERATE    "generate"
 %token GENVAR      "genvar"
 %token IF          "if"
@@ -143,28 +208,36 @@ bool is_null(const cascade::Expression* e) {
 %token OUTPUT      "output"
 %token PARAMETER   "parameter"
 %token POSEDGE     "posedge"
+%token REAL        "real"
+%token REALTIME    "realtime"
 %token REG         "reg"
 %token REPEAT      "repeat"
 %token SIGNED      "signed"
-%token STREAM      "stream"
-%token WAIT        "wait"
+%token TIME        "time"
 %token WHILE       "while"
 %token WIRE        "wire"
 
 /* System Task Identifiers */
 %token SYS_DISPLAY  "$display"
-%token SYS_EOF      "$eof"
 %token SYS_ERROR    "$error"
 %token SYS_FATAL    "$fatal"
+%token SYS_FEOF     "$feof"
+%token SYS_FDISPLAY "$fdisplay"
+%token SYS_FFLUSH   "$fflush"
 %token SYS_FINISH   "$finish"
 %token SYS_FOPEN    "$fopen"
-%token SYS_GET      "$get"
+%token SYS_FREAD    "$fread"
+%token SYS_FSCANF   "$fscanf"
+%token SYS_FSEEK    "$fseek"
+%token SYS_FWRITE   "$fwrite"
+%token SYS_GET      "$__get"
 %token SYS_INFO     "$info"
-%token SYS_PUT      "$put"
+%token SYS_PUT      "$__put"
 %token SYS_RESTART  "$restart"
 %token SYS_RETARGET "$retarget"
+%token SYS_REWIND   "$rewind"
 %token SYS_SAVE     "$save"
-%token SYS_SEEK     "$seek"
+%token SYS_SCANF    "$scanf"
 %token SYS_WARNING  "$warning"
 %token SYS_WRITE    "$write"
 
@@ -173,11 +246,12 @@ bool is_null(const cascade::Expression* e) {
 %token <std::string> STRING
 
 /* Numbers */
-%token <std::string> UNSIGNED_NUM
-%token <SignedNumber> DECIMAL_VALUE
-%token <SignedNumber> BINARY_VALUE
-%token <SignedNumber> OCTAL_VALUE
-%token <SignedNumber> HEX_VALUE
+%token <Bits> REAL_NUM
+%token <Bits> SIGNED_NUM
+%token <Bits> DECIMAL_VALUE
+%token <Bits> BINARY_VALUE
+%token <Bits> OCTAL_VALUE
+%token <Bits> HEX_VALUE
 
 /* Compiler Directive Tokens */
 %token END_INCLUDE "<end_include>"
@@ -224,6 +298,7 @@ bool is_null(const cascade::Expression* e) {
 /* A.2.1.1 Module Parameter Declarations */
 %type <std::vector<Declaration*>> local_parameter_declaration
 %type <std::vector<Declaration*>> parameter_declaration
+%type <ParameterType> parameter_type
 
 /* A.2.1.2 Port Declarations */
 %type <std::vector<ModuleItem*>> inout_declaration
@@ -233,21 +308,23 @@ bool is_null(const cascade::Expression* e) {
 /* A.2.1.3 Type Declarations */
 %type <std::vector<ModuleItem*>> integer_declaration
 %type <std::vector<ModuleItem*>> net_declaration
+%type <std::vector<ModuleItem*>> real_declaration
+%type <std::vector<ModuleItem*>> realtime_declaration
 %type <std::vector<ModuleItem*>> reg_declaration
+%type <std::vector<ModuleItem*>> time_declaration
 
 /* A.2.2.1 Net and Variable Types */
-%type <NetDeclaration::Type> net_type
+%type <bool> net_type
+%type <bool> output_variable_type
+%type <VariableAssign*> real_type
 %type <VariableAssign*> variable_type
-
-/* A.2.2.3 Delays */
-%type <DelayControl*> delay3
-%type <Expression*> delay_value
 
 /* A.2.3 Declaration Lists */
 %type <std::vector<VariableAssign*>> list_of_net_decl_assignments
 %type <std::vector<Identifier*>> list_of_net_identifiers
 %type <std::vector<VariableAssign*>> list_of_param_assignments
 %type <std::vector<Identifier*>> list_of_port_identifiers
+%type <std::vector<VariableAssign*>> list_of_real_identifiers
 %type <std::vector<VariableAssign*>> list_of_variable_identifiers
 %type <std::vector<VariableAssign*>> list_of_variable_port_identifiers
 
@@ -313,13 +390,11 @@ bool is_null(const cascade::Expression* e) {
 %type <Statement*> statement_or_null
 
 /* A.6.5 Timing Control Statements */
-%type <DelayControl*> delay_control
 %type <TimingControl*> delay_or_event_control
 %type <EventControl*> event_control
 %type <std::vector<Event*>> event_expression
 %type <TimingControl*> procedural_timing_control
 %type <TimingControlStatement*> procedural_timing_control_statement
-%type <WaitStatement*> wait_statement
 
 /* A.6.6 Conditional Statements */
 %type <ConditionalStatement*> conditional_statement
@@ -341,7 +416,7 @@ bool is_null(const cascade::Expression* e) {
 
 /* A.8.3 Expressions */
 %type <ConditionalExpression*> conditional_expression
-%type <EofExpression*> eof_expression
+%type <FeofExpression*> feof_expression
 %type <Expression*> expression
 %type <Expression*> mintypmax_expression
 %type <Expression*> range_expression
@@ -359,11 +434,11 @@ bool is_null(const cascade::Expression* e) {
 
 /* A.8.7 Numbers */
 %type <Number*> number
+%type <Number*> real_number
 %type <Number*> decimal_number
 %type <Number*> octal_number
 %type <Number*> binary_number
 %type <Number*> hex_number
-%type <size_t> size
 
 /* A.8.8 Strings */
 %type <String*> string_
@@ -384,7 +459,6 @@ bool is_null(const cascade::Expression* e) {
 %type <std::vector<Expression*>> braced_rexp_S
 %type <std::vector<CaseGenerateItem*>> case_generate_item_P
 %type <std::vector<CaseItem*>> case_item_P
-%type <DelayControl*> delay3_Q
 %type <TimingControl*> delay_or_event_control_Q
 %type <std::vector<Expression*>> dimension_S
 %type <Expression*> eq_ce_Q
@@ -401,8 +475,8 @@ bool is_null(const cascade::Expression* e) {
 %type <std::vector<ModuleItem*>> module_or_generate_item_S
 %type <std::vector<ArgAssign*>> named_parameter_assignment_P
 %type <std::vector<ArgAssign*>> named_port_connection_P
-%type <NetList> net_type_L
-%type <NetDeclaration::Type> net_type_Q
+%type <size_t> net_type_L
+%type <bool> net_type_Q
 %type <std::vector<ModuleItem*>> non_port_module_item_S
 %type <std::vector<ArgAssign*>> ordered_parameter_assignment_P
 %type <std::vector<ArgAssign*>> ordered_port_connection_P
@@ -412,10 +486,13 @@ bool is_null(const cascade::Expression* e) {
 %type <std::vector<ModuleItem*>> port_declaration_P
 %type <std::vector<ArgAssign*>> port_P
 %type <RangeExpression*> range_Q
+%type <size_t> real_L
+%type <size_t> realtime_L
 %type <size_t> reg_L
 %type <bool> signed_Q
 %type <IdList> simple_id_L
 %type <std::vector<Statement*>> statement_S
+%type <size_t> time_L
 
 /* Alternate Rules */
 /* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
@@ -581,9 +658,9 @@ module_or_generate_item_declaration
   : net_declaration { $$ = $1; }
   | reg_declaration { $$ = $1; }
   | integer_declaration { $$ = $1; }
-  /* TODO | real_declaration */
-  /* TODO | time_declaration */
-  /* TODO | realtime_declaration */
+  | real_declaration { $$ = $1; }
+  | time_declaration { $$ = $1; }
+  | realtime_declaration { $$ = $1; }
   /* TODO | event_declaration  */
   | genvar_declaration { $$ = $1; }
   /* TODO | task_declaration */
@@ -605,7 +682,7 @@ non_port_module_item
 local_parameter_declaration
   : attribute_instance_S localparam_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto lpd = new LocalparamDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto* lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -619,7 +696,13 @@ local_parameter_declaration
   }
   | attribute_instance_S localparam_L parameter_type list_of_param_assignments {
     for (auto va : $4) {
-      auto lpd = new LocalparamDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
+      LocalparamDeclaration* lpd = nullptr;
+      switch ($3.second) {
+        case 0: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: lpd = new LocalparamDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        default: assert(false); break;
+      }
       delete va;
       parser->set_loc(lpd, $2);
       parser->set_loc(lpd->get_id(), $2);
@@ -632,7 +715,7 @@ local_parameter_declaration
 parameter_declaration
   : attribute_instance_S parameter_L signed_Q range_Q list_of_param_assignments {
     for (auto va : $5) {
-      auto pd = new ParameterDeclaration($1->clone(), $3, $4 == nullptr ? $4 : $4->clone(), va->get_lhs()->clone(), va->get_rhs()->clone());
+      auto pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), va->get_rhs()->clone());
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -646,7 +729,13 @@ parameter_declaration
   }
   | attribute_instance_S parameter_L parameter_type list_of_param_assignments {
     for (auto va : $4) {
-      auto pd = new ParameterDeclaration($1->clone(), false, nullptr, va->get_lhs()->clone(), va->get_rhs()->clone());
+      ParameterDeclaration* pd = nullptr;
+      switch ($3.second) {
+        case 0: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), va->get_rhs()->clone()); break;
+        case 1: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        case 2: pd = new ParameterDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), va->get_rhs()->clone()); break;
+        default: assert(false); break;
+      }
       delete va;
       parser->set_loc(pd, $2);
       parser->set_loc(pd->get_id(), $2);
@@ -657,14 +746,18 @@ parameter_declaration
   }
   ;
 parameter_type
-  : integer_L 
+  : integer_L { $$ = std::make_pair($1, 0); }
+  | real_L { $$ = std::make_pair($1, 1); }
+  | realtime_L { $$ = std::make_pair($1, 1); }
+  | time_L { $$ = std::make_pair($1, 2); }
   ;
+
 /* A.2.1.2 Port Declarations */
 inout_declaration
   : INOUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INOUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -676,7 +769,7 @@ input_declaration
   : INPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::INPUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -688,7 +781,7 @@ output_declaration
   : OUTPUT net_type_Q signed_Q range_Q list_of_port_identifiers {
     for (auto id : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new NetDeclaration(new Attributes(), $2, nullptr, id, $3, $4 == nullptr ? $4 : $4->clone());
+      auto d = new NetDeclaration(new Attributes(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
     }
     if ($4 != nullptr) {
@@ -698,22 +791,31 @@ output_declaration
   | OUTPUT REG signed_Q range_Q list_of_variable_port_identifiers {
     for (auto va : $5) {
       auto t = PortDeclaration::Type::OUTPUT;
-      auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
-      delete va;
+      auto d = new RegDeclaration(new Attributes(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       $$.push_back(new PortDeclaration(new Attributes(), t, d));
+      delete va;
     }
     if ($4 != nullptr) {
       delete $4;
     }
   }
-  /* TODO | OUTPUT output_variable_type list_of_variable_port_identifiers */
+  | OUTPUT output_variable_type list_of_variable_port_identifiers {
+    for (auto va : $3) {
+      auto t = PortDeclaration::Type::OUTPUT;
+      auto* rd = $2 ?
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr) :
+        new RegDeclaration(new Attributes(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      $$.push_back(new PortDeclaration(new Attributes(), t, rd));
+      delete va;
+    }
+  }
   ;
 
 /* A.2.1.3 Type Declarations */
 integer_declaration
   : attribute_instance_S integer_L list_of_variable_identifiers SCOLON {
     for (auto va : $3) {
-      auto id = new IntegerDeclaration($1->clone(), va->get_lhs()->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto id = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::SIGNED, new RangeExpression(32, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(id, $2);
       parser->set_loc(id->get_id(), $2);
@@ -723,46 +825,65 @@ integer_declaration
   }
 net_declaration 
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_identifiers SCOLON {
-    for (auto id : $6) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), id, $3, $4 == nullptr ? $4 : $4->clone());
-      parser->set_loc(nd, $2.first);
-      parser->set_loc(nd->get_id(), $2.first);
+  : attribute_instance_S net_type_L /* [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_identifiers SCOLON {
+    for (auto id : $5) {
+      auto nd = new NetDeclaration($1->clone(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
+      parser->set_loc(nd, $2);
+      parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
     }
     delete $1;
     if ($4 != nullptr) {
       delete $4;
     }
-    if ($5 != nullptr) {
-      delete $5;
-    }
   }
   /** TODO: Combining cases with below due to lack of support for vectored|scalared */
-  | attribute_instance_S net_type_L /* drive_strength [vectored|scalared] */ signed_Q range_Q delay3_Q list_of_net_decl_assignments SCOLON {
-    for (auto va : $6) {
-      auto nd = new NetDeclaration($1->clone(), $2.second, $5 == nullptr ? $5 : $5->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone());
-      parser->set_loc(nd, $2.first);
-      parser->set_loc(nd->get_id(), $2.first);
+  | attribute_instance_S net_type_L /* [drive_strength] [vectored|scalared] */ signed_Q range_Q /* delay3? */ list_of_net_decl_assignments SCOLON {
+    for (auto va : $5) {
+      auto nd = new NetDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone());
+      parser->set_loc(nd, $2);
+      parser->set_loc(nd->get_id(), $2);
       $$.push_back(nd);
 
-      auto ca = new ContinuousAssign(va);
+      auto ca = new ContinuousAssign(va->get_lhs()->clone(), va->get_rhs()->clone());
+      delete va;
       $$.push_back(ca);
     }
     delete $1;
     if ($4 != nullptr) {
       delete $4;
     }
-    if ($5 != nullptr) {
-      delete $5;
-    }
   }
-  /* TODO | ... lots of cases */
+  /* TODO | trireg cases */
+  ;
+real_declaration
+  : attribute_instance_S real_L list_of_real_identifiers SCOLON { 
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
+  }
+  ;
+realtime_declaration
+  : attribute_instance_S realtime_L list_of_real_identifiers SCOLON {
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::REAL, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
+  }
   ;
 reg_declaration
   : attribute_instance_S reg_L signed_Q range_Q list_of_variable_identifiers SCOLON {
     for (auto va : $5) {
-      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
       delete va;
       parser->set_loc(rd, $2);
       parser->set_loc(rd->get_id(), $2);
@@ -772,6 +893,18 @@ reg_declaration
     if ($4 != nullptr) {
       delete $4;
     }
+  }
+  ;
+time_declaration
+  : attribute_instance_S time_L list_of_variable_identifiers SCOLON {
+    for (auto va : $3) {
+      auto rd = new RegDeclaration($1->clone(), va->get_lhs()->clone(), Declaration::Type::UNSIGNED, new RangeExpression(64, 0), !is_null(va->get_rhs()) ? va->get_rhs()->clone() : nullptr);
+      parser->set_loc(rd, $2);
+      parser->set_loc(rd->get_id(), $2);
+      $$.push_back(rd);
+      delete va;
+    }
+    delete $1;
   }
   ;
 
@@ -785,10 +918,25 @@ net_type
   /* TODO | TRI0 */ 
   /* TODO | TRI1 */
   /* TODO | UWIRE */
-  : WIRE { $$ = NetDeclaration::Type::WIRE; }
+  : WIRE { $$ = true; }
   /* TODO | WAND */
   /* TODO | WOR */
   ;
+output_variable_type
+  : INTEGER { $$ = false; }
+  | TIME { $$ = true; }
+  ;
+real_type 
+  : identifier dimension_S { 
+    $$ = new VariableAssign($1, new Identifier("__null")); 
+    $$->get_lhs()->purge_dim(); 
+    $$->get_lhs()->push_back_dim($2.begin(), $2.end()); 
+    parser->set_loc($$, $1);
+  }
+  | identifier EQ expression { 
+    $$ = new VariableAssign($1, $3); 
+    parser->set_loc($$, $1);
+  }
 variable_type
   : identifier dimension_S { 
     $$ = new VariableAssign($1, new Identifier("__null")); 
@@ -800,25 +948,19 @@ variable_type
     $$ = new VariableAssign($1, $3); 
     parser->set_loc($$, $1);
   }
-  | identifier EQ SYS_FOPEN OPAREN string_ CPAREN { 
-    $$ = new VariableAssign($1, new FopenExpression($5)); 
+  | identifier EQ SYS_FOPEN OPAREN expression CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5, new String("w"))); 
+    parser->set_loc($$, $1);
+  }
+  | identifier EQ SYS_FOPEN OPAREN expression COMMA expression CPAREN { 
+    $$ = new VariableAssign($1, new FopenExpression($5, $7)); 
     parser->set_loc($$, $1);
   }
   ;
 
 /* A.2.2.3 Delays */
-delay3 
-  : POUND delay_value { 
-    $$ = new DelayControl($2); 
-    parser->set_loc($$);
-  }
-  /* TODO | # (mintypmax_expression (, mintypmax_expression, mintypmax_expression?)?) */
-  ;
-delay_value
-  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, false); }
-  /* TODO | real_number */
-  /* TODO | identifier */
-  ;
+/* TODO delay3 */
+/* TODO delay_value */
 
 /* A.2.3 Declaration Lists */
 list_of_net_decl_assignments
@@ -861,6 +1003,14 @@ list_of_port_identifiers
     $$.push_back($3);
   }
   ;
+list_of_real_identifiers
+  : real_type {
+    $$.push_back($1);
+  }
+  | list_of_real_identifiers COMMA real_type {
+    $$ = $1;
+    $$.push_back($3);
+  }
 list_of_variable_identifiers
   : variable_type { 
     $$.push_back($1); 
@@ -905,7 +1055,7 @@ range
 block_item_declaration
   : attribute_instance_S REG signed_Q range_Q list_of_block_variable_identifiers SCOLON { 
     for (auto id : $5) {
-      $$.push_back(new RegDeclaration($1->clone(), id, $3, $4 == nullptr ? $4 : $4->clone(), nullptr));
+      $$.push_back(new RegDeclaration($1->clone(), id, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4 == nullptr ? $4 : $4->clone(), nullptr));
     }
     delete $1;
     if ($4 != nullptr) {
@@ -914,13 +1064,28 @@ block_item_declaration
   }
   | attribute_instance_S integer_L list_of_block_variable_identifiers SCOLON { 
     for (auto id : $3) {
-      $$.push_back(new IntegerDeclaration($1->clone(), id, nullptr));
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::SIGNED, new RangeExpression(32, 0), nullptr));
     }
     delete $1;
   }
-  /* TODO | attribute_instance_S TIME list_of_block_variable_identifiers SCOLON { } */
-  /* TODO | attribute_instance_S REAL list_of_block_variable_identifiers SCOLON { } */
-  /* TODO | attribute_instance_S REALTIME list_of_block_variable_identifiers SCOLON { } */
+  | attribute_instance_S time_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::UNSIGNED, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
+  | attribute_instance_S real_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::REAL, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
+  | attribute_instance_S realtime_L list_of_block_variable_identifiers SCOLON { 
+    for (auto id : $3) {
+      $$.push_back(new RegDeclaration($1->clone(), id, Declaration::Type::REAL, new RangeExpression(64, 0), nullptr));
+    }
+    delete $1;
+  } 
   /* TODO | attribute_instance_S event_declaration { } */
   | /*attribute_instance_S*/ local_parameter_declaration SCOLON { $$ = $1; }
   | /*attribute_instance_S*/ parameter_declaration SCOLON { $$ = $1; }
@@ -1184,14 +1349,12 @@ generate_block_or_null
 
 /* A.6.1 Continuous Assignment Statements */
 continuous_assign
-  : ASSIGN /* TODO drive_strength? */ delay3_Q list_of_net_assignments SCOLON {
-    for (auto id : $3) {
-      auto ca = new ContinuousAssign($2 == nullptr ? $2 : $2->clone(), id);
-      parser->set_loc(ca, ca->get_assign());
+  : ASSIGN /* drive_strength? delay3? */ list_of_net_assignments SCOLON {
+    for (auto id : $2) {
+      auto ca = new ContinuousAssign(id->get_lhs()->clone(), id->get_rhs()->clone());
+      parser->set_loc(ca, id->get_lhs());
+      delete id;
       $$.push_back(ca);
-    }
-    if ($2 != nullptr) {
-      delete $2;
     }
   }
   ;
@@ -1220,13 +1383,13 @@ always_construct
   ;
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
-    $$ = new BlockingAssign($3, new VariableAssign($1,$4));
+    $$ = new BlockingAssign($3, $1, $4);
     parser->set_loc($$, $1);
   }
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
-    $$ = new NonblockingAssign($3, new VariableAssign($1,$4));
+    $$ = new NonblockingAssign($3, $1, $4);
     parser->set_loc($$, $1);
   }
   ;
@@ -1272,7 +1435,7 @@ statement
   | /*attribute_instance_S*/ seq_block { $$ = $1; }
   | /*attribute_instance_S*/ system_task_enable { $$ = $1; }
   /* TODO | attribute_instance_S task_enable */
-  | /*attribute_instance_S*/ wait_statement { $$ = $1; }
+  /* TODO | wait_statement */
   ;
 statement_or_null
   : statement { $$ = $1; }
@@ -1282,19 +1445,10 @@ statement_or_null
   ;
 
 /* A.6.5 Timing Control Statements */
-delay_control
-  : POUND delay_value { 
-    $$ = new DelayControl($2); 
-    parser->set_loc($$);
-  }
-  | POUND OPAREN mintypmax_expression CPAREN { 
-    $$ = new DelayControl($3); 
-    parser->set_loc($$);
-  }
-  ;
+/* TODO delay_control */
 delay_or_event_control 
-  : delay_control { $$ = $1; }
-  | event_control { $$ = $1; }
+  /* : TODO delay_control { $$ = $1; } */
+  : event_control { $$ = $1; }
   /* TODO | repeat (expression) event_control */
   ;
 event_control
@@ -1323,18 +1477,13 @@ event_expression
   }
   ;
 procedural_timing_control
-  : delay_control { $$ = $1; }
-  | event_control { $$ = $1; }
+  /* TODO delay_control */
+  : event_control { $$ = $1; }
   ;
 procedural_timing_control_statement
   : procedural_timing_control statement_or_null { $$ = new TimingControlStatement($1,$2); }
   ;
-wait_statement
-  : WAIT OPAREN expression CPAREN statement_or_null { 
-    $$ = new WaitStatement($3,$5); 
-    parser->set_loc($$, $3);
-  }
-  ;
+/* wait_statement */
 
 /* A.6.6 Conditional Statements */
 conditional_statement
@@ -1364,11 +1513,8 @@ case_item
 
 /* A.6.8 Looping Statements */
 loop_statement
-  : FOREVER statement { 
-    $$ = new ForeverStatement($2); 
-    parser->set_loc($$, $2);
-  }
-  | REPEAT OPAREN expression CPAREN statement { 
+  /* forever statement */
+  : REPEAT OPAREN expression CPAREN statement { 
     $$ = new RepeatStatement($3,$5); 
     parser->set_loc($$);
   }
@@ -1385,27 +1531,53 @@ loop_statement
 /* A.6.9 Task Enable Statements */
 system_task_enable
   : SYS_DISPLAY SCOLON { 
-    $$ = new DisplayStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN CPAREN SCOLON { 
-    $$ = new DisplayStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_DISPLAY OPAREN expression_P CPAREN SCOLON { 
-    $$ = new DisplayStatement($3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDOUT"), $3.begin(), $3.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $display() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR SCOLON { 
-    $$ = new ErrorStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR"))); 
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN CPAREN SCOLON { 
-    $$ = new ErrorStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_ERROR OPAREN expression_P CPAREN SCOLON { 
-    $$ = new ErrorStatement($3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDERR"), $3.begin(), $3.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $error() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_FATAL SCOLON { 
@@ -1421,10 +1593,35 @@ system_task_enable
     parser->set_loc($$);
   }
   | SYS_FATAL OPAREN number COMMA expression_P CPAREN SCOLON { 
-    auto sb = new SeqBlock();
-    sb->push_back_stmts(new ErrorStatement($5.begin(), $5.end()));
+    auto* es = desugar_io(false, new Identifier("STDERR"), $5.begin(), $5.end()); 
+    if (es == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fatal() statement!");
+      YYERROR;
+    }
+    es->push_back_stmts(new PutStatement(new Identifier("STDERR"), new String("\n")));
+    es->push_back_stmts(new FflushStatement(new Identifier("STDERR")));
+    auto* sb = new SeqBlock(es);
     sb->push_back_stmts(new FinishStatement($3));
     $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FDISPLAY OPAREN expression CPAREN SCOLON { 
+    $$ = new PutStatement($3, new String("\n")); 
+    parser->set_loc($$);
+  }
+  | SYS_FDISPLAY OPAREN expression COMMA expression_P CPAREN SCOLON { 
+    auto* fd = $3->clone();
+    auto* sb = desugar_io(false, $3, $5.begin(), $5.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fdisplay() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(fd, new String("\n")));
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FFLUSH OPAREN expression CPAREN SCOLON {
+    $$ = new FflushStatement($3);
     parser->set_loc($$);
   }
   | SYS_FINISH SCOLON { 
@@ -1439,25 +1636,75 @@ system_task_enable
     $$ = new FinishStatement($3); 
     parser->set_loc($$);
   }
-  | SYS_GET OPAREN identifier COMMA identifier CPAREN SCOLON {
+  | SYS_FREAD OPAREN expression COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, new String("%u"), $5);
+    parser->set_loc($$);
+  }
+  | SYS_FSCANF OPAREN expression COMMA expression_P CPAREN SCOLON {
+    auto* sb = desugar_io(true, $3, $5.begin(), $5.end());
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fscanf() statement!");
+      YYERROR;
+    }
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_FSEEK OPAREN expression COMMA number COMMA number CPAREN SCOLON {
+    $$ = new FseekStatement($3, $5, $7);
+    parser->set_loc($$);
+  }
+  | SYS_FWRITE OPAREN expression CPAREN SCOLON { 
+    $$ = new PutStatement($3, new String("\n")); 
+    parser->set_loc($$);
+  }
+  | SYS_FWRITE OPAREN expression COMMA expression_P CPAREN SCOLON { 
+    auto* fd = $3->clone();
+    auto* sb = desugar_io(false, $3, $5.begin(), $5.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $fwrite() statement!");
+      YYERROR;
+    }
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_GET OPAREN expression COMMA string_ CPAREN SCOLON {
     $$ = new GetStatement($3, $5); 
     parser->set_loc($$);
   }
+  | SYS_GET OPAREN expression COMMA string_ COMMA identifier CPAREN SCOLON {
+    $$ = new GetStatement($3, $5, $7); 
+    parser->set_loc($$);
+  }
   | SYS_INFO SCOLON { 
-    $$ = new InfoStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN CPAREN SCOLON { 
-    $$ = new InfoStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_INFO OPAREN expression_P CPAREN SCOLON { 
-    $$ = new InfoStatement($3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDINFO"), $3.begin(), $3.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $info() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(new Identifier("STDINFO"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDINFO")));
+    $$ = sb;
     parser->set_loc($$);
   }
-  | SYS_PUT OPAREN identifier COMMA identifier CPAREN SCOLON {
-    $$ = new PutStatement($3, $5); 
-    parser->set_loc($$);
+  | SYS_PUT OPAREN expression COMMA string_ CPAREN SCOLON {
+    $$ = new PutStatement($3, $5);
+  }
+  | SYS_PUT OPAREN expression COMMA string_ COMMA expression CPAREN SCOLON {
+    $$ = new PutStatement($3, $5, $7);
   }
   | SYS_RESTART OPAREN string_ CPAREN SCOLON {
     $$ = new RestartStatement($3);
@@ -1467,36 +1714,70 @@ system_task_enable
     $$ = new RetargetStatement($3);
     parser->set_loc($$);
   }
+  | SYS_REWIND OPAREN expression CPAREN SCOLON {
+    $$ = new FseekStatement($3, new Number(Bits(false)), new Number(Bits(false)));
+    parser->set_loc($$);
+  }
   | SYS_SAVE OPAREN string_ CPAREN SCOLON {
     $$ = new SaveStatement($3);
     parser->set_loc($$);
   }
-  | SYS_SEEK OPAREN identifier COMMA number CPAREN SCOLON {
-    $$ = new SeekStatement($3, $5);
+  | SYS_SCANF OPAREN expression_P CPAREN SCOLON {
+    auto* sb = desugar_io(true, new Identifier("STDIN"), $3.begin(), $3.end());
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $scanf() statement!");
+      YYERROR;
+    }
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING SCOLON { 
-    $$ = new WarningStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN CPAREN SCOLON { 
-    $$ = new WarningStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WARNING OPAREN expression_P CPAREN SCOLON { 
-    $$ = new WarningStatement($3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDWARN"), $3.begin(), $3.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $warning() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new PutStatement(new Identifier("STDWARN"), new String("\n")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDWARN")));
+    $$ = sb;
     parser->set_loc($$);
   }
   | SYS_WRITE SCOLON { 
-    $$ = new WriteStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb; 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN CPAREN SCOLON { 
-    $$ = new WriteStatement(); 
+    auto* sb = new SeqBlock();
+    sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("")));
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb; 
     parser->set_loc($$);
   }
   | SYS_WRITE OPAREN expression_P CPAREN SCOLON { 
-    $$ = new WriteStatement($3.begin(), $3.end()); 
+    auto* sb = desugar_io(false, new Identifier("STDOUT"), $3.begin(), $3.end()); 
+    if (sb == nullptr) {
+      error(parser->get_loc(), "Found incorrectly formatted $write() statement!");
+      YYERROR;
+    }
+    sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
+    $$ = sb;
     parser->set_loc($$);
   }
   ;
@@ -1515,9 +1796,9 @@ conditional_expression
     $$ = new ConditionalExpression($1, $3, $5);
   }
   ;
-eof_expression
-  : SYS_EOF OPAREN identifier CPAREN {
-    $$ = new EofExpression($3);
+feof_expression
+  : SYS_FEOF OPAREN expression CPAREN {
+    $$ = new FeofExpression($3);
     parser->set_loc($$);
   }
 expression
@@ -1600,7 +1881,7 @@ expression
     $$ = new BinaryExpression($1, BinaryExpression::Op::TTIMES, $3); 
   }
   | conditional_expression { $$ = $1; }
-  | eof_expression { $$ = $1; }
+  | feof_expression { $$ = $1; }
   ;
 mintypmax_expression
   : expression { $$ = $1; }
@@ -1661,29 +1942,25 @@ number
   | octal_number { $$ = $1; }
   | binary_number { $$ = $1; }
   | hex_number { $$ = $1; }
-  /* TODO | real_number */
+  | real_number { $$ = $1; }
+  ;
+real_number
+  : REAL_NUM { $$ = new Number($1, Number::Format::REAL); parser->set_loc($$); }
   ;
 decimal_number
-  : UNSIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED, 32, true); parser->set_loc($$); }
-  | DECIMAL_VALUE { $$ = new Number($1.second, Number::Format::DEC, 32, $1.first); parser->set_loc($$); }
-  | size DECIMAL_VALUE { $$ = new Number($2.second, Number::Format::DEC, $1, $2.first); parser->set_loc($$); }
+  : SIGNED_NUM { $$ = new Number($1, Number::Format::UNBASED); parser->set_loc($$); }
+  | DECIMAL_VALUE { $$ = new Number($1, Number::Format::DEC); parser->set_loc($$); }
   /* TODO | [size] decimal_base x_digit _* */
   /* TODO | [size] decimal_base z_digit _* */
   ;
 binary_number 
-  : BINARY_VALUE { $$ = new Number($1.second, Number::Format::BIN, 32, $1.first); parser->set_loc($$); }
-  | size BINARY_VALUE { $$ = new Number($2.second, Number::Format::BIN, $1, $2.first); parser->set_loc($$); }
+  : BINARY_VALUE { $$ = new Number($1, Number::Format::BIN); parser->set_loc($$); }
   ;
 octal_number 
-  : OCTAL_VALUE { $$ = new Number($1.second, Number::Format::OCT, 32, $1.first); parser->set_loc($$); }
-  | size OCTAL_VALUE { $$ = new Number($2.second, Number::Format::OCT, $1, $2.first); parser->set_loc($$); }
+  : OCTAL_VALUE { $$ = new Number($1, Number::Format::OCT); parser->set_loc($$); }
   ;
 hex_number 
-  : HEX_VALUE { $$ = new Number($1.second, Number::Format::HEX, 32, $1.first); parser->set_loc($$); }
-  | size HEX_VALUE { $$ = new Number($2.second, Number::Format::HEX, $1, $2.first); parser->set_loc($$); }
-  ;
-size
-  : UNSIGNED_NUM { $$ = atoll($1.c_str()); }
+  : HEX_VALUE { $$ = new Number($1, Number::Format::HEX); parser->set_loc($$); }
   ;
 /* ... See Lexer */
 
@@ -1802,10 +2079,6 @@ colon_Q
   : %empty
   | COLON
   ;
-delay3_Q
-  : %empty { $$ = nullptr; }
-  | delay3 { $$ = $1; }
-  ;
 delay_or_event_control_Q
   : %empty { $$ = nullptr; }
   | delay_or_event_control { $$ = $1; }
@@ -1840,7 +2113,6 @@ generate_block_id_Q
   ;
 integer_L
   : INTEGER { $$ = parser->get_loc().begin.line; }
-  | STREAM { $$ = parser->get_loc().begin.line; }
   ;
 list_of_port_declarations_Q 
   : %empty { }
@@ -1898,10 +2170,10 @@ named_port_connection_P
   }
   ;
 net_type_L
-  : net_type { $$ = std::make_pair(parser->get_loc().begin.line, $1); }
+  : net_type { $$ = parser->get_loc().begin.line; }
   ;
-net_type_Q
-  : %empty { $$ = NetDeclaration::Type::WIRE; }
+net_type_Q 
+  : %empty { $$ = false; }
   | net_type { $$ = $1; }
   ;
 non_port_module_item_S
@@ -2003,6 +2275,12 @@ range_Q
   : %empty { $$ = nullptr; }
   | range { $$ = $1; }
   ;
+real_L
+  : REAL { $$ = parser->get_loc().begin.line; }
+  ;
+realtime_L
+  : REALTIME { $$ = parser->get_loc().begin.line; }
+  ;
 reg_L
   : REG { $$ = parser->get_loc().begin.line; }
   ;
@@ -2019,14 +2297,17 @@ statement_S
     $$.push_back($2);
   }
   ;
+time_L
+  : TIME { $$ = parser->get_loc().begin.line; }
+  ;
 
 alt_parameter_declaration
   : attribute_instance_S PARAMETER signed_Q range_Q param_assignment {
-    $$ = new ParameterDeclaration($1, $3, $4, $5->get_lhs()->clone(), $5->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $5->get_lhs()->clone(), $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4, $5->get_rhs()->clone());
     delete $5;
   }
   | attribute_instance_S PARAMETER parameter_type param_assignment {
-    $$ = new ParameterDeclaration($1, false, nullptr, $4->get_lhs()->clone(), $4->get_rhs()->clone());
+    $$ = new ParameterDeclaration($1, $4->get_lhs()->clone(), Declaration::Type::UNTYPED, $4->get_rhs()->clone());
     delete $4;
   }
   ;
@@ -2039,8 +2320,8 @@ alt_port_declaration
       YYERROR;
     }
     auto d = $2 ? 
-      (Declaration*) new RegDeclaration(new Attributes(), $5, $3, $4, is_null($6) ? nullptr : $6->clone()) :
-      (Declaration*) new NetDeclaration(new Attributes(), NetDeclaration::Type::WIRE, nullptr, $5, $3, $4);
+      (Declaration*) new RegDeclaration(new Attributes(), $5, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4, is_null($6) ? nullptr : $6->clone()) :
+      (Declaration*) new NetDeclaration(new Attributes(), $5, $3 ? Declaration::Type::SIGNED : Declaration::Type::UNTYPED, $4);
     delete $6;
     $$ = new PortDeclaration(new Attributes(), $1, d);
   }

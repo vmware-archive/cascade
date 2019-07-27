@@ -34,7 +34,7 @@
 #include <sys/mman.h>
 #include <map>
 #include <unistd.h>
-#include "base/stream/sockstream.h"
+#include "common/sockstream.h"
 #include "target/core/de10/de10_rewrite.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
@@ -219,18 +219,8 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
 
   // Check table and index sizes. If this program uses too much state, we won't
   // be able to uniquely name its elements using our current addressing scheme.
-  if (de->open_loop_idx() >= 0x1000) {
+  if (de->get_table().size() >= 0x1000) {
     error("Unable to compile a module with more than 4096 entries in variable table");
-    delete de;
-    return nullptr;
-  }
-  if (de->sys_task_size() > 32) {
-    error("Unable to compile a module with more than 32 system task invocations");
-    delete de;
-    return nullptr;
-  }
-  if (de->io_task_size() > 32) {
-    error("Unable to compile a module with more than 32 file i/o task invocations");
     delete de;
     return nullptr;
   }

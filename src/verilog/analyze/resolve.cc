@@ -220,12 +220,6 @@ void Resolve::InitCacheUses::edit(GenvarDeclaration* gd) {
   }
 }
 
-void Resolve::InitCacheUses::edit(IntegerDeclaration* id) {
-  if (id->uses_ == nullptr) {
-    id->uses_ = new Vector<const Expression*>();
-  }
-}
-
 void Resolve::InitCacheUses::edit(LocalparamDeclaration* ld) {
   if (ld->uses_ == nullptr) {
     ld->uses_ = new Vector<const Expression*>();
@@ -320,10 +314,6 @@ void Resolve::CacheUses::edit(GenvarDeclaration* gd) {
   (void) gd;
 }
 
-void Resolve::CacheUses::edit(IntegerDeclaration* id) {
-  id->accept_val(this);
-}
-
 void Resolve::CacheUses::edit(LocalparamDeclaration* ld) {
   ld->accept_dim(this);
   ld->accept_val(this);
@@ -391,14 +381,6 @@ void Resolve::Invalidate::edit(GenvarDeclaration* gd) {
   if (gd->uses_ != nullptr) {
     delete gd->uses_;
     gd->uses_ = nullptr;
-  }
-}
-
-void Resolve::Invalidate::edit(IntegerDeclaration* id) {
-  Editor::edit(id);
-  if (id->uses_ != nullptr) {
-    delete id->uses_;
-    id->uses_ = nullptr;
   }
 }
 

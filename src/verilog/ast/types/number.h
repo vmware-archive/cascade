@@ -44,6 +44,7 @@ class Number : public Primary {
     // Supporting Concepts:
     enum class Format : uint8_t {
       UNBASED = 0,
+      REAL,
       DEC,
       BIN,
       OCT,
@@ -51,7 +52,6 @@ class Number : public Primary {
     };
   
     // Constructors:
-    Number(const std::string& val, Format format_ = Format::UNBASED, size_t size = 0, bool is_signed = false);
     Number(const Bits& val, Format format = Format::UNBASED);
     ~Number() override = default;
 
@@ -69,46 +69,13 @@ class Number : public Primary {
     // Expression::bit_val_
 };
 
-inline Number::Number(const std::string& val, Format format, size_t size, bool is_signed) : Primary(Node::Tag::number) {
-  parent_ = nullptr;
-
-  bit_val_.resize(1);
-  std::stringstream ss(val);
-  switch (format) {
-    case Format::UNBASED:
-    case Format::DEC:
-      bit_val_[0].read(ss, 10);  
-      break;
-    case Format::BIN:
-      bit_val_[0].read(ss, 2);
-      break;
-    case Format::OCT:
-      bit_val_[0].read(ss, 8);
-      break;
-    case Format::HEX:
-      bit_val_[0].read(ss, 16);
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  if (size > 0) {
-    bit_val_[0].resize(size);
-  }
-  bit_val_[0].set_signed(is_signed);
-
-  set_format(format);
-  set_flag<5>(bit_val_[0].is_signed());
-  Node::set_val<6,26>(bit_val_[0].size());
-}
-
 inline Number::Number(const Bits& val, Format format) : Primary(Node::Tag::number) {
   parent_ = nullptr;
+  set_format(format);
 
   bit_val_.push_back(val);
-  set_format(format);
-  set_flag<5>(bit_val_[0].is_signed());
-  Node::set_val<6,26>(bit_val_[0].size());
+  Node::set_val<5,2>(static_cast<uint32_t>(bit_val_[0].get_type()));
+  Node::set_val<7,25>(bit_val_[0].size());
 }
 
 inline Number* Number::clone() const {

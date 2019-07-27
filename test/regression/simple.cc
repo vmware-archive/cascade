@@ -126,6 +126,9 @@ TEST(simple, concat_3) {
 TEST(simple, cond_1) {
   run_code("minimal","data/test/regression/simple/cond_1.v", "123");
 }
+TEST(simple, declaration_1) {
+  run_code("minimal","data/test/regression/simple/declaration_1.v", "8");
+}
 TEST(simple, define_1) {
   run_code("minimal","data/test/regression/simple/define_1.v", "22");
 }
@@ -180,6 +183,15 @@ TEST(simple, inst_3) {
 TEST(simple, io_1) {
   run_code("minimal","data/test/regression/simple/io_1.v", "1234512345");
 }
+TEST(simple, io_2) {
+  run_code("minimal","data/test/regression/simple/io_2.v", "ffff -1 c Hello 5.55");
+}
+TEST(simple, io_3) {
+  run_code("minimal","data/test/regression/simple/io_3.v", "97.00aa97-97");
+}
+TEST(simple, io_4) {
+  run_code("minimal","data/test/regression/simple/io_4.v", "32 65535 -1");
+}
 TEST(simple, issue_20a) {
   run_code("minimal","data/test/regression/simple/issue_20a.v", "");
 }
@@ -200,6 +212,15 @@ TEST(simple, issue_47c) {
 }
 TEST(simple, issue_47d) {
   run_code("minimal","data/test/regression/simple/issue_47d.v", "000");
+}
+TEST(simple, issue_54a) {
+  run_code("minimal","data/test/regression/simple/issue_54a.v", "1");
+}
+TEST(simple, issue_54b) {
+  run_code("minimal","data/test/regression/simple/issue_54b.v", "2");
+}
+TEST(simple, issue_54c) {
+  run_code("minimal","data/test/regression/simple/issue_54c.v", "00000000");
 }
 TEST(simple, issue_81a) {
   run_code("minimal","data/test/regression/simple/issue_81a.v", "0123");
@@ -241,7 +262,7 @@ TEST(simple, mem_1) {
   run_code("minimal","data/test/regression/simple/mem_1.v", "0011223344556677");
 }
 TEST(simple, mem_2) {
-  run_code("minimal","data/test/regression/simple/mem_2.v", "01234567");
+  run_code("minimal","data/test/regression/simple/mem_2.v", "0001020304050607");
 }
 TEST(simple, nested_1) {
   run_code("minimal","data/test/regression/simple/nested_1.v", "8");
@@ -272,6 +293,12 @@ TEST(simple, range_2) {
 }
 TEST(simple, range_3) {
   run_code("minimal","data/test/regression/simple/range_3.v", "7");
+}
+TEST(simple, real_1) {
+  run_code("minimal","data/test/regression/simple/real_1.v", "269488144269488144");
+}
+TEST(simple, real_2) {
+  run_code("minimal","data/test/regression/simple/real_2.v", "11111111111");
 }
 TEST(simple, reduce_and) {
   run_code("minimal","data/test/regression/simple/reduce_and.v", "10");
@@ -307,11 +334,11 @@ TEST(simple, sign_1) {
   run_code("minimal","data/test/regression/simple/sign_1.v", "-41431655761-416553221841143165576165532-41");
 }
 TEST(simple, sign_2) {
-  run_code("minimal","data/test/regression/simple/sign_2.v", "000");
+  run_code("minimal","data/test/regression/simple/sign_2.v", "0000000000");
 }
-//TEST(simple, wait_1) {
-//  run_code("minimal","data/test/regression/simple/wait_1.v", "Hello World");
-//}
+TEST(simple, string) {
+  run_code("minimal","data/test/regression/simple/string.v", "   Hello world is stored as 00000048656c6c6f20776f726c64\nHello world!!! is stored as 48656c6c6f20776f726c64212121\n");
+}
 TEST(simple, while_1) {
   run_code("minimal","data/test/regression/simple/while_1.v", "333");
 }

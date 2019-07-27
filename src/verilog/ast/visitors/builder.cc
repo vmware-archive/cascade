@@ -92,15 +92,16 @@ Expression* Builder::build(const ConditionalExpression* ce) {
   );
 }
 
-Expression* Builder::build(const EofExpression* ee) {
-  return new EofExpression(
-    ee->accept_arg(this)
+Expression* Builder::build(const FeofExpression* fe) {
+  return new FeofExpression(
+    fe->accept_fd(this)
   );
 }
 
 Expression* Builder::build(const FopenExpression* fe) {
   return new FopenExpression(
-    fe->accept_arg(this)
+    fe->accept_path(this),
+    fe->accept_type(this)
   );
 }
 
@@ -221,8 +222,8 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
   return new ContinuousAssign(
-    ca->accept_ctrl(this),
-    ca->accept_assign(this)
+    ca->accept_lhs(this),
+    ca->accept_rhs(this)
   );
 }
 
@@ -233,20 +234,12 @@ ModuleItem* Builder::build(const GenvarDeclaration* gd) {
   );
 }
 
-ModuleItem* Builder::build(const IntegerDeclaration* id) {
-  return new IntegerDeclaration(
-    id->accept_attrs(this),
-    id->accept_id(this),
-    id->accept_val(this)
-  );
-}
-
 ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
   return new LocalparamDeclaration(
     ld->accept_attrs(this),
-    ld->get_signed(),
-    ld->accept_dim(this),
     ld->accept_id(this),
+    ld->get_type(),
+    ld->accept_dim(this),
     ld->accept_val(this)
   );
 }
@@ -254,10 +247,8 @@ ModuleItem* Builder::build(const LocalparamDeclaration* ld) {
 ModuleItem* Builder::build(const NetDeclaration* nd) {
   return new NetDeclaration(
     nd->accept_attrs(this),
-    nd->get_type(),
-    nd->accept_ctrl(this),
     nd->accept_id(this),
-    nd->get_signed(),
+    nd->get_type(),
     nd->accept_dim(this)
   );
 }
@@ -265,9 +256,9 @@ ModuleItem* Builder::build(const NetDeclaration* nd) {
 ModuleItem* Builder::build(const ParameterDeclaration* pd) {
   return new ParameterDeclaration(
     pd->accept_attrs(this),
-    pd->get_signed(),
-    pd->accept_dim(this),
     pd->accept_id(this),
+    pd->get_type(),
+    pd->accept_dim(this),
     pd->accept_val(this)
   );
 }
@@ -276,7 +267,7 @@ ModuleItem* Builder::build(const RegDeclaration* rd) {
   return new RegDeclaration(
     rd->accept_attrs(this),
     rd->accept_id(this),
-    rd->get_signed(),
+    rd->get_type(),
     rd->accept_dim(this),
     rd->accept_val(this)
   );
@@ -311,14 +302,16 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 Statement* Builder::build(const BlockingAssign* ba) {
   return new BlockingAssign(
     ba->accept_ctrl(this),
-    ba->accept_assign(this)
+    ba->accept_lhs(this),
+    ba->accept_rhs(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
   return new NonblockingAssign(
     na->accept_ctrl(this),
-    na->accept_assign(this)
+    na->accept_lhs(this),
+    na->accept_rhs(this)
   );
 }
 
@@ -344,12 +337,6 @@ Statement* Builder::build(const ForStatement* fs) {
     fs->accept_init(this),
     fs->accept_cond(this),
     fs->accept_update(this),
-    fs->accept_stmt(this)
-  );
-}
-
-Statement* Builder::build(const ForeverStatement* fs) {
-  return new ForeverStatement(
     fs->accept_stmt(this)
   );
 }
@@ -384,16 +371,10 @@ Statement* Builder::build(const TimingControlStatement* tcs) {
   );
 }
 
-Statement* Builder::build(const DisplayStatement* ds) {
-  auto* res = new DisplayStatement();
-  ds->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
-Statement* Builder::build(const ErrorStatement* es) {
-  auto* res = new ErrorStatement();
-  es->accept_args(this, res->back_inserter_args());
-  return res;
+Statement* Builder::build(const FflushStatement* fs) {
+  return new FflushStatement(
+    fs->accept_fd(this)
+  );
 }
 
 Statement* Builder::build(const FinishStatement* fs) {
@@ -402,23 +383,27 @@ Statement* Builder::build(const FinishStatement* fs) {
   );
 }
 
+Statement* Builder::build(const FseekStatement* fs) {
+  return new FseekStatement(
+    fs->accept_fd(this),
+    fs->accept_offset(this),
+    fs->accept_op(this)
+  );
+}
+
 Statement* Builder::build(const GetStatement* gs) {
   return new GetStatement(
-    gs->accept_id(this),
+    gs->accept_fd(this),
+    gs->accept_fmt(this),
     gs->accept_var(this)
   );
 }
 
-Statement* Builder::build(const InfoStatement* is) {
-  auto* res = new InfoStatement();
-  is->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
 Statement* Builder::build(const PutStatement* ps) {
   return new PutStatement(
-    ps->accept_id(this),
-    ps->accept_var(this)
+    ps->accept_fd(this),
+    ps->accept_fmt(this),
+    ps->accept_expr(this)
   );
 }
 
@@ -440,42 +425,10 @@ Statement* Builder::build(const SaveStatement* ss) {
   );
 }
 
-Statement* Builder::build(const SeekStatement* ss) {
-  return new SeekStatement(
-    ss->accept_id(this),
-    ss->accept_pos(this)
-  );
-}
-
-Statement* Builder::build(const WarningStatement* ws) {
-  auto* res = new WarningStatement();
-  ws->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
-Statement* Builder::build(const WriteStatement* ws) {
-  auto* res = new WriteStatement();
-  ws->accept_args(this, res->back_inserter_args());
-  return res;
-}
-
-Statement* Builder::build(const WaitStatement* ws) {
-  return new WaitStatement(
-    ws->accept_cond(this),
-    ws->accept_stmt(this)
-  );
-}
-
 Statement* Builder::build(const WhileStatement* ws) {
   return new WhileStatement(
     ws->accept_cond(this),
     ws->accept_stmt(this)
-  ); 
-}
-
-TimingControl* Builder::build(const DelayControl* dc) {
-  return new DelayControl(
-    dc->accept_delay(this)
   ); 
 }
 

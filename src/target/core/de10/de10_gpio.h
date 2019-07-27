@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_GPIO_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_GPIO_H
 
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "target/core/de10/io.h"
 #include "target/input.h"
@@ -86,13 +86,13 @@ inline Input* De10Gpio::get_input() {
 inline void De10Gpio::set_input(const Input* i) {
   const auto itr = i->find(in_);
   if (itr != i->end()) {
-    DE10_WRITE(gpio_addr_, itr->second.to_int());
+    DE10_WRITE(gpio_addr_, itr->second.to_uint());
   }
 }
 
 inline void De10Gpio::read(VId id, const Bits* b) {
   (void) id;
-  DE10_WRITE(gpio_addr_, b->to_int());
+  DE10_WRITE(gpio_addr_, b->to_uint());
 }
 
 inline void De10Gpio::evaluate() {

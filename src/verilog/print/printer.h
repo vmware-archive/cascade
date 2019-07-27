@@ -34,7 +34,7 @@
 #include <iostream>
 #include <string>
 #include <stdint.h>
-#include "base/stream/indstream.h"
+#include "common/indstream.h"
 #include "verilog/ast/visitors/visitor.h"
 #include "verilog/print/color.h"
 
@@ -53,7 +53,7 @@ class Printer : public Visitor {
     void visit(const Event* e) override;
     void visit(const BinaryExpression* be) override;
     void visit(const ConditionalExpression* ce) override;
-    void visit(const EofExpression* ee) override;
+    void visit(const FeofExpression* fe) override;
     void visit(const FopenExpression* fe) override;
     void visit(const Concatenation* c) override;
     void visit(const Identifier* i) override;
@@ -73,7 +73,6 @@ class Printer : public Visitor {
     void visit(const InitialConstruct* ic) override;
     void visit(const ContinuousAssign* ca) override;
     void visit(const GenvarDeclaration* gd) override;
-    void visit(const IntegerDeclaration* id) override;
     void visit(const LocalparamDeclaration* ld) override;
     void visit(const NetDeclaration* nd) override;
     void visit(const ParameterDeclaration* pd) override;
@@ -86,26 +85,19 @@ class Printer : public Visitor {
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
     void visit(const ForStatement* fs) override;
-    void visit(const ForeverStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
     void visit(const TimingControlStatement* tcs) override;
-    void visit(const DisplayStatement* ds) override;
-    void visit(const ErrorStatement* es) override;
+    void visit(const FflushStatement* fs) override;
     void visit(const FinishStatement* fs) override;
+    void visit(const FseekStatement* fs) override;
     void visit(const GetStatement* gs) override;
-    void visit(const InfoStatement* is) override;
     void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
-    void visit(const SeekStatement* ss) override;
-    void visit(const WarningStatement* ws) override;
-    void visit(const WriteStatement* ws) override;
-    void visit(const WaitStatement* ws) override;
     void visit(const WhileStatement* ws) override;
-    void visit(const DelayControl* dc) override;
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;
 

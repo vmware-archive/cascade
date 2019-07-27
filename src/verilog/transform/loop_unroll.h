@@ -58,8 +58,6 @@ class LoopUnroll : public Rewriter {
     struct Reset : public Visitor {
       Reset();
       ~Reset() override = default;
-
-      void visit(const IntegerDeclaration* id) override;
       void visit(const RegDeclaration* rd) override;
     };
 

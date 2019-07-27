@@ -32,7 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_PAD_H
 
 #include <cassert>
-#include "base/bits/bits.h"
+#include "common/bits.h"
 #include "target/core.h"
 #include "target/core/de10/io.h"
 #include "target/input.h"

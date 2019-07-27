@@ -43,21 +43,18 @@ void State::read(istream& is, size_t base) {
   for (size_t i = 0; i < n; ++i) {
     VId id;
     is >> id;
-
     size_t arity = 0;
     is >> arity;
-
     size_t width = 0;
     is >> width;
-
-    bool is_signed = false;
-    is >> is_signed; 
+    size_t type = 0;
+    is >> type; 
 
     for (size_t j = 0; j < arity; ++j) {
       Bits bits;
       bits.read(is, base);
       bits.resize(width);
-      bits.set_signed(is_signed);
+      bits.reinterpret_type(static_cast<Bits::Type>(type));
       state_[id].push_back(bits);
     }
   }  
@@ -66,7 +63,7 @@ void State::read(istream& is, size_t base) {
 void State::write(ostream& os, size_t base) const {
   os << state_.size() << endl;
   for (const auto& s : state_) {
-    os << "  " << s.first << " " << s.second.size() << " " << s.second[0].size() << " " << (s.second[0].is_signed() ? 1 : 0) << endl;
+    os << "  " << s.first << " " << s.second.size() << " " << s.second[0].size() << " " << static_cast<size_t>(s.second[0].get_type()) << endl;
     for (const auto& b : s.second) {
       os << "    ";
       b.write(os, base);

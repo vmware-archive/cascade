@@ -47,13 +47,13 @@ void Input::read(istream& is, size_t base) {
     size_t width = 0;
     is >> width;
 
-    bool is_signed = false;
-    is >> is_signed; 
+    size_t type = 0;
+    is >> type; 
 
     Bits bits;
     bits.read(is, base);
     bits.resize(width);
-    bits.set_signed(is_signed);
+    bits.reinterpret_type(static_cast<Bits::Type>(type));
 
     input_.insert(make_pair(id, bits));
   }
@@ -62,7 +62,7 @@ void Input::read(istream& is, size_t base) {
 void Input::write(ostream& os, size_t base) const {
   os << input_.size() << endl;
   for (const auto& i : input_) {
-    os << "  " << i.first << " " << i.second.size() << " " << (i.second.is_signed() ? 1 : 0) << endl;
+    os << "  " << i.first << " " << i.second.size() << " " << static_cast<size_t>(i.second.get_type()) << endl;
     os << "    ";
     i.second.write(os, base);
     os << endl;

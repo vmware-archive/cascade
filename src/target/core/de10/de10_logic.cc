@@ -31,294 +31,149 @@
 #include "target/core/de10/de10_logic.h"
 
 #include <cassert>
+#include "target/core/common/interfacestream.h"
 #include "target/core/common/printf.h"
+#include "target/core/common/scanf.h"
 #include "target/core/de10/de10_compiler.h"
-#include "target/core/de10/io.h"
 #include "target/input.h"
-#include "target/interface.h"
 #include "target/state.h"
 #include "verilog/ast/ast.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
-#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 
-// Note that this is a plus, not a logical or! We can't guarantee that addr is aligned!
-#define MANGLE(addr, idx) ((volatile uint8_t*)(((idx) << 2) + (size_t)addr))
-
 namespace cascade {
 
-De10Logic::VarInfo::VarInfo(const Identifier* id, size_t idx, bool materialized) {
-  id_ = id;
-  idx_ = idx;
-  materialized_ = materialized;
-}
-
-const Identifier* De10Logic::VarInfo::id() const {
-  return id_;
-}
-
-bool De10Logic::VarInfo::materialized() const {
-  return materialized_;
-}
-
-size_t De10Logic::VarInfo::index() const {
-  return idx_;
-}
-
-vector<size_t> De10Logic::VarInfo::arity() const {
-  return Evaluate().get_arity(id_);
-}
-
-size_t De10Logic::VarInfo::elements() const {
-  size_t res = 1;
-  for (auto d : arity()) {
-    res *= d;
-  }
-  return res;
-}
-
-size_t De10Logic::VarInfo::bit_size() const {
-  // Most of the time we'll be applying this function to variable declarations.
-  // But sometimes we'll want to apply it to task arguments, which may have 
-  // a different context-determined width
-  const auto* r = Resolve().get_resolution(id_);
-  assert(r != nullptr);
-  return max(Evaluate().get_width(r), Evaluate().get_width(id_));
-}
-
-size_t De10Logic::VarInfo::element_size() const {
-  return (bit_size() + 31) / 32;
-}
-
-size_t De10Logic::VarInfo::entry_size() const {
-  return elements() * element_size();
-}
-
-De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), Visitor() { 
+De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), table_(addr) { 
   id_ = id;
   src_ = src;
-  addr_ = addr;
-  next_index_ = 0;
+  tasks_.push_back(nullptr);
 }
 
 De10Logic::~De10Logic() {
   delete src_;
-  for (auto* s : streams_) {
-    if (s != nullptr) {
-      delete s;
-    }
+  for (auto& s : streams_) {
+    delete s.second;
   }
 }
 
 De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
-  // Insert inverse mapping into the variable map
-  var_map_[id] = vid;
-  // Insert a materialized version of id into the variable table
-  if (var_table_.find(id) == var_table_.end()) {
-    insert(id, true);
+  if (table_.var_find(id) == table_.var_end()) {
+    table_.insert_var(id);
   }
-  // Insert a pointer to this variable table entry into the input index
-  if (vid >= inputs_.size()) {
+  if (inputs_.size() <= vid) {
     inputs_.resize(vid+1, nullptr);
   }
-  inputs_[vid] = &var_table_.find(id)->second;
-
+  inputs_[vid] = id;
   return *this;
 }
 
 De10Logic& De10Logic::set_state(const Identifier* id, VId vid) {
-  // Insert inverse mapping into the variable map
-  var_map_[id] = vid;
-  // Insert a materialized version of id into the variable table
-  if (var_table_.find(id) == var_table_.end()) {
-    insert(id, true);
-  }
-
+  if (table_.var_find(id) == table_.var_end()) {
+    table_.insert_var(id);
+  }   
+  state_.insert(make_pair(vid, id));
   return *this;
 }
 
 De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
-  // Insert inverse mapping into the variable map
-  var_map_[id] = vid;
-  // Insert a materialized version of id (but only if it's stateful) into the
-  // variable table
-  if (var_table_.find(id) == var_table_.end()) {
-    insert(id, ModuleInfo(src_).is_stateful(id));
+  if (table_.var_find(id) == table_.var_end()) { 
+    table_.insert_var(id);
   }
-  // Insert a pointer to this variable into the output index
-  outputs_.push_back(make_pair(vid, &var_table_.find(id)->second));
-
+  outputs_.push_back(make_pair(id, vid));
   return *this;
 }
 
 De10Logic& De10Logic::index_tasks() {
-  src_->accept(this);
+  Inserter i(this);
+  src_->accept(&i);
   return *this;
+}
+
+const VarTable32& De10Logic::get_table() const {
+  return table_;
 }
 
 State* De10Logic::get_state() {
   auto* s = new State();
-
-  ModuleInfo info(src_);
-  for (auto* v : info.stateful()) {
-    const auto vid = var_map_.find(v);
-    assert(vid != var_map_.end());
-    const auto vinfo = var_table_.find(v);
-    assert(vinfo != var_table_.end());
-
-    read_array(vinfo->second);
-    s->insert(vid->second, Evaluate().get_array_value(vinfo->second.id()));
+  for (const auto& sv : state_) {
+    table_.read_var(sv.second);
+    s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
-
   return s;
 }
 
 void De10Logic::set_state(const State* s) {
-  ModuleInfo info(src_);
-  for (auto* v : info.stateful()) {
-    // Write value directly to de10
-    const auto vid = var_map_.find(v);
-    assert(vid != var_map_.end());
-    const auto vinfo = var_table_.find(v);
-    assert(vinfo != var_table_.end());
-
-    const auto itr = s->find(vid->second);
+  for (const auto& sv : state_) {
+    const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      // Write value directly to device
-      write_array(vinfo->second, itr->second);
-      // Write stream values to sw as well, since we'll need this value when
-      // resolving io tasks
-      if (info.is_stream(v)) {
-        Evaluate().assign_value(vinfo->first, itr->second[0]);
-      }
+      table_.write_var(sv.second, itr->second);
     }
   }
-
-  DE10_WRITE(MANGLE(addr_, drop_update_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
+  // Drop updates and reset state (continue once to clear any pending tasks
+  table_.write_control_var(table_.drop_update_index(), 1);
+  table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.resume_index(), 1);
 }
 
 Input* De10Logic::get_input() {
   auto* i = new Input();
-
-  ModuleInfo info(src_);
-  for (auto* in : info.inputs()) {
-    const auto vid = var_map_.find(in);
-    assert(vid != var_map_.end());
-    const auto vinfo = var_table_.find(in);
-    assert(vinfo != var_table_.end());
-
-    read_scalar(vinfo->second);
-    i->insert(vid->second, Evaluate().get_value(vinfo->second.id()));
+  for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
+    const auto* id = inputs_[v];
+    if (id == nullptr) {
+      continue;
+    }
+    table_.read_var(id);
+    i->insert(v, Evaluate().get_value(id));
   }
-
   return i;
 }
 
 void De10Logic::set_input(const Input* i) {
-  ModuleInfo info(src_);
-  for (auto* in : info.inputs()) {
-    const auto vid = var_map_.find(in);
-    assert(vid != var_map_.end());
-    const auto vinfo = var_table_.find(in);
-    assert(vinfo != var_table_.end());
-
-    const auto itr = i->find(vid->second);
+  for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
+    const auto* id = inputs_[v];
+    if (id == nullptr) {
+      continue;
+    }
+    const auto itr = i->find(v);
     if (itr != i->end()) {
-      write_scalar(vinfo->second, itr->second);
+      table_.write_var(id, itr->second);
     }
   }
-
-  DE10_WRITE(MANGLE(addr_, drop_update_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, reset_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, io_task_idx()), 1);
-  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 1);
+  // Drop updates and reset state (continue once to clear any pending tasks
+  table_.write_control_var(table_.drop_update_index(), 1);
+  table_.write_control_var(table_.reset_index(), 1);
+  table_.write_control_var(table_.resume_index(), 1);
 }
 
 void De10Logic::finalize() {
-  // Create interface streams for every stream variable
-  ModuleInfo info(src_);
-  for (auto* s : info.streams()) {
-    const auto sid = Evaluate().get_value(s).to_int();
-    if (sid > streams_.size()) {
-      streams_.resize(sid+1, nullptr);
-    }
-    streams_[sid] = new interfacestream(interface(), sid);
-  }
-
-  // For every io task...
-  for (auto& io : io_tasks_) {
-    // Look up the stream variable that this task references
-    const Identifier* r = nullptr;
-    switch(get<0>(io)->get_tag()) {
-      case Node::Tag::get_statement:
-        r = Resolve().get_resolution(static_cast<const GetStatement*>(get<0>(io))->get_id());
-        break;
-      case Node::Tag::put_statement:
-        r = Resolve().get_resolution(static_cast<const PutStatement*>(get<0>(io))->get_id());
-        break;
-      case Node::Tag::seek_statement:
-        r = Resolve().get_resolution(static_cast<const SeekStatement*>(get<0>(io))->get_id());
-        break;
-      default:
-        assert(false);
-        break;
-    }
-    assert(r != nullptr);
-
-    // Now that we've set state, we can use it's value to store a pointer to its underlying
-    // stream in the io_task index.
-    assert(Evaluate().get_value(r).to_int() < streams_.size());
-    get<1>(io) = streams_[Evaluate().get_value(r).to_int()];
-
-    // Also look up the set of eof checks that depend on this stream variable. Store the
-    // var info for those check in the index as well, so we can quickly(*ish*) update those
-    // values whenever we interact with this stream
-    const auto itr = eof_checks_.find(r);
-    assert(itr != eof_checks_.end());
-    for (auto* i : itr->second) {
-      const auto titr = table_find(i);
-      assert(titr != table_end());
-      get<2>(io).push_back(titr->second);
-    }
-
-    // And while we're here, set the initial values for those checks
-    const auto val = get<1>(io)->eof();
-    for (auto& vinfo : get<2>(io)) {
-      write_scalar(vinfo, Bits(val));
-    }
-  }
+  // Does nothing.
 }
 
 void De10Logic::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
-  write_scalar(*inputs_[id], *b);
+  table_.write_var(inputs_[id], *b);
 }
 
 void De10Logic::evaluate() {
   // Read outputs and handle tasks
-  wait_until_done();
+  loop_until_done();
   handle_outputs();
-  handle_sys_tasks();
 }
 
 bool De10Logic::there_are_updates() const {
   // Read there_are_updates flag
-  return DE10_READ(MANGLE(addr_, there_are_updates_idx()));
+  return table_.read_control_var(table_.there_are_updates_index()) != 0;
 }
 
 void De10Logic::update() {
   // Throw the update trigger
-  DE10_WRITE(MANGLE(addr_, apply_update_idx()), 1);
+  table_.write_control_var(table_.apply_update_index(), 1);
   // Read outputs and handle tasks
-  wait_until_done();
+  loop_until_done();
   handle_outputs();
-  handle_sys_tasks();
 }
 
 bool De10Logic::there_were_tasks() const {
@@ -326,24 +181,29 @@ bool De10Logic::there_were_tasks() const {
 }
 
 size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
-  // If there are io tasks we're not going to stay in open loop for
-  // very long, so just fall back to the default implementation which
-  // is based on calls to evaluate and update.
-  if (!io_tasks_.empty()) {
-    return Core::open_loop(clk, val, itr);
-  }
-
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
 
-  // Go into open loop mode and handle tasks when we return. No need
-  // to handle outputs. This methods assumes that we don't have any.
-  DE10_WRITE(MANGLE(addr_, open_loop_idx()), itr);
-  handle_sys_tasks();
-
-  // Return the number of iterations that we ran for
-  return DE10_READ(MANGLE(addr_, open_loop_idx()));
+  // Reset the tasks flag and go into open loop mode. If we exit in a done
+  // state, then we performed every iteration.
+  there_were_tasks_ = false;
+  table_.write_control_var(table_.open_loop_index(), itr);
+  if (table_.read_control_var(table_.done_index())) {
+    assert(table_.read_control_var(table_.open_loop_index()) == 0);
+    return itr;
+  }
+  // Otherwise, check how many iterations we made it through, reset the open
+  // loop counter, and finish evaluating this iteration.
+  const size_t counter = table_.read_control_var(table_.open_loop_index());
+  table_.write_control_var(table_.open_loop_index(), 0);
+  while (!table_.read_control_var(table_.done_index())) {
+    handle_tasks();
+    table_.write_control_var(table_.resume_index(), 1);
+  }
+  // No need to handle outputs here (or above). This optimization assumes that
+  // this module doesn't have any.
+  return itr - counter;
 }
 
 void De10Logic::cleanup(CoreCompiler* cc) {
@@ -352,74 +212,6 @@ void De10Logic::cleanup(CoreCompiler* cc) {
   dc->cleanup(id_);
 }
 
-De10Logic::map_iterator De10Logic::map_begin() const {
-  return var_map_.begin();
-}
-
-De10Logic::map_iterator De10Logic::map_end() const {
-  return var_map_.end();
-}
-
-De10Logic::table_iterator De10Logic::table_find(const Identifier* id) const {
-  return var_table_.find(id);
-}
-
-De10Logic::table_iterator De10Logic::table_begin() const {
-  return var_table_.begin();
-}
-
-De10Logic::table_iterator De10Logic::table_end() const {
-  return var_table_.end();
-}
-
-size_t De10Logic::table_size() const {
-  return next_index_;
-}
-
-size_t De10Logic::there_are_updates_idx() const {
-  return next_index_;
-}
-
-size_t De10Logic::apply_update_idx() const {
-  return next_index_ + 1;
-}
-  
-size_t De10Logic::drop_update_idx() const {
-  return next_index_ + 2;
-}
-  
-size_t De10Logic::sys_task_idx() const {
-  return next_index_ + 3;
-}
-
-size_t De10Logic::io_task_idx() const {
-  return next_index_ + 4;
-}
-
-size_t De10Logic::resume_idx() const {
-  return next_index_ + 5;
-}
-
-size_t De10Logic::reset_idx() const {
-  return next_index_ + 6;
-}
-
-size_t De10Logic::done_idx() const {
-  return next_index_ + 7;
-}
-
-size_t De10Logic::open_loop_idx() const {
-  return next_index_ + 8;
-}
-
-size_t De10Logic::sys_task_size() const {
-  return sys_tasks_.size();
-}
-  
-size_t De10Logic::io_task_size() const {
-  return io_tasks_.size();
-}
-  
 bool De10Logic::open_loop_enabled() const {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
@@ -438,288 +230,234 @@ const Identifier* De10Logic::open_loop_clock() const {
   return open_loop_enabled() ? *ModuleInfo(src_).inputs().begin() : nullptr;
 }
 
-void De10Logic::visit(const EofExpression* ee) {
-  // This isn't technically an io task, but it needs to be associated with io tasks
-  // that affect it.
-  const auto* s = Resolve().get_resolution(ee->get_arg());
-  assert(s != nullptr);
-  eof_checks_[s].push_back(ee->get_arg());
-
-  // Insert a materialized instance of its stream arg into the variable table.
-  // It's a little bit of a hack to do this, but we only need a single bit, and
-  // we know we've got it here in the AST. 
-  Inserter i(this);
-  ee->accept_arg(&i); 
+interfacestream* De10Logic::get_stream(FId fd) {
+  const auto itr = streams_.find(fd);
+  if (itr != streams_.end()) {
+    return itr->second;
+  }
+  auto* is = new interfacestream(interface(), fd);
+  streams_[fd] = is;
+  return is;
 }
 
-void De10Logic::visit(const DisplayStatement* ds) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(ds);
-  Inserter i(this);
-  ds->accept_args(&i);
-}
+void De10Logic::update_eofs() {
+  // TODO(eschkufz): The correctness of this method relies on two invariants:
+  // 
+  // 1. The only expressions in the expression segment of the variable table
+  //    are feofs (this is a property of our code and tru by current construction)
+  // 2. feofs only refer to streams by static constants. This is a property of
+  //    the program and we don't currently verify it.
 
-void De10Logic::visit(const ErrorStatement* es) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(es);
-  Inserter i(this);
-  es->accept_args(&i);
-}
+  Evaluate eval;
+  Sync sync(this);
+  for (auto i = table_.expr_begin(), ie = table_.expr_end(); i != ie; ++i) {
+    assert(i->first->is(Node::Tag::feof_expression));
+    const auto* fe = static_cast<const FeofExpression*>(i->first);
+    fe->accept_fd(&sync);
 
-void De10Logic::visit(const FinishStatement* fs) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(fs);
-  Inserter i(this);
-  fs->accept_arg(&i);
-}
-
-void De10Logic::visit(const GetStatement* gs) {
-  // Record this io task, but no need to descend on its argument.
-  // We'll write its target directly when he handle it.
-  io_tasks_.push_back(make_tuple(gs, nullptr, vector<VarInfo>()));
-}
-
-void De10Logic::visit(const InfoStatement* is) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(is);
-  Inserter i(this);
-  is->accept_args(&i);
-}
-
-void De10Logic::visit(const PutStatement* ps) {
-  // Record this io task and insert a materialized instance of its argument in
-  // the variable table.
-  io_tasks_.push_back(make_tuple(ps, nullptr, vector<VarInfo>()));
-  Inserter i(this);
-  ps->accept_var(&i); 
-}
-
-void De10Logic::visit(const RetargetStatement* rs) {
-  // Record this task, but no need to descend on its argument (which is a constant)
-  sys_tasks_.push_back(rs);
-}
-
-void De10Logic::visit(const SeekStatement* ss) {
-  // Record this task, but no need to descend on its arguments (which are constants)
-  io_tasks_.push_back(make_tuple(ss, nullptr, vector<VarInfo>()));
-}
-
-void De10Logic::visit(const WarningStatement* ws) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(ws);
-  Inserter i(this);
-  ws->accept_args(&i);
-}
-
-void De10Logic::visit(const WriteStatement* ws) {
-  // Record this task and insert materialized instances of the
-  // variables in its arguments into the variable table.
-  sys_tasks_.push_back(ws);
-  Inserter i(this);
-  ws->accept_args(&i);
-}
-
-void De10Logic::insert(const Identifier* id, bool materialized) {
-  assert(var_table_.find(id) == var_table_.end());
-  VarInfo vi(id, next_index_, materialized);
-  var_table_.insert(make_pair(id, vi));
-
-  next_index_ += vi.entry_size();
-}
-
-void De10Logic::read_scalar(const VarInfo& vi) {
-  // Make sure this is actually a scalar
-  assert(vi.arity().empty());
-  // But use the generic array implementation
-  read_array(vi);
-}
-
-void De10Logic::read_array(const VarInfo& vi) {
-  // Move bits from fpga into local storage one word at a time.  Values are
-  // stored in ascending order in memory, just as they are in the variable
-  // table
-  auto idx = vi.index();
-  for (size_t i = 0, ie = vi.elements(); i < ie; ++i) {
-    for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
-      const volatile auto word = DE10_READ(MANGLE(addr_, idx));
-      Evaluate().assign_word<uint32_t>(vi.id(), i, j, word);
-      ++idx;
-    } 
+    auto* is = get_stream(eval.get_value(fe->get_fd()).to_uint());
+    table_.write_expr(i->first, is->eof() ? 1 : 0);
   }
 }
 
-void De10Logic::write_scalar(const VarInfo& vi, const Bits& b) {
-  // Make sure this is actually a scalar
-  assert(vi.arity().empty());
-  // Move bits to fpga one word at a time, skipping the local storage.
-  // If an when we need a value we'll read it out of the fpga first.
-  auto idx = vi.index();
-  for (size_t i = 0, ie = vi.entry_size(); i < ie; ++i) {
-    const volatile auto word = b.read_word<uint32_t>(i);
-    DE10_WRITE(MANGLE(addr_, idx), word);
-    ++idx;
+void De10Logic::loop_until_done() {
+  // This method is invokved from evaluate, update, and open_loop.  The only
+  // thing that prevents done from being true is the occurrence of a system
+  // task. If this happens, continue asserting __continue (resume_index) and
+  // handling tasks until done returns true.
+  for (there_were_tasks_ = false; !table_.read_control_var(table_.done_index()); ) {
+    handle_tasks();
+    table_.write_control_var(table_.resume_index(), 1);
   }
-}
-
-void De10Logic::write_array(const VarInfo& vi, const Vector<Bits>& bs) {
-  // Move bits to fpga one word at a time, skipping the local storage.
-  // If an when we need a value we'll read it out of the fpga first.
-  auto idx = vi.index();
-  for (size_t i = 0, ie = vi.elements(); i < ie; ++i) {
-    for (size_t j = 0, je = vi.element_size(); j < je; ++j) {
-      const volatile auto word = bs[i].read_word<uint32_t>(j);
-      DE10_WRITE(MANGLE(addr_, idx), word);
-      ++idx;
-    }
-  }
-}
-
-void De10Logic::wait_until_done() {
-  while (!DE10_READ(MANGLE(addr_, done_idx()))) {
-    handle_io_tasks();
-    DE10_WRITE(MANGLE(addr_, resume_idx()), 1);
-  }
-  handle_io_tasks();
 }
 
 void De10Logic::handle_outputs() {
   for (const auto& o : outputs_) {
-    read_scalar(*o.second);
-    interface()->write(o.first, &Evaluate().get_value(o.second->id()));
+    table_.read_var(o.first);
+    interface()->write(o.second, &Evaluate().get_value(o.first));
   }
 }
 
-void De10Logic::handle_io_tasks() {
-  volatile auto queue = DE10_READ(MANGLE(addr_, io_task_idx()));
-  if (queue == 0) {
+void De10Logic::handle_tasks() {
+  // TODO(eschkufz) we'll need to support multiple task ids and iterate over all of them
+
+  volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
+  if (task_id == 0) {
     return;
   }
+  const auto* task = tasks_[task_id];
 
-  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
-    if ((queue & 0x1) == 0) {
-      continue;
+  Evaluate eval;
+  Sync sync(this);
+  switch (task->get_tag()) {
+    case Node::Tag::finish_statement: {
+      const auto* fs = static_cast<const FinishStatement*>(task);
+      fs->accept_arg(&sync);
+      interface()->finish(eval.get_value(fs->get_arg()).to_uint());
+      there_were_tasks_ = true;
+      break;
     }
-    switch (get<0>(io_tasks_[i])->get_tag()) {
-      case Node::Tag::get_statement: {
-        const auto* gs = static_cast<const GetStatement*>(get<0>(io_tasks_[i]));
+    case Node::Tag::fflush_statement: {
+      const auto* fs = static_cast<const FflushStatement*>(task);
+      fs->accept_fd(&sync);
 
-        Bits temp;
-        temp.read(*get<1>(io_tasks_[i]), 16);
-        const auto itr = table_find(Resolve().get_resolution(gs->get_var()));
-        assert(itr != table_end());
-        write_scalar(itr->second, temp);
+      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      is->flush();
+      update_eofs();
 
-        const auto val = get<1>(io_tasks_[i])->eof();
-        for (auto& vinfo : get<2>(io_tasks_[i])) {
-          write_scalar(vinfo, Bits(val));
-        }
-        break;
-      }  
-      case Node::Tag::put_statement: {
-        const auto* ps = static_cast<const PutStatement*>(get<0>(io_tasks_[i]));
+      break;
+    }
+    case Node::Tag::fseek_statement: {
+      const auto* fs = static_cast<const FseekStatement*>(task);
+      fs->accept_fd(&sync);
 
-        Sync sync(this);
-        ps->accept_var(&sync);
-        const auto& val = Evaluate().get_value(ps->get_var());
-        val.write(*get<1>(io_tasks_[i]), 16);
-        get<1>(io_tasks_[i])->put(' ');
-        break;
+      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+
+      const auto offset = eval.get_value(fs->get_offset()).to_uint();
+      const auto op = eval.get_value(fs->get_op()).to_uint();
+      const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
+
+      is->clear();
+      is->seekg(offset, way); 
+      is->seekp(offset, way); 
+      update_eofs();
+
+      break;
+    }
+    case Node::Tag::get_statement: {
+      const auto* gs = static_cast<const GetStatement*>(task);
+      gs->accept_fd(&sync);
+
+      const auto fd = eval.get_value(gs->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      Scanf().read(*is, &eval, gs);
+
+      if (gs->is_non_null_var()) {
+        const auto* r = Resolve().get_resolution(gs->get_var());
+        assert(r != nullptr);
+        table_.write_var(r, eval.get_value(r));
       }
-      case Node::Tag::seek_statement: {
-        const auto* ss = static_cast<const SeekStatement*>(get<0>(io_tasks_[i]));
+      update_eofs();
 
-        const auto pos = Evaluate().get_value(ss->get_pos()).to_int();
-        get<1>(io_tasks_[i])->clear();
-        get<1>(io_tasks_[i])->seekg(pos);
+      break;
+    }  
+    case Node::Tag::put_statement: {
+      const auto* ps = static_cast<const PutStatement*>(task);
+      ps->accept_fd(&sync);
+      ps->accept_expr(&sync);
 
-        const auto val = get<1>(io_tasks_[i])->eof();
-        for (auto& vinfo : get<2>(io_tasks_[i])) {
-          write_scalar(vinfo, Bits(val));
-        }
-        break;
-      }
-      default:
-        assert(false);
-        break;
+      const auto fd = eval.get_value(ps->get_fd()).to_uint();
+      auto* is = get_stream(fd);
+      Printf().write(*is, &eval, ps);
+      update_eofs();
+
+      break;
     }
-  }
-
-  // Reset the task mask
-  DE10_WRITE(MANGLE(addr_, io_task_idx()), 0);
-}
-
-void De10Logic::handle_sys_tasks() {
-  // By default, we'll assume there were no tasks
-  there_were_tasks_ = false;
-  volatile auto queue = DE10_READ(MANGLE(addr_, sys_task_idx()));
-  if (queue == 0) {
-    return;
-  }
-
-  // There were tasks after all; we need to empty the queue
-  there_were_tasks_ = true;
-  for (size_t i = 0; queue != 0; queue >>= 1, ++i) {
-    if ((queue & 0x1) == 0) {
-      continue;
-    }
-    Evaluate eval;
-    if (sys_tasks_[i]->is(Node::Tag::display_statement)) {
-      const auto* ds = static_cast<const DisplayStatement*>(sys_tasks_[i]);
-      Sync sync(this);
-      ds->accept_args(&sync);
-      interface()->display(Printf(&eval).format(ds->begin_args(), ds->end_args()));
-    } else if (sys_tasks_[i]->is(Node::Tag::error_statement)) {
-      const auto* es = static_cast<const ErrorStatement*>(sys_tasks_[i]);
-      Sync sync(this);
-      es->accept_args(&sync);
-      interface()->error(Printf(&eval).format(es->begin_args(), es->end_args()));
-    } else if (sys_tasks_[i]->is(Node::Tag::finish_statement)) {
-      const auto* fs = static_cast<const FinishStatement*>(sys_tasks_[i]);
-      interface()->finish(Evaluate().get_value(fs->get_arg()).to_int());
-    } else if (sys_tasks_[i]->is(Node::Tag::info_statement)) {
-      const auto* is = static_cast<const InfoStatement*>(sys_tasks_[i]);
-      Sync sync(this);
-      is->accept_args(&sync);
-      interface()->info(Printf(&eval).format(is->begin_args(), is->end_args()));
-    } else if (sys_tasks_[i]->is(Node::Tag::restart_statement)) {
-      const auto* rs = static_cast<const RestartStatement*>(sys_tasks_[i]);
+    case Node::Tag::restart_statement: {
+      const auto* rs = static_cast<const RestartStatement*>(task);
       interface()->restart(rs->get_arg()->get_readable_val());
-    } else if (sys_tasks_[i]->is(Node::Tag::retarget_statement)) {
-      const auto* rs = static_cast<const RetargetStatement*>(sys_tasks_[i]);
-      interface()->retarget(rs->get_arg()->get_readable_val());
-    } else if (sys_tasks_[i]->is(Node::Tag::save_statement)) {
-      const auto* ss = static_cast<const SaveStatement*>(sys_tasks_[i]);
-      interface()->save(ss->get_arg()->get_readable_val());
-    } else if (sys_tasks_[i]->is(Node::Tag::warning_statement)) {
-      const auto* ws = static_cast<const WarningStatement*>(sys_tasks_[i]);
-      Sync sync(this);
-      ws->accept_args(&sync);
-      interface()->warning(Printf(&eval).format(ws->begin_args(), ws->end_args()));
-    } else if (sys_tasks_[i]->is(Node::Tag::write_statement)) {
-      const auto* ws = static_cast<const WriteStatement*>(sys_tasks_[i]);
-      Sync sync(this);
-      ws->accept_args(&sync);
-      interface()->write(Printf(&eval).format(ws->begin_args(), ws->end_args()));
-    } else {
-      assert(false);
+      there_were_tasks_ = true;
+      break;
     }
+    case Node::Tag::retarget_statement: {
+      const auto* rs = static_cast<const RetargetStatement*>(task);
+      interface()->retarget(rs->get_arg()->get_readable_val());
+      there_were_tasks_ = true;
+      break;
+    }
+    case Node::Tag::save_statement: {
+      const auto* ss = static_cast<const SaveStatement*>(task);
+      interface()->save(ss->get_arg()->get_readable_val());
+      there_were_tasks_ = true;
+      break;
+    }
+    default:
+      assert(false);
+      break;
   }
-
-  // Reset the task mask
-  DE10_WRITE(MANGLE(addr_, sys_task_idx()), 0);
 }
 
 De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
   de_ = de;
+  in_args_ = false;
 }
 
 void De10Logic::Inserter::visit(const Identifier* id) {
-  de_->insert(id, true);
+  Visitor::visit(id);
+  const auto* r = Resolve().get_resolution(id);
+  if (in_args_ && (de_->table_.var_find(r) == de_->table_.var_end())) {
+    de_->table_.insert_var(r);
+  }
+}
+
+void De10Logic::Inserter::visit(const FeofExpression* fe) {
+  // We need *both* an image of this expression in the variable table to
+  // represent its value, *and also* images of its arguments so that we can
+  // inspect an feof expression and know what stream it refers to.
+
+  de_->table_.insert_expr(fe); 
+  in_args_ = true;
+  fe->accept_fd(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const FflushStatement* fs) {
+  de_->tasks_.push_back(fs);
+  in_args_ = true;
+  fs->accept_fd(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const FinishStatement* fs) {
+  de_->tasks_.push_back(fs);
+  in_args_ = true;
+  fs->accept_arg(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const FseekStatement* fs) {
+  de_->tasks_.push_back(fs);
+  in_args_ = true;
+  fs->accept_fd(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const GetStatement* gs) {
+  de_->tasks_.push_back(gs);
+  in_args_ = true;
+  gs->accept_fd(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const PutStatement* ps) {
+  de_->tasks_.push_back(ps);
+  in_args_ = true;
+  ps->accept_fd(this);
+  ps->accept_expr(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const RestartStatement* rs) {
+  de_->tasks_.push_back(rs);
+  in_args_ = true;
+  rs->accept_arg(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const RetargetStatement* rs) {
+  de_->tasks_.push_back(rs);
+  in_args_ = true;
+  rs->accept_arg(this);
+  in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const SaveStatement* ss) {
+  de_->tasks_.push_back(ss);
+  in_args_ = true;
+  ss->accept_arg(this);
+  in_args_ = false;
 }
 
 De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
@@ -727,9 +465,11 @@ De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
 }
 
 void De10Logic::Sync::visit(const Identifier* id) {
-  const auto vinfo = de_->var_table_.find(id);
-  assert(vinfo != de_->var_table_.end());
-  de_->read_scalar(vinfo->second);
+  Visitor::visit(id);
+  const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  assert(de_->table_.var_find(r) != de_->table_.var_end());
+  de_->table_.read_var(r);
 }
 
 } // namespace cascade

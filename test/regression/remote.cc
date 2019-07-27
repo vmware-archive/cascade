@@ -62,7 +62,7 @@ TEST(remote, io) {
   run_code("minimal_remote", "data/test/regression/simple/io_1.v", "1234512345");
 }
 TEST(remote, bitcoin) {
-  run_code("minimal_remote", "data/test/benchmark/bitcoin/run_4.v", "f 93\n");
+  run_code("minimal_remote", "data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
 TEST(remote, bubble) {
   run_code("minimal_remote", "data/test/benchmark/mips32/run_bubble_128.v", "1");

@@ -44,6 +44,7 @@
 namespace cascade {
 
 class De10Logic;
+class Machinify;
 
 class De10Rewrite {
   public:
@@ -51,7 +52,7 @@ class De10Rewrite {
 
   private:
     // Records variables which appear in timing control statements
-    struct TriggerIndex : public Visitor {
+    struct TriggerIndex : Visitor {
       TriggerIndex();
       ~TriggerIndex() override = default;
       std::map<std::string, const Identifier*> negedges_;
@@ -62,19 +63,15 @@ class De10Rewrite {
     void emit_port_vars(ModuleDeclaration* res);
     void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
     void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
-    void emit_mask_vars(ModuleDeclaration* res);
-    void emit_control_vars(ModuleDeclaration* res);
-    void emit_view_vars(ModuleDeclaration* res, const De10Logic* de);
+    void emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
     void emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti);
-    void emit_state_vars(ModuleDeclaration* res);
 
     void emit_update_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_task_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_control_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
+    void emit_state_logic(ModuleDeclaration* res, const De10Logic* de, const Machinify* mfy);
     void emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti);
-    void emit_state_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_output_logic(ModuleDeclaration* res, const De10Logic* de);
+    void emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* de);
+    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
+    void emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
           
     void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
     void emit_slice(Identifier* id, size_t w, size_t i) const;

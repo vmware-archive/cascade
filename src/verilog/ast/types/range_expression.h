@@ -31,11 +31,15 @@
 #ifndef CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 #define CASCADE_SRC_VERILOG_AST_RANGE_EXPRESSION_H
 
-#include <sstream>
+#include "common/bits.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 
 namespace cascade {
+
+// TODO(eschkufz) Making this class a subclass of Expression places an unused
+// Bits decoration in this node. If we need to shrink cascade's memory
+// footprint, a little shuffling of the Expression hierarchy can fix this.
 
 class RangeExpression : public Expression {
   public:
@@ -64,17 +68,16 @@ class RangeExpression : public Expression {
     PTR_ATTR(Expression, upper);
     VAL_ATTR(Type, type);
     PTR_ATTR(Expression, lower);
+
+    friend class Evaluate;
+    DECORATION(uint32_t, vupper);
+    DECORATION(uint32_t, vlower);
 };
 
 inline RangeExpression::RangeExpression(size_t i__, size_t j__) : Expression(Node::Tag::range_expression) {
-  std::stringstream ssu;
-  ssu << (i__-1);
-  std::stringstream ssl;
-  ssl << j__;
-
-  upper_ = new Number(ssu.str(), Number::Format::UNBASED, 32, false);
+  upper_ = new Number(Bits(32, i__-1), Number::Format::UNBASED);
   type_ = RangeExpression::Type::CONSTANT;
-  lower_ = new Number(ssl.str(), Number::Format::UNBASED, 32, false);
+  lower_ = new Number(Bits(32, j__), Number::Format::UNBASED);
 }
 
 inline RangeExpression::RangeExpression(Expression* upper__, Type type__, Expression* lower__) : Expression(Node::Tag::range_expression) {

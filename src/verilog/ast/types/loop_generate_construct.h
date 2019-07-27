@@ -31,7 +31,7 @@
 #ifndef CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 #define CASCADE_SRC_VERILOG_AST_LOOP_GENERATE_CONSTRUCT_H
 
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/generate_block.h"
 #include "verilog/ast/types/generate_construct.h"

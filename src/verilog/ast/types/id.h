@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_AST_ID_H
 
 #include <string>
-#include "base/token/tokenize.h"
+#include "common/tokenize.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
 #include "verilog/ast/types/node.h"

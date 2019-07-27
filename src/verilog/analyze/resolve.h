@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_ANALYZE_RESOLVE_H
 
 #include <string>
-#include "base/container/vector.h"
+#include "common/vector.h"
 #include "verilog/ast/visitors/editor.h"
 
 namespace cascade {
@@ -109,7 +109,6 @@ class Resolve {
       void edit(IfGenerateConstruct* igc) override;
       void edit(LoopGenerateConstruct* lgc) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override;
       void edit(ParameterDeclaration* pd) override;
@@ -125,7 +124,6 @@ class Resolve {
       void edit(IfGenerateConstruct* igc) override;
       void edit(LoopGenerateConstruct* lgc) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override;
       void edit(ParameterDeclaration* pd) override;
@@ -141,7 +139,6 @@ class Resolve {
       void edit(IfGenerateConstruct* igc) override;
       void edit(LoopGenerateConstruct* lgc) override;
       void edit(GenvarDeclaration* gd) override;
-      void edit(IntegerDeclaration* id) override;
       void edit(LocalparamDeclaration* ld) override;
       void edit(NetDeclaration* nd) override;
       void edit(ParameterDeclaration* pd) override;

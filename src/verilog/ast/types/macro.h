@@ -34,7 +34,7 @@
 #include <cassert>
 #include <functional>
 #include <iterator>
-#include "base/container/vector.h"
+#include "common/vector.h"
 
 // Naming Helpers:
 //
@@ -497,7 +497,7 @@
   friend class Event; \
   friend class BinaryExpression; \
   friend class ConditionalExpression; \
-  friend class EofExpression; \
+  friend class FeofExpression; \
   friend class FopenExpression; \
   friend class Concatenation; \
   friend class Identifier; \
@@ -518,7 +518,6 @@
   friend class ContinuousAssign; \
   friend class Declaration; \
   friend class GenvarDeclaration; \
-  friend class IntegerDeclaration; \
   friend class LocalparamDeclaration; \
   friend class NetDeclaration; \
   friend class ParameterDeclaration; \
@@ -533,24 +532,17 @@
   friend class CaseStatement; \
   friend class ConditionalStatement; \
   friend class ForStatement; \
-  friend class ForeverStatement; \
   friend class RepeatStatement; \
   friend class WhileStatement; \
   friend class TimingControlStatement; \
-  friend class DisplayStatement; \
-  friend class ErrorStatement; \
+  friend class FflushStatement; \
   friend class FinishStatement; \
+  friend class FseekStatement; \
   friend class GetStatement; \
-  friend class InfoStatement; \
   friend class PutStatement; \
   friend class RestartStatement; \
   friend class RetargetStatement; \
   friend class SaveStatement; \
-  friend class SeekStatement; \
-  friend class WarningStatement; \
-  friend class WriteStatement; \
-  friend class WaitStatement; \
-  friend class DelayControl; \
   friend class EventControl; \
   friend class VariableAssign
 

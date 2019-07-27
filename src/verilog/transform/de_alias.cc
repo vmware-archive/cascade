@@ -69,9 +69,19 @@ void DeAlias::run(ModuleDeclaration* md) {
 
 DeAlias::AliasTable::AliasTable(const ModuleDeclaration* md) : Visitor() { 
   md->accept(this);
+  // Build up follow chains
   for (auto& a : aliases_) {
     follow(a.second);
   }
+  // Delete follow chains which ended in self-assignment
+  for (auto i = aliases_.begin(); i != aliases_.end(); ) {
+    if (Resolve().get_resolution(i->first) == Resolve().get_resolution(i->second.target_)) {
+      i = aliases_.erase(i);
+      continue;
+    }
+    ++i;
+  }
+  // Collapse slices in follow chains
   for (auto& a : aliases_) {
     collapse(a.second);
   }
@@ -120,15 +130,15 @@ Identifier* DeAlias::AliasTable::dealias(const Identifier* id) {
 
 void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
   // Ignore assignments with sliced left-hand-sides
-  const auto* lhs = ca->get_assign()->get_lhs();
+  const auto* lhs = ca->get_lhs();
   if (Resolve().is_slice(lhs)) {
     return;
   }
   // Ignore assignments with right-hand-sides which aren't identifiers
-  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
+  if (!ca->get_rhs()->is(Node::Tag::identifier)) {
     return;
   }
-  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
+  const auto* rhs = static_cast<const Identifier*>(ca->get_rhs());
   // Ignore assignments which don't preserve bit-width
   if (Resolve().is_slice(rhs)) {
     if (Evaluate().get_width(lhs) != Evaluate().get_width(rhs)) {
@@ -164,25 +174,28 @@ void DeAlias::AliasTable::visit(const ContinuousAssign* ca) {
 }
 
 void DeAlias::AliasTable::follow(Row& row) {
-  // Base Case: This row is done, just return.
+  // Base Case: This row is done, just return. Otherwise, we're going to close
+  // it out now. 
   if (row.done_) {
     return;
   }
-  // Base Case: We can't follow this variable any further. Close
-  // out this row and return.
+  row.done_ = true;
+
+  // Resolve the target for this row.
   const auto* r = Resolve().get_resolution(row.target_);
   assert(r != nullptr);
+
+  // Base Case: We can't follow this variable any further. 
   const auto itr = aliases_.find(r);
   if (itr == aliases_.end()) {
-    row.done_ = true;
     return;
   }
-  // Inductive Case: Close out the row that this variable points to.
-  // We inherit its information and append the slices that we had already
-  // built up.
+  // Inductive Case: Close out the row that this variable points to.  Inherit
+  // the row's information and append the slices that we had already built up.
   follow(itr->second);
   const auto slices_ = row.slices_;
-  row = itr->second;
+  row.target_ = itr->second.target_;
+  row.slices_ = itr->second.slices_;
   row.slices_.insert(row.slices_.end(), slices_.begin(), slices_.end());
 }
 
@@ -222,7 +235,7 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
       new BinaryExpression(
         xre->get_lower()->clone(),
         BinaryExpression::Op::PLUS,
-        new Number("1")
+        new Number(Bits(32, 1))
       )
     );
   } else if (xre->get_type() == RangeExpression::Type::PLUS) {
@@ -255,12 +268,12 @@ Expression* DeAlias::AliasTable::merge(const Expression* x, const Expression* y)
 }
 
 bool DeAlias::is_self_assign(const ContinuousAssign* ca) {
-  const auto* lhs = ca->get_assign()->get_lhs();
+  const auto* lhs = ca->get_lhs();
   // An rhs which isn't an identifier can't be a self-assignment
-  if (!ca->get_assign()->get_rhs()->is(Node::Tag::identifier)) {
+  if (!ca->get_rhs()->is(Node::Tag::identifier)) {
     return false;
   } 
-  const auto* rhs = static_cast<const Identifier*>(ca->get_assign()->get_rhs());
+  const auto* rhs = static_cast<const Identifier*>(ca->get_rhs());
   // Identifiers which point to different variables can't be self assignments
   if (Resolve().get_resolution(lhs) != Resolve().get_resolution(rhs)) {
     return false;

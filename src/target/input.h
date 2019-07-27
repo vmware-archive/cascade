@@ -32,8 +32,8 @@
 #define CASCADE_SRC_TARGET_CORE_INPUT_H
 
 #include <unordered_map>
-#include "base/bits/bits.h"
-#include "base/serial/serializable.h"
+#include "common/bits.h"
+#include "common/serializable.h"
 #include "runtime/ids.h"
 
 namespace cascade {

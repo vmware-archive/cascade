@@ -1,7 +1,5 @@
 module loops();
   always begin
-    forever begin
-    end
     repeat ( cond ) begin
     end
     while ( 1 ) begin

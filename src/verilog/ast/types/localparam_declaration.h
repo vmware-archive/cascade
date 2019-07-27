@@ -34,15 +34,14 @@
 #include "verilog/ast/types/declaration.h"
 #include "verilog/ast/types/expression.h"
 #include "verilog/ast/types/macro.h"
-#include "verilog/ast/types/range_expression.h"
 
 namespace cascade {
 
 class LocalparamDeclaration : public Declaration {
   public:
     // Constructors:
-    LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__);
-    LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__);
+    LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__);
     ~LocalparamDeclaration() override;
 
     // Node Interface:
@@ -50,39 +49,35 @@ class LocalparamDeclaration : public Declaration {
     LocalparamDeclaration* clone() const override;
 
     // Get/Set:
-    VAL_GET_SET(LocalparamDeclaration, bool, signed)
-    MAYBE_GET_SET(LocalparamDeclaration, RangeExpression, dim)
     PTR_GET_SET(LocalparamDeclaration, Expression, val)
 
   private:
-    MAYBE_ATTR(RangeExpression, dim);
-    VAL_ATTR(bool, signed);
     PTR_ATTR(Expression, val);
 };
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, Identifier* id__, Expression* val__) : Declaration(Node::Tag::localparam_declaration) {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, Expression* val__) : Declaration(Node::Tag::localparam_declaration) {
   PTR_SETUP(attrs);
-  VAL_SETUP(signed);
+  VAL_SETUP(type);
   MAYBE_DEFAULT_SETUP(dim);
   PTR_SETUP(id);
   PTR_SETUP(val);
   parent_ = nullptr;
 }
 
-inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, bool signed__, RangeExpression* dim__, Identifier* id__, Expression* val__) : LocalparamDeclaration(attrs__, signed__, id__, val__) {
+inline LocalparamDeclaration::LocalparamDeclaration(Attributes* attrs__, Identifier* id__, Declaration::Type type__, RangeExpression* dim__, Expression* val__) : LocalparamDeclaration(attrs__, id__, type__, val__) {
   MAYBE_SETUP(dim);
 }
 
 inline LocalparamDeclaration::~LocalparamDeclaration() {
   PTR_TEARDOWN(attrs);
-  VAL_TEARDOWN(signed);
+  VAL_TEARDOWN(type);
   MAYBE_TEARDOWN(dim);
   PTR_TEARDOWN(id);
   PTR_TEARDOWN(val);
 }
 
 inline LocalparamDeclaration* LocalparamDeclaration::clone() const {
-  auto* res = new LocalparamDeclaration(attrs_->clone(), signed_, id_->clone(), val_->clone());
+  auto* res = new LocalparamDeclaration(attrs_->clone(), id_->clone(), type_, val_->clone());
   MAYBE_CLONE(dim);
   return res;
 }
