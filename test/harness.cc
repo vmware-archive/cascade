@@ -110,6 +110,7 @@ void run_benchmark(const string& path, const string& expected) {
   c.stop_now();
   ASSERT_FALSE(c.bad());
 
+  c.run();
   c.wait_for_stop();
   EXPECT_EQ(sb->str(), expected);
 }

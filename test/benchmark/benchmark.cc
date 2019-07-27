@@ -38,7 +38,12 @@ using namespace cascade;
 using namespace cascade::cl;
 using namespace std;
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  Simple::read(argc, argv);
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  return 0;
+}
 
 static void BM_Array(benchmark::State& state) {
   for(auto _ : state) {
