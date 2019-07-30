@@ -119,17 +119,14 @@ int main(int argc, char** argv) {
   mutex pad_lock;
   mutex rst_lock;
 
+  auto* runtime = new RemoteRuntime();
+  runtime->set_path(::path.value());
+  runtime->set_port(::port.value());
   auto* sc = new SwCompiler();
     sc->set_led(&led, &led_lock);
     sc->set_pad(&pad, &pad_lock);
     sc->set_reset(&rst, &rst_lock);
-  auto* c = new Compiler();
-    c->set_sw_compiler(sc);
-
-  auto* runtime = new RemoteRuntime();
-  runtime->set_compiler(c);
-  runtime->set_path(::path.value());
-  runtime->set_port(::port.value());
+  runtime->get_compiler()->set_core_compiler("sw", sc);
   runtime->run();
 
   for (auto running = true; running; ) {

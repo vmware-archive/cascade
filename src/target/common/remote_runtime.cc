@@ -48,19 +48,13 @@ using namespace std;
 namespace cascade {
 
 RemoteRuntime::RemoteRuntime() : Thread() {
-  compiler_ = new Compiler();
   set_path("/tmp/fpga_socket");
   set_port(8800);
+  compiler_ = new Compiler();
 }
 
 RemoteRuntime::~RemoteRuntime() {
   delete compiler_;
-}
-
-RemoteRuntime& RemoteRuntime::set_compiler(Compiler* c) {
-  delete compiler_;
-  compiler_ = c;
-  return *this;
 }
 
 RemoteRuntime& RemoteRuntime::set_path(const string& p) {
@@ -73,10 +67,11 @@ RemoteRuntime& RemoteRuntime::set_port(uint32_t p) {
   return *this;
 }
 
-void RemoteRuntime::run_logic() {
-  auto* rc = new RemoteCompiler();
-  compiler_->set_remote_compiler(rc);
+Compiler* RemoteRuntime::get_compiler() {
+  return compiler_;
+}
 
+void RemoteRuntime::run_logic() {
   sockserver tl(port_, 8);
   sockserver ul(path_.c_str(), 8);
   if (tl.error() || ul.error()) {
@@ -126,6 +121,7 @@ void RemoteRuntime::run_logic() {
           // Compiler ABI:
           case Rpc::Type::COMPILE: {
             const Rpc::Id id = engines.size();
+            auto* rc = static_cast<RemoteCompiler*>(compiler_->get_interface_compiler("remote"));
             rc->set_sock(sock);
             rc->set_id(id);
             if (auto* e = compile(sock)) {

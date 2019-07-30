@@ -99,11 +99,8 @@ Module::iterator::iterator(Module* m) {
   path_.push_front(m);
 }
 
-Module::Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolate* isolate, Compiler* compiler) {
+Module::Module(const ModuleDeclaration* psrc, Runtime* rt) {
   rt_ = rt;
-  dp_ = dp;
-  isolate_ = isolate;
-  compiler_ = compiler;
 
   src_ = nullptr;
   engine_ = new Engine();
@@ -148,7 +145,7 @@ void Module::restart(std::istream& is) {
     const auto* p = (*i)->psrc_->get_parent();
     assert(p != nullptr);
     assert(p->is(Node::Tag::module_instantiation));
-    const auto id = isolate_->isolate(static_cast<const ModuleInstantiation*>(p));
+    const auto id = rt_->get_isolate()->isolate(static_cast<const ModuleInstantiation*>(p));
     const auto itr = save.find(id);
 
     if (itr == save.end()) {
@@ -179,9 +176,9 @@ void Module::rebuild() {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
+    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
-    if (compiler_->error()) {
+    if (rt_->get_compiler()->error()) {
       return;
     }
   }
@@ -202,7 +199,7 @@ void Module::save(ostream& os) {
     assert(p->is(Node::Tag::module_instantiation));
 
     os << "MODULE:" << endl;
-    os << isolate_->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
+    os << rt_->get_isolate()->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
     
     os << "INPUT:" << endl;
     auto* input = (*i)->engine_->get_input();
@@ -228,9 +225,9 @@ void Module::synchronize(size_t n) {
     const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    compiler_->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
+    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
-    if (compiler_->error()) {
+    if (rt_->get_compiler()->error()) {
       return;
     }
   }
@@ -239,14 +236,14 @@ void Module::synchronize(size_t n) {
   // Isolate::isolate() are deterministic.
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
-      const auto gid = isolate_->isolate(r);
-      dp_->register_id(gid);
-      dp_->register_writer((*i)->engine_, gid);
+      const auto gid = rt_->get_isolate()->isolate(r);
+      rt_->get_data_plane()->register_id(gid);
+      rt_->get_data_plane()->register_writer((*i)->engine_, gid);
     }
     for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
-      const auto gid = isolate_->isolate(w);
-      dp_->register_id(gid);
-      dp_->register_reader((*i)->engine_, gid);
+      const auto gid = rt_->get_isolate()->isolate(w);
+      rt_->get_data_plane()->register_id(gid);
+      rt_->get_data_plane()->register_reader((*i)->engine_, gid);
     }
   }
 }
@@ -310,7 +307,7 @@ void Module::Instantiator::visit(const ModuleInstantiation* mi) {
 }
 
 ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
-  auto* md = isolate_->isolate(psrc_, ignore);
+  auto* md = rt_->get_isolate()->isolate(psrc_, ignore);
   const auto* std = md->get_attrs()->get<String>("__std");
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
@@ -328,7 +325,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
 }
 
 Module::Module(const ModuleDeclaration* psrc, Module* parent) :
-  Module(psrc, parent->rt_, parent->dp_, parent->isolate_, parent->compiler_) {
+  Module(psrc, parent->rt_) {
   parent_ = parent;
 }
 

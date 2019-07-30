@@ -33,22 +33,17 @@
 
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include "common/thread_pool.h"
 #include "verilog/ast/ast_fwd.h"
-#include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
 class CoreCompiler;
-class De10Compiler;
 class Engine;
 class InterfaceCompiler;
-class LocalCompiler;
-class ProxyCompiler;
-class RemoteCompiler;
 class Runtime;
-class SwCompiler;
 
 class Compiler {
   public:
@@ -56,67 +51,62 @@ class Compiler {
     Compiler();
     ~Compiler();
 
-    // Non-Tread-Safe Core Compiler Configuration:
-    // These methods must only be called before the first invocation of
-    // compile() and they cannot be called more than once. Once you configure a
-    // compiler, you're stuck with it.
-    Compiler& set_de10_compiler(De10Compiler* c);
-    Compiler& set_proxy_compiler(ProxyCompiler* c);
-    Compiler& set_sw_compiler(SwCompiler* c);
-
-    // Non-Thread-Safe Interface Compiler Configuration:
-    // These methods must only be called before the first invocation of compile()
-    // and they cannot be called more than once. Once you configure a compiler,
-    // you're stuck with it.
-    Compiler& set_local_compiler(LocalCompiler* c);
-    Compiler& set_remote_compiler(RemoteCompiler* c);
+    // Compiler Configuration:
+    //
+    // These methods are not thread-safe. Invoking these methods after the
+    // first invocation of compile() or to override a previously registered
+    // compiler is undefined.
+    Compiler& set_core_compiler(const std::string& id, CoreCompiler* c);
+    Compiler& set_interface_compiler(const std::string& id, InterfaceCompiler* c);
+    // These methods are thread-safe. They return either a registered compiler
+    // or nullptr if non exists. The thread-safety of method invocations on the 
+    // resulting pointers depends on the type of the pointer.
+    CoreCompiler* get_core_compiler(const std::string& id);
+    InterfaceCompiler* get_interface_compiler(const std::string& id);
 
     // Compilation Interface:
     // 
-    // Compiles a module declaration into a new engine. Returns nullptr if
-    // compilation was aborted (either due to premature termination or error).
-    // In the case of error, the thread safe interface will indicate what
-    // happened.
+    // These methods are thread-safe. Both versions compiles a module
+    // declaration into a new engine and returns nullptr if compilation was
+    // aborted (either due to premature termination or error). In the case of
+    // error, the error reporting interface will indicate what happened.
+    // 
+    // Attempts to create a new engine. Blocks until completion. 
     Engine* compile(ModuleDeclaration* md);
-    // Compiles a module declaration into a new engine, transfers the runtime
-    // state of a preexisting engine into the new engine, and then swaps the
-    // identities of the two engines (effectively updating the compilation
-    // state of the original engine). This method may also use the runtime's
-    // interrupt interface to schedule a slower compilation and an asynchronous
-    // jit update to the engine at a later time. In the event of an error, the
-    // thread safe interface will indicate what happened. In the event that md
-    // has been mangled beyond recognition, id can be used to provide a legible
-    // identifier for the sake of logging.
+    // Performs a blocking call to compile to produce a new engine, and replaces
+    // the state of the original engine with the result on success. If md contains
+    // annotations that specify a second pass compilation, a second thread is started
+    // in the background and will use the runtime's interrupt interface to perform a
+    // second replacement when it is safe to do so.
+    //
+    // Users of this method must provide a monotonically increasing version
+    // number.  Second pass compilations which return out of order will use
+    // this verison number to determine whether replacement is actually
+    // necesary. Users must also provide id as a way of identifying md for
+    // logging purposes, as compialtion will generally mangle module names.
     void compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id);
 
-    // Thread-Safe Error Interface:
+    // Error Reporting Interface:
+    //
+    // These methods are all thread-safe.
     void error(const std::string& s);
     bool error();
     std::string what();
 
   private:
-    // Core Compilers:
-    De10Compiler* de10_compiler_;
-    ProxyCompiler* proxy_compiler_;
-    SwCompiler* sw_compiler_;
-
-    // Interface Compilers:
-    LocalCompiler* local_compiler_;
-    RemoteCompiler* remote_compiler_;
+    // Compilers:
+    std::unordered_map<std::string, CoreCompiler*> core_compilers_;
+    std::unordered_map<std::string, InterfaceCompiler*> interface_compilers_;
 
     // JIT State:
     ThreadPool pool_;
-    size_t seq_compile_;
-    size_t seq_build_;
 
     // Error State:
     std::mutex lock_;
     std::string what_;
 
-    // Helper Class: Checks whether a module is a stub: a module with no inputs
-    // or outputs, and no side-effects.
-    // 
-    // TODO: This class has bit-rotted
+    // Checks whether a module is a stub: a module with no inputs or outputs,
+    // and no runtime-visible side-effects.
     class StubCheck : public Visitor {
       public:
         ~StubCheck() override = default;
@@ -125,6 +115,9 @@ class Compiler {
         bool stub_;
         void visit(const InitialConstruct* ic) override;
         void visit(const FinishStatement* fs) override;
+        void visit(const RestartStatement* rs) override;
+        void visit(const RetargetStatement* rs) override;
+        void visit(const SaveStatement* ss) override;
     };    
 };
 

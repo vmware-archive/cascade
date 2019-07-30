@@ -42,6 +42,9 @@ namespace cascade {
 class Cascade : public std::iostream {
   public:
     // Constructors:
+    //
+    // Only simple construciton is allowed. All other methods of construction
+    // are explicitly forbidden.
     Cascade();
     Cascade(const Cascade& rhs) = delete;
     Cascade(Cascade&& rhs) = delete;
@@ -50,6 +53,9 @@ class Cascade : public std::iostream {
     ~Cascade();
 
     // Configuration Methods:
+    //
+    // These methods should only be called prior to the first invocation of
+    // run.  Inoking any of these methods afterwards is undefined.
     Cascade& set_include_dirs(const std::string& path);
     Cascade& set_enable_inlining(bool enable);
     Cascade& set_open_loop_target(size_t n);

@@ -33,12 +33,7 @@
 #include <cassert>
 #include "runtime/data_plane.h"
 #include "runtime/runtime.h"
-#include "target/core/de10/de10_compiler.h"
-#include "target/core/proxy/proxy_compiler.h"
-#include "target/core/sw/sw_compiler.h"
 #include "target/engine.h"
-#include "target/interface/local/local_compiler.h"
-#include "target/interface/remote/remote_compiler.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
@@ -50,99 +45,52 @@ using namespace std;
 namespace cascade {
 
 Compiler::Compiler() {
-  de10_compiler_ = nullptr;
-  proxy_compiler_ = nullptr;
-  sw_compiler_ = nullptr;
-
-  local_compiler_ = nullptr;
-  remote_compiler_ = nullptr;
-
   // We only really need two jit threads, one for the current background job,
-  // and a second to preempt it if necessary before it finishes. But since
-  // there's startup and shutdown costs associated with threads, let's double
-  // provision.
-  pool_.stop_now();
+  // and a second to preempt it if necessary before it finishes. We
+  // double-provision for the sake of performance, as there is shutdown cost
+  // associated with aborting compilations.
   pool_.set_num_threads(4);
   pool_.run();
-
-  seq_compile_ = 1;
-  seq_build_ = 0;
 }
 
 Compiler::~Compiler() {
-  if (de10_compiler_ != nullptr) {
-    de10_compiler_->abort();
+  for (auto& cc : core_compilers_) {
+    cc.second->abort();
   }
-  if (proxy_compiler_ != nullptr) {
-    proxy_compiler_->abort();
+  for (auto& ic : interface_compilers_) {
+    ic.second->abort();
   }
-  if (sw_compiler_ != nullptr) {
-    sw_compiler_->abort();
-  }
-  if (local_compiler_ != nullptr) {
-    local_compiler_->abort();
-  }
-  if (remote_compiler_ != nullptr) {
-    remote_compiler_->abort();
-  }
-
   pool_.stop_now();
-
-  if (de10_compiler_ != nullptr) {
-    delete de10_compiler_;
+  for (auto& cc : core_compilers_) {
+    delete cc.second;
   }
-  if (proxy_compiler_ != nullptr) {
-    delete proxy_compiler_;
-  }
-  if (sw_compiler_ != nullptr) {
-    delete sw_compiler_;
-  }
-  if (local_compiler_ != nullptr) {
-    delete local_compiler_;
-  }
-  if (remote_compiler_ != nullptr) {
-    delete remote_compiler_;
+  for (auto& ic : interface_compilers_) {
+    delete ic.second;
   }
 }
 
-Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
-  assert(de10_compiler_ == nullptr);
+Compiler& Compiler::set_core_compiler(const string& id, CoreCompiler* c) {
+  assert(core_compilers_.find(id) == core_compilers_.end());
   assert(c != nullptr);
-  de10_compiler_ = c;
-  de10_compiler_->set_compiler(this);
+  core_compilers_[id] = c;
   return *this;
 }
 
-Compiler& Compiler::set_proxy_compiler(ProxyCompiler* c) {
-  assert(proxy_compiler_ == nullptr);
+Compiler& Compiler::set_interface_compiler(const string& id, InterfaceCompiler* c) {
+  assert(interface_compilers_.find(id) == interface_compilers_.end());
   assert(c != nullptr);
-  proxy_compiler_ = c;
-  proxy_compiler_->set_compiler(this);
+  interface_compilers_[id] = c;
   return *this;
 }
 
-Compiler& Compiler::set_sw_compiler(SwCompiler* c) {
-  assert(sw_compiler_ == nullptr);
-  assert(c != nullptr);
-  sw_compiler_ = c;
-  sw_compiler_->set_compiler(this);
-  return *this;
+CoreCompiler* Compiler::get_core_compiler(const std::string& id) {
+  const auto itr = core_compilers_.find(id);
+  return (itr == core_compilers_.end()) ? nullptr : itr->second;
 }
 
-Compiler& Compiler::set_local_compiler(LocalCompiler* c) {
-  assert(local_compiler_ == nullptr);
-  assert(c != nullptr);
-  local_compiler_ = c;
-  local_compiler_->set_compiler(this);
-  return *this;
-}
-
-Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
-  assert(remote_compiler_ == nullptr);
-  assert(c != nullptr);
-  remote_compiler_ = c;
-  remote_compiler_->set_compiler(this);
-  return *this;
+InterfaceCompiler* Compiler::get_interface_compiler(const std::string& id) {
+  const auto itr = interface_compilers_.find(id);
+  return (itr == interface_compilers_.end()) ? nullptr : itr->second;
 }
 
 Engine* Compiler::compile(ModuleDeclaration* md) {
@@ -154,26 +102,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   const auto* loc = md->get_attrs()->get<String>("__loc");
   const auto* target = md->get_attrs()->get<String>("__target");
 
-  InterfaceCompiler* ic = nullptr;
-  if (loc != nullptr && loc->eq("remote")) {
-    ic = remote_compiler_; 
-  } else {
-    ic = local_compiler_;
-  }
-
-  CoreCompiler* cc = nullptr;
-  if (loc != nullptr && !loc->eq("runtime") && !loc->eq("remote")) {
-    cc = proxy_compiler_;      
-  } else if (target->eq("de10")) {
-    cc = de10_compiler_; 
-  } else if (target->eq("sw")) {
-    cc = sw_compiler_;
-  } else {
-    error("Unable to compile module with unsupported target type " + target->get_readable_val());
-    delete md;
-    return nullptr;
-  }
-
+  auto* ic = (loc->get_readable_val() == "remote") ? get_interface_compiler("remote") : get_interface_compiler("local");
   if (ic == nullptr) {
     error("Unable to locate the required interface compiler");
     delete md;
@@ -181,11 +110,11 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   }
   auto* i = ic->compile(md);
   if (i == nullptr) {
-    // No need to attach an error message here, ic will already have done so if necessary.
     delete md;
     return nullptr;
   }
 
+  auto* cc = get_core_compiler(target->get_readable_val());
   if (cc == nullptr) {
     error("Unable to locate the required core compiler");
     delete md;
@@ -193,7 +122,6 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   }
   auto* c = cc->compile(i, md);
   if (c == nullptr) {
-    // No need to attach an error message here, cc will already have done so if necessary.
     delete i;
     return nullptr;
   }
@@ -321,6 +249,21 @@ void Compiler::StubCheck::visit(const InitialConstruct* ic) {
 
 void Compiler::StubCheck::visit(const FinishStatement* fs) {
   (void) fs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const RestartStatement* rs) {
+  (void) rs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const RetargetStatement* rs) {
+  (void) rs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const SaveStatement* ss) {
+  (void) ss;
   stub_ = false;
 }
 

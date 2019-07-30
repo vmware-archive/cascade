@@ -70,11 +70,11 @@ inline LocalInterface::LocalInterface(Runtime* rt) : Interface() {
 }
 
 inline void LocalInterface::write(VId id, const Bits* b) {
-  rt_->write(id, b);
+  rt_->get_data_plane()->write(id, b);
 }
 
 inline void LocalInterface::write(VId id, bool b) {
-  rt_->write(id, b);
+  rt_->get_data_plane()->write(id, b);
 }
 
 inline void LocalInterface::finish(uint32_t arg) {

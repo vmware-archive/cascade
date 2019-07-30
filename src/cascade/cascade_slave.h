@@ -39,6 +39,9 @@ namespace cascade {
 class CascadeSlave {
   public:
     // Constructors:
+    //
+    // Only simple construciton is allowed. All other methods of construction
+    // are explicitly forbidden.
     CascadeSlave();
     CascadeSlave(const CascadeSlave& rhs) = delete;
     CascadeSlave(CascadeSlave&& rhs) = delete;
@@ -47,6 +50,9 @@ class CascadeSlave {
     ~CascadeSlave();
 
     // Configuration Methods:
+    //
+    // These methods should only be called prior to the first invocation of
+    // run.  Inoking any of these methods afterwards is undefined.
     CascadeSlave& set_listeners(const std::string& path, size_t port);
     CascadeSlave& set_quartus_server(const std::string& host, size_t port);
 

@@ -57,9 +57,9 @@ namespace cascade {
 Runtime::Runtime() : Thread() {
   log_ = new Log();
   parser_ = new Parser(log_);
+  compiler_ = new Compiler();
   dp_ = new DataPlane();
   isolate_ = new Isolate();
-  compiler_ = new Compiler();
 
   program_ = new Program();
   root_ = nullptr;
@@ -94,19 +94,13 @@ Runtime::~Runtime() {
 
   delete log_;
   delete parser_;
+  delete compiler_;
   delete dp_;
   delete isolate_;
-  delete compiler_;
 
   for (auto* s : streambufs_) {
     delete s;
   }
-}
-
-Runtime& Runtime::set_compiler(Compiler* c) {
-  delete compiler_;
-  compiler_ = c;
-  return *this;
 }
 
 Runtime& Runtime::set_include_dirs(const string& s) {
@@ -128,6 +122,18 @@ Runtime& Runtime::set_profile_interval(size_t n) {
   profile_interval_ = n;
   last_check_ = ::time(nullptr);
   return *this;
+}
+
+DataPlane* Runtime::get_data_plane() {
+  return dp_;
+}
+
+Compiler* Runtime::get_compiler() {
+  return compiler_;
+}
+
+Isolate* Runtime::get_isolate() {
+  return isolate_;
 }
 
 pair<bool, bool> Runtime::eval(istream& is) {
@@ -208,14 +214,6 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
 
 bool Runtime::is_finished() const {
   return finished_;
-}
-
-void Runtime::write(VId id, const Bits* bits) {
-  dp_->write(id, bits);
-}
-
-void Runtime::write(VId id, bool b) {
-  dp_->write(id, b);
 }
 
 void Runtime::finish(uint32_t arg) {
@@ -500,7 +498,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
   // Otherwise, count this as an item instantiated within the root.
   const auto* src = program_->root_elab()->second;
   if (src->size_items() == 6) {
-    root_ = new Module(src, this, dp_, isolate_, compiler_);
+    root_ = new Module(src, this);
     item_evals_ = 6;
   } else {
     ++item_evals_;

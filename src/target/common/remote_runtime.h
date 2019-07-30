@@ -47,14 +47,15 @@ class RemoteRuntime : public Thread {
     RemoteRuntime();
     ~RemoteRuntime() override;
 
-    RemoteRuntime& set_compiler(Compiler* c);
     RemoteRuntime& set_path(const std::string& p);
     RemoteRuntime& set_port(uint32_t p);
 
+    Compiler* get_compiler();
+
   private:
-    Compiler* compiler_;
     std::string path_;
     uint32_t port_;
+    Compiler* compiler_;
 
     // Thread Interface:
     void run_logic() override;

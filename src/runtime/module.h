@@ -40,10 +40,7 @@
 
 namespace cascade {
 
-class Compiler;
-class DataPlane;
 class Engine;
-class Isolate;
 class Runtime;
 
 class Module {
@@ -65,7 +62,7 @@ class Module {
     };
 
     // Constructors:
-    Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolate* isolate, Compiler* compiler);
+    Module(const ModuleDeclaration* psrc, Runtime* rt);
     ~Module();
 
     // Runtime Interface:
@@ -118,9 +115,6 @@ class Module {
 
     // Runtime State:
     Runtime* rt_;
-    DataPlane* dp_;
-    Isolate* isolate_;
-    Compiler* compiler_;
 
     // Implementation State:
     ModuleDeclaration* src_;
