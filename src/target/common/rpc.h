@@ -86,9 +86,12 @@ struct Rpc : Serializable {
     SPUTC,
     SPUTN,
 
+    // Registration Codes:
+    REGISTER_CONNECTION,
+
     // Teardown Codes:
-    ENGINE_TEARDOWN,
-    CONNECTION_TEARDOWN
+    TEARDOWN_ENGINE,
+    TEARDOWN_CONNECTION
   };
   typedef uint32_t Id;
 

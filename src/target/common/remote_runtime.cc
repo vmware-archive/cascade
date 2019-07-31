@@ -31,6 +31,7 @@
 #include "target/common/remote_runtime.h"
 
 #include <cassert>
+#include <unordered_map>
 #include <vector>
 #include "common/log.h"
 #include "common/sockserver.h"
@@ -90,17 +91,20 @@ void RemoteRuntime::run_logic() {
   auto max_fd = max(tl.descriptor(), ul.descriptor());
 
   vector<sockstream*> socks(max_fd+1, nullptr);
+  unordered_map<Rpc::Id, sockstream*> sock_ids;
   vector<Engine*> engines;
 
   while (!stop_requested()) {
     read_set = master_set;
     select(max_fd+1, &read_set, nullptr, nullptr, &timeout);
     for (auto i = 0; i <= max_fd; ++i) {
-      // Not ready
+      
+      // Not ready; nothing to do
       if (!FD_ISSET(i, &read_set)) {
         continue;
       }
-      // Listener
+
+      // Listener logic: New connections are added to the read set
       if ((i == tl.descriptor()) || (i == ul.descriptor())) {
         auto* sock = (i == tl.descriptor()) ? tl.accept() : ul.accept();
         const auto fd = sock->descriptor();
@@ -112,17 +116,22 @@ void RemoteRuntime::run_logic() {
         socks[fd] = sock;
         continue;
       }
-      // Client
+
+      // Client: Grab the socket associated with this fd and handle the request
       auto* sock = socks[i];
       do {
         Rpc rpc;
         rpc.deserialize(*sock);
         switch (rpc.type_) {
-          // Compiler ABI:
+
+          // Compiler ABI: Compile requests are handled in separate threads
+          // so that other requests aren't blocked.
           case Rpc::Type::COMPILE: {
+            const auto itr = sock_ids.find(rpc.id_);
+            assert(itr != sock_ids.end());
             const Rpc::Id id = engines.size();
             auto* rc = static_cast<RemoteCompiler*>(compiler_->get_interface_compiler("remote"));
-            rc->set_sock(sock);
+            rc->set_sock(itr->second);
             rc->set_id(id);
             if (auto* e = compile(sock)) {
               engines.push_back(e);
@@ -132,6 +141,10 @@ void RemoteRuntime::run_logic() {
               Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
               sock->flush();
             }
+            delete sock;
+            sock = nullptr;
+            socks[i] = nullptr;
+            FD_CLR(i, &master_set);
             break;
           }
 
@@ -185,21 +198,34 @@ void RemoteRuntime::run_logic() {
             open_loop(sock, rpc.id_, engines[rpc.id_]);
             break;
 
+          // Registration Codes:
+          case Rpc::Type::REGISTER_CONNECTION: {
+            assert(sock_ids.find(rpc.id_) == sock_ids.end());
+            const auto id = sock_ids.size();
+            sock_ids.insert(make_pair(id, sock));
+            Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+            sock->flush();
+            break;
+          }
+
           // Teardown Codes:
-          case Rpc::Type::ENGINE_TEARDOWN:
+          case Rpc::Type::TEARDOWN_ENGINE: {
             delete engines[rpc.id_];
             Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
             sock->flush();
             engines[rpc.id_] = nullptr;
             break;
-          case Rpc::Type::CONNECTION_TEARDOWN:
+          }
+          case Rpc::Type::TEARDOWN_CONNECTION: {
             Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
             sock->flush();
             delete sock;
             sock = nullptr;
             socks[i] = nullptr;
+            sock_ids.erase(rpc.id_);
             FD_CLR(i, &master_set);
             break;  
+          }
 
           // Control reaches here innocuosly when fd is closed remotely after
           // receiving confirmation that the connection was torn down.
@@ -218,6 +244,7 @@ void RemoteRuntime::run_logic() {
       delete s;
     }
   }
+  assert(sock_ids.empty());
 }
 
 Engine* RemoteRuntime::compile(sockstream* sock) {

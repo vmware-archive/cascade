@@ -50,7 +50,7 @@ class ProxyCompiler : public CoreCompiler {
     void abort() override;
 
   private:
-    std::unordered_map<std::string, sockstream*> socks_;
+    std::unordered_map<std::string, std::pair<Rpc::Id, sockstream*>> socks_;
 
     // Core Compiler Interface:
     Clock* compile_clock(Interface* interface, ModuleDeclaration* md) override;
@@ -67,36 +67,53 @@ class ProxyCompiler : public CoreCompiler {
     template <typename T>
     ProxyCore<T>* generic_compile(Interface* interface, ModuleDeclaration* md);
 
-    sockstream* get_sock(const ModuleDeclaration* md);
-    sockstream* get_tcp_sock(const ModuleDeclaration* md);
-    sockstream* get_unix_sock(const ModuleDeclaration* md);
+    std::pair<Rpc::Id, sockstream*> get_persistent_sock(const std::string& loc);
+    sockstream* get_temp_sock(const std::string& loc);
+    sockstream* get_tcp_sock(const std::string& loc);
+    sockstream* get_unix_sock(const std::string& loc);
 };
 
 template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
-  // Create socket connection based on __loc annotation
-  auto* sock = get_sock(md);
-  if (sock == nullptr) {
+  // Look up the loc annotation on this module
+  const auto& loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+
+  // Grab a persistent socket connection to the remote runtime at this address.
+  auto psock = get_persistent_sock(loc);
+  if (psock.second == nullptr) {
     error("Unable to establish connection with slave runtime");
     delete md;
     return nullptr;
   }
 
-  // Change __loc attribute to "remote" and send compile rpc
+  // Open up a temporary socket connection to the remote runtime. Compilations
+  // Use a separate connection so that they don't block ABI requests while 
+  // running in the background.
+  auto* tsock = get_temp_sock(loc);
+  if (tsock == nullptr) {
+    error("Unable to establish connection with slave runtime");
+    delete md;
+    return nullptr;
+  }
+
+  // Change __loc attribute to "remote" and send compile rpc. This is a
+  // blocking request in this thread, but it won't block the remote runtime.
   md->get_attrs()->set_or_replace("__loc", new String("remote"));
-  Rpc(Rpc::Type::COMPILE, 0).serialize(*sock);
-  TextPrinter(*sock) << md << "\n";
+  Rpc(Rpc::Type::COMPILE, psock.first).serialize(*tsock);
+  TextPrinter(*tsock) << md << "\n";
   delete md;
-  sock->flush();
+  tsock->flush();
 
   Rpc res;
-  res.deserialize(*sock);
+  res.deserialize(*tsock);
+  delete tsock;
+
   if (res.type_ == Rpc::Type::FAIL) {
     // TODO(eschkufz) Forward error messages from slave runtime to here
     error("An unhandled error occured during compilation in the slave runtime");
     return nullptr;
   }
-  return new ProxyCore<T>(interface, res.id_, sock);
+  return new ProxyCore<T>(interface, res.id_, psock.second);
 }
 
 } // namespace cascade

@@ -40,12 +40,13 @@ ProxyCompiler::ProxyCompiler() : CoreCompiler() { }
 
 ProxyCompiler::~ProxyCompiler() {
   for (auto& s : socks_) {
-    Rpc(Rpc::Type::CONNECTION_TEARDOWN, 0).serialize(*s.second);
-    s.second->flush();
+    auto* sock = s.second.second;
+    Rpc(Rpc::Type::TEARDOWN_CONNECTION, s.second.first).serialize(*sock);
+    sock->flush();
     Rpc rpc;
-    rpc.deserialize(*s.second);
+    rpc.deserialize(*sock);
     assert(rpc.type_ == Rpc::Type::OKAY);
-    delete s.second;
+    delete sock;
   }
 }
 
@@ -81,37 +82,52 @@ Logic* ProxyCompiler::compile_logic(Interface* interface, ModuleDeclaration* md)
   return generic_compile<Logic>(interface, md);
 }
 
-sockstream* ProxyCompiler::get_sock(const ModuleDeclaration* md) {
-  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+pair<Rpc::Id, sockstream*> ProxyCompiler::get_persistent_sock(const string& loc) {
+  // Check whether we already have a persistent socket for this location.
   const auto itr = socks_.find(loc);
   if (itr != socks_.end()) {
     return itr->second;
   }
 
-  auto* sock = (loc.find(':') != string::npos) ? get_tcp_sock(md) : get_unix_sock(md);
-  if (sock->error()) {
-    delete sock;
-    return nullptr; 
+  // Otherwise create a new socket. If creation fails, return nullptr.
+  auto* sock = get_temp_sock(loc);
+  if (sock == nullptr) {
+    return make_pair(0, nullptr); 
   }
 
-  socks_.insert(make_pair(loc, sock));
+  // We have a working socket, so now let's register it.
+  Rpc(Rpc::Type::REGISTER_CONNECTION, 0).serialize(*sock);
+  sock->flush();
+  Rpc rpc;
+  rpc.deserialize(*sock);
+  assert(rpc.type_ == Rpc::Type::OKAY);
+
+  // The inbound id attached to this reply is the persistent connection id for
+  // this socket. Record this and the socket in the socket table.
+  const auto res = make_pair(rpc.id_, sock);
+  socks_.insert(make_pair(loc, res));
+  return res;
+}
+
+sockstream* ProxyCompiler::get_temp_sock(const string& loc) {
+  auto* sock = (loc.find(':') != string::npos) ? get_tcp_sock(loc) : get_unix_sock(loc);
+  if (sock->error()) {
+    delete sock;
+    return nullptr;
+  }
   return sock;
 }
 
-sockstream* ProxyCompiler::get_tcp_sock(const ModuleDeclaration* md) {
-  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+sockstream* ProxyCompiler::get_tcp_sock(const string& loc) {
   stringstream ss(loc);
-
   string host;
   uint32_t port;
   getline(ss, host, ':');
   ss >> port;
-
   return new sockstream(host.c_str(), port);
 }
 
-sockstream* ProxyCompiler::get_unix_sock(const ModuleDeclaration* md) {
-  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+sockstream* ProxyCompiler::get_unix_sock(const string& loc) {
   return new sockstream(loc.c_str()); 
 }
 
