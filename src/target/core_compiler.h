@@ -33,6 +33,7 @@
 
 #include <stddef.h>
 #include <string>
+#include "common/uuid.h"
 #include "runtime/ids.h"
 #include "target/core.h"
 #include "verilog/ast/ast_fwd.h"
@@ -56,10 +57,12 @@ class CoreCompiler {
     // Returns a target-specific implementation of a module core or nullptr to
     // indicate an aborted compilation. This method dispatches control to the
     // protected methods below based on the value of the __std annotation. 
-    Core* compile(Interface* interface, ModuleDeclaration* md);
-    // This method must force any invocations of compile() to stop running
-    // and return nullptr in a 'reasonably short' amount of time.
-    virtual void abort() = 0;
+    Core* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    // This method must force any invocation of compile() for uuid to stop
+    // running and return nullptr in a 'reasonably short' amount of time.
+    virtual void abort(const Uuid& uuid) = 0;
+    // Invokes abort for all outstanding compilations
+    void abort_all();
 
   protected:
     // These methods may be overriden to provide a target-specific
@@ -70,13 +73,13 @@ class CoreCompiler {
     // implementation strategy is available. The compile_custom() method is
     // invoked whenever a Compiler is presented with a user-defined __std
     // annotation.
-    virtual Clock* compile_clock(Interface* interface, ModuleDeclaration* md);
-    virtual Custom* compile_custom(Interface* interface, ModuleDeclaration* md);
-    virtual Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md);
-    virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
-    virtual Pad* compile_pad(Interface* interface, ModuleDeclaration* md);
-    virtual Reset* compile_reset(Interface* interface, ModuleDeclaration* md);
-    virtual Logic* compile_logic(Interface* interface, ModuleDeclaration* md);
+    virtual Clock* compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Custom* compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Gpio* compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Led* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Pad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Reset* compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Logic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
 
     // Logs an error message explaining why the most recent compilation failed.
     // This method is thread safe.

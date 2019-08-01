@@ -93,14 +93,19 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
   sock.get();
 }
 
-void De10Compiler::abort() {
+void De10Compiler::abort(const Uuid& uuid) {
+  (void) uuid;
+
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
   sock.flush();
   sock.get();
 }
 
-De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
+De10Gpio* De10Compiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (virtual_base_ == MAP_FAILED) {
     error("De10 gpio compilation failed due to inability to memory map device");
     delete md;
@@ -124,7 +129,10 @@ De10Gpio* De10Compiler::compile_gpio(Interface* interface, ModuleDeclaration* md
   }
 }
 
-De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) {
+De10Led* De10Compiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (virtual_base_ == MAP_FAILED) {
     error("De10 led compilation failed due to inability to memory map device");
     delete md;
@@ -148,28 +156,10 @@ De10Led* De10Compiler::compile_led(Interface* interface, ModuleDeclaration* md) 
   }
 }
 
-De10Pad* De10Compiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
-  if (virtual_base_ == MAP_FAILED) {
-    error("De10 pad compilation failed due to inability to memory map device");
-    delete md;
-    return nullptr;
-  }
-  if (!check_io(md, 0, 4)) {
-    error("Unable to compile a de10 pad with more than 4 inputs");
-    delete md;
-    return nullptr;
-  }
+De10Logic* De10Compiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
 
-  volatile uint8_t* pad_addr = virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK);
-  const auto* out = *ModuleInfo(md).outputs().begin();
-  const auto id = to_vid(out);
-  const auto w = Evaluate().get_width(out);
-  delete md;
-
-  return new De10Pad(interface, id, w, pad_addr);
-}
-
-De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
   // Connect to quartus server
   sockstream sock1(host_.c_str(), port_);
   if (sock1.error()) {
@@ -245,6 +235,30 @@ De10Logic* De10Compiler::compile_logic(Interface* interface, ModuleDeclaration* 
   sock3.flush();
   delete de;
   return nullptr;
+}
+
+De10Pad* De10Compiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
+  if (virtual_base_ == MAP_FAILED) {
+    error("De10 pad compilation failed due to inability to memory map device");
+    delete md;
+    return nullptr;
+  }
+  if (!check_io(md, 0, 4)) {
+    error("Unable to compile a de10 pad with more than 4 inputs");
+    delete md;
+    return nullptr;
+  }
+
+  volatile uint8_t* pad_addr = virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK);
+  const auto* out = *ModuleInfo(md).outputs().begin();
+  const auto id = to_vid(out);
+  const auto w = Evaluate().get_width(out);
+  delete md;
+
+  return new De10Pad(interface, id, w, pad_addr);
 }
 
 } // namespace cascade

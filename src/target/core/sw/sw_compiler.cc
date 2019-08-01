@@ -40,15 +40,9 @@ using namespace std;
 namespace cascade {
 
 SwCompiler::SwCompiler() : CoreCompiler() { 
-  set_include_dirs("");
   set_led(nullptr, nullptr);
   set_pad(nullptr, nullptr);
   set_reset(nullptr, nullptr);
-}
-
-SwCompiler& SwCompiler::set_include_dirs(const std::string& s) {
-  include_dirs_ = s;
-  return *this;
 }
 
 SwCompiler& SwCompiler::set_led(Bits* b, mutex* l) {
@@ -69,11 +63,15 @@ SwCompiler& SwCompiler::set_reset(Bits* b, mutex* l) {
   return *this;
 }
 
-void SwCompiler::abort() {
+void SwCompiler::abort(const Uuid& uuid) {
   // Does nothing.
+  (void) uuid;
 }
 
-SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
+SwClock* SwCompiler::compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (!check_io(md, 0, 1)) {
     error("Unable to compile a software clock with more than one output");
     delete md;
@@ -87,7 +85,10 @@ SwClock* SwCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) 
   return new SwClock(interface, id);
 }
 
-SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
+SwLed* SwCompiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (led_ == nullptr) {
     error("Unable to compile a software led without a reference to a software fpga");
     delete md;
@@ -111,7 +112,10 @@ SwLed* SwCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
   }
 }
 
-SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
+SwLogic* SwCompiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   ModuleInfo info(md);
   auto* c = new SwLogic(interface, md);
   for (auto* i : info.inputs()) {
@@ -126,7 +130,10 @@ SwLogic* SwCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) 
   return c;
 } 
 
-SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
+SwPad* SwCompiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (pad_ == nullptr) {
     error("Unable to compile a software pad without a reference to a software fpga");
     delete md;
@@ -146,7 +153,10 @@ SwPad* SwCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
   return new SwPad(interface, id, w, pad_, pad_lock_);
 }
 
-SwReset* SwCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) {
+SwReset* SwCompiler::compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   if (pad_ == nullptr) {
     error("Unable to compile a software reset without a reference to a software fpga");
     delete md;

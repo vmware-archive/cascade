@@ -120,6 +120,53 @@ Module::~Module() {
   delete engine_;
 }
 
+Module::iterator Module::begin() {
+  return iterator(this); 
+}
+
+Module::iterator Module::end() {
+  return iterator();
+}
+
+Engine* Module::engine() {
+  return engine_;
+}
+
+void Module::synchronize(size_t n) {
+  // Examine new code and instantiate new modules below the root 
+  Instantiator inst(this);
+  const auto idx = psrc_->size_items() - n;
+  for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
+    (*i)->accept(&inst);
+  }
+  // Recompile everything 
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
+    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
+    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
+    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->uuid_, (*i)->version_, (*i)->src_, iid);
+    (*i)->src_ = nullptr;
+    if (rt_->get_compiler()->error()) {
+      return;
+    }
+  }
+  // Synchronize subscriptions with the dataplane. Note that we do this *after*
+  // recompilation.  This guarantees that the variable names used by
+  // Isolate::isolate() are deterministic.
+  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
+    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
+      const auto gid = rt_->get_isolate()->isolate(r);
+      rt_->get_data_plane()->register_id(gid);
+      rt_->get_data_plane()->register_writer((*i)->engine_, gid);
+    }
+    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
+      const auto gid = rt_->get_isolate()->isolate(w);
+      rt_->get_data_plane()->register_id(gid);
+      rt_->get_data_plane()->register_reader((*i)->engine_, gid);
+    }
+  }
+}
+
 void Module::restart(std::istream& is) {
   // Read save file
   size_t n = 0;
@@ -176,7 +223,7 @@ void Module::rebuild() {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->src_ = (*i)->regenerate_ir_source(ignore);
     const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
+    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->uuid_, (*i)->version_, (*i)->src_, iid);
     (*i)->src_ = nullptr;
     if (rt_->get_compiler()->error()) {
       return;
@@ -211,53 +258,6 @@ void Module::save(ostream& os) {
     state->write(os, 16);
     delete state;
   }
-}
-
-void Module::synchronize(size_t n) {
-  // Examine new code and instantiate new modules below the root 
-  Instantiator inst(this);
-  const auto idx = psrc_->size_items() - n;
-  for (auto i = psrc_->begin_items()+idx, ie = psrc_->end_items(); i != ie; ++i) {
-    (*i)->accept(&inst);
-  }
-  // Recompile everything 
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
-    (*i)->src_ = (*i)->regenerate_ir_source(ignore);
-    const auto* iid = static_cast<const ModuleInstantiation*>((*i)->psrc_->get_parent())->get_iid();
-    rt_->get_compiler()->compile_and_replace(rt_, (*i)->engine_, (*i)->version_, (*i)->src_, iid);
-    (*i)->src_ = nullptr;
-    if (rt_->get_compiler()->error()) {
-      return;
-    }
-  }
-  // Synchronize subscriptions with the dataplane. Note that we do this *after*
-  // recompilation.  This guarantees that the variable names used by
-  // Isolate::isolate() are deterministic.
-  for (auto i = iterator(this), ie = end(); i != ie; ++i) {
-    for (auto* r : ModuleInfo((*i)->psrc_).reads()) {
-      const auto gid = rt_->get_isolate()->isolate(r);
-      rt_->get_data_plane()->register_id(gid);
-      rt_->get_data_plane()->register_writer((*i)->engine_, gid);
-    }
-    for (auto* w : ModuleInfo((*i)->psrc_).writes()) {
-      const auto gid = rt_->get_isolate()->isolate(w);
-      rt_->get_data_plane()->register_id(gid);
-      rt_->get_data_plane()->register_reader((*i)->engine_, gid);
-    }
-  }
-}
-
-Module::iterator Module::begin() {
-  return iterator(this); 
-}
-
-Module::iterator Module::end() {
-  return iterator();
-}
-
-Engine* Module::engine() {
-  return engine_;
 }
 
 Module::Instantiator::Instantiator(Module* ptr) {
@@ -306,6 +306,11 @@ void Module::Instantiator::visit(const ModuleInstantiation* mi) {
   ptr_ = child->parent_;
 }
 
+Module::Module(const ModuleDeclaration* psrc, Module* parent) :
+  Module(psrc, parent->rt_) {
+  parent_ = parent;
+}
+
 ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
   auto* md = rt_->get_isolate()->isolate(psrc_, ignore);
   const auto* std = md->get_attrs()->get<String>("__std");
@@ -322,11 +327,6 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
     BlockFlatten().run(md);
   }
   return md;
-}
-
-Module::Module(const ModuleDeclaration* psrc, Module* parent) :
-  Module(psrc, parent->rt_) {
-  parent_ = parent;
 }
 
 } // namespace cascade

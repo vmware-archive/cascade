@@ -35,6 +35,7 @@
 #include <iosfwd>
 #include <stddef.h>
 #include <vector>
+#include "common/uuid.h"
 #include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -49,14 +50,12 @@ class Module {
       friend class Module;
       public:
         Module* operator*() const;
-
         iterator& operator++();
         bool operator==(const iterator& rhs) const;
         bool operator!=(const iterator& rhs) const;
 
       private:
         std::forward_list<Module*> path_;
-
         iterator();
         explicit iterator(Module* m);
     };
@@ -65,38 +64,30 @@ class Module {
     Module(const ModuleDeclaration* psrc, Runtime* rt);
     ~Module();
 
-    // Runtime Interface:
-    // 
-    // Reads the state of the module hierarchy from an istream. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    // Note: This method makes no attempt to check whether the file that it
-    // reads is a good match to its internal state.
-    void restart(std::istream& is);
-    // Forces a recompilation of the entire module hierarchy. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    void rebuild();
-    // Dumps the state of the module hierarchy to an ostream. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    void save(std::ostream& os);
+    // Hierarchy Interface:
+    iterator begin();
+    iterator end();
+
+    // Attribute Interface:
+    Engine* engine();
+
     // Synchronizes the module hierarchy with changes which have been made to
     // the ast since the previous invocation of synchronize. n is the number of
     // items which have been added to the top-level module in the interim.
     void synchronize(size_t n);
 
-    // Hierarchy Interface:
+    // System Task Interface:
     // 
-    // Returns the first element in a depth-first traversal of the hierarchy.
-    iterator begin();
-    // Returns the last element in a depth-first traversal of the hierarchy.
-    iterator end();
-
-    // Attribute Interface:
-    // 
-    // Returns the engine associated with this module.
-    Engine* engine();
+    // These methods should only be called in a state where synchronize has
+    // been invoked and no further changes have been made to the program. These
+    // methods do not check the soundness of the files they manipulate.
+    //
+    // Reads the state of the module hierarchy from an istream. 
+    void restart(std::istream& is);
+    // Forces a recompilation of the entire module hierarchy.
+    void rebuild();
+    // Dumps the state of the module hierarchy to an ostream. 
+    void save(std::ostream& os);
 
   private:
     // Instantiation Helper Class:
@@ -119,6 +110,7 @@ class Module {
     // Implementation State:
     ModuleDeclaration* src_;
     Engine* engine_;
+    Uuid uuid_;
     size_t version_;
 
     // Hierarchical State:
@@ -126,15 +118,9 @@ class Module {
     Module* parent_;
     std::vector<Module*> children_;
 
-    // Compilation Helpers:
-    //
-    // Generates ir source for this module.  Initial statements which appear
-    // within the first 'ignore' items of this module are masked as ignored.
-    // The caller of this method assumes ownership of the resulting code.
-    ModuleDeclaration* regenerate_ir_source(size_t ignore);
-
-    // Constructors:
+    // Helper Methods:
     Module(const ModuleDeclaration* psrc, Module* parent);
+    ModuleDeclaration* regenerate_ir_source(size_t ignore);
 };
 
 } // namespace cascade

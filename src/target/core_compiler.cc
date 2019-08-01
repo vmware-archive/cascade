@@ -49,33 +49,44 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
   return *this;
 }
 
-Core* CoreCompiler::compile(Interface* interface, ModuleDeclaration* md) {
+Core* CoreCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
-    return compile_clock(interface, md); 
+    return compile_clock(uuid, version, md, interface);
   } else if (std->eq("gpio")) {
-    return compile_gpio(interface, md);
+    return compile_gpio(uuid, version, md, interface);
   } else if (std->eq("led")) {
-    return compile_led(interface, md);
+    return compile_led(uuid, version, md, interface);
   } else if (std->eq("logic")) {
-    return compile_logic(interface, md);
+    return compile_logic(uuid, version, md, interface);
   } else if (std->eq("pad")) {
-    return compile_pad(interface, md);
+    return compile_pad(uuid, version, md, interface);
   } else if (std->eq("reset")) {
-    return compile_reset(interface, md);
+    return compile_reset(uuid, version, md, interface);
   } else {
-    return compile_custom(interface, md);
+    return compile_custom(uuid, version, md, interface);
   }
 }
 
-Clock* CoreCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
+void CoreCompiler::abort_all() {
+  // TODO(eschkufz) implement this
+}
+
+Clock* CoreCompiler::compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type clock");
   return nullptr;
 }
 
-Custom* CoreCompiler::compile_custom(Interface* interface, ModuleDeclaration* md) {
+Custom* CoreCompiler::compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
 
   const auto* std = md->get_attrs()->get<String>("__std");
@@ -86,35 +97,45 @@ Custom* CoreCompiler::compile_custom(Interface* interface, ModuleDeclaration* md
   return nullptr;
 }
 
-Gpio* CoreCompiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
+Gpio* CoreCompiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type gpio");
   return nullptr;
 }
 
-Led* CoreCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
+Led* CoreCompiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type led");
   return nullptr;
 }
 
-Pad* CoreCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
+Pad* CoreCompiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type pad");
   return nullptr;
 }
 
-Reset* CoreCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) {
+Reset* CoreCompiler::compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type reset");
   return nullptr;
 }
 
-Logic* CoreCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
+Logic* CoreCompiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type logic");

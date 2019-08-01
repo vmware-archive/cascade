@@ -47,25 +47,25 @@ class ProxyCompiler : public CoreCompiler {
     ProxyCompiler();
     ~ProxyCompiler() override;
 
-    void abort() override;
+    void abort(const Uuid& uuid) override;
 
   private:
     std::unordered_map<std::string, std::pair<Rpc::Id, sockstream*>> socks_;
 
     // Core Compiler Interface:
-    Clock* compile_clock(Interface* interface, ModuleDeclaration* md) override;
-    Custom* compile_custom(Interface* interface, ModuleDeclaration* md) override;
-    Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md) override;
-    Led* compile_led(Interface* interface, ModuleDeclaration* md) override;
-    Pad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
-    Reset* compile_reset(Interface* interface, ModuleDeclaration* md) override;
-    Logic* compile_logic(Interface* interface, ModuleDeclaration* md) override;
+    Clock* compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Custom* compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Gpio* compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Led* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Pad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Reset* compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    Logic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
 
     // Generic compilation method. In terms of implementation, proxy cores are
     // mostly all the same. This method is here simply for the sake of
     // type-correctness.
     template <typename T>
-    ProxyCore<T>* generic_compile(Interface* interface, ModuleDeclaration* md);
+    ProxyCore<T>* generic_compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
 
     std::pair<Rpc::Id, sockstream*> get_persistent_sock(const std::string& loc);
     sockstream* get_temp_sock(const std::string& loc);
@@ -74,7 +74,10 @@ class ProxyCompiler : public CoreCompiler {
 };
 
 template <typename T>
-inline ProxyCore<T>* ProxyCompiler::generic_compile(Interface* interface, ModuleDeclaration* md) {
+inline ProxyCore<T>* ProxyCompiler::generic_compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  (void) uuid;
+  (void) version;
+
   // Look up the loc annotation on this module
   const auto& loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
 

@@ -254,8 +254,12 @@ Engine* RemoteRuntime::compile(sockstream* sock) {
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
+  // TODO(eschkufz) Send uuid and version with this request
+  Uuid uuid;
+  size_t version;
+
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return (log.error() || (md == nullptr)) ? nullptr : compiler_->compile(md);
+  return (log.error() || (md == nullptr)) ? nullptr : compiler_->compile(uuid, version, md);
 }
 
 void RemoteRuntime::get_state(sockstream* sock, Engine* e) {

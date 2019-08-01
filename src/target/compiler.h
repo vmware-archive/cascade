@@ -35,6 +35,7 @@
 #include <string>
 #include <unordered_map>
 #include "common/thread_pool.h"
+#include "common/uuid.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -72,7 +73,7 @@ class Compiler {
     // error, the error reporting interface will indicate what happened.
     // 
     // Attempts to create a new engine. Blocks until completion. 
-    Engine* compile(ModuleDeclaration* md);
+    Engine* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md);
     // Performs a blocking call to compile to produce a new engine, and replaces
     // the state of the original engine with the result on success. If md contains
     // annotations that specify a second pass compilation, a second thread is started
@@ -84,7 +85,7 @@ class Compiler {
     // this verison number to determine whether replacement is actually
     // necesary. Users must also provide id as a way of identifying md for
     // logging purposes, as compialtion will generally mangle module names.
-    void compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id);
+    void compile_and_replace(Runtime* rt, Engine* e, const Uuid& uuid, size_t& version, ModuleDeclaration* md, const Identifier* id);
 
     // Error Reporting Interface:
     //

@@ -32,6 +32,7 @@
 #define CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
 
 #include <string>
+#include "common/uuid.h"
 #include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
@@ -55,10 +56,11 @@ class InterfaceCompiler {
     // Returns a target-specific implementation of a module/runtime interface
     // or nullptr to indicate an aborted compilation. In the event of an error,
     // this method must call the error() method to explain what happened. 
-    virtual Interface* compile(ModuleDeclaration* md) = 0;
-    // This method must force any invocations of compile() to stop running
-    // and return nullptr in a 'reasonably short' amount of time.
-    virtual void abort() = 0;
+    virtual Interface* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) = 0;
+    // This method must force any invocations of compile() for uuid to stop
+    // running and return nullptr in a 'reasonably short' amount of time.
+    virtual void abort(const Uuid& uuid) = 0;
+    void abort_all();
 
   protected:
     // Logs an error message explaining why the most recent compilation failed.

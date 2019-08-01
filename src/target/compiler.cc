@@ -55,10 +55,10 @@ Compiler::Compiler() {
 
 Compiler::~Compiler() {
   for (auto& cc : core_compilers_) {
-    cc.second->abort();
+    cc.second->abort_all();
   }
   for (auto& ic : interface_compilers_) {
-    ic.second->abort();
+    ic.second->abort_all();
   }
   pool_.stop_now();
   for (auto& cc : core_compilers_) {
@@ -93,7 +93,7 @@ InterfaceCompiler* Compiler::get_interface_compiler(const std::string& id) {
   return (itr == interface_compilers_.end()) ? nullptr : itr->second;
 }
 
-Engine* Compiler::compile(ModuleDeclaration* md) {
+Engine* Compiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) {
   if (StubCheck().check(md)) {
     delete md;
     return new Engine();
@@ -108,7 +108,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto* i = ic->compile(md);
+  auto* i = ic->compile(uuid, version, md);
   if (i == nullptr) {
     delete md;
     return nullptr;
@@ -120,7 +120,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto* c = cc->compile(i, md);
+  auto* c = cc->compile(uuid, version, md, i);
   if (c == nullptr) {
     delete i;
     return nullptr;
@@ -129,7 +129,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   return new Engine(i, c, ic, cc);
 }
 
-void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id) {
+void Compiler::compile_and_replace(Runtime* rt, Engine* e, const Uuid& uuid, size_t& version, ModuleDeclaration* md, const Identifier* id) {
   // Bump the sequence number for this engine
   ++version;
   const auto this_version = version;
@@ -170,7 +170,7 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
   // without explanation, that's an error that requires explanation.
   stringstream ss;
   TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
-  auto* e_fast = compile(md);
+  auto* e_fast = compile(uuid, version, md);
   if (e_fast == nullptr) {
     if (!error()) {
       error("An unhandled error occurred during module compilation");
@@ -189,13 +189,13 @@ void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, Modu
   // interrupt regardless. This is to trigger an interaction with the runtime
   // even if only just for the sake of catching an error. 
   if (jit && (e_fast != nullptr)) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, this_version, &version]{
+    pool_.insert(new ThreadPool::Job([this, rt, e, uuid, this_version, &version, md2, fid]{
       stringstream ss;
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
       DeleteInitial().run(md2);
-      auto* e_slow = compile(md2);
+      auto* e_slow = compile(uuid, this_version, md2);
       // If compilation came back before the runtime is shutdown, we can swap
       // it in place of the fast-pass compilation. Otherwise we delete it.
       rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{

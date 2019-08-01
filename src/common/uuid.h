@@ -33,7 +33,7 @@
 
 #include <iostream>
 #include <uuid/uuid.h>
-#include "base/serial/serializable.h"
+#include "common/serializable.h"
 
 namespace cascade {
 
@@ -41,7 +41,7 @@ namespace cascade {
 // Identifier Library. It can be used wherever objects need to be uniquely
 // id'ed between different processes.
 
-class Uuid : public Seializable {
+class Uuid : public Serializable {
   public:
     Uuid();
     Uuid(const Uuid& rhs);
@@ -69,13 +69,13 @@ inline Uuid& Uuid::operator=(const Uuid& rhs) {
 }
 
 inline size_t Uuid::deserialize(std::istream& is) {
-  is.read(reinterpret_cast<char*>(&id_), sizeof(id));
-  return sizeof(id);
+  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
+  return sizeof(id_);
 }
 
 inline size_t Uuid::serialize(std::ostream& os) const {
-  os.write(reinterpret_cast<const char*>(&id_), sizeof(id));
-  return sizeof(id);
+  os.write(reinterpret_cast<const char*>(&id_), sizeof(id_));
+  return sizeof(id_);
 }
 
 } // namespace cascade

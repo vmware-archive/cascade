@@ -50,36 +50,37 @@ ProxyCompiler::~ProxyCompiler() {
   }
 }
 
-void ProxyCompiler::abort() {
+void ProxyCompiler::abort(const Uuid& uuid) {
+  (void) uuid;
   // TODO(eschkufz) Invoke a remote abort
 }
 
-Clock* ProxyCompiler::compile_clock(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Clock>(interface, md);
+Clock* ProxyCompiler::compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Clock>(uuid, version, md, interface);
 }
 
-Custom* ProxyCompiler::compile_custom(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Custom>(interface, md);
+Custom* ProxyCompiler::compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Custom>(uuid, version, md, interface);
 }
 
-Gpio* ProxyCompiler::compile_gpio(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Gpio>(interface, md);
+Gpio* ProxyCompiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Gpio>(uuid, version, md, interface);
 }
 
-Led* ProxyCompiler::compile_led(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Led>(interface, md);
+Led* ProxyCompiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Led>(uuid, version, md, interface);
 }
 
-Pad* ProxyCompiler::compile_pad(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Pad>(interface, md);
+Logic* ProxyCompiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Logic>(uuid, version, md, interface);
 }
 
-Reset* ProxyCompiler::compile_reset(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Reset>(interface, md);
+Pad* ProxyCompiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Pad>(uuid, version, md, interface);
 }
 
-Logic* ProxyCompiler::compile_logic(Interface* interface, ModuleDeclaration* md) {
-  return generic_compile<Logic>(interface, md);
+Reset* ProxyCompiler::compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+  return generic_compile<Reset>(uuid, version, md, interface);
 }
 
 pair<Rpc::Id, sockstream*> ProxyCompiler::get_persistent_sock(const string& loc) {

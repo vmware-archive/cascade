@@ -53,7 +53,7 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_port(uint32_t port);
 
     void cleanup(QuartusServer::Id id);
-    void abort() override;
+    void abort(const Uuid& uuid) override;
 
   private:
     // Memory Mapped State:
@@ -65,10 +65,10 @@ class De10Compiler : public CoreCompiler {
     uint32_t port_;
 
     // Compilation Request Ordering:
-    De10Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md) override;
-    De10Led* compile_led(Interface* interface, ModuleDeclaration* md) override;
-    De10Logic* compile_logic(Interface* interface, ModuleDeclaration* md) override;
-    De10Pad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
+    De10Gpio* compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    De10Led* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    De10Logic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    De10Pad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
 };
 
 } // namespace cascade
