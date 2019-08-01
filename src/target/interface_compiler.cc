@@ -44,10 +44,6 @@ InterfaceCompiler& InterfaceCompiler::set_compiler(Compiler* c) {
   return *this;
 }
 
-void InterfaceCompiler::abort_all() {
-  // TODO(eschkufz) implement this
-}
-
 void InterfaceCompiler::error(const string& s) {
   if (compiler_ != nullptr) {
     compiler_->error(s);

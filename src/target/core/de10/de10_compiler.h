@@ -65,10 +65,10 @@ class De10Compiler : public CoreCompiler {
     uint32_t port_;
 
     // Compilation Request Ordering:
-    De10Gpio* compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    De10Led* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    De10Logic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    De10Pad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    De10Gpio* compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    De10Led* compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    De10Logic* compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    De10Pad* compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
 };
 
 } // namespace cascade

@@ -147,6 +147,10 @@ void RemoteRuntime::run_logic() {
             FD_CLR(i, &master_set);
             break;
           }
+          case Rpc::Type::ABORT: {
+            abort(sock);
+            break;
+          }
 
           // Core ABI:
           case Rpc::Type::GET_STATE:
@@ -248,18 +252,27 @@ void RemoteRuntime::run_logic() {
 }
 
 Engine* RemoteRuntime::compile(sockstream* sock) {
+  Uuid uuid;
+  uuid.deserialize(*sock);
+
   Log log;
   Parser p(&log);
   p.parse(*sock);
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
-
-  // TODO(eschkufz) Send uuid and version with this request
-  Uuid uuid;
-  size_t version;
-
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return (log.error() || (md == nullptr)) ? nullptr : compiler_->compile(uuid, version, md);
+
+  // TODO(eschkfuz) I bet version is going to leave this api and end up in module.
+  // Pass 0 for now just to get compilation off the ground.
+  return compiler_->compile(uuid, 0, md);
+}
+
+void RemoteRuntime::abort(sockstream* sock) {
+  Uuid uuid;
+  uuid.deserialize(*sock);
+  compiler_->abort(uuid);
+  Rpc(Rpc::Type::OKAY, 0).serialize(*sock);
+  sock->flush();
 }
 
 void RemoteRuntime::get_state(sockstream* sock, Engine* e) {

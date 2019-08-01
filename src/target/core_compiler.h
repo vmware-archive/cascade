@@ -31,6 +31,8 @@
 #ifndef CASCADE_SRC_TARGET_CORE_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_COMPILER_H
 
+#include <map>
+#include <mutex>
 #include <stddef.h>
 #include <string>
 #include "common/uuid.h"
@@ -43,8 +45,7 @@ namespace cascade {
 class Compiler;
 
 // This class encapsulates target-specific logic for generating target-specific
-// instances of module core logic. This class is intended to be thread safe.
-// Target-specific implementations of this class must guarantee reentrancy.
+// instances of module core logic. 
 
 class CoreCompiler {
   public:
@@ -54,32 +55,40 @@ class CoreCompiler {
     // Attaches a reference to the main compiler.
     CoreCompiler& set_compiler(Compiler* compiler);
 
+    // Compilation Interface:
+    //
     // Returns a target-specific implementation of a module core or nullptr to
-    // indicate an aborted compilation. This method dispatches control to the
-    // protected methods below based on the value of the __std annotation. 
+    // indicate a failed compilation. This method dispatches control to the
+    // protected methods below based on the __std annotation unless either
+    // shutdown has been called or version is less than a previously observerd
+    // version for this uuid. This method must be thread-safe. Multiple
+    // instances may be invoked simulataneously and interleaved with calls to
+    // abort().
     Core* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    // This method must force any invocation of compile() for uuid to stop
-    // running and return nullptr in a 'reasonably short' amount of time.
+    // This method must force any running invocation of compile() for uuid to
+    // stop running in a 'reasonably short' amount of time. If the compilation
+    // would finish, it is safe to return the resulting pointer. Otherwise, the
+    // implementation may cause compile to return nullptr.
     virtual void abort(const Uuid& uuid) = 0;
-    // Invokes abort for all outstanding compilations
-    void abort_all();
+    // Disables the execution of any further compilations and invokes abort on
+    // all known uuids.
+    void shutdown();
 
   protected:
-    // These methods may be overriden to provide a target-specific
-    // implementation of each of the standard library module types or nullptr
-    // to indicate an aborted compilation. In the event of an error, these
-    // methods must call the error() method to explain what happened. The
-    // default behavior is to delete md, return nullptr, and report that no
-    // implementation strategy is available. The compile_custom() method is
-    // invoked whenever a Compiler is presented with a user-defined __std
+    // These methods inherit ownership of md and are responsible for deleting
+    // it or passing it off to another owner with the same expectation. In the
+    // event of a failed compilation these methods must call the error() method
+    // to explain what happened. The default behavior is to delete md, return
+    // nullptr, and report that no implementation strategy is available.  The
+    // compile_custom() method is invoked in response to a user-defined __std
     // annotation.
-    virtual Clock* compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Custom* compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Gpio* compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Led* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Pad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Reset* compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    virtual Logic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
+    virtual Clock* compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Custom* compile_custom(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Gpio* compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Led* compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Pad* compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Reset* compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Logic* compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
 
     // Logs an error message explaining why the most recent compilation failed.
     // This method is thread safe.
@@ -96,6 +105,11 @@ class CoreCompiler {
   private:
     // Reference to main compiler
     Compiler* compiler_;
+    
+    // In-flight compilation index
+    std::mutex lock_;
+    std::map<Uuid, size_t> compilations_;
+    bool shutdown_;
 };
 
 } // namespace cascade

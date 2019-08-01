@@ -51,6 +51,9 @@ class Uuid : public Serializable {
     size_t deserialize(std::istream& is) override;
     size_t serialize(std::ostream& os) const override;
 
+    bool operator<(const Uuid& rhs) const;
+    bool operator==(const Uuid& rhs) const;
+
   private:
     uuid_t id_;
 };
@@ -76,6 +79,14 @@ inline size_t Uuid::deserialize(std::istream& is) {
 inline size_t Uuid::serialize(std::ostream& os) const {
   os.write(reinterpret_cast<const char*>(&id_), sizeof(id_));
   return sizeof(id_);
+}
+
+inline bool Uuid::operator<(const Uuid& rhs) const {
+  return (uuid_compare(id_, rhs.id_) < 0);
+}
+
+inline bool Uuid::operator==(const Uuid& rhs) const {
+  return (uuid_compare(id_, rhs.id_) == 0);
 }
 
 } // namespace cascade

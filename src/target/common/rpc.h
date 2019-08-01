@@ -44,6 +44,7 @@ struct Rpc : Serializable {
 
     // Compiler API:
     COMPILE,  
+    ABORT,
 
     // Core API:
     GET_STATE,

@@ -62,6 +62,7 @@ class RemoteRuntime : public Thread {
 
     // Compiler Interface:
     Engine* compile(sockstream* sock);
+    void abort(sockstream* sock);
     
     // Core Interface:
     void get_state(sockstream* sock, Engine* e);

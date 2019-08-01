@@ -41,6 +41,7 @@ using namespace std;
 namespace cascade {
 
 CoreCompiler::CoreCompiler() {
+  shutdown_ = false;
   set_compiler(nullptr);
 }
 
@@ -50,43 +51,58 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
 }
 
 Core* CoreCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
-  (void) version;
+  { lock_guard<mutex> lg(lock_);
+    // Return immediately if we're in the shutdown state
+    if (shutdown_) {
+      delete md;
+      return nullptr; 
+    }
+    // Also return immediately if this is a compile request for an old version
+    const auto itr = compilations_.find(uuid);
+    if ((itr != compilations_.end()) && (version < itr->second)) {
+      delete md;
+      return nullptr;
+    }
+    // Record this as the most current version that we've seen for this uuid
+    compilations_[uuid] = version;
+  }
 
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
-    return compile_clock(uuid, version, md, interface);
+    return compile_clock(uuid, md, interface);
   } else if (std->eq("gpio")) {
-    return compile_gpio(uuid, version, md, interface);
+    return compile_gpio(uuid, md, interface);
   } else if (std->eq("led")) {
-    return compile_led(uuid, version, md, interface);
+    return compile_led(uuid, md, interface);
   } else if (std->eq("logic")) {
-    return compile_logic(uuid, version, md, interface);
+    return compile_logic(uuid, md, interface);
   } else if (std->eq("pad")) {
-    return compile_pad(uuid, version, md, interface);
+    return compile_pad(uuid, md, interface);
   } else if (std->eq("reset")) {
-    return compile_reset(uuid, version, md, interface);
+    return compile_reset(uuid, md, interface);
   } else {
-    return compile_custom(uuid, version, md, interface);
+    return compile_custom(uuid, md, interface);
   }
 }
 
-void CoreCompiler::abort_all() {
-  // TODO(eschkufz) implement this
-}
+void CoreCompiler::shutdown() {
+  lock_guard<mutex> lg(lock_); 
+  shutdown_ = true;
+  for (const auto& c : compilations_) {
+    abort(c.first);
+  }
+}   
 
-Clock* CoreCompiler::compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Clock* CoreCompiler::compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type clock");
   return nullptr;
 }
 
-Custom* CoreCompiler::compile_custom(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Custom* CoreCompiler::compile_custom(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
 
   const auto* std = md->get_attrs()->get<String>("__std");
@@ -97,45 +113,40 @@ Custom* CoreCompiler::compile_custom(const Uuid& uuid, size_t version, ModuleDec
   return nullptr;
 }
 
-Gpio* CoreCompiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Gpio* CoreCompiler::compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type gpio");
   return nullptr;
 }
 
-Led* CoreCompiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Led* CoreCompiler::compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type led");
   return nullptr;
 }
 
-Pad* CoreCompiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Pad* CoreCompiler::compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type pad");
   return nullptr;
 }
 
-Reset* CoreCompiler::compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Reset* CoreCompiler::compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type reset");
   return nullptr;
 }
 
-Logic* CoreCompiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+Logic* CoreCompiler::compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
   (void) interface;
   delete md;
   error("No compiler support available for modules of type logic");

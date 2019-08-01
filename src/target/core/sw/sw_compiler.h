@@ -53,11 +53,11 @@ class SwCompiler : public CoreCompiler {
     void abort(const Uuid& uuid) override;
 
   private:
-    SwClock* compile_clock(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    SwLed* compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    SwLogic* compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    SwPad* compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
-    SwReset* compile_reset(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) override;
+    SwClock* compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    SwLed* compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    SwLogic* compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    SwPad* compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    SwReset* compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
 
     Bits* led_;
     Bits* pad_;

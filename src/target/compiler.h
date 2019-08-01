@@ -74,6 +74,9 @@ class Compiler {
     // 
     // Attempts to create a new engine. Blocks until completion. 
     Engine* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md);
+    // Aborts any in-flight compilations for uuid
+    void abort(const Uuid& uuid);
+
     // Performs a blocking call to compile to produce a new engine, and replaces
     // the state of the original engine with the result on success. If md contains
     // annotations that specify a second pass compilation, a second thread is started

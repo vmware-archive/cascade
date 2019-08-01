@@ -45,8 +45,7 @@ class RemoteCompiler : public InterfaceCompiler {
     RemoteCompiler& set_sock(sockstream* sock);
     RemoteCompiler& set_id(Rpc::Id id);
 
-    RemoteInterface* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) override;
-    void abort(const Uuid& uuid) override;  
+    RemoteInterface* compile(ModuleDeclaration* md) override;
 
   private:
     sockstream* sock_;
@@ -68,20 +67,13 @@ inline RemoteCompiler& RemoteCompiler::set_id(Rpc::Id id) {
   return *this;
 }
 
-inline RemoteInterface* RemoteCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) {
-  (void) uuid;
-  (void) version;
+inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
   (void) md;
   if (sock_ == nullptr) {
     error("Unable to compile a remote interface without a reference to a memory buffer");
     return nullptr;
   }
   return new RemoteInterface(sock_, id_);
-}
-
-inline void RemoteCompiler::abort(const Uuid& uuid) {
-  // Does nothing.
-  (void) uuid;
 }
 
 } // namespace cascade

@@ -55,10 +55,7 @@ Compiler::Compiler() {
 
 Compiler::~Compiler() {
   for (auto& cc : core_compilers_) {
-    cc.second->abort_all();
-  }
-  for (auto& ic : interface_compilers_) {
-    ic.second->abort_all();
+    cc.second->shutdown();
   }
   pool_.stop_now();
   for (auto& cc : core_compilers_) {
@@ -108,7 +105,7 @@ Engine* Compiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* m
     delete md;
     return nullptr;
   }
-  auto* i = ic->compile(uuid, version, md);
+  auto* i = ic->compile(md);
   if (i == nullptr) {
     delete md;
     return nullptr;
@@ -127,6 +124,12 @@ Engine* Compiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* m
   }
 
   return new Engine(i, c, ic, cc);
+}
+
+void Compiler::abort(const Uuid& uuid) {
+  for (auto& cc : core_compilers_) {
+    cc.second->abort(uuid);
+  }
 }
 
 void Compiler::compile_and_replace(Runtime* rt, Engine* e, const Uuid& uuid, size_t& version, ModuleDeclaration* md, const Identifier* id) {

@@ -102,9 +102,8 @@ void De10Compiler::abort(const Uuid& uuid) {
   sock.get();
 }
 
-De10Gpio* De10Compiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+De10Gpio* De10Compiler::compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
 
   if (virtual_base_ == MAP_FAILED) {
     error("De10 gpio compilation failed due to inability to memory map device");
@@ -129,9 +128,8 @@ De10Gpio* De10Compiler::compile_gpio(const Uuid& uuid, size_t version, ModuleDec
   }
 }
 
-De10Led* De10Compiler::compile_led(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+De10Led* De10Compiler::compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
 
   if (virtual_base_ == MAP_FAILED) {
     error("De10 led compilation failed due to inability to memory map device");
@@ -156,9 +154,8 @@ De10Led* De10Compiler::compile_led(const Uuid& uuid, size_t version, ModuleDecla
   }
 }
 
-De10Logic* De10Compiler::compile_logic(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+De10Logic* De10Compiler::compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
 
   // Connect to quartus server
   sockstream sock1(host_.c_str(), port_);
@@ -237,9 +234,8 @@ De10Logic* De10Compiler::compile_logic(const Uuid& uuid, size_t version, ModuleD
   return nullptr;
 }
 
-De10Pad* De10Compiler::compile_pad(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
+De10Pad* De10Compiler::compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;
-  (void) version;
 
   if (virtual_base_ == MAP_FAILED) {
     error("De10 pad compilation failed due to inability to memory map device");

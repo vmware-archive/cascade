@@ -45,8 +45,7 @@ class LocalCompiler : public InterfaceCompiler {
 
     LocalCompiler& set_runtime(Runtime* rt);
 
-    LocalInterface* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) override;
-    void abort(const Uuid& uuid) override;
+    LocalInterface* compile(ModuleDeclaration* md) override;
 
   private:
     Runtime* rt_;
@@ -61,20 +60,13 @@ inline LocalCompiler& LocalCompiler::set_runtime(Runtime* rt) {
   return *this;
 }
 
-inline LocalInterface* LocalCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md) {
-  (void) uuid;
-  (void) version;
+inline LocalInterface* LocalCompiler::compile(ModuleDeclaration* md) {
   (void) md;
   if (rt_ == nullptr) {
     error("Unable to compile a local interface without a reference to the runtime");
     return nullptr;
   }
   return new LocalInterface(rt_);
-}
-
-inline void LocalCompiler::abort(const Uuid& uuid) {
-  // Does nothing.
-  (void) uuid;
 }
 
 } // namespace cascade
