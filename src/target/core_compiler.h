@@ -31,11 +31,8 @@
 #ifndef CASCADE_SRC_TARGET_CORE_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_COMPILER_H
 
-#include <map>
-#include <mutex>
 #include <stddef.h>
 #include <string>
-#include "common/uuid.h"
 #include "runtime/ids.h"
 #include "target/core.h"
 #include "verilog/ast/ast_fwd.h"
@@ -43,6 +40,7 @@
 namespace cascade {
 
 class Compiler;
+class Uuid;
 
 // This class encapsulates target-specific logic for generating target-specific
 // instances of module core logic. 
@@ -59,20 +57,15 @@ class CoreCompiler {
     //
     // Returns a target-specific implementation of a module core or nullptr to
     // indicate a failed compilation. This method dispatches control to the
-    // protected methods below based on the __std annotation unless either
-    // shutdown has been called or version is less than a previously observerd
-    // version for this uuid. This method must be thread-safe. Multiple
-    // instances may be invoked simulataneously and interleaved with calls to
-    // abort().
-    Core* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface);
-    // This method must force any running invocation of compile() for uuid to
-    // stop running in a 'reasonably short' amount of time. If the compilation
-    // would finish, it is safe to return the resulting pointer. Otherwise, the
-    // implementation may cause compile to return nullptr.
+    // protected methods below based on the __std annotation.  This method must
+    // be thread-safe. Multiple instances may be invoked simulataneously and
+    // interleaved with calls to abort().
+    Core* compile(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    // This method must force any current or future invocation of compile() for
+    // uuid to stop running in a 'reasonably short' amount of time. If the
+    // compilation would finish, it is safe to return the resulting pointer.
+    // Otherwise, the implementation may cause compile to return nullptr.
     virtual void abort(const Uuid& uuid) = 0;
-    // Disables the execution of any further compilations and invokes abort on
-    // all known uuids.
-    void shutdown();
 
   protected:
     // These methods inherit ownership of md and are responsible for deleting
@@ -105,11 +98,6 @@ class CoreCompiler {
   private:
     // Reference to main compiler
     Compiler* compiler_;
-    
-    // In-flight compilation index
-    std::mutex lock_;
-    std::map<Uuid, size_t> compilations_;
-    bool shutdown_;
 };
 
 } // namespace cascade

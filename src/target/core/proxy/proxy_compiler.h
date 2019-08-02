@@ -34,6 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include "common/sockstream.h"
+#include "common/uuid.h"
 #include "target/common/rpc.h"
 #include "target/core_compiler.h"
 #include "target/core/proxy/proxy_core.h"

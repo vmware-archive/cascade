@@ -36,10 +36,10 @@
 #include "common/log.h"
 #include "common/sockserver.h"
 #include "common/sockstream.h"
+#include "common/uuid.h"
 #include "target/compiler.h"
 #include "target/engine.h"
 #include "target/interface/remote/remote_compiler.h"
-#include "target/interface/remote/remote_interface.h"
 #include "target/state.h"
 #include "verilog/ast/ast.h"
 #include "verilog/parse/parser.h"
@@ -260,11 +260,9 @@ Engine* RemoteRuntime::compile(sockstream* sock) {
   p.parse(*sock);
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
-  auto* md = static_cast<ModuleDeclaration*>(*p.begin());
 
-  // TODO(eschkfuz) I bet version is going to leave this api and end up in module.
-  // Pass 0 for now just to get compilation off the ground.
-  return compiler_->compile(uuid, 0, md);
+  auto* md = static_cast<ModuleDeclaration*>(*p.begin());
+  return compiler_->compile(uuid, md);
 }
 
 void RemoteRuntime::abort(sockstream* sock) {

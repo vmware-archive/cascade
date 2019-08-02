@@ -55,6 +55,9 @@ using namespace std;
 namespace cascade {
 
 Runtime::Runtime() : Thread() {
+  pool_.set_num_threads(4);
+  pool_.run();
+
   log_ = new Log();
   parser_ = new Parser(log_);
   compiler_ = new Compiler();
@@ -87,6 +90,9 @@ Runtime::Runtime() : Thread() {
 }
 
 Runtime::~Runtime() {
+  compiler_->abort_all();
+  pool_.stop_now();
+
   delete program_;
   if (root_ != nullptr) {
     delete root_;
@@ -210,6 +216,10 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
   if (schedule_interrupt(int_, alt)) {
     block_cv_.wait(lg);
   }
+}
+
+void Runtime::schedule_asynchronous(Asynchronous async) {
+  pool_.insert(async); 
 }
 
 bool Runtime::is_finished() const {

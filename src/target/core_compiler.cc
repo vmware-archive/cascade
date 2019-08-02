@@ -41,7 +41,6 @@ using namespace std;
 namespace cascade {
 
 CoreCompiler::CoreCompiler() {
-  shutdown_ = false;
   set_compiler(nullptr);
 }
 
@@ -50,23 +49,7 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
   return *this;
 }
 
-Core* CoreCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration* md, Interface* interface) {
-  { lock_guard<mutex> lg(lock_);
-    // Return immediately if we're in the shutdown state
-    if (shutdown_) {
-      delete md;
-      return nullptr; 
-    }
-    // Also return immediately if this is a compile request for an old version
-    const auto itr = compilations_.find(uuid);
-    if ((itr != compilations_.end()) && (version < itr->second)) {
-      delete md;
-      return nullptr;
-    }
-    // Record this as the most current version that we've seen for this uuid
-    compilations_[uuid] = version;
-  }
-
+Core* CoreCompiler::compile(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
     return compile_clock(uuid, md, interface);
@@ -84,14 +67,6 @@ Core* CoreCompiler::compile(const Uuid& uuid, size_t version, ModuleDeclaration*
     return compile_custom(uuid, md, interface);
   }
 }
-
-void CoreCompiler::shutdown() {
-  lock_guard<mutex> lg(lock_); 
-  shutdown_ = true;
-  for (const auto& c : compilations_) {
-    abort(c.first);
-  }
-}   
 
 Clock* CoreCompiler::compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
   (void) uuid;

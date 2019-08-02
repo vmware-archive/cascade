@@ -41,6 +41,7 @@
 #include "common/bits.h"
 #include "common/log.h"
 #include "common/thread.h"
+#include "common/thread_pool.h"
 #include "runtime/ids.h"
 #include "verilog/ast/ast_fwd.h"
 
@@ -66,6 +67,7 @@ class Runtime : public Thread {
 
     // Typedefs:
     typedef std::function<void()> Interrupt;
+    typedef ThreadPool::Job Asynchronous;
 
     // Constructors:
     explicit Runtime();
@@ -116,6 +118,9 @@ class Runtime : public Thread {
     // Identical to the two argument form, but blocks until the interrupt
     // completes execution or alt is executed in its place.
     void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
+    // Schedules an asynchronous task. Asynchronous tasks begin execution out of phase
+    // with the logic time and may begin and end mid-step.
+    void schedule_asynchronous(Asynchronous async);
     // Returns true if the runtime has executed a finish statement.
     bool is_finished() const;
 
@@ -150,6 +155,9 @@ class Runtime : public Thread {
     uint32_t sputn(FId id, const char* c, uint32_t n);
 
   private:
+    // Thread Pool:
+    ThreadPool pool_;
+
     // Major Components:
     Log* log_;
     Parser* parser_;

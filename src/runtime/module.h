@@ -61,66 +61,60 @@ class Module {
     };
 
     // Constructors:
-    Module(const ModuleDeclaration* psrc, Runtime* rt);
+    Module(const ModuleDeclaration* psrc, Runtime* rt, Module* parent = nullptr);
     ~Module();
 
     // Hierarchy Interface:
     iterator begin();
     iterator end();
 
-    // Attribute Interface:
+    // Returns the engine associated with this module:
     Engine* engine();
+    // Returns the number of modules in this hierarchy:
+    size_t size() const;
 
     // Synchronizes the module hierarchy with changes which have been made to
     // the ast since the previous invocation of synchronize. n is the number of
     // items which have been added to the top-level module in the interim.
     void synchronize(size_t n);
-
-    // System Task Interface:
-    // 
-    // These methods should only be called in a state where synchronize has
-    // been invoked and no further changes have been made to the program. These
-    // methods do not check the soundness of the files they manipulate.
-    //
-    // Reads the state of the module hierarchy from an istream. 
-    void restart(std::istream& is);
     // Forces a recompilation of the entire module hierarchy.
     void rebuild();
     // Dumps the state of the module hierarchy to an ostream. 
     void save(std::ostream& os);
+    // Reads the state of the module hierarchy from an istream. 
+    void restart(std::istream& is);
 
   private:
-    // Instantiation Helper Class:
-    struct Instantiator : Visitor {
-      explicit Instantiator(Module* ptr);
-      ~Instantiator() override = default;
-
-      void visit(const CaseGenerateConstruct* cgc) override;
-      void visit(const IfGenerateConstruct* igc) override;
-      void visit(const LoopGenerateConstruct* lgc) override;
-      void visit(const ModuleInstantiation* mi) override;
-
-      Module* ptr_;
-      std::vector<Module*> instances_;
+    // Instantiate modules based on source code
+    class Instantiator : public Visitor {
+      public:
+        explicit Instantiator(Module* ptr);
+        ~Instantiator() override = default;
+      private:
+        void visit(const CaseGenerateConstruct* cgc) override;
+        void visit(const IfGenerateConstruct* igc) override;
+        void visit(const LoopGenerateConstruct* lgc) override;
+        void visit(const ModuleInstantiation* mi) override;
+        Module* ptr_;
+        std::vector<Module*> instances_;
     };
 
-    // Runtime State:
+    // Runtime Handle:
     Runtime* rt_;
-
-    // Implementation State:
-    ModuleDeclaration* src_;
-    Engine* engine_;
-    Uuid uuid_;
-    size_t version_;
 
     // Hierarchical State:
     const ModuleDeclaration* psrc_;
     Module* parent_;
     std::vector<Module*> children_;
 
+    // Engine State:
+    Engine* engine_;
+    Uuid uuid_;
+    size_t version_;
+
     // Helper Methods:
-    Module(const ModuleDeclaration* psrc, Module* parent);
     ModuleDeclaration* regenerate_ir_source(size_t ignore);
+    void compile_and_replace(size_t ignore);
 };
 
 } // namespace cascade

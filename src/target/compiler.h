@@ -32,9 +32,9 @@
 #define CASCADE_SRC_TARGET_COMPILER_H
 
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_map>
-#include "common/thread_pool.h"
 #include "common/uuid.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/visitor.h"
@@ -44,7 +44,6 @@ namespace cascade {
 class CoreCompiler;
 class Engine;
 class InterfaceCompiler;
-class Runtime;
 
 class Compiler {
   public:
@@ -52,7 +51,7 @@ class Compiler {
     Compiler();
     ~Compiler();
 
-    // Compiler Configuration:
+    // Configuration Interface:
     //
     // These methods are not thread-safe. Invoking these methods after the
     // first invocation of compile() or to override a previously registered
@@ -60,55 +59,33 @@ class Compiler {
     Compiler& set_core_compiler(const std::string& id, CoreCompiler* c);
     Compiler& set_interface_compiler(const std::string& id, InterfaceCompiler* c);
     // These methods are thread-safe. They return either a registered compiler
-    // or nullptr if non exists. The thread-safety of method invocations on the 
+    // or nullptr if non exists. The thread-safety of method invocations on the
     // resulting pointers depends on the type of the pointer.
     CoreCompiler* get_core_compiler(const std::string& id);
     InterfaceCompiler* get_interface_compiler(const std::string& id);
 
     // Compilation Interface:
     // 
-    // These methods are thread-safe. Both versions compiles a module
-    // declaration into a new engine and returns nullptr if compilation was
-    // aborted (either due to premature termination or error). In the case of
-    // error, the error reporting interface will indicate what happened.
-    // 
-    // Attempts to create a new engine. Blocks until completion. 
-    Engine* compile(const Uuid& uuid, size_t version, ModuleDeclaration* md);
-    // Aborts any in-flight compilations for uuid
+    // Dispatches a compile request tot he Core and Interface compilers
+    // specified by md.  This method is thread-safe.
+    Engine* compile(const Uuid& uuid, ModuleDeclaration* md);
+    // Dispatches an abort request to any in-flight compilations for uuid.
+    // This method is thread safe.
     void abort(const Uuid& uuid);
-
-    // Performs a blocking call to compile to produce a new engine, and replaces
-    // the state of the original engine with the result on success. If md contains
-    // annotations that specify a second pass compilation, a second thread is started
-    // in the background and will use the runtime's interrupt interface to perform a
-    // second replacement when it is safe to do so.
-    //
-    // Users of this method must provide a monotonically increasing version
-    // number.  Second pass compilations which return out of order will use
-    // this verison number to determine whether replacement is actually
-    // necesary. Users must also provide id as a way of identifying md for
-    // logging purposes, as compialtion will generally mangle module names.
-    void compile_and_replace(Runtime* rt, Engine* e, const Uuid& uuid, size_t& version, ModuleDeclaration* md, const Identifier* id);
+    // Dispatches an abort request for all uuids which have been observed, and
+    // prevents any other compilations from being initiated.  This method is
+    // thread safe.
+    void abort_all();
 
     // Error Reporting Interface:
     //
-    // These methods are all thread-safe.
+    // These methods are all thread safe and report errors if any in-flight
+    // compilations encountered an error.
     void error(const std::string& s);
     bool error();
     std::string what();
 
   private:
-    // Compilers:
-    std::unordered_map<std::string, CoreCompiler*> core_compilers_;
-    std::unordered_map<std::string, InterfaceCompiler*> interface_compilers_;
-
-    // JIT State:
-    ThreadPool pool_;
-
-    // Error State:
-    std::mutex lock_;
-    std::string what_;
-
     // Checks whether a module is a stub: a module with no inputs or outputs,
     // and no runtime-visible side-effects.
     class StubCheck : public Visitor {
@@ -123,6 +100,18 @@ class Compiler {
         void visit(const RetargetStatement* rs) override;
         void visit(const SaveStatement* ss) override;
     };    
+
+    // Compilers:
+    std::unordered_map<std::string, CoreCompiler*> core_compilers_;
+    std::unordered_map<std::string, InterfaceCompiler*> interface_compilers_;
+
+    // Error State:
+    std::mutex lock_;
+    std::string what_;
+
+    // Abort and Shutdown state:
+    bool shutdown_;
+    std::set<Uuid> uuids_;
 };
 
 } // namespace cascade

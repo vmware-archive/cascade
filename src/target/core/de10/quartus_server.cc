@@ -157,7 +157,7 @@ void QuartusServer::update_slot(sockstream* sock) {
   unique_lock<mutex> ul(lock_);
   slots_[i].first = QuartusServer::State::WAITING;
   slots_[i].second = text;
-  pool_.insert(new ThreadPool::Job([this]{recompile(version_);}));
+  pool_.insert(ThreadPool::Job([this]{recompile(version_);}));
 
   while (slots_[i].first == QuartusServer::State::WAITING) {
     cv_.wait(ul);
@@ -341,7 +341,7 @@ void QuartusServer::run_logic() {
         request_slot(sock);
         break;
       case QuartusServer::Rpc::UPDATE_SLOT:
-        pool_.insert(new ThreadPool::Job([this, sock]{update_slot(sock);}));
+        pool_.insert(ThreadPool::Job([this, sock]{update_slot(sock);}));
         break;
       case QuartusServer::Rpc::RETURN_SLOT:
         return_slot(sock);
