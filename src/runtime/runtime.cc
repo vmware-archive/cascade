@@ -265,16 +265,24 @@ void Runtime::retarget(const string& s) {
     }
 
     // Temporarily relocate program_ and root_ so that we can scan the contents
-    // of this file using the eval_stream() infrastructure. We'll delete the
-    // temporary data-structures when we're done.
+    // of this file using the eval_stream() infrastructure.  Also relocate the
+    // parser, as it will skip include guards that it's already seen.
     auto* march = program_;
     program_ = new Program();
     auto* backup_root = root_;
     root_ = nullptr;
+    auto* backup_parser = parser_;
+    parser_ = new Parser(log_);
+
+    // Read the march file
     eval_stream(ifs);
     assert(!log_->error());
+
+    // Wap everything back into place and restore original state
     std::swap(march, program_);
     std::swap(backup_root, root_);
+    std::swap(backup_parser, parser_);
+    delete backup_parser;
     item_evals_ = 0;
 
     // Replace attribute annotations for every elaborated module (this includes the
