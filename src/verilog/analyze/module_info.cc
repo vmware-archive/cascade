@@ -588,6 +588,13 @@ void ModuleInfo::visit(const LoopGenerateConstruct* lgc) {
   }
 }
 
+void ModuleInfo::visit(const ContinuousAssign* ca) {
+  lhs_ = true;
+  ca->accept_lhs(this);
+  lhs_ = false;
+  ca->accept_rhs(this);
+}
+
 void ModuleInfo::visit(const GenvarDeclaration* gd) {
   md_->locals_.insert(gd->get_id());   
   // Nothing external should reference this
