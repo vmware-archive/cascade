@@ -91,10 +91,10 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
     return new Engine();
   }
 
-  const auto* loc = md->get_attrs()->get<String>("__loc");
-  const auto* target = md->get_attrs()->get<String>("__target");
+  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+  const auto target = md->get_attrs()->get<String>("__target")->get_readable_val();
 
-  auto* ic = (loc->get_readable_val() == "remote") ? get_interface_compiler("remote") : get_interface_compiler("local");
+  auto* ic = (loc == "remote") ? get_interface_compiler("remote") : get_interface_compiler("local");
   if (ic == nullptr) {
     error("Unable to locate the required interface compiler");
     delete md;
@@ -106,7 +106,7 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
     return nullptr;
   }
 
-  auto* cc = get_core_compiler(target->get_readable_val());
+  auto* cc = ((loc != "remote") && (loc != "runtime")) ? get_core_compiler("proxy") : get_core_compiler(target);
   if (cc == nullptr) {
     error("Unable to locate the required core compiler");
     delete md;
