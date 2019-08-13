@@ -105,7 +105,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, Module* parent) {
   rt_ = rt;
 
   psrc_ = psrc;
-  parent_ = nullptr;
+  parent_ = parent;
 
   engine_ = new Engine();
   version_ = 0;
