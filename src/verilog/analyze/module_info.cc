@@ -429,7 +429,8 @@ void ModuleInfo::ordered_external_conn(const ModuleInstantiation* mi, const ArgA
   else {
     auto itr = Inline().get_source(mi)->front_clauses()->get_then()->begin_items();
     for (size_t i = 0, ie = (*mi->find_ports(aa) - *mi->begin_ports()); i <= ie; ++i) {
-      while (!(*itr)->is_subclass_of(Node::Tag::declaration) || (static_cast<const Declaration*>(*itr)->get_attrs()->get<String>("__inline") == nullptr)) {
+      while ((!(*itr)->is(Node::Tag::net_declaration) && !(*itr)->is(Node::Tag::reg_declaration)) ||
+             (static_cast<const Declaration*>(*itr)->get_attrs()->get<String>("__inline") == nullptr)) {
         ++itr;
         assert(itr != Inline().get_source(mi)->front_clauses()->get_then()->end_items());
       }
@@ -602,7 +603,7 @@ void ModuleInfo::visit(const GenvarDeclaration* gd) {
 
 void ModuleInfo::visit(const LocalparamDeclaration* ld) {
   md_->locals_.insert(ld->get_id());   
-  // Nothing external should reference this
+  record_external_use(ld->get_id());
 }
 
 void ModuleInfo::visit(const NetDeclaration* nd) {
@@ -612,9 +613,9 @@ void ModuleInfo::visit(const NetDeclaration* nd) {
 
 void ModuleInfo::visit(const ParameterDeclaration* pd) {
   md_->locals_.insert(pd->get_id());   
-  // Nothing external should reference this
   md_->named_params_.insert(pd->get_id());
   md_->ordered_params_.push_back(pd->get_id());
+  record_external_use(pd->get_id());
 }
 
 void ModuleInfo::visit(const RegDeclaration* rd) {
