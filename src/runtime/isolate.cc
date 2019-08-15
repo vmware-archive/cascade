@@ -197,26 +197,50 @@ ModuleDeclaration* Isolate::get_shell() {
     to_mangled_id(static_cast<const ModuleInstantiation*>(src_->get_parent()))
   );
 
+  // Sort ports lexicographically by name so that we assign VIds
+  // deterministically
   unordered_set<const Identifier*> ios;
   ios.insert(info.reads().begin(), info.reads().end());
   ios.insert(info.writes().begin(), info.writes().end());
-  
-  // Sort ports lexicographically by name so that we assign VIds
-  // deterministically
   map<string, const Identifier*> ports;
   for (auto* i : ios) {
     ports.insert(make_pair(Resolve().get_readable_full_id(i), i));
   }
-  // Generate port declarations
+
+  // Generate port and localparam declarations
   for (auto& p : ports) {
+    const auto read = info.is_read(p.second);
+    const auto write = info.is_write(p.second);
+    const auto width = Evaluate().get_width(p.second);
+
+    // If this is an external variable which corresponds to a parameter, and is
+    // read by this module, we can replace it with a localparam. If it's
+    // written, we can ignore it entirely.
+    const auto* r = Resolve().get_resolution(p.second); 
+    assert(r != nullptr);
+    assert(r->get_parent() != nullptr);
+    assert(r->get_parent()->is_subclass_of(Node::Tag::declaration));
+    const auto* decl = static_cast<const Declaration*>(r->get_parent());
+    if (decl->is(Node::Tag::localparam_declaration) || decl->is(Node::Tag::parameter_declaration)) {
+      if (write) {
+        res->push_back_items(new LocalparamDeclaration(
+          new Attributes(),
+          to_global_id(p.second),        
+          decl->get_type(),
+          decl->clone_dim(),
+          decl->is(Node::Tag::localparam_declaration) ? 
+            static_cast<const LocalparamDeclaration*>(decl)->clone_val() :
+            static_cast<const ParameterDeclaration*>(decl)->clone_val()
+        ));
+      }
+      continue;
+    }
+
+    // Otherwise, turn this signal into a port
     res->push_back_ports(new ArgAssign(
       nullptr,
       to_global_id(p.second)
     ));
-
-    const auto r = info.is_read(p.second);
-    const auto w = info.is_write(p.second);
-    const auto width = Evaluate().get_width(p.second);
 
     // TODO(eschkufz) Is this logic correct? When should a global read/write be
     // promoted to a register and when should it remain a net? There could be a
@@ -229,7 +253,7 @@ ModuleDeclaration* Isolate::get_shell() {
 
     auto* pd = new PortDeclaration(
       new Attributes(), 
-      (r && w) ? PortDeclaration::Type::INOUT : w ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
+      (read && write) ? PortDeclaration::Type::INOUT : write ? PortDeclaration::Type::INPUT : PortDeclaration::Type::OUTPUT,
       (info.is_local(p.second) && p.second->get_parent()->is(Node::Tag::reg_declaration)) ? 
         static_cast<Declaration*>(new RegDeclaration(
           new Attributes(),
