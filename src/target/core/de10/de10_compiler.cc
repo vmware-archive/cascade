@@ -96,13 +96,12 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
 void De10Compiler::stop_compile(Engine::Id id) {
   // TODO(eschkufz) implement me!
   (void) id;
-}
-
-void De10Compiler::stop_compile() {
+  /*
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
   sock.flush();
   sock.get();
+  */
 }
 
 void De10Compiler::stop_async() {

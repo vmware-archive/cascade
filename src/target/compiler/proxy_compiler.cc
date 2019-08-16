@@ -53,9 +53,7 @@ ProxyCompiler::~ProxyCompiler() {
 void ProxyCompiler::stop_compile(Engine::Id id) {
   // TODO(eschkufz) implement me!
   (void) id;
-}
-
-void ProxyCompiler::stop_compile() {
+  /*
   for (auto& s : socks_) {
     auto* sock = s.second.second;
     Rpc(Rpc::Type::ABORT, 0).serialize(*sock);
@@ -64,6 +62,7 @@ void ProxyCompiler::stop_compile() {
     rpc.deserialize(*sock);
     assert(rpc.type_ == Rpc::Type::OKAY);
   }
+  */
 }
 
 void ProxyCompiler::stop_async() {

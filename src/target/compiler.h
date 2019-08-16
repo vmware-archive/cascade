@@ -35,6 +35,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include "runtime/runtime.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/visitor.h"
@@ -121,6 +122,9 @@ class Compiler {
 
     // Compilers:
     std::unordered_map<std::string, CoreCompiler*> ccs_;
+
+    // Compilation State:
+    std::unordered_set<Engine::Id> ids_;
 
     // Error State:
     std::mutex lock_;

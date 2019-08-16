@@ -51,7 +51,6 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
     void stop_compile(Engine::Id id) override;
-    void stop_compile() override;
     void stop_async() override;
 
   private:

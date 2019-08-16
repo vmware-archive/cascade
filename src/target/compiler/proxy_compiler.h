@@ -48,7 +48,6 @@ class ProxyCompiler : public CoreCompiler {
     ~ProxyCompiler() override;
 
     void stop_compile(Engine::Id id) override;
-    void stop_compile() override;
     void stop_async() override;
 
   private:

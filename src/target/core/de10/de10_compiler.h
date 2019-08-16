@@ -55,7 +55,6 @@ class De10Compiler : public CoreCompiler {
     void cleanup(QuartusServer::Id id);
 
     void stop_compile(Engine::Id id) override;
-    void stop_compile() override;
     void stop_async() override;
 
   private:

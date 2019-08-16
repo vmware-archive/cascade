@@ -87,6 +87,8 @@ Engine* Compiler::compile(Engine::Id id, ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
+
+  ids_.insert(id);
   auto* c = cc->compile(id, md, i);
   if (c == nullptr) {
     delete i;
@@ -104,7 +106,9 @@ void Compiler::stop_compile(Engine::Id id) {
 
 void Compiler::stop_compile() {
   for (auto& cc : ccs_) {
-    cc.second->stop_compile();
+    for (auto id : ids_) {
+      cc.second->stop_compile(id);
+    }
   }
 }
 
