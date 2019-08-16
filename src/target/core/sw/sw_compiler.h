@@ -50,15 +50,16 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
+    void stop_compile(Engine::Id id) override;
     void stop_compile() override;
     void stop_async() override;
 
   private:
-    SwClock* compile_clock(ModuleDeclaration* md, Interface* interface) override;
-    SwLed* compile_led(ModuleDeclaration* md, Interface* interface) override;
-    SwLogic* compile_logic(ModuleDeclaration* md, Interface* interface) override;
-    SwPad* compile_pad(ModuleDeclaration* md, Interface* interface) override;
-    SwReset* compile_reset(ModuleDeclaration* md, Interface* interface) override;
+    SwClock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwLed* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwLogic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwPad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwReset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     Bits* led_;
     Bits* pad_;

@@ -42,14 +42,18 @@ namespace cascade {
 
 class Engine {
   public:
+    // Typedefs:
+    typedef uint32_t Id;
+
     // Constructors:
-    Engine(Interface* i, Core* c);
+    Engine(Id id, Interface* i, Core* c);
     ~Engine();
 
     // Query Interface:
     bool is_clock() const;
     bool is_logic() const;
     bool is_stub() const;
+    Id get_id() const;
 
     // Scheduling Interface:
     bool overrides_done_step() const;
@@ -86,15 +90,17 @@ class Engine {
     void replace_with(Engine* e);
 
   private:
+    Id id_;
     Interface* i_;
     Core* c_;
 
     bool there_are_reads_;
 };
 
-inline Engine::Engine(Interface* i, Core* c) {
+inline Engine::Engine(Id id, Interface* i, Core* c) {
   assert(i != nullptr);
   assert(c != nullptr);
+  id_ = id;
   i_ = i;
   c_ = c;
   there_are_reads_ = false;
@@ -119,6 +125,10 @@ inline bool Engine::is_logic() const {
 
 inline bool Engine::is_stub() const {
   return c_->is_stub();
+}
+
+inline Engine::Id Engine::get_id() const {
+  return id_;
 }
 
 inline bool Engine::overrides_done_step() const {

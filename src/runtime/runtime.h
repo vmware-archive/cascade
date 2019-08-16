@@ -43,6 +43,7 @@
 #include "common/thread.h"
 #include "common/thread_pool.h"
 #include "runtime/ids.h"
+#include "target/engine.h"
 #include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
@@ -82,7 +83,7 @@ class Runtime : public Thread {
     Runtime& set_disable_inlining(bool di);
     Runtime& set_profile_interval(size_t n);
 
-    // Major Component Accessors:
+    // Major Component Accessors and Helpers:
     //
     // These methods may be invoked after starting the runtime thread, but the
     // use of these pointers should be handled with care, as these objects have
@@ -90,6 +91,7 @@ class Runtime : public Thread {
     Compiler* get_compiler();
     DataPlane* get_data_plane();
     Isolate* get_isolate();
+    Engine::Id get_next_id();
 
     // Eval Interface:
     //
@@ -173,6 +175,7 @@ class Runtime : public Thread {
     // Program State:
     Program* program_;
     Module* root_;
+    Engine::Id next_id_;
 
     // Configuration State:
     bool disable_inlining_;

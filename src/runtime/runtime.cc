@@ -66,6 +66,7 @@ Runtime::Runtime() : Thread() {
 
   program_ = new Program();
   root_ = nullptr;
+  next_id_ = 0;
 
   enable_open_loop_ = false;
   open_loop_itrs_ = 2;
@@ -164,6 +165,10 @@ Compiler* Runtime::get_compiler() {
 
 Isolate* Runtime::get_isolate() {
   return isolate_;
+}
+
+Engine::Id Runtime::get_next_id() {
+  return next_id_++;
 }
 
 pair<bool, bool> Runtime::eval(istream& is) {

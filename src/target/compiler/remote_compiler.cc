@@ -268,8 +268,10 @@ Engine* RemoteCompiler::compile(sockstream* sock) {
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
+  // TODO(eschkufz) we need an engine id here
+
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return Compiler::compile(md);
+  return Compiler::compile(0, md);
 }
 
 void RemoteCompiler::abort(sockstream* sock) {

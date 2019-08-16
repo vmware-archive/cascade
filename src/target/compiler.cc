@@ -59,14 +59,14 @@ CoreCompiler* Compiler::get(const std::string& id) {
   return (itr == ccs_.end()) ? nullptr : itr->second;
 }
 
-Engine* Compiler::compile_stub(const ModuleDeclaration* md) {
+Engine* Compiler::compile_stub(Engine::Id id, const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   auto* i = get_interface(loc);
   assert(i != nullptr);
-  return new Engine(i, new StubCore(i));
+  return new Engine(id, i, new StubCore(i));
 }
 
-Engine* Compiler::compile(ModuleDeclaration* md) {
+Engine* Compiler::compile(Engine::Id id, ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   auto* i = get_interface(loc);
   if (i == nullptr) {
@@ -77,7 +77,7 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
 
   if (StubCheck().check(md)) {
     delete md;
-    return new Engine(i, new StubCore(i));
+    return new Engine(id, i, new StubCore(i));
   }
 
   const auto target = md->get_attrs()->get<String>("__target")->get_readable_val();
@@ -87,13 +87,19 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto* c = cc->compile(md, i);
+  auto* c = cc->compile(id, md, i);
   if (c == nullptr) {
     delete i;
     return nullptr;
   }
 
-  return new Engine(i, c);
+  return new Engine(id, i, c);
+}
+
+void Compiler::stop_compile(Engine::Id id) {
+  for (auto& cc : ccs_) {
+    cc.second->stop_compile(id);
+  }
 }
 
 void Compiler::stop_compile() {

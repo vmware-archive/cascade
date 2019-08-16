@@ -63,6 +63,11 @@ SwCompiler& SwCompiler::set_reset(Bits* b, mutex* l) {
   return *this;
 }
 
+void SwCompiler::stop_compile(Engine::Id id) {
+  // Does nothing. Compilations all return in a reasonable amount of time.
+  (void) id;
+}
+
 void SwCompiler::stop_compile() {
   // Does nothing. Compilations all return in a reasonable amount of time.
 }
@@ -71,7 +76,9 @@ void SwCompiler::stop_async() {
   // Does nnothing. This class does not produce asynchronous tasks.
 }
 
-SwClock* SwCompiler::compile_clock(ModuleDeclaration* md, Interface* interface) {
+SwClock* SwCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (!check_io(md, 0, 1)) {
     error("Unable to compile a software clock with more than one output");
     delete md;
@@ -79,13 +86,15 @@ SwClock* SwCompiler::compile_clock(ModuleDeclaration* md, Interface* interface) 
   }
 
   const auto* out = *ModuleInfo(md).outputs().begin();
-  const auto id = to_vid(out);
+  const auto oid = to_vid(out);
   delete md;
 
-  return new SwClock(interface, id);
+  return new SwClock(interface, oid);
 }
 
-SwLed* SwCompiler::compile_led(ModuleDeclaration* md, Interface* interface) {
+SwLed* SwCompiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (led_ == nullptr) {
     error("Unable to compile a software led without a reference to a software fpga");
     delete md;
@@ -99,17 +108,19 @@ SwLed* SwCompiler::compile_led(ModuleDeclaration* md, Interface* interface) {
   
   if (!ModuleInfo(md).inputs().empty()) {
     const auto* in = *ModuleInfo(md).inputs().begin();
-    const auto id = to_vid(in);
+    const auto iid = to_vid(in);
     const auto w = Evaluate().get_width(in);
     delete md;
-    return new SwLed(interface, id, w, led_, led_lock_);
+    return new SwLed(interface, iid, w, led_, led_lock_);
   } else {
     delete md;
     return new SwLed(interface, nullid(), 0, led_, led_lock_);
   }
 }
 
-SwLogic* SwCompiler::compile_logic(ModuleDeclaration* md, Interface* interface) {
+SwLogic* SwCompiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   ModuleInfo info(md);
   auto* c = new SwLogic(interface, md);
   for (auto* i : info.inputs()) {
@@ -124,7 +135,9 @@ SwLogic* SwCompiler::compile_logic(ModuleDeclaration* md, Interface* interface) 
   return c;
 } 
 
-SwPad* SwCompiler::compile_pad(ModuleDeclaration* md, Interface* interface) {
+SwPad* SwCompiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (pad_ == nullptr) {
     error("Unable to compile a software pad without a reference to a software fpga");
     delete md;
@@ -137,14 +150,15 @@ SwPad* SwCompiler::compile_pad(ModuleDeclaration* md, Interface* interface) {
   }
 
   const auto* out = *ModuleInfo(md).outputs().begin();
-  const auto id = to_vid(out);
+  const auto oid = to_vid(out);
   const auto w = Evaluate().get_width(out);
   delete md;
   
-  return new SwPad(interface, id, w, pad_, pad_lock_);
+  return new SwPad(interface, oid, w, pad_, pad_lock_);
 }
 
-SwReset* SwCompiler::compile_reset(ModuleDeclaration* md, Interface* interface) {
+SwReset* SwCompiler::compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
 
   if (pad_ == nullptr) {
     error("Unable to compile a software reset without a reference to a software fpga");
@@ -158,10 +172,10 @@ SwReset* SwCompiler::compile_reset(ModuleDeclaration* md, Interface* interface) 
   }
 
   const auto* out = *ModuleInfo(md).outputs().begin();
-  const auto id = to_vid(out);
+  const auto oid = to_vid(out);
   delete md;
 
-  return new SwReset(interface, id, reset_, reset_lock_);
+  return new SwReset(interface, oid, reset_, reset_lock_);
 }
 
 } // namespace cascade

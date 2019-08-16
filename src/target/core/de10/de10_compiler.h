@@ -54,6 +54,7 @@ class De10Compiler : public CoreCompiler {
 
     void cleanup(QuartusServer::Id id);
 
+    void stop_compile(Engine::Id id) override;
     void stop_compile() override;
     void stop_async() override;
 
@@ -67,10 +68,10 @@ class De10Compiler : public CoreCompiler {
     uint32_t port_;
 
     // Compilation Request Ordering:
-    De10Gpio* compile_gpio(ModuleDeclaration* md, Interface* interface) override;
-    De10Led* compile_led(ModuleDeclaration* md, Interface* interface) override;
-    De10Logic* compile_logic(ModuleDeclaration* md, Interface* interface) override;
-    De10Pad* compile_pad(ModuleDeclaration* md, Interface* interface) override;
+    De10Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 };
 
 } // namespace cascade

@@ -35,12 +35,12 @@
 #include <string>
 #include "runtime/ids.h"
 #include "target/core.h"
+#include "target/engine.h"
 #include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
 class Compiler;
-class Uuid;
 
 // This class encapsulates target-specific logic for generating target-specific
 // instances of module core logic. 
@@ -59,8 +59,13 @@ class CoreCompiler {
     // indicate a failed compilation. This method dispatches control to the
     // protected methods below based on the __std annotation.  Implementations
     // must be thread-safe. 
-    Core* compile(ModuleDeclaration* md, Interface* interface);
-    // Forces any current invocation of compile() to stop running in a
+    Core* compile(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    // Forces any invocation of compile() associated with id to stop running in
+    // a *reasonably short* amount of time. If the compilation would finish, it
+    // is safe to return the resulting pointer.  Otherwise, an implementation
+    // may cause compile() to return nullptr.
+    virtual void stop_compile(Engine::Id id) = 0;
+    // Forces any invocation of compile() to stop running in a
     // *reasonably short* amount of time. If the compilation would finish, it
     // is safe to return the resulting pointer.  Otherwise, an implementation
     // may cause compile() to return nullptr.
@@ -77,13 +82,13 @@ class CoreCompiler {
     // nullptr, and report that no implementation strategy is available.  The
     // compile_custom() method is invoked in response to a user-defined __std
     // annotation.
-    virtual Clock* compile_clock(ModuleDeclaration* md, Interface* interface);
-    virtual Custom* compile_custom(ModuleDeclaration* md, Interface* interface);
-    virtual Gpio* compile_gpio(ModuleDeclaration* md, Interface* interface);
-    virtual Led* compile_led(ModuleDeclaration* md, Interface* interface);
-    virtual Pad* compile_pad(ModuleDeclaration* md, Interface* interface);
-    virtual Reset* compile_reset(ModuleDeclaration* md, Interface* interface);
-    virtual Logic* compile_logic(ModuleDeclaration* md, Interface* interface);
+    virtual Clock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Custom* compile_custom(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Reset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
     // Logs an error message explaining why the most recent compilation failed.
     // This method is thread safe.

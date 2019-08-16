@@ -64,13 +64,17 @@ class Compiler {
     // Ignores md and returns an engine backed by a StubCore.  This method does
     // not take ownership of md and is undefined for modules with incompatible
     // __loc annotations.
-    Engine* compile_stub(const ModuleDeclaration* md);
+    Engine* compile_stub(Engine::Id id, const ModuleDeclaration* md);
     // Compiles md using the core compiler specified by the __target
     // annotation.  This method takes ownership of md.
-    Engine* compile(ModuleDeclaration* md);
-    // Causes all current invocations of compile() to return in a *reasonably
-    // short* amount of time. If an invocation of compile() would return
-    // normally it may do so, otherwise, it will return nullptr.
+    Engine* compile(Engine::Id id, ModuleDeclaration* md);
+    // Causes all invocations of compile() associated with id to return in a
+    // *reasonably short* amount of time. If an invocation of compile() would
+    // return normally it may do so, otherwise, it will return nullptr.
+    void stop_compile(Engine::Id id); 
+    // Causes all invocations of compile() to return in a *reasonably short*
+    // amount of time. If an invocation of compile() would return normally it
+    // may do so, otherwise, it will return nullptr.
     void stop_compile(); 
     // Causes all takss invoked through schedule_asynchronous() to return in
     // a *reasonably short* amount of time.

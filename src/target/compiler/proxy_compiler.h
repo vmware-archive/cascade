@@ -47,6 +47,7 @@ class ProxyCompiler : public CoreCompiler {
     ProxyCompiler();
     ~ProxyCompiler() override;
 
+    void stop_compile(Engine::Id id) override;
     void stop_compile() override;
     void stop_async() override;
 
@@ -54,19 +55,19 @@ class ProxyCompiler : public CoreCompiler {
     std::unordered_map<std::string, std::pair<Rpc::Id, sockstream*>> socks_;
 
     // Core Compiler Interface:
-    Clock* compile_clock(ModuleDeclaration* md, Interface* interface) override;
-    Custom* compile_custom(ModuleDeclaration* md, Interface* interface) override;
-    Gpio* compile_gpio(ModuleDeclaration* md, Interface* interface) override;
-    Led* compile_led(ModuleDeclaration* md, Interface* interface) override;
-    Pad* compile_pad(ModuleDeclaration* md, Interface* interface) override;
-    Reset* compile_reset(ModuleDeclaration* md, Interface* interface) override;
-    Logic* compile_logic(ModuleDeclaration* md, Interface* interface) override;
+    Clock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Custom* compile_custom(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Reset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Generic compilation method. In terms of implementation, proxy cores are
     // mostly all the same. This method is here simply for the sake of
     // type-correctness.
     template <typename T>
-    ProxyCore<T>* generic_compile(ModuleDeclaration* md, Interface* interface);
+    ProxyCore<T>* generic_compile(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
     std::pair<Rpc::Id, sockstream*> get_persistent_sock(const std::string& loc);
     sockstream* get_temp_sock(const std::string& loc);
@@ -75,7 +76,10 @@ class ProxyCompiler : public CoreCompiler {
 };
 
 template <typename T>
-inline ProxyCore<T>* ProxyCompiler::generic_compile(ModuleDeclaration* md, Interface* interface) {
+inline ProxyCore<T>* ProxyCompiler::generic_compile(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  // TODO(exchkufz) do something with id
+  (void) id;
+
   // Look up the loc annotation on this module
   const auto& loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
 

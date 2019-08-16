@@ -93,6 +93,11 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
   sock.get();
 }
 
+void De10Compiler::stop_compile(Engine::Id id) {
+  // TODO(eschkufz) implement me!
+  (void) id;
+}
+
 void De10Compiler::stop_compile() {
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
@@ -104,7 +109,9 @@ void De10Compiler::stop_async() {
   // Does nothing. This class does not schedule any asynchronous tasks.
 }
 
-De10Gpio* De10Compiler::compile_gpio(ModuleDeclaration* md, Interface* interface) {
+De10Gpio* De10Compiler::compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (virtual_base_ == MAP_FAILED) {
     error("De10 gpio compilation failed due to inability to memory map device");
     delete md;
@@ -119,16 +126,18 @@ De10Gpio* De10Compiler::compile_gpio(ModuleDeclaration* md, Interface* interface
   volatile uint8_t* led_addr = virtual_base_+((ALT_LWFPGALVS_OFST + GPIO_PIO_BASE) & HW_REGS_MASK);
   if (!ModuleInfo(md).inputs().empty()) {
     const auto* in = *ModuleInfo(md).inputs().begin();
-    const auto id = to_vid(in);
+    const auto iid = to_vid(in);
     delete md;
-    return new De10Gpio(interface, id, led_addr);
+    return new De10Gpio(interface, iid, led_addr);
   } else {
     delete md;
     return new De10Gpio(interface, nullid(), led_addr);
   }
 }
 
-De10Led* De10Compiler::compile_led(ModuleDeclaration* md, Interface* interface) {
+De10Led* De10Compiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (virtual_base_ == MAP_FAILED) {
     error("De10 led compilation failed due to inability to memory map device");
     delete md;
@@ -143,16 +152,19 @@ De10Led* De10Compiler::compile_led(ModuleDeclaration* md, Interface* interface) 
   volatile uint8_t* led_addr = virtual_base_+((ALT_LWFPGALVS_OFST + LED_PIO_BASE) & HW_REGS_MASK);
   if (!ModuleInfo(md).inputs().empty()) {
     const auto* in = *ModuleInfo(md).inputs().begin();
-    const auto id = to_vid(in);
+    const auto iid = to_vid(in);
     delete md;
-    return new De10Led(interface, id, led_addr);
+    return new De10Led(interface, iid, led_addr);
   } else {
     delete md;
     return new De10Led(interface, nullid(), led_addr);
   }
 }
 
-De10Logic* De10Compiler::compile_logic(ModuleDeclaration* md, Interface* interface) {
+De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  // TODO(eschkufz) do something with id
+  (void) id;
+
   // Connect to quartus server
   sockstream sock1(host_.c_str(), port_);
   if (sock1.error()) {
@@ -230,7 +242,9 @@ De10Logic* De10Compiler::compile_logic(ModuleDeclaration* md, Interface* interfa
   return nullptr;
 }
 
-De10Pad* De10Compiler::compile_pad(ModuleDeclaration* md, Interface* interface) {
+De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  (void) id;
+
   if (virtual_base_ == MAP_FAILED) {
     error("De10 pad compilation failed due to inability to memory map device");
     delete md;
@@ -244,11 +258,11 @@ De10Pad* De10Compiler::compile_pad(ModuleDeclaration* md, Interface* interface) 
 
   volatile uint8_t* pad_addr = virtual_base_+((ALT_LWFPGALVS_OFST + PAD_PIO_BASE) & HW_REGS_MASK);
   const auto* out = *ModuleInfo(md).outputs().begin();
-  const auto id = to_vid(out);
+  const auto oid = to_vid(out);
   const auto w = Evaluate().get_width(out);
   delete md;
 
-  return new De10Pad(interface, id, w, pad_addr);
+  return new De10Pad(interface, oid, w, pad_addr);
 }
 
 } // namespace cascade
