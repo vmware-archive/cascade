@@ -15,13 +15,13 @@
 // annotations.  Additional module-specific annotations are discussed below.
 //
 // __target = "..." 
-//   Required. Tells the compiler class which core compiler to use. Providing
-//   a second target, separated by a colon, tells the compiler class which
+//   Required. Tells the compiler class which core compiler to use. Providing a
+//   second target, separated by a semi-colon, tells the compiler class which
 //   core compiler to use during second pass compilation.
 // __loc = "..."
 //   Optional. Tells the compiler class which interface compiler to use.  If
-//   not provided, defaults to "runtime", ie in the same process space as the
-//   runtime. Providing a second location, separated by a colon, tells the
+//   not provided, defaults to "local", ie in the same process space as the
+//   runtime. Providing a second location, separated by a semi-colon, tells the
 //   compiler class which core compiler to use during second pass compilation.
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // The top-level module. Evaluated module items are inserted here.
-(*__std="logic", __loc="runtime", __target="sw"*)
+(*__std="logic", __loc="local", __target="sw"*)
 module Root();
   localparam STDIN   = 32'h8000_0000;
   localparam STDOUT  = 32'h8000_0001;
@@ -42,7 +42,7 @@ module Root();
 endmodule
 
 // The top-level virtual clock.
-(*__std="clock", __loc="runtime", __target="sw"*)
+(*__std="clock", __loc="local", __target="sw"*)
 module Clock(
   output wire val
 );

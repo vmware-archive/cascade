@@ -43,7 +43,7 @@
 #include "runtime/isolate.h"
 #include "runtime/module.h"
 #include "runtime/nullbuf.h"
-#include "target/compiler.h"
+#include "target/compiler/local_compiler.h"
 #include "target/engine.h"
 #include "verilog/parse/parser.h"
 #include "verilog/print/text/text_printer.h"
@@ -60,7 +60,7 @@ Runtime::Runtime() : Thread() {
 
   log_ = new Log();
   parser_ = new Parser(log_);
-  compiler_ = new Compiler();
+  compiler_ = new LocalCompiler(this);
   dp_ = new DataPlane();
   isolate_ = new Isolate();
 
@@ -216,6 +216,30 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
   if (schedule_interrupt(int_, alt)) {
     block_cv_.wait(lg);
   }
+}
+
+void Runtime::schedule_state_safe_interrupt(Interrupt int__, Interrupt alt) {
+  schedule_blocking_interrupt(
+    [this, int__, alt]{
+      // As with retarget(), invoking this method in a state where item_evals_ >
+      // 0 can be problematic. This condition guarantees safety.
+      if (item_evals_ > 0) {
+        return schedule_state_safe_interrupt(int__, alt);
+      }
+      ofstream ofs("state.dump");
+      assert(ofs.is_open());
+      root_->save(ofs);
+      ofs.close();
+
+      int__();
+
+      ifstream ifs("state.dump");
+      assert(ifs.is_open());
+      root_->restart(ifs);
+      ifs.close();
+    },
+    alt
+  );
 }
 
 void Runtime::schedule_asynchronous(Asynchronous async) {

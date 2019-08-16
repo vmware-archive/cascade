@@ -28,13 +28,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
-#define CASCADE_SRC_TARGET_CORE_PROXY_PROXY_CORE_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_PROXY_CORE_H
+#define CASCADE_SRC_TARGET_COMPILER_PROXY_CORE_H
 
 #include <string>
 #include "common/bits.h"
 #include "common/sockstream.h"
-#include "target/common/rpc.h"
+#include "target/compiler/rpc.h"
 #include "target/core.h"
 #include "target/input.h"
 #include "target/interface.h"

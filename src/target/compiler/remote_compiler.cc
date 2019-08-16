@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/common/remote_runtime.h"
+#include "target/compiler/remote_compiler.h"
 
 #include <cassert>
 #include <unordered_map>
@@ -37,9 +37,8 @@
 #include "common/sockserver.h"
 #include "common/sockstream.h"
 #include "common/uuid.h"
-#include "target/compiler.h"
+#include "target/compiler/remote_interface.h"
 #include "target/engine.h"
-#include "target/interface/remote/remote_compiler.h"
 #include "target/state.h"
 #include "verilog/ast/ast.h"
 #include "verilog/parse/parser.h"
@@ -48,31 +47,40 @@ using namespace std;
 
 namespace cascade {
 
-RemoteRuntime::RemoteRuntime() : Thread() {
+RemoteCompiler::RemoteCompiler() : Compiler(), Thread() { 
   set_path("/tmp/fpga_socket");
   set_port(8800);
-  compiler_ = new Compiler();
+
+  sock_ = nullptr;
+  id_ = 0;
 }
 
-RemoteRuntime::~RemoteRuntime() {
-  delete compiler_;
+void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt __int) {
+  // TODO(eschkufz) Implement this!!!
+  (void) __int;
 }
 
-RemoteRuntime& RemoteRuntime::set_path(const string& p) {
+Interface* RemoteCompiler::get_interface(const std::string& loc) {
+  if (loc != "remote") {
+    return nullptr;        
+  }
+  if (sock_ == nullptr) {
+    return nullptr;
+  }
+  return new RemoteInterface(sock_, id_);
+}
+
+RemoteCompiler& RemoteCompiler::set_path(const string& p) {
   path_ = p;
   return *this;
 }
 
-RemoteRuntime& RemoteRuntime::set_port(uint32_t p) {
+RemoteCompiler& RemoteCompiler::set_port(uint32_t p) {
   port_ = p;
   return *this;
 }
 
-Compiler* RemoteRuntime::get_compiler() {
-  return compiler_;
-}
-
-void RemoteRuntime::run_logic() {
+void RemoteCompiler::run_logic() {
   sockserver tl(port_, 8);
   sockserver ul(path_.c_str(), 8);
   if (tl.error() || ul.error()) {
@@ -129,13 +137,11 @@ void RemoteRuntime::run_logic() {
           case Rpc::Type::COMPILE: {
             const auto itr = sock_ids.find(rpc.id_);
             assert(itr != sock_ids.end());
-            const Rpc::Id id = engines.size();
-            auto* rc = static_cast<RemoteCompiler*>(compiler_->get_interface_compiler("remote"));
-            rc->set_sock(itr->second);
-            rc->set_id(id);
+            sock_ = itr->second;
+            id_ = engines.size();
             if (auto* e = compile(sock)) {
               engines.push_back(e);
-              Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+              Rpc(Rpc::Type::OKAY, id_).serialize(*sock);
               sock->flush();
             } else {
               Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
@@ -251,7 +257,7 @@ void RemoteRuntime::run_logic() {
   assert(sock_ids.empty());
 }
 
-Engine* RemoteRuntime::compile(sockstream* sock) {
+Engine* RemoteCompiler::compile(sockstream* sock) {
   Uuid uuid;
   uuid.deserialize(*sock);
 
@@ -262,46 +268,46 @@ Engine* RemoteRuntime::compile(sockstream* sock) {
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return compiler_->compile(uuid, md);
+  return Compiler::compile(uuid, md);
 }
 
-void RemoteRuntime::abort(sockstream* sock) {
+void RemoteCompiler::abort(sockstream* sock) {
   Uuid uuid;
   uuid.deserialize(*sock);
-  compiler_->abort(uuid);
+  Compiler::abort(uuid);
   Rpc(Rpc::Type::OKAY, 0).serialize(*sock);
   sock->flush();
 }
 
-void RemoteRuntime::get_state(sockstream* sock, Engine* e) {
+void RemoteCompiler::get_state(sockstream* sock, Engine* e) {
   auto* s = e->get_state();
   s->serialize(*sock);
   delete s;
   sock->flush();
 }
 
-void RemoteRuntime::set_state(sockstream* sock, Engine* e) {
+void RemoteCompiler::set_state(sockstream* sock, Engine* e) {
   auto* s = new State();
   s->deserialize(*sock);
   e->set_state(s);
   delete s;
 }
 
-void RemoteRuntime::get_input(sockstream* sock, Engine* e) {
+void RemoteCompiler::get_input(sockstream* sock, Engine* e) {
   auto* i = e->get_input();
   i->serialize(*sock);
   delete i;
   sock->flush();
 }
 
-void RemoteRuntime::set_input(sockstream* sock, Engine* e) {
+void RemoteCompiler::set_input(sockstream* sock, Engine* e) {
   auto* i = new Input();
   i->deserialize(*sock);
   e->set_input(i);
   delete i;
 }
 
-void RemoteRuntime::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
   e->finalize();
   // This call to finalize will have primed the socket with tasks and writes
   // Appending an OKAY rpc indicates that everything has been sent
@@ -309,27 +315,27 @@ void RemoteRuntime::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
   sock->flush();
 }
 
-void RemoteRuntime::overrides_done_step(sockstream* sock, Engine* e) {
+void RemoteCompiler::overrides_done_step(sockstream* sock, Engine* e) {
   sock->put(e->overrides_done_step() ? 1 : 0);
   sock->flush();
 }
 
-void RemoteRuntime::done_step(sockstream* sock, Engine* e) {
+void RemoteCompiler::done_step(sockstream* sock, Engine* e) {
   (void) sock;
   e->done_step();
 }
 
-void RemoteRuntime::overrides_done_simulation(sockstream* sock, Engine* e) {
+void RemoteCompiler::overrides_done_simulation(sockstream* sock, Engine* e) {
   sock->put(e->overrides_done_simulation() ? 1 : 0);
   sock->flush();
 }
 
-void RemoteRuntime::done_simulation(sockstream* sock, Engine* e) {
+void RemoteCompiler::done_simulation(sockstream* sock, Engine* e) {
   (void) sock;
   e->done_simulation();
 }
 
-void RemoteRuntime::read(sockstream* sock, Engine* e) {
+void RemoteCompiler::read(sockstream* sock, Engine* e) {
   VId id = 0;
   sock->read(reinterpret_cast<char*>(&id), 4); 
   Bits bits;
@@ -337,7 +343,7 @@ void RemoteRuntime::read(sockstream* sock, Engine* e) {
   e->read(id, &bits);
 }
 
-void RemoteRuntime::evaluate(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::evaluate(sockstream* sock, Rpc::Id id, Engine* e) {
   e->evaluate();
   // This call to evaluate will have primed the socket with tasks and writes
   // Appending an OKAY rpc, indicates that everything has been sent.
@@ -345,11 +351,11 @@ void RemoteRuntime::evaluate(sockstream* sock, Rpc::Id id, Engine* e) {
   sock->flush();
 }
 
-void RemoteRuntime::there_are_updates(sockstream* sock, Engine* e) {
+void RemoteCompiler::there_are_updates(sockstream* sock, Engine* e) {
   sock->put(e->there_are_updates() ? 1 : 0);
 }
 
-void RemoteRuntime::update(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::update(sockstream* sock, Rpc::Id id, Engine* e) {
   e->update();
   // This call to update will have primed the socket with tasks and writes
   // Appending an OKAY rpc, indicates that everything has been sent.
@@ -357,11 +363,11 @@ void RemoteRuntime::update(sockstream* sock, Rpc::Id id, Engine* e) {
   sock->flush();
 }
 
-void RemoteRuntime::there_were_tasks(sockstream* sock, Engine* e) {
+void RemoteCompiler::there_were_tasks(sockstream* sock, Engine* e) {
   sock->put(e->there_were_tasks() ? 1 : 0);
 }
 
-void RemoteRuntime::conditional_update(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::conditional_update(sockstream* sock, Rpc::Id id, Engine* e) {
   const auto res = e->conditional_update();
   // This call to conditional_update will have primed the socket with tasks and
   // writes Appending an OKAY rpc, indicates that everything has been sent.
@@ -370,7 +376,7 @@ void RemoteRuntime::conditional_update(sockstream* sock, Rpc::Id id, Engine* e) 
   sock->flush();
 }
 
-void RemoteRuntime::open_loop(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::open_loop(sockstream* sock, Rpc::Id id, Engine* e) {
   uint32_t clk = 0;
   sock->read(reinterpret_cast<char*>(&clk), 4);
   bool val = (sock->get() == 1);

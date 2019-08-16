@@ -31,6 +31,8 @@
 #include "target/compiler.h"
 
 #include <cassert>
+#include "target/compiler/stub_core.h"
+#include "target/core_compiler.h"
 #include "target/engine.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/ast.h"
@@ -44,36 +46,28 @@ Compiler::Compiler() {
 }
 
 Compiler::~Compiler() {
-  for (auto& cc : core_compilers_) {
+  for (auto& cc : ccs_) {
     delete cc.second;
   }
-  for (auto& ic : interface_compilers_) {
-    delete ic.second;
-  }
 }
 
-Compiler& Compiler::set_core_compiler(const string& id, CoreCompiler* c) {
-  assert(core_compilers_.find(id) == core_compilers_.end());
+Compiler& Compiler::set(const string& id, CoreCompiler* c) {
+  assert(ccs_.find(id) == ccs_.end());
   assert(c != nullptr);
-  core_compilers_[id] = c;
+  ccs_[id] = c;
   return *this;
 }
 
-Compiler& Compiler::set_interface_compiler(const string& id, InterfaceCompiler* c) {
-  assert(interface_compilers_.find(id) == interface_compilers_.end());
-  assert(c != nullptr);
-  interface_compilers_[id] = c;
-  return *this;
+CoreCompiler* Compiler::get(const std::string& id) {
+  const auto itr = ccs_.find(id);
+  return (itr == ccs_.end()) ? nullptr : itr->second;
 }
 
-CoreCompiler* Compiler::get_core_compiler(const std::string& id) {
-  const auto itr = core_compilers_.find(id);
-  return (itr == core_compilers_.end()) ? nullptr : itr->second;
-}
-
-InterfaceCompiler* Compiler::get_interface_compiler(const std::string& id) {
-  const auto itr = interface_compilers_.find(id);
-  return (itr == interface_compilers_.end()) ? nullptr : itr->second;
+Engine* Compiler::compile(const ModuleDeclaration* md) {
+  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+  auto* i = get_interface(loc);
+  assert(i != nullptr);
+  return new Engine(i, new StubCore(i));
 }
 
 Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
@@ -86,27 +80,21 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
     }
   }
 
+  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+  auto* i = get_interface(loc);
+  if (i == nullptr) {
+    error("Unable to provide an interface for a module with incompatible __loc annotation");
+    delete md; 
+    return nullptr;
+  }
+
   if (StubCheck().check(md)) {
     delete md;
-    return new Engine();
+    return new Engine(i, new StubCore(i));
   }
 
-  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   const auto target = md->get_attrs()->get<String>("__target")->get_readable_val();
-
-  auto* ic = (loc == "remote") ? get_interface_compiler("remote") : get_interface_compiler("local");
-  if (ic == nullptr) {
-    error("Unable to locate the required interface compiler");
-    delete md;
-    return nullptr;
-  }
-  auto* i = ic->compile(md);
-  if (i == nullptr) {
-    delete md;
-    return nullptr;
-  }
-
-  auto* cc = ((loc != "remote") && (loc != "runtime")) ? get_core_compiler("proxy") : get_core_compiler(target);
+  auto* cc = ((loc != "remote") && (loc != "local")) ? get("proxy") : get(target);
   if (cc == nullptr) {
     error("Unable to locate the required core compiler");
     delete md;
@@ -118,11 +106,11 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
     return nullptr;
   }
 
-  return new Engine(i, c, ic, cc);
+  return new Engine(i, c);
 }
 
 void Compiler::abort(const Uuid& uuid) {
-  for (auto& cc : core_compilers_) {
+  for (auto& cc : ccs_) {
     cc.second->abort(uuid);
   }
 }

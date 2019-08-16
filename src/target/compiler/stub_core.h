@@ -28,63 +28,79 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
-#define CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_STUB_CORE_H
+#define CASCADE_SRC_TARGET_COMPILER_STUB_CORE_H
 
-#include <string>
-#include "common/bits.h"
-#include "common/thread.h"
-#include "target/common/rpc.h"
+#include "target/core.h"
+#include "target/input.h"
+#include "target/state.h"
 
 namespace cascade {
 
-class Compiler;
-class Engine;
-class sockstream;
-
-class RemoteRuntime : public Thread {
+class StubCore : public Core {
   public:
-    RemoteRuntime();
-    ~RemoteRuntime() override;
+    explicit StubCore(Interface* interface);
+    ~StubCore() override = default;
 
-    RemoteRuntime& set_path(const std::string& p);
-    RemoteRuntime& set_port(uint32_t p);
+    State* get_state() override;
+    void set_state(const State* s) override;
+    Input* get_input() override;
+    void set_input(const Input* i) override;
 
-    Compiler* get_compiler();
+    void read(VId id, const Bits* b) override;
+    void evaluate() override;
+    bool there_are_updates() const override;
+    void update() override;
+    bool there_were_tasks() const override;
 
-  private:
-    std::string path_;
-    uint32_t port_;
-    Compiler* compiler_;
-
-    // Thread Interface:
-    void run_logic() override;
-
-    // Compiler Interface:
-    Engine* compile(sockstream* sock);
-    void abort(sockstream* sock);
-    
-    // Core Interface:
-    void get_state(sockstream* sock, Engine* e);
-    void set_state(sockstream* sock, Engine* e);
-    void get_input(sockstream* sock, Engine* e);
-    void set_input(sockstream* sock, Engine* e);
-    void finalize(sockstream* sock, Rpc::Id id, Engine* e);
-
-    void overrides_done_step(sockstream* sock, Engine* e);
-    void done_step(sockstream* sock, Engine* e);
-    void overrides_done_simulation(sockstream* sock, Engine* e);
-    void done_simulation(sockstream* sock, Engine* e);
-
-    void read(sockstream* sock, Engine* e);
-    void evaluate(sockstream* sock, Rpc::Id id, Engine* e);
-    void there_are_updates(sockstream* sock, Engine* e);
-    void update(sockstream* sock, Rpc::Id id, Engine* e);
-    void there_were_tasks(sockstream* sock, Engine* e);
-
-    void conditional_update(sockstream* sock, Rpc::Id id, Engine* e);
-    void open_loop(sockstream* sock, Rpc::Id id, Engine* e);
+    bool is_stub() const override;
 };
+
+inline StubCore::StubCore(Interface* interface) : Core(interface) { }
+
+inline State* StubCore::get_state() {
+  return new State();
+} 
+
+inline void StubCore::set_state(const State* s) {
+  // Does nothing.
+  (void) s;
+}
+
+inline Input* StubCore::get_input() {
+  return new Input();
+}
+
+inline void StubCore::set_input(const Input* i) {
+  // Does nothing.
+  (void) i;
+}
+
+inline void StubCore::read(VId id, const Bits* b) {
+  // Does nothing.
+  (void) id;
+  (void) b;
+}
+
+inline void StubCore::evaluate() {
+   // Does nothing.
+}
+
+inline bool StubCore::there_are_updates() const {
+  return false;
+}
+
+inline void StubCore::update() {
+  // Does nothing.
+}
+
+inline bool StubCore::there_were_tasks() const {
+  return false;
+}
+
+inline bool StubCore::is_stub() const {
+  return true;
+}
 
 } // namespace cascade
 

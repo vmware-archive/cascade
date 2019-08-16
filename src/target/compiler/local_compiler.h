@@ -28,45 +28,37 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_COMPILER_H
-#define CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_LOCAL_COMPILER_H
+#define CASCADE_SRC_TARGET_COMPILER_LOCAL_COMPILER_H
 
-#include "target/interface_compiler.h"
-#include "target/interface/local/local_interface.h"
+#include "runtime/runtime.h"
+#include "target/compiler.h"
+#include "target/compiler/local_interface.h"
 
 namespace cascade {
 
-class Runtime;
-
-class LocalCompiler : public InterfaceCompiler {
+class LocalCompiler : public Compiler {
   public:
-    LocalCompiler();
+    LocalCompiler(Runtime* rt);
     ~LocalCompiler() override = default;
-
-    LocalCompiler& set_runtime(Runtime* rt);
-
-    LocalInterface* compile(ModuleDeclaration* md) override;
 
   private:
     Runtime* rt_;
+
+    void schedule_state_safe_interrupt(Runtime::Interrupt __int) override;
+    Interface* get_interface(const std::string& loc) override;
 };
 
-inline LocalCompiler::LocalCompiler() : InterfaceCompiler() {
-  rt_ = nullptr;
-}
-
-inline LocalCompiler& LocalCompiler::set_runtime(Runtime* rt) {
+inline LocalCompiler::LocalCompiler(Runtime* rt) : Compiler() {
   rt_ = rt;
-  return *this;
 }
 
-inline LocalInterface* LocalCompiler::compile(ModuleDeclaration* md) {
-  (void) md;
-  if (rt_ == nullptr) {
-    error("Unable to compile a local interface without a reference to the runtime");
-    return nullptr;
-  }
-  return new LocalInterface(rt_);
+inline void LocalCompiler::schedule_state_safe_interrupt(Runtime::Interrupt __int) {
+  rt_->schedule_state_safe_interrupt(__int, []{});
+}
+
+inline Interface*LocalCompiler::get_interface(const std::string& loc) {
+  return (loc != "remote") ? new LocalInterface(rt_) : nullptr;
 }
 
 } // namespace cascade

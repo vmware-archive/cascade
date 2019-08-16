@@ -36,6 +36,7 @@
 #include <string>
 #include <unordered_map>
 #include "common/uuid.h"
+#include "runtime/runtime.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -43,38 +44,37 @@ namespace cascade {
 
 class CoreCompiler;
 class Engine;
-class InterfaceCompiler;
+class Interface;
 
 class Compiler {
   public:
     // Constructors:
     Compiler();
-    ~Compiler();
+    virtual ~Compiler();
 
     // Configuration Interface:
     //
     // These methods are not thread-safe. Invoking these methods after the
-    // first invocation of compile() or to override a previously registered
+    // first invocation of compile() or to replace a previously registered
     // compiler is undefined.
-    Compiler& set_core_compiler(const std::string& id, CoreCompiler* c);
-    Compiler& set_interface_compiler(const std::string& id, InterfaceCompiler* c);
-    // These methods are thread-safe. They return either a registered compiler
-    // or nullptr if non exists. The thread-safety of method invocations on the
-    // resulting pointers depends on the type of the pointer.
-    CoreCompiler* get_core_compiler(const std::string& id);
-    InterfaceCompiler* get_interface_compiler(const std::string& id);
+    Compiler& set(const std::string& id, CoreCompiler* c);
+    CoreCompiler* get(const std::string& id);
 
     // Compilation Interface:
     // 
-    // Dispatches a compile request tot he Core and Interface compilers
-    // specified by md.  This method is thread-safe.
+    // These methods are all thread-safe.
+    // 
+    // Ignores md and returns an engine backed by a StubCore.  This method does
+    // not take ownership of md.  This method is undefined for modules with
+    // incompatible __loc annotations.
+    Engine* compile(const ModuleDeclaration* md);
+    // Dispatches a compile request to the CoreCompiler specified by the
+    // __target annotation on md. This method takes ownership of md.
     Engine* compile(const Uuid& uuid, ModuleDeclaration* md);
     // Dispatches an abort request to any in-flight compilations for uuid.
-    // This method is thread safe.
     void abort(const Uuid& uuid);
     // Dispatches an abort request for all uuids which have been observed, and
-    // prevents any other compilations from being initiated.  This method is
-    // thread safe.
+    // prevents any other compilations from being initiated.  
     void abort_all();
 
     // Error Reporting Interface:
@@ -84,6 +84,19 @@ class Compiler {
     void error(const std::string& s);
     bool error();
     std::string what();
+
+  protected:
+    // Scheduling Interface:
+    //
+    // Schedules a blocking interrupt in a state safe window defined by all
+    // registered compilers. This method is thread safe.
+    virtual void schedule_state_safe_interrupt(Runtime::Interrupt __int) = 0;
+
+    // Interface Compilation... Interface:
+    //
+    // Sanity checks the __loc annotation on a module declaration and returns
+    // either the interface provided by this compiler or nullptr.
+    virtual Interface* get_interface(const std::string& loc) = 0;
 
   private:
     // Checks whether a module is a stub: a module with no inputs or outputs,
@@ -102,8 +115,7 @@ class Compiler {
     };    
 
     // Compilers:
-    std::unordered_map<std::string, CoreCompiler*> core_compilers_;
-    std::unordered_map<std::string, InterfaceCompiler*> interface_compilers_;
+    std::unordered_map<std::string, CoreCompiler*> ccs_;
 
     // Error State:
     std::mutex lock_;

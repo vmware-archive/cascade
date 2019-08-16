@@ -41,12 +41,13 @@
 
 namespace cascade {
 
+class De10Compiler;
 class interfacestream;
 
 class De10Logic : public Logic {
   public:
     // Constructors:
-    De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr);
+    De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -73,8 +74,6 @@ class De10Logic : public Logic {
 
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
-    void cleanup(CoreCompiler* cc) override;
-
     // Optimization Properties:
     bool open_loop_enabled() const;
     const Identifier* open_loop_clock() const;
@@ -82,6 +81,9 @@ class De10Logic : public Logic {
   private:
     // Quartus Server State:
     QuartusServer::Id id_;
+
+    // Compiler Handle:
+    De10Compiler* dc_;
 
     // Source Management:
     ModuleDeclaration* src_;

@@ -34,8 +34,7 @@
 #include <string>
 #include "cl/cl.h"
 #include "common/bits.h"
-#include "target/common/remote_runtime.h"
-#include "target/compiler.h"
+#include "target/compiler/remote_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace cascade;
@@ -119,15 +118,15 @@ int main(int argc, char** argv) {
   mutex pad_lock;
   mutex rst_lock;
 
-  auto* runtime = new RemoteRuntime();
-  runtime->set_path(::path.value());
-  runtime->set_port(::port.value());
+  auto* rc = new RemoteCompiler();
+  rc->set_path(::path.value());
+  rc->set_port(::port.value());
   auto* sc = new SwCompiler();
     sc->set_led(&led, &led_lock);
     sc->set_pad(&pad, &pad_lock);
     sc->set_reset(&rst, &rst_lock);
-  runtime->get_compiler()->set_core_compiler("sw", sc);
-  runtime->run();
+  rc->set("sw", sc);
+  rc->run();
 
   for (auto running = true; running; ) {
     auto input = getch();
@@ -143,7 +142,7 @@ int main(int argc, char** argv) {
         break;
       case 'q':
         running = false;
-        runtime->stop_now();
+        rc->stop_now();
         break;
       default:
         break;
@@ -159,7 +158,7 @@ int main(int argc, char** argv) {
   }
   endwin();
 
-  delete runtime;
+  delete rc;
 
   cout << "Goodbye!" << endl;
   return 0;

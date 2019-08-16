@@ -36,8 +36,8 @@
 #include <streambuf>
 #include "common/cachestream.h"
 #include "runtime/runtime.h"
+#include "target/compiler/remote_interface.h"
 #include "target/interface.h"
-#include "target/interface/remote/remote_interface.h"
 
 namespace cascade {
 

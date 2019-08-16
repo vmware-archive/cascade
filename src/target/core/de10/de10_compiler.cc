@@ -174,7 +174,7 @@ De10Logic* De10Compiler::compile_logic(const Uuid& uuid, ModuleDeclaration* md, 
 
   // Create a new core with address identity based on module id
   volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (sid << 14);
-  auto* de = new De10Logic(interface, sid, md, addr);
+  auto* de = new De10Logic(interface, sid, md, addr, this);
 
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering. The

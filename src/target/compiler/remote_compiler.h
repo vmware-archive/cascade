@@ -28,54 +28,69 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
-#define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_REMOTE_COMPILER_H
+#define CASCADE_SRC_TARGET_COMPILER_REMOTE_COMPILER_H
 
-#include "target/common/rpc.h"
-#include "target/interface/remote/remote_interface.h"
-#include "target/interface_compiler.h"
+#include <string>
+#include "common/thread.h"
+#include "target/compiler.h"
+#include "target/compiler/rpc.h"
 
 namespace cascade {
 
-class RemoteCompiler : public InterfaceCompiler {
+class sockstream;
+
+class RemoteCompiler : public Compiler, public Thread {
   public:
     RemoteCompiler();
     ~RemoteCompiler() override = default;
 
-    RemoteCompiler& set_sock(sockstream* sock);
-    RemoteCompiler& set_id(Rpc::Id id);
-
-    RemoteInterface* compile(ModuleDeclaration* md) override;
+    RemoteCompiler& set_path(const std::string& p);
+    RemoteCompiler& set_port(uint32_t p);
 
   private:
+    // Configuration Options:
+    std::string path_;
+    uint32_t port_;
+
+    // Interface Compilation State:
     sockstream* sock_;
     Rpc::Id id_;
+
+    // Compiler Interface:
+    void schedule_state_safe_interrupt(Runtime::Interrupt __int) override;
+    Interface* get_interface(const std::string& loc) override;
+
+    // Thread Interface:
+    void run_logic() override;
+
+    // Compiler Interface:
+    Engine* compile(sockstream* sock);
+    void abort(sockstream* sock);
+    
+    // Core Interface:
+    void get_state(sockstream* sock, Engine* e);
+    void set_state(sockstream* sock, Engine* e);
+    void get_input(sockstream* sock, Engine* e);
+    void set_input(sockstream* sock, Engine* e);
+    void finalize(sockstream* sock, Rpc::Id id, Engine* e);
+
+    void overrides_done_step(sockstream* sock, Engine* e);
+    void done_step(sockstream* sock, Engine* e);
+    void overrides_done_simulation(sockstream* sock, Engine* e);
+    void done_simulation(sockstream* sock, Engine* e);
+
+    void read(sockstream* sock, Engine* e);
+    void evaluate(sockstream* sock, Rpc::Id id, Engine* e);
+    void there_are_updates(sockstream* sock, Engine* e);
+    void update(sockstream* sock, Rpc::Id id, Engine* e);
+    void there_were_tasks(sockstream* sock, Engine* e);
+
+    void conditional_update(sockstream* sock, Rpc::Id id, Engine* e);
+    void open_loop(sockstream* sock, Rpc::Id id, Engine* e);
 };
-
-inline RemoteCompiler::RemoteCompiler() {
-  set_sock(nullptr);
-  set_id(0);
-}
-
-inline RemoteCompiler& RemoteCompiler::set_sock(sockstream* sock) {
-  sock_ = sock;
-  return *this;
-}
-
-inline RemoteCompiler& RemoteCompiler::set_id(Rpc::Id id) {
-  id_ = id;
-  return *this;
-}
-
-inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
-  (void) md;
-  if (sock_ == nullptr) {
-    error("Unable to compile a remote interface without a reference to a memory buffer");
-    return nullptr;
-  }
-  return new RemoteInterface(sock_, id_);
-}
 
 } // namespace cascade
 
 #endif
+

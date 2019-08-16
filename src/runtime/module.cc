@@ -107,7 +107,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, Module* parent) {
   psrc_ = psrc;
   parent_ = parent;
 
-  engine_ = new Engine();
+  engine_ = rt_->get_compiler()->compile(psrc);
   version_ = 0;
 }
 

@@ -33,13 +33,9 @@
 
 #include <cassert>
 #include "runtime/ids.h"
-#include "target/core/stub/stub_core.h"
 #include "target/core/sw/sw_clock.h"
 #include "target/core.h"
-#include "target/core_compiler.h"
-#include "target/interface/stub/stub_interface.h"
 #include "target/interface.h"
-#include "target/interface_compiler.h"
 #include "target/state.h"
 
 namespace cascade {
@@ -47,8 +43,7 @@ namespace cascade {
 class Engine {
   public:
     // Constructors:
-    Engine();
-    Engine(Interface* i, Core* c, InterfaceCompiler* ic, CoreCompiler* cc);
+    Engine(Interface* i, Core* c);
     ~Engine();
 
     // Query Interface:
@@ -93,37 +88,19 @@ class Engine {
   private:
     Interface* i_;
     Core* c_;
-    InterfaceCompiler* ic_;
-    CoreCompiler* cc_;
 
     bool there_are_reads_;
 };
 
-inline Engine::Engine() {
-  i_ = new StubInterface();
-  c_ = new StubCore(i_);
-  ic_ = nullptr;
-  cc_ = nullptr;
-  there_are_reads_ = false;
-}
-
-inline Engine::Engine(Interface* i, Core* c, InterfaceCompiler* ic, CoreCompiler* cc) {
+inline Engine::Engine(Interface* i, Core* c) {
   assert(i != nullptr);
   assert(c != nullptr);
   i_ = i;
   c_ = c;
-  ic_ = ic;
-  cc_ = cc;
   there_are_reads_ = false;
 }
 
 inline Engine::~Engine() {
-  if ((c_ != nullptr) && (cc_ != nullptr)) {
-    c_->cleanup(cc_);
-  }
-  if ((i_ != nullptr) && (ic_ != nullptr)) {
-    i_->cleanup(ic_);
-  }
   if (c_ != nullptr) {
     delete c_;
   }
@@ -251,29 +228,18 @@ inline void Engine::replace_with(Engine* e) {
   delete i;
   e->c_->finalize();
 
-  // Now that we're done with our core and interface, clean them up
-  // and delete them.
-  if (cc_ != nullptr) {
-    c_->cleanup(cc_);
-  }
-  if (ic_ != nullptr) {
-    i_->cleanup(ic_);
-  }
+  // Now that we're done with our core and interface, delete them.
   delete c_;
   delete i_;
 
   // Move the internal state from the new engine into this one
   c_ = e->c_;
-  cc_ = e->cc_;
   i_ = e->i_;
-  ic_ = e->ic_;
   there_are_reads_ = e->there_are_reads_;
 
   // Delete the shell which is left over
   e->i_ = nullptr;
   e->c_ = nullptr;
-  e->ic_ = nullptr;
-  e->cc_ = nullptr;
   delete e;
 }
 

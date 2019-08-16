@@ -33,7 +33,7 @@
 
 #include <cassert>
 #include "common/sockstream.h"
-#include "target/common/rpc.h"
+#include "target/compiler/rpc.h"
 #include "target/interface.h"
 
 namespace cascade {
