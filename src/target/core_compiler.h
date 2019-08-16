@@ -60,12 +60,12 @@ class CoreCompiler {
     // protected methods below based on the __std annotation.  This method must
     // be thread-safe. Multiple instances may be invoked simulataneously and
     // interleaved with calls to abort().
-    Core* compile(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    Core* compile(ModuleDeclaration* md, Interface* interface);
     // This method must force any current or future invocation of compile() for
     // uuid to stop running in a 'reasonably short' amount of time. If the
     // compilation would finish, it is safe to return the resulting pointer.
     // Otherwise, the implementation may cause compile to return nullptr.
-    virtual void abort(const Uuid& uuid) = 0;
+    virtual void abort() = 0;
 
   protected:
     // These methods inherit ownership of md and are responsible for deleting
@@ -75,13 +75,13 @@ class CoreCompiler {
     // nullptr, and report that no implementation strategy is available.  The
     // compile_custom() method is invoked in response to a user-defined __std
     // annotation.
-    virtual Clock* compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Custom* compile_custom(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Gpio* compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Led* compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Pad* compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Reset* compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
-    virtual Logic* compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface);
+    virtual Clock* compile_clock(ModuleDeclaration* md, Interface* interface);
+    virtual Custom* compile_custom(ModuleDeclaration* md, Interface* interface);
+    virtual Gpio* compile_gpio(ModuleDeclaration* md, Interface* interface);
+    virtual Led* compile_led(ModuleDeclaration* md, Interface* interface);
+    virtual Pad* compile_pad(ModuleDeclaration* md, Interface* interface);
+    virtual Reset* compile_reset(ModuleDeclaration* md, Interface* interface);
+    virtual Logic* compile_logic(ModuleDeclaration* md, Interface* interface);
 
     // Logs an error message explaining why the most recent compilation failed.
     // This method is thread safe.

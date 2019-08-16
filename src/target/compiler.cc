@@ -41,10 +41,6 @@ using namespace std;
 
 namespace cascade {
 
-Compiler::Compiler() {
-  shutdown_ = false;
-}
-
 Compiler::~Compiler() {
   for (auto& cc : ccs_) {
     delete cc.second;
@@ -63,23 +59,14 @@ CoreCompiler* Compiler::get(const std::string& id) {
   return (itr == ccs_.end()) ? nullptr : itr->second;
 }
 
-Engine* Compiler::compile(const ModuleDeclaration* md) {
+Engine* Compiler::compile_stub(const ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   auto* i = get_interface(loc);
   assert(i != nullptr);
   return new Engine(i, new StubCore(i));
 }
 
-Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
-  { lock_guard<mutex> lg(lock_);
-    if (shutdown_) {
-      delete md;
-      return nullptr;
-    } else {
-      uuids_.insert(uuid);
-    }
-  }
-
+Engine* Compiler::compile(ModuleDeclaration* md) {
   const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
   auto* i = get_interface(loc);
   if (i == nullptr) {
@@ -100,7 +87,7 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
     delete md;
     return nullptr;
   }
-  auto* c = cc->compile(uuid, md, i);
+  auto* c = cc->compile(md, i);
   if (c == nullptr) {
     delete i;
     return nullptr;
@@ -109,18 +96,9 @@ Engine* Compiler::compile(const Uuid& uuid, ModuleDeclaration* md) {
   return new Engine(i, c);
 }
 
-void Compiler::abort(const Uuid& uuid) {
+void Compiler::abort() {
   for (auto& cc : ccs_) {
-    cc.second->abort(uuid);
-  }
-}
-
-void Compiler::abort_all() {
-  { lock_guard<mutex> lg(lock_);
-    shutdown_ = true;
-  }
-  for (const auto& u : uuids_) {
-    abort(u);
+    cc.second->abort();
   }
 }
 

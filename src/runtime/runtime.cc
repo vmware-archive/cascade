@@ -90,7 +90,7 @@ Runtime::Runtime() : Thread() {
 }
 
 Runtime::~Runtime() {
-  compiler_->abort_all();
+  compiler_->abort();
   pool_.stop_now();
 
   delete program_;

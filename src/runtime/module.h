@@ -35,7 +35,6 @@
 #include <iosfwd>
 #include <stddef.h>
 #include <vector>
-#include "common/uuid.h"
 #include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -109,7 +108,6 @@ class Module {
 
     // Engine State:
     Engine* engine_;
-    Uuid uuid_;
     size_t version_;
 
     // Helper Methods:

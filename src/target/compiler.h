@@ -35,7 +35,6 @@
 #include <set>
 #include <string>
 #include <unordered_map>
-#include "common/uuid.h"
 #include "runtime/runtime.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/visitor.h"
@@ -48,8 +47,6 @@ class Interface;
 
 class Compiler {
   public:
-    // Constructors:
-    Compiler();
     virtual ~Compiler();
 
     // Configuration Interface:
@@ -67,15 +64,12 @@ class Compiler {
     // Ignores md and returns an engine backed by a StubCore.  This method does
     // not take ownership of md.  This method is undefined for modules with
     // incompatible __loc annotations.
-    Engine* compile(const ModuleDeclaration* md);
+    Engine* compile_stub(const ModuleDeclaration* md);
     // Dispatches a compile request to the CoreCompiler specified by the
     // __target annotation on md. This method takes ownership of md.
-    Engine* compile(const Uuid& uuid, ModuleDeclaration* md);
-    // Dispatches an abort request to any in-flight compilations for uuid.
-    void abort(const Uuid& uuid);
-    // Dispatches an abort request for all uuids which have been observed, and
-    // prevents any other compilations from being initiated.  
-    void abort_all();
+    Engine* compile(ModuleDeclaration* md);
+    // Invokes abort on all registered CoreCompilers.
+    void abort();
 
     // Error Reporting Interface:
     //
@@ -120,10 +114,6 @@ class Compiler {
     // Error State:
     std::mutex lock_;
     std::string what_;
-
-    // Abort and Shutdown state:
-    bool shutdown_;
-    std::set<Uuid> uuids_;
 };
 
 } // namespace cascade

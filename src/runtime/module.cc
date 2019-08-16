@@ -107,7 +107,7 @@ Module::Module(const ModuleDeclaration* psrc, Runtime* rt, Module* parent) {
   psrc_ = psrc;
   parent_ = parent;
 
-  engine_ = rt_->get_compiler()->compile(psrc);
+  engine_ = rt_->get_compiler()->compile_stub(psrc);
   version_ = 0;
 }
 
@@ -356,11 +356,10 @@ void Module::compile_and_replace(size_t ignore) {
     md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
 
-  // Fast Path. Compile and replace the original engine.  If an error occurred,
-  // then simply preserve the original message. 
+  // Fast Path. Compile and replace the original engine.  
   stringstream ss;
   TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
-  auto* e_fast = rt_->get_compiler()->compile(uuid_, md);
+  auto* e_fast = rt_->get_compiler()->compile(md);
   if (e_fast == nullptr) {
     if (!rt_->get_compiler()->error()) {
       rt_->get_compiler()->error("An unhandled error occurred during module compilation");
@@ -383,7 +382,7 @@ void Module::compile_and_replace(size_t ignore) {
       const auto str = ss.str();
 
       DeleteInitial().run(md2);
-      auto* e_slow = rt_->get_compiler()->compile(uuid_, md2);
+      auto* e_slow = rt_->get_compiler()->compile(md2);
 
       rt_->schedule_interrupt([this, this_version, e_slow, str]{
         if ((this_version < version_) || (e_slow == nullptr)) {

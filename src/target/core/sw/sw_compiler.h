@@ -50,14 +50,14 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
-    void abort(const Uuid& uuid) override;
+    void abort() override;
 
   private:
-    SwClock* compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
-    SwLed* compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
-    SwLogic* compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
-    SwPad* compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
-    SwReset* compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) override;
+    SwClock* compile_clock(ModuleDeclaration* md, Interface* interface) override;
+    SwLed* compile_led(ModuleDeclaration* md, Interface* interface) override;
+    SwLogic* compile_logic(ModuleDeclaration* md, Interface* interface) override;
+    SwPad* compile_pad(ModuleDeclaration* md, Interface* interface) override;
+    SwReset* compile_reset(ModuleDeclaration* md, Interface* interface) override;
 
     Bits* led_;
     Bits* pad_;

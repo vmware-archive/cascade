@@ -49,35 +49,33 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
   return *this;
 }
 
-Core* CoreCompiler::compile(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
+Core* CoreCompiler::compile(ModuleDeclaration* md, Interface* interface) {
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
-    return compile_clock(uuid, md, interface);
+    return compile_clock(md, interface);
   } else if (std->eq("gpio")) {
-    return compile_gpio(uuid, md, interface);
+    return compile_gpio(md, interface);
   } else if (std->eq("led")) {
-    return compile_led(uuid, md, interface);
+    return compile_led(md, interface);
   } else if (std->eq("logic")) {
-    return compile_logic(uuid, md, interface);
+    return compile_logic(md, interface);
   } else if (std->eq("pad")) {
-    return compile_pad(uuid, md, interface);
+    return compile_pad(md, interface);
   } else if (std->eq("reset")) {
-    return compile_reset(uuid, md, interface);
+    return compile_reset(md, interface);
   } else {
-    return compile_custom(uuid, md, interface);
+    return compile_custom(md, interface);
   }
 }
 
-Clock* CoreCompiler::compile_clock(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Clock* CoreCompiler::compile_clock(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type clock");
   return nullptr;
 }
 
-Custom* CoreCompiler::compile_custom(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Custom* CoreCompiler::compile_custom(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
 
   const auto* std = md->get_attrs()->get<String>("__std");
@@ -88,40 +86,35 @@ Custom* CoreCompiler::compile_custom(const Uuid& uuid, ModuleDeclaration* md, In
   return nullptr;
 }
 
-Gpio* CoreCompiler::compile_gpio(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Gpio* CoreCompiler::compile_gpio(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type gpio");
   return nullptr;
 }
 
-Led* CoreCompiler::compile_led(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Led* CoreCompiler::compile_led(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type led");
   return nullptr;
 }
 
-Pad* CoreCompiler::compile_pad(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Pad* CoreCompiler::compile_pad(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type pad");
   return nullptr;
 }
 
-Reset* CoreCompiler::compile_reset(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Reset* CoreCompiler::compile_reset(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type reset");
   return nullptr;
 }
 
-Logic* CoreCompiler::compile_logic(const Uuid& uuid, ModuleDeclaration* md, Interface* interface) {
-  (void) uuid;
+Logic* CoreCompiler::compile_logic(ModuleDeclaration* md, Interface* interface) {
   (void) interface;
   delete md;
   error("No compiler support available for modules of type logic");

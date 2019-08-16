@@ -36,7 +36,6 @@
 #include "common/log.h"
 #include "common/sockserver.h"
 #include "common/sockstream.h"
-#include "common/uuid.h"
 #include "target/compiler/remote_interface.h"
 #include "target/engine.h"
 #include "target/state.h"
@@ -258,9 +257,6 @@ void RemoteCompiler::run_logic() {
 }
 
 Engine* RemoteCompiler::compile(sockstream* sock) {
-  Uuid uuid;
-  uuid.deserialize(*sock);
-
   Log log;
   Parser p(&log);
   p.parse(*sock);
@@ -268,13 +264,11 @@ Engine* RemoteCompiler::compile(sockstream* sock) {
   assert((*p.begin())->is(Node::Tag::module_declaration));
 
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return Compiler::compile(uuid, md);
+  return Compiler::compile(md);
 }
 
 void RemoteCompiler::abort(sockstream* sock) {
-  Uuid uuid;
-  uuid.deserialize(*sock);
-  Compiler::abort(uuid);
+  Compiler::abort();
   Rpc(Rpc::Type::OKAY, 0).serialize(*sock);
   sock->flush();
 }
