@@ -93,11 +93,15 @@ void De10Compiler::cleanup(QuartusServer::Id id) {
   sock.get();
 }
 
-void De10Compiler::abort() {
+void De10Compiler::stop_compile() {
   sockstream sock(host_.c_str(), port_);;
   sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
   sock.flush();
   sock.get();
+}
+
+void De10Compiler::stop_async() {
+  // Does nothing. This class does not schedule any asynchronous tasks.
 }
 
 De10Gpio* De10Compiler::compile_gpio(ModuleDeclaration* md, Interface* interface) {

@@ -90,8 +90,32 @@ Runtime::Runtime() : Thread() {
 }
 
 Runtime::~Runtime() {
-  compiler_->abort();
+  // INVARIANT: The runtime should always be in a state where finish was called
+  // before teardown. This guarantees that outstanding async threads won't
+  // attempt to schedule interrupts that will never be serviced.
+
+  stop_now();
+  if (!finished_) {
+    finish(0);
+    run();
+    stop_now();
+  }
+
+  // INVARIANT: At this point we know that the interrupt queue is empty and no
+  // new asyncrhonous threads have been started (the only place this happens is
+  // inside interrupts).
+
+  // INVARIANT: All outstanding asynchronous threads should be terminated
+  // before we begin destroying major components. The only place these threads
+  // may be activated is through the compiler. 
+
+  compiler_->stop_compile();
+  compiler_->stop_async();
   pool_.stop_now();
+
+  // At this point, there are no loose threads, and any thread which finished
+  // execution after the interrupt queue was shutdown will have fired off its
+  // backup handler if any.
 
   delete program_;
   if (root_ != nullptr) {

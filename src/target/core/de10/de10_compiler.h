@@ -53,7 +53,9 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_port(uint32_t port);
 
     void cleanup(QuartusServer::Id id);
-    void abort() override;
+
+    void stop_compile() override;
+    void stop_async() override;
 
   private:
     // Memory Mapped State:

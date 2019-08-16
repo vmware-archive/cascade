@@ -55,17 +55,19 @@ class CoreCompiler {
 
     // Compilation Interface:
     //
-    // Returns a target-specific implementation of a module core or nullptr to
+    // Returns a target-specific implementation of a Core or nullptr to
     // indicate a failed compilation. This method dispatches control to the
-    // protected methods below based on the __std annotation.  This method must
-    // be thread-safe. Multiple instances may be invoked simulataneously and
-    // interleaved with calls to abort().
+    // protected methods below based on the __std annotation.  Implementations
+    // must be thread-safe. 
     Core* compile(ModuleDeclaration* md, Interface* interface);
-    // This method must force any current or future invocation of compile() for
-    // uuid to stop running in a 'reasonably short' amount of time. If the
-    // compilation would finish, it is safe to return the resulting pointer.
-    // Otherwise, the implementation may cause compile to return nullptr.
-    virtual void abort() = 0;
+    // Forces any current invocation of compile() to stop running in a
+    // *reasonably short* amount of time. If the compilation would finish, it
+    // is safe to return the resulting pointer.  Otherwise, an implementation
+    // may cause compile() to return nullptr.
+    virtual void stop_compile() = 0;
+    // Forces any tasks invoked through a call to schedule_asynchronous() to 
+    // return in a *reasonably short* amount of time.
+    virtual void stop_async() = 0;
 
   protected:
     // These methods inherit ownership of md and are responsible for deleting

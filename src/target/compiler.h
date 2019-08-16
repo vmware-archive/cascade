@@ -51,25 +51,30 @@ class Compiler {
 
     // Configuration Interface:
     //
-    // These methods are not thread-safe. Invoking these methods after the
-    // first invocation of compile() or to replace a previously registered
-    // compiler is undefined.
+    // These methods are not thread-safe. The results on invoking these methods
+    // after the first invocation of compile() or to replace a previously
+    // registered compiler are undefined.
     Compiler& set(const std::string& id, CoreCompiler* c);
     CoreCompiler* get(const std::string& id);
 
     // Compilation Interface:
     // 
-    // These methods are all thread-safe.
+    // These methods are all thread-safe and return immediately.
     // 
     // Ignores md and returns an engine backed by a StubCore.  This method does
-    // not take ownership of md.  This method is undefined for modules with
-    // incompatible __loc annotations.
+    // not take ownership of md and is undefined for modules with incompatible
+    // __loc annotations.
     Engine* compile_stub(const ModuleDeclaration* md);
-    // Dispatches a compile request to the CoreCompiler specified by the
-    // __target annotation on md. This method takes ownership of md.
+    // Compiles md using the core compiler specified by the __target
+    // annotation.  This method takes ownership of md.
     Engine* compile(ModuleDeclaration* md);
-    // Invokes abort on all registered CoreCompilers.
-    void abort();
+    // Causes all current invocations of compile() to return in a *reasonably
+    // short* amount of time. If an invocation of compile() would return
+    // normally it may do so, otherwise, it will return nullptr.
+    void stop_compile(); 
+    // Causes all takss invoked through schedule_asynchronous() to return in
+    // a *reasonably short* amount of time.
+    void stop_async();
 
     // Error Reporting Interface:
     //
@@ -84,7 +89,9 @@ class Compiler {
     //
     // Schedules a blocking interrupt in a state safe window defined by all
     // registered compilers. This method is thread safe.
-    virtual void schedule_state_safe_interrupt(Runtime::Interrupt __int) = 0;
+    virtual void schedule_state_safe_interrupt(Runtime::Interrupt int_) = 0;
+    // Schedules an asynchronous task
+    virtual void schedule_asynchronous(Runtime::Asynchronous async) = 0;
 
     // Interface Compilation... Interface:
     //

@@ -54,9 +54,14 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
   id_ = 0;
 }
 
-void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt __int) {
+void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
   // TODO(eschkufz) Implement this!!!
-  (void) __int;
+  (void) int_;
+}
+
+void RemoteCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
+  // TODO(eschkufz) Implement this!!!
+  (void) async;
 }
 
 Interface* RemoteCompiler::get_interface(const std::string& loc) {
@@ -268,7 +273,7 @@ Engine* RemoteCompiler::compile(sockstream* sock) {
 }
 
 void RemoteCompiler::abort(sockstream* sock) {
-  Compiler::abort();
+  Compiler::stop_compile();
   Rpc(Rpc::Type::OKAY, 0).serialize(*sock);
   sock->flush();
 }

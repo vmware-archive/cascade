@@ -50,7 +50,7 @@ ProxyCompiler::~ProxyCompiler() {
   }
 }
 
-void ProxyCompiler::abort() {
+void ProxyCompiler::stop_compile() {
   for (auto& s : socks_) {
     auto* sock = s.second.second;
     Rpc(Rpc::Type::ABORT, 0).serialize(*sock);
@@ -59,6 +59,10 @@ void ProxyCompiler::abort() {
     rpc.deserialize(*sock);
     assert(rpc.type_ == Rpc::Type::OKAY);
   }
+}
+
+void ProxyCompiler::stop_async() {
+
 }
 
 Clock* ProxyCompiler::compile_clock(ModuleDeclaration* md, Interface* interface) {

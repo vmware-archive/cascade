@@ -58,7 +58,8 @@ class RemoteCompiler : public Compiler, public Thread {
     Rpc::Id id_;
 
     // Compiler Interface:
-    void schedule_state_safe_interrupt(Runtime::Interrupt __int) override;
+    void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
+    void schedule_asynchronous(Runtime::Asynchronous async) override;
     Interface* get_interface(const std::string& loc) override;
 
     // Thread Interface:

@@ -121,8 +121,10 @@ class Runtime : public Thread {
     // Identical to schedule_blocking_interrupt, but wraps the call to int__ between
     // calls to save() and restart() to guarantee state safety.
     void schedule_state_safe_interrupt(Interrupt int__, Interrupt alt);
-    // Schedules an asynchronous task. Asynchronous tasks begin execution out of phase
-    // with the logic time and may begin and end mid-step.
+    // Schedules an asynchronous task. Asynchronous tasks begin execution out
+    // of phase with the logic time and may begin and end mid-step. If an
+    // asynchronous task invokes any of the schedule_xxx_interrupt methods, it
+    // must use the two-argument form.
     void schedule_asynchronous(Asynchronous async);
     // Returns true if the runtime has executed a finish statement.
     bool is_finished() const;

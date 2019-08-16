@@ -47,7 +47,8 @@ class ProxyCompiler : public CoreCompiler {
     ProxyCompiler();
     ~ProxyCompiler() override;
 
-    void abort() override;
+    void stop_compile() override;
+    void stop_async() override;
 
   private:
     std::unordered_map<std::string, std::pair<Rpc::Id, sockstream*>> socks_;

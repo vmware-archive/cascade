@@ -96,10 +96,16 @@ Engine* Compiler::compile(ModuleDeclaration* md) {
   return new Engine(i, c);
 }
 
-void Compiler::abort() {
+void Compiler::stop_compile() {
   for (auto& cc : ccs_) {
-    cc.second->abort();
+    cc.second->stop_compile();
   }
+}
+
+void Compiler::stop_async() {
+  for (auto& cc : ccs_) {
+    cc.second->stop_async();
+  } 
 }
 
 void Compiler::error(const string& s) {

@@ -50,7 +50,8 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
-    void abort() override;
+    void stop_compile() override;
+    void stop_async() override;
 
   private:
     SwClock* compile_clock(ModuleDeclaration* md, Interface* interface) override;

@@ -63,8 +63,12 @@ SwCompiler& SwCompiler::set_reset(Bits* b, mutex* l) {
   return *this;
 }
 
-void SwCompiler::abort() {
+void SwCompiler::stop_compile() {
   // Does nothing. Compilations all return in a reasonable amount of time.
+}
+
+void SwCompiler::stop_async() {
+  // Does nnothing. This class does not produce asynchronous tasks.
 }
 
 SwClock* SwCompiler::compile_clock(ModuleDeclaration* md, Interface* interface) {
