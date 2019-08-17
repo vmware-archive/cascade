@@ -89,7 +89,6 @@ class Compiler {
     bool error();
     std::string what();
 
-  protected:
     // Scheduling Interface:
     //
     // Schedules a blocking interrupt in a state safe window defined by all
@@ -98,6 +97,7 @@ class Compiler {
     // Schedules an asynchronous task
     virtual void schedule_asynchronous(Runtime::Asynchronous async) = 0;
 
+  protected:
     // Interface Compilation... Interface:
     //
     // Sanity checks the __loc annotation on a module declaration and returns

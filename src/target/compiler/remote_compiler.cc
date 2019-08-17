@@ -32,7 +32,6 @@
 
 #include <cassert>
 #include <unordered_map>
-#include <vector>
 #include "common/log.h"
 #include "common/sockserver.h"
 #include "common/sockstream.h"
@@ -51,7 +50,6 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
   set_port(8800);
 
   sock_ = nullptr;
-  id_ = 0;
 }
 
 void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
@@ -60,8 +58,7 @@ void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
 }
 
 void RemoteCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
-  // TODO(eschkufz) Implement this!!!
-  (void) async;
+  pool_.insert(async);
 }
 
 Interface* RemoteCompiler::get_interface(const std::string& loc) {
@@ -71,7 +68,7 @@ Interface* RemoteCompiler::get_interface(const std::string& loc) {
   if (sock_ == nullptr) {
     return nullptr;
   }
-  return new RemoteInterface(sock_, id_);
+  return new RemoteInterface(sock_);
 }
 
 RemoteCompiler& RemoteCompiler::set_path(const string& p) {
@@ -102,9 +99,8 @@ void RemoteCompiler::run_logic() {
   struct timeval timeout = {0, 1000};
   auto max_fd = max(tl.descriptor(), ul.descriptor());
 
-  vector<sockstream*> socks(max_fd+1, nullptr);
-  unordered_map<Rpc::Id, sockstream*> sock_ids;
-  vector<Engine*> engines;
+  pool_.set_num_threads(4);
+  pool_.run();
 
   while (!stop_requested()) {
     read_set = master_set;
@@ -123,126 +119,109 @@ void RemoteCompiler::run_logic() {
         FD_SET(fd, &master_set);
         if (fd > max_fd) {
           max_fd = fd;
-          socks.resize(max_fd+1, nullptr);
+          socks_.resize(max_fd+1, nullptr);
         }
-        socks[fd] = sock;
+        socks_[fd] = sock;
         continue;
       }
 
       // Client: Grab the socket associated with this fd and handle the request
-      auto* sock = socks[i];
+      auto* sock = socks_[i];
       do {
         Rpc rpc;
         rpc.deserialize(*sock);
         switch (rpc.type_) {
 
-          // Compiler ABI: Compile requests are handled in separate threads
-          // so that other requests aren't blocked.
-          case Rpc::Type::COMPILE: {
-            const auto itr = sock_ids.find(rpc.id_);
-            assert(itr != sock_ids.end());
-            sock_ = itr->second;
-            id_ = engines.size();
-            if (auto* e = compile(sock)) {
-              engines.push_back(e);
-              Rpc(Rpc::Type::OKAY, id_).serialize(*sock);
-              sock->flush();
-            } else {
-              Rpc(Rpc::Type::FAIL, 0).serialize(*sock);
-              sock->flush();
-            }
-            delete sock;
+          // Compiler ABI: 
+          case Rpc::Type::COMPILE:
+            compile(sock, rpc);
             sock = nullptr;
-            socks[i] = nullptr;
+            socks_[i] = nullptr;
             FD_CLR(i, &master_set);
             break;
-          }
-          case Rpc::Type::ABORT: {
-            abort(sock);
+          case Rpc::Type::STOP_COMPILE: 
+            stop_compile(sock, rpc);
+            sock = nullptr;
+            socks_[i] = nullptr;
+            FD_CLR(i, &master_set);
             break;
-          }
 
           // Core ABI:
           case Rpc::Type::GET_STATE:
-            get_state(sock, engines[rpc.id_]);
+            get_state(sock, get_engine(rpc));
             break;
           case Rpc::Type::SET_STATE:
-            set_state(sock, engines[rpc.id_]);
+            set_state(sock, get_engine(rpc));
             break;
           case Rpc::Type::GET_INPUT:
-            get_input(sock, engines[rpc.id_]);
+            get_input(sock, get_engine(rpc));
             break;
           case Rpc::Type::SET_INPUT:
-            set_input(sock, engines[rpc.id_]);
+            set_input(sock, get_engine(rpc));
             break;
           case Rpc::Type::FINALIZE:
-            finalize(sock, rpc.id_, engines[rpc.id_]);
+            finalize(sock, get_engine(rpc));
             break;
           case Rpc::Type::OVERRIDES_DONE_STEP:
-            overrides_done_step(sock, engines[rpc.id_]);
+            overrides_done_step(sock, get_engine(rpc));
             break;
           case Rpc::Type::DONE_STEP:
-            done_step(sock, engines[rpc.id_]);
+            done_step(sock, get_engine(rpc));
             break;
           case Rpc::Type::OVERRIDES_DONE_SIMULATION:
-            overrides_done_simulation(sock, engines[rpc.id_]);
+            overrides_done_simulation(sock, get_engine(rpc));
             break;
           case Rpc::Type::DONE_SIMULATION:
-            done_simulation(sock, engines[rpc.id_]);
+            done_simulation(sock, get_engine(rpc));
             break;
           case Rpc::Type::READ:
-            read(sock, engines[rpc.id_]);
+            read(sock, get_engine(rpc));
             break;
           case Rpc::Type::EVALUATE:
-            evaluate(sock, rpc.id_, engines[rpc.id_]);
+            evaluate(sock, get_engine(rpc));
             break;
           case Rpc::Type::THERE_ARE_UPDATES:
-            there_are_updates(sock, engines[rpc.id_]);
+            there_are_updates(sock, get_engine(rpc));
             break;
           case Rpc::Type::UPDATE:
-            update(sock, rpc.id_, engines[rpc.id_]);
+            update(sock, get_engine(rpc));
             break;
           case Rpc::Type::THERE_WERE_TASKS:
-            there_were_tasks(sock, engines[rpc.id_]);
+            there_were_tasks(sock, get_engine(rpc));
             break;
           case Rpc::Type::CONDITIONAL_UPDATE:
-            conditional_update(sock, rpc.id_, engines[rpc.id_]);
+            conditional_update(sock, get_engine(rpc));
             break;
           case Rpc::Type::OPEN_LOOP:
-            open_loop(sock, rpc.id_, engines[rpc.id_]);
+            open_loop(sock, get_engine(rpc));
             break;
 
-          // Registration Codes:
-          case Rpc::Type::REGISTER_CONNECTION: {
-            assert(sock_ids.find(rpc.id_) == sock_ids.end());
-            const auto id = sock_ids.size();
-            sock_ids.insert(make_pair(id, sock));
-            Rpc(Rpc::Type::OKAY, id).serialize(*sock);
-            sock->flush();
+          // Proxy Compiler Codes:
+          case Rpc::Type::OPEN_CONN_1: 
+            open_conn_1(sock, rpc);
             break;
-          }
-
-          // Teardown Codes:
-          case Rpc::Type::TEARDOWN_ENGINE: {
-            delete engines[rpc.id_];
-            Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
-            sock->flush();
-            engines[rpc.id_] = nullptr;
+          case Rpc::Type::OPEN_CONN_2:
+            open_conn_2(sock, rpc);
             break;
-          }
-          case Rpc::Type::TEARDOWN_CONNECTION: {
-            Rpc(Rpc::Type::OKAY, rpc.id_).serialize(*sock);
+          case Rpc::Type::CLOSE_CONN: {
+            Rpc(Rpc::Type::OKAY).serialize(*sock);
             sock->flush();
-            delete sock;
             sock = nullptr;
-            socks[i] = nullptr;
-            sock_ids.erase(rpc.id_);
-            FD_CLR(i, &master_set);
-            break;  
+            delete socks_[sock_index_[rpc.pid_].first];
+            socks_[sock_index_[rpc.pid_].first] = nullptr;
+            FD_CLR(sock_index_[rpc.pid_].first, &master_set);
+            delete socks_[sock_index_[rpc.pid_].second];
+            socks_[sock_index_[rpc.pid_].second] = nullptr;
+            FD_CLR(sock_index_[rpc.pid_].second, &master_set);
+            break;
           }
 
-          // Control reaches here innocuosly when fd is closed remotely after
-          // receiving confirmation that the connection was torn down.
+          // Proxy Core Codes:
+          case Rpc::Type::TEARDOWN_ENGINE:
+            teardown_engine(sock, rpc);
+            break;
+
+          // Control reaches here innocuosly when fds are closed remotely
           default:
             break;
         }
@@ -250,34 +229,74 @@ void RemoteCompiler::run_logic() {
     }
   }
 
-  for (auto* e : engines) {
-    delete e;
+  // Stop all asynchronous threads. 
+  pool_.stop_now();
+
+  // We have exclusive access to the indices. Delete their contents.
+  for (auto& es : engines_) {
+    for (auto* e : es) {
+      if (e != nullptr) {
+        delete e;
+      }
+    }
   }
-  for (auto* s : socks) {
+  engines_.clear();
+  for (auto* s : socks_) {
     if (s != nullptr) {
       delete s;
     }
   }
-  assert(sock_ids.empty());
+  socks_.clear();
 }
 
-Engine* RemoteCompiler::compile(sockstream* sock) {
+void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
+  // Read the module declaration in the request
   Log log;
   Parser p(&log);
   p.parse(*sock);
   assert(!log.error());
   assert((*p.begin())->is(Node::Tag::module_declaration));
-
-  // TODO(eschkufz) we need an engine id here
-
   auto* md = static_cast<ModuleDeclaration*>(*p.begin());
-  return Compiler::compile(0, md);
+
+  // Add a new entry to the engine table if necessary
+  auto eid = 0;
+  { lock_guard<mutex> lg(lock_);
+    if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
+      engine_index_.resize(rpc.pid_+1);
+      engine_index_[rpc.pid_].resize(rpc.eid_+1);
+      engine_index_[rpc.pid_][rpc.eid_] = engines_.size();
+      engines_.resize(engines_.size()+1);
+    }
+    eid = engine_index_[rpc.pid_][rpc.eid_];
+  }
+
+  // Now create a new thread to compile the code, enter it into the
+  // engine table, and close the socket when it's done.
+  schedule_asynchronous([this, sock, rpc, md, eid]{
+    sock_ = socks_[sock_index_[rpc.pid_].second];
+    assert(sock_ != nullptr);
+    auto* e = Compiler::compile(eid, md);
+
+    if (e != nullptr) {
+      { lock_guard<mutex> lg(lock_);
+        engines_[eid].push_back(e);
+        Rpc(Rpc::Type::OKAY, rpc.pid_, rpc.eid_, engines_[eid].size()-1).serialize(*sock);
+      }
+      sock->flush();
+    } else {
+      Rpc(Rpc::Type::FAIL).serialize(*sock);
+      sock->flush();
+    }
+    delete sock;
+  });
 }
 
-void RemoteCompiler::abort(sockstream* sock) {
-  Compiler::stop_compile();
-  Rpc(Rpc::Type::OKAY, 0).serialize(*sock);
+void RemoteCompiler::stop_compile(sockstream* sock, const Rpc& rpc) {
+  auto eid = engine_index_[rpc.pid_][rpc.eid_];
+  Compiler::stop_compile(eid);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
+  delete sock;
 }
 
 void RemoteCompiler::get_state(sockstream* sock, Engine* e) {
@@ -308,11 +327,11 @@ void RemoteCompiler::set_input(sockstream* sock, Engine* e) {
   delete i;
 }
 
-void RemoteCompiler::finalize(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::finalize(sockstream* sock, Engine* e) {
   e->finalize();
   // This call to finalize will have primed the socket with tasks and writes
   // Appending an OKAY rpc indicates that everything has been sent
-  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
 }
 
@@ -344,11 +363,11 @@ void RemoteCompiler::read(sockstream* sock, Engine* e) {
   e->read(id, &bits);
 }
 
-void RemoteCompiler::evaluate(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::evaluate(sockstream* sock, Engine* e) {
   e->evaluate();
   // This call to evaluate will have primed the socket with tasks and writes
   // Appending an OKAY rpc, indicates that everything has been sent.
-  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
 }
 
@@ -356,11 +375,11 @@ void RemoteCompiler::there_are_updates(sockstream* sock, Engine* e) {
   sock->put(e->there_are_updates() ? 1 : 0);
 }
 
-void RemoteCompiler::update(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::update(sockstream* sock, Engine* e) {
   e->update();
   // This call to update will have primed the socket with tasks and writes
   // Appending an OKAY rpc, indicates that everything has been sent.
-  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
 }
 
@@ -368,16 +387,16 @@ void RemoteCompiler::there_were_tasks(sockstream* sock, Engine* e) {
   sock->put(e->there_were_tasks() ? 1 : 0);
 }
 
-void RemoteCompiler::conditional_update(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::conditional_update(sockstream* sock, Engine* e) {
   const auto res = e->conditional_update();
   // This call to conditional_update will have primed the socket with tasks and
   // writes Appending an OKAY rpc, indicates that everything has been sent.
-  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->put(res ? 1 : 0);
   sock->flush();
 }
 
-void RemoteCompiler::open_loop(sockstream* sock, Rpc::Id id, Engine* e) {
+void RemoteCompiler::open_loop(sockstream* sock, Engine* e) {
   uint32_t clk = 0;
   sock->read(reinterpret_cast<char*>(&clk), 4);
   bool val = (sock->get() == 1);
@@ -387,9 +406,37 @@ void RemoteCompiler::open_loop(sockstream* sock, Rpc::Id id, Engine* e) {
   const uint32_t res = e->open_loop(clk, val, itr);
   // This call to open_loop  will have primed the socket with tasks and
   // writes Appending an OKAY rpc, indicates that everything has been sent.
-  Rpc(Rpc::Type::OKAY, id).serialize(*sock);
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->write(reinterpret_cast<const char*>(&res), 4);
   sock->flush();
+}
+
+void RemoteCompiler::open_conn_1(sockstream* sock, const Rpc& rpc) {
+  (void) rpc;
+  const auto pid = sock_index_.size();
+  sock_index_.push_back(make_pair(sock->descriptor(), 0));
+  Rpc(Rpc::Type::OKAY, pid, 0, 0).serialize(*sock);
+  sock->flush();
+}
+
+void RemoteCompiler::open_conn_2(sockstream* sock, const Rpc& rpc) {
+  sock_index_[rpc.pid_].second = sock->descriptor();
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
+  sock->flush();
+}
+
+void RemoteCompiler::teardown_engine(sockstream* sock, const Rpc& rpc) {
+  { lock_guard<mutex> lg(lock_);
+    delete engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
+    engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_] = nullptr;
+  }
+  Rpc(Rpc::Type::OKAY).serialize(*sock);
+  sock->flush();
+} 
+
+Engine* RemoteCompiler::get_engine(const Rpc& rpc) {
+  lock_guard<mutex> lg(lock_);
+  return engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
 }
 
 } // namespace cascade

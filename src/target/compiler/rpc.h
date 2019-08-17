@@ -44,7 +44,7 @@ struct Rpc : Serializable {
 
     // Compiler API:
     COMPILE,  
-    ABORT,
+    STOP_COMPILE,
 
     // Core API:
     GET_STATE,
@@ -87,43 +87,54 @@ struct Rpc : Serializable {
     SPUTC,
     SPUTN,
 
-    // Registration Codes:
-    REGISTER_CONNECTION,
+    // Proxy Compiler Codes:
+    OPEN_CONN_1,
+    OPEN_CONN_2,
+    CLOSE_CONN,
 
-    // Teardown Codes:
-    TEARDOWN_ENGINE,
-    TEARDOWN_CONNECTION
+    // Proxy Core Codes:
+    TEARDOWN_ENGINE
   };
-  typedef uint32_t Id;
 
   Rpc();
-  Rpc(Type type, Id id);
+  Rpc(Type type);
+  Rpc(Type type, uint32_t pid, uint32_t eid, uint32_t n);
   ~Rpc() override = default;
 
   size_t deserialize(std::istream& is) override;
   size_t serialize(std::ostream& os) const override;
 
   Type type_;
-  Id id_;
+  uint32_t pid_;
+  uint32_t eid_;
+  uint32_t n_;
 };
 
-inline Rpc::Rpc() : Rpc(Type::FAIL, 0) { }
+inline Rpc::Rpc() : Rpc(Type::FAIL, 0, 0, 0) { }
 
-inline Rpc::Rpc(Type type, Id id) : Serializable() {
+inline Rpc::Rpc(Type type) : Rpc(type, 0, 0, 0) { }
+
+inline Rpc::Rpc(Type type, uint32_t pid, uint32_t eid, uint32_t n) : Serializable() {
   type_ = type;
-  id_ = id;
+  pid_ = pid;
+  eid_ = eid;
+  n_ = n;
 }
 
 inline size_t Rpc::deserialize(std::istream& is) {
   is.read(reinterpret_cast<char*>(&type_), sizeof(type_));
-  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
-  return sizeof(type_) + sizeof(id_);
+  is.read(reinterpret_cast<char*>(&pid_), sizeof(pid_));
+  is.read(reinterpret_cast<char*>(&eid_), sizeof(eid_));
+  is.read(reinterpret_cast<char*>(&n_), sizeof(n_));
+  return sizeof(type_) + sizeof(pid_) + sizeof(eid_) + sizeof(n_);
 }
 
 inline size_t Rpc::serialize(std::ostream& os) const {
   os.write(const_cast<char*>(reinterpret_cast<const char*>(&type_)), sizeof(type_));
-  os.write(const_cast<char*>(reinterpret_cast<const char*>(&id_)), sizeof(id_));
-  return sizeof(type_) + sizeof(id_);
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&pid_)), sizeof(pid_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&eid_)), sizeof(eid_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&n_)), sizeof(n_));
+  return sizeof(type_) + sizeof(pid_) + sizeof(eid_) + sizeof(n_);
 }
 
 } // namespace cascade

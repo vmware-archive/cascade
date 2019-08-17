@@ -30,6 +30,7 @@
 
 #include "target/core/sw/sw_compiler.h"
 
+#include "target/compiler.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
@@ -76,7 +77,7 @@ SwClock* SwCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interfa
   (void) id;
 
   if (!check_io(md, 0, 1)) {
-    error("Unable to compile a software clock with more than one output");
+    get_compiler()->error("Unable to compile a software clock with more than one output");
     delete md;
     return nullptr;
   }
@@ -92,12 +93,12 @@ SwLed* SwCompiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interface* 
   (void) id;
 
   if (led_ == nullptr) {
-    error("Unable to compile a software led without a reference to a software fpga");
+    get_compiler()->error("Unable to compile a software led without a reference to a software fpga");
     delete md;
     return nullptr;
   }
   if (!check_io(md, 8, 8)) {
-    error("Unable to compile a software led with more than 8 outputs");
+    get_compiler()->error("Unable to compile a software led with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -135,12 +136,12 @@ SwPad* SwCompiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* 
   (void) id;
 
   if (pad_ == nullptr) {
-    error("Unable to compile a software pad without a reference to a software fpga");
+    get_compiler()->error("Unable to compile a software pad without a reference to a software fpga");
     delete md;
     return nullptr;
   }
   if (pad_ == nullptr || !check_io(md, 0, 4)) {
-    error("Unable to compile a software pad with more than four inputs");
+    get_compiler()->error("Unable to compile a software pad with more than four inputs");
     delete md;
     return nullptr;
   }
@@ -157,12 +158,12 @@ SwReset* SwCompiler::compile_reset(Engine::Id id, ModuleDeclaration* md, Interfa
   (void) id;
 
   if (pad_ == nullptr) {
-    error("Unable to compile a software reset without a reference to a software fpga");
+    get_compiler()->error("Unable to compile a software reset without a reference to a software fpga");
     delete md;
     return nullptr;
   }
   if (pad_ == nullptr || !check_io(md, 0, 1)) {
-    error("Unable to compile a software reset with more than one input");
+    get_compiler()->error("Unable to compile a software reset with more than one input");
     delete md;
     return nullptr;
   }

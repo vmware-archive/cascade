@@ -35,6 +35,7 @@
 #include <map>
 #include <unistd.h>
 #include "common/sockstream.h"
+#include "target/compiler.h"
 #include "target/core/de10/de10_rewrite.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
@@ -112,12 +113,12 @@ De10Gpio* De10Compiler::compile_gpio(Engine::Id id, ModuleDeclaration* md, Inter
   (void) id;
 
   if (virtual_base_ == MAP_FAILED) {
-    error("De10 gpio compilation failed due to inability to memory map device");
+    get_compiler()->error("De10 gpio compilation failed due to inability to memory map device");
     delete md;
     return nullptr;
   }
   if (!check_io(md, 8, 8)) {
-    error("Unable to compile a de10 gpio with more than 8 outputs");
+    get_compiler()->error("Unable to compile a de10 gpio with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -138,12 +139,12 @@ De10Led* De10Compiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interfa
   (void) id;
 
   if (virtual_base_ == MAP_FAILED) {
-    error("De10 led compilation failed due to inability to memory map device");
+    get_compiler()->error("De10 led compilation failed due to inability to memory map device");
     delete md;
     return nullptr;
   }
   if (!check_io(md, 8, 8)) {
-    error("Unable to compile a de10 led with more than 8 outputs");
+    get_compiler()->error("Unable to compile a de10 led with more than 8 outputs");
     delete md;
     return nullptr;
   }
@@ -167,7 +168,7 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
   // Connect to quartus server
   sockstream sock1(host_.c_str(), port_);
   if (sock1.error()) {
-    error("Unable to connect to quartus compilation server");
+    get_compiler()->error("Unable to connect to quartus compilation server");
     return nullptr;
   }
   // Send a slot request. If it comes back negative, the server is full.
@@ -175,7 +176,7 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
   sock1.flush();
   const auto sid = sock1.get();
   if (sid == static_cast<uint8_t>(-1)) {
-    error("No remaining slots available on de10 fabric");
+    get_compiler()->error("No remaining slots available on de10 fabric");
     return nullptr;
   }
 
@@ -214,7 +215,7 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
   // Check table and index sizes. If this program uses too much state, we won't
   // be able to uniquely name its elements using our current addressing scheme.
   if (de->get_table().size() >= 0x1000) {
-    error("Unable to compile a module with more than 4096 entries in variable table");
+    get_compiler()->error("Unable to compile a module with more than 4096 entries in variable table");
     delete de;
     return nullptr;
   }
@@ -245,12 +246,12 @@ De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interfa
   (void) id;
 
   if (virtual_base_ == MAP_FAILED) {
-    error("De10 pad compilation failed due to inability to memory map device");
+    get_compiler()->error("De10 pad compilation failed due to inability to memory map device");
     delete md;
     return nullptr;
   }
   if (!check_io(md, 0, 4)) {
-    error("Unable to compile a de10 pad with more than 4 inputs");
+    get_compiler()->error("Unable to compile a de10 pad with more than 4 inputs");
     delete md;
     return nullptr;
   }

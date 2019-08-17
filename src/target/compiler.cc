@@ -50,6 +50,7 @@ Compiler::~Compiler() {
 Compiler& Compiler::set(const string& id, CoreCompiler* c) {
   assert(ccs_.find(id) == ccs_.end());
   assert(c != nullptr);
+  c->set_compiler(this);
   ccs_[id] = c;
   return *this;
 }

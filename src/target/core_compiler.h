@@ -85,9 +85,8 @@ class CoreCompiler {
     virtual Reset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface);
     virtual Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
-    // Logs an error message explaining why the most recent compilation failed.
-    // This method is thread safe.
-    void error(const std::string& s);
+    // Returns a pointer to this core compiler's enclosing top-level compiler
+    Compiler* get_compiler();
 
     // Returns the canonical name for a variable identifier.
     MId to_mid(const Identifier* id) const;

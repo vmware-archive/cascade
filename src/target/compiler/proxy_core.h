@@ -45,7 +45,7 @@ namespace cascade {
 template <typename T>
 class ProxyCore : public T {
   public:
-    ProxyCore(Interface* interface, Rpc::Id id, sockstream* sock);
+    ProxyCore(Interface* interface, uint32_t pid, uint32_t eid, uint32_t n, sockstream* sock);
     ~ProxyCore() override;
 
     State* get_state() override;
@@ -69,28 +69,32 @@ class ProxyCore : public T {
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
   private:
-    Rpc::Id id_;
+    uint32_t pid_;
+    uint32_t eid_;
+    uint32_t n_;
     sockstream* sock_;
 
     void recv();
 }; 
 
 template <typename T>
-inline ProxyCore<T>::ProxyCore(Interface* interface, Rpc::Id id, sockstream* sock) : T(interface) {
-  id_ = id;
+inline ProxyCore<T>::ProxyCore(Interface* interface, uint32_t pid, uint32_t eid, uint32_t n, sockstream* sock) : T(interface) {
+  pid_ = pid;
+  eid_ = eid;
+  n_ = n;
   sock_ = sock;
 }
 
 template <typename T>
 inline ProxyCore<T>::~ProxyCore() {
-  Rpc(Rpc::Type::TEARDOWN_ENGINE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::TEARDOWN_ENGINE, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   recv();
 }
 
 template <typename T>
 inline State* ProxyCore<T>::get_state() {
-  Rpc(Rpc::Type::GET_STATE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::GET_STATE, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
 
   auto* s = new State();
@@ -100,14 +104,14 @@ inline State* ProxyCore<T>::get_state() {
 
 template <typename T>
 inline void ProxyCore<T>::set_state(const State* s) {
-  Rpc(Rpc::Type::SET_STATE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SET_STATE, pid_, eid_, n_).serialize(*sock_);
   s->serialize(*sock_);
   sock_->flush();
 }
 
 template <typename T>
 inline Input* ProxyCore<T>::get_input() {
-  Rpc(Rpc::Type::GET_INPUT, id_).serialize(*sock_);
+  Rpc(Rpc::Type::GET_INPUT, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
 
   auto* i = new Input();
@@ -117,47 +121,47 @@ inline Input* ProxyCore<T>::get_input() {
 
 template <typename T>
 inline void ProxyCore<T>::set_input(const Input* i) {
-  Rpc(Rpc::Type::SET_INPUT, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SET_INPUT, pid_, eid_, n_).serialize(*sock_);
   i->serialize(*sock_);
   sock_->flush();
 }
 
 template <typename T>
 inline void ProxyCore<T>::finalize() {
-  Rpc(Rpc::Type::FINALIZE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::FINALIZE, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   recv();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_step() const {
-  Rpc(Rpc::Type::OVERRIDES_DONE_STEP, id_).serialize(*sock_);
+  Rpc(Rpc::Type::OVERRIDES_DONE_STEP, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::done_step() {
-  Rpc(Rpc::Type::DONE_STEP, id_).serialize(*sock_);
+  Rpc(Rpc::Type::DONE_STEP, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
 }
 
 template <typename T>
 inline bool ProxyCore<T>::overrides_done_simulation() const {
-  Rpc(Rpc::Type::OVERRIDES_DONE_SIMULATION, id_).serialize(*sock_);
+  Rpc(Rpc::Type::OVERRIDES_DONE_SIMULATION, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::done_simulation() {
-  Rpc(Rpc::Type::DONE_SIMULATION, id_).serialize(*sock_);
+  Rpc(Rpc::Type::DONE_SIMULATION, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
 }
 
 template <typename T>
 inline void ProxyCore<T>::read(VId id, const Bits* b) {
-  Rpc(Rpc::Type::READ, id_).serialize(*sock_);
+  Rpc(Rpc::Type::READ, pid_, eid_, n_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), 4);
   b->serialize(*sock_);
 
@@ -167,7 +171,7 @@ inline void ProxyCore<T>::read(VId id, const Bits* b) {
 
 template <typename T>
 inline void ProxyCore<T>::evaluate() {
-  Rpc(Rpc::Type::EVALUATE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::EVALUATE, pid_, eid_, n_).serialize(*sock_);
   // This call to flush dumps any reads which have been enqueued
   sock_->flush();
   recv();
@@ -175,14 +179,14 @@ inline void ProxyCore<T>::evaluate() {
 
 template <typename T>
 inline bool ProxyCore<T>::there_are_updates() const {
-  Rpc(Rpc::Type::THERE_ARE_UPDATES, id_).serialize(*sock_);
+  Rpc(Rpc::Type::THERE_ARE_UPDATES, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   return (sock_->get() == 1);
 }
 
 template <typename T>
 inline void ProxyCore<T>::update() {
-  Rpc(Rpc::Type::UPDATE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::UPDATE, pid_, eid_, n_).serialize(*sock_);
   // This call to flush dumps any reads which have been enqueued
   sock_->flush();
   recv();
@@ -190,14 +194,14 @@ inline void ProxyCore<T>::update() {
 
 template <typename T>
 inline bool ProxyCore<T>::there_were_tasks() const {
-  Rpc(Rpc::Type::THERE_WERE_TASKS, id_).serialize(*sock_);
+  Rpc(Rpc::Type::THERE_WERE_TASKS, pid_, eid_, n_).serialize(*sock_);
   sock_->flush();
   return (sock_->get() == 1);
 }
 
 template <typename T>
 inline bool ProxyCore<T>::conditional_update() {
-  Rpc(Rpc::Type::CONDITIONAL_UPDATE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::CONDITIONAL_UPDATE, pid_, eid_, n_).serialize(*sock_);
   // This call to flush dumps any reads which have been enqueued
   sock_->flush();
   recv();
@@ -206,7 +210,7 @@ inline bool ProxyCore<T>::conditional_update() {
 
 template <typename T>
 inline size_t ProxyCore<T>::open_loop(VId clk, bool val, size_t itr) {
-  Rpc(Rpc::Type::OPEN_LOOP, id_).serialize(*sock_);
+  Rpc(Rpc::Type::OPEN_LOOP, pid_, eid_, n_).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&clk), 4);
   sock_->put(val ? 1 : 0);
   sock_->write(reinterpret_cast<const char*>(&itr), 4);

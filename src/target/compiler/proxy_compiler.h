@@ -34,6 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include "common/sockstream.h"
+#include "target/compiler.h"
 #include "target/compiler/rpc.h"
 #include "target/core_compiler.h"
 #include "target/compiler/proxy_core.h"
@@ -44,14 +45,19 @@ namespace cascade {
 
 class ProxyCompiler : public CoreCompiler {
   public:
+    typedef uint32_t Id;
+
     ProxyCompiler();
     ~ProxyCompiler() override;
 
-    void stop_compile(Engine::Id id) override;
-    void stop_async() override;
-
   private:
-    std::unordered_map<std::string, std::pair<Rpc::Id, sockstream*>> socks_;
+    struct ConnInfo {
+      Id pid;
+      sockstream* async_sock;
+      sockstream* sync_sock;
+    };
+    std::unordered_map<std::string, ConnInfo> conns_;
+    bool running_;
 
     // Core Compiler Interface:
     Clock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
@@ -68,56 +74,54 @@ class ProxyCompiler : public CoreCompiler {
     template <typename T>
     ProxyCore<T>* generic_compile(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
-    std::pair<Rpc::Id, sockstream*> get_persistent_sock(const std::string& loc);
-    sockstream* get_temp_sock(const std::string& loc);
+    void async_loop();
+    void stop_compile(Engine::Id id) override;
+    void stop_async() override;
+
+    bool open(const std::string& loc);
+    bool close(const ConnInfo& ci);
+
+    sockstream* get_sock(const std::string& loc);
     sockstream* get_tcp_sock(const std::string& loc);
     sockstream* get_unix_sock(const std::string& loc);
 };
 
 template <typename T>
 inline ProxyCore<T>* ProxyCompiler::generic_compile(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
-  // TODO(exchkufz) do something with id
-  (void) id;
-
-  // Look up the loc annotation on this module
+  // Open a connection to this location if necessary.
   const auto& loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
-
-  // Grab a persistent socket connection to the remote runtime at this address.
-  auto psock = get_persistent_sock(loc);
-  if (psock.second == nullptr) {
-    error("Unable to establish connection with slave runtime");
+  if (!open(loc)) {
+    get_compiler()->error("Unable to establish connection with remote compiler");
     delete md;
     return nullptr;
   }
+  const auto& conn = conns_[loc];
 
-  // Open up a temporary socket connection to the remote runtime. Compilations
-  // Use a separate connection so that they don't block ABI requests while 
-  // running in the background.
-  auto* tsock = get_temp_sock(loc);
-  if (tsock == nullptr) {
-    error("Unable to establish connection with slave runtime");
-    delete md;
-    return nullptr;
-  }
-
-  // Change __loc attribute to "remote" and send compile rpc. This is a
-  // blocking request in this thread, but it won't block the remote runtime.
+  // Change __loc to "remote" and send a compile request via a temp socket.  
   md->get_attrs()->set_or_replace("__loc", new String("remote"));
-  Rpc(Rpc::Type::COMPILE, psock.first).serialize(*tsock);
-  TextPrinter(*tsock) << md << "\n";
-  delete md;
-  tsock->flush();
-
-  Rpc res;
-  res.deserialize(*tsock);
-  delete tsock;
-
-  if (res.type_ == Rpc::Type::FAIL) {
-    // TODO(eschkufz) Forward error messages from slave runtime to here
-    error("An unhandled error occured during compilation in the slave runtime");
+  auto* sock = get_sock(loc);
+  if (sock == nullptr) {
+    get_compiler()->error("Unable to establish connection with remote compiler");
+    delete md;
     return nullptr;
   }
-  return new ProxyCore<T>(interface, res.id_, psock.second);
+
+  // Send a blocking compile request
+  Rpc(Rpc::Type::COMPILE, conn.pid, id, 0).serialize(*sock);
+  TextPrinter(*sock) << md << "\n";
+  delete md;
+  sock->flush();
+
+  // If successful, this response will contain the index for this engine in the
+  // remote compiler's engine table
+  Rpc res;
+  res.deserialize(*sock);
+  delete sock;
+  if (res.type_ == Rpc::Type::FAIL) {
+    get_compiler()->error("An unhandled error occured during compilation in the remote compiler");
+    return nullptr;
+  }
+  return new ProxyCore<T>(interface, conn.pid, id, res.n_, conn.sync_sock);
 }
 
 } // namespace cascade

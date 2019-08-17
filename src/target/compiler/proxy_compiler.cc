@@ -36,37 +36,23 @@ using namespace std;
 
 namespace cascade {
 
-ProxyCompiler::ProxyCompiler() : CoreCompiler() { }
+ProxyCompiler::ProxyCompiler() : CoreCompiler() { 
+  running_ = true;
+}
 
 ProxyCompiler::~ProxyCompiler() {
-  for (auto& s : socks_) {
-    auto* sock = s.second.second;
-    Rpc(Rpc::Type::TEARDOWN_CONNECTION, s.second.first).serialize(*sock);
-    sock->flush();
-    Rpc rpc;
-    rpc.deserialize(*sock);
-    assert(rpc.type_ == Rpc::Type::OKAY);
-    delete sock;
-  }
-}
+  // TODO(eschkufz) Add some better error handling here. We assume that if a
+  // connection was opened, all further communication will succeed.
 
-void ProxyCompiler::stop_compile(Engine::Id id) {
-  // TODO(eschkufz) implement me!
-  (void) id;
-  /*
-  for (auto& s : socks_) {
-    auto* sock = s.second.second;
-    Rpc(Rpc::Type::ABORT, 0).serialize(*sock);
-    sock->flush();
+  for (auto& c : conns_) {
+    Rpc(Rpc::Type::CLOSE_CONN, c.second.pid, 0, 0).serialize(*c.second.sync_sock);
+    c.second.sync_sock->flush();
     Rpc rpc;
-    rpc.deserialize(*sock);
+    rpc.deserialize(*c.second.sync_sock);
     assert(rpc.type_ == Rpc::Type::OKAY);
+    delete c.second.async_sock;
+    delete c.second.sync_sock;
   }
-  */
-}
-
-void ProxyCompiler::stop_async() {
-  // TODO(eschkufz) implement me!
 }
 
 Clock* ProxyCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
@@ -97,33 +83,75 @@ Reset* ProxyCompiler::compile_reset(Engine::Id id, ModuleDeclaration* md, Interf
   return generic_compile<Reset>(id, md, interface);
 }
 
-pair<Rpc::Id, sockstream*> ProxyCompiler::get_persistent_sock(const string& loc) {
-  // Check whether we already have a persistent socket for this location.
-  const auto itr = socks_.find(loc);
-  if (itr != socks_.end()) {
-    return itr->second;
-  }
-  // If not, create a new one, and if creation fails, return nullptr.
-  auto* sock = get_temp_sock(loc);
-  if (sock == nullptr) {
-    return make_pair(0, nullptr); 
-  }
-
-  // We have a working socket, so now let's register it.
-  Rpc(Rpc::Type::REGISTER_CONNECTION, 0).serialize(*sock);
-  sock->flush();
-  Rpc rpc;
-  rpc.deserialize(*sock);
-  assert(rpc.type_ == Rpc::Type::OKAY);
-
-  // The inbound id attached to this reply is the persistent connection id for
-  // this socket. Record this and the socket in the socket table.
-  const auto res = make_pair(rpc.id_, sock);
-  socks_.insert(make_pair(loc, res));
-  return res;
+void ProxyCompiler::async_loop() {
+  // TODO(exchkufz) implement me
 }
 
-sockstream* ProxyCompiler::get_temp_sock(const string& loc) {
+void ProxyCompiler::stop_compile(Engine::Id id) {
+  // TODO(eschkufz) Add some better error handling here. We assume that if a
+  // connection was opened, all further communication will succeed.
+
+  for (auto& c : conns_) {
+    auto* sock = get_sock(c.first);
+    assert(sock != nullptr);
+    Rpc(Rpc::Type::STOP_COMPILE, c.second.pid, id, 0).serialize(*sock);
+    sock->flush();
+    Rpc rpc;
+    rpc.deserialize(*sock);
+    assert(rpc.type_ == Rpc::Type::OKAY);
+  }
+}
+
+void ProxyCompiler::stop_async() {
+  running_ = false;
+}
+
+bool ProxyCompiler::open(const string& loc) {
+  // Nothing to do if we already have a connection to this location
+  if (conns_.find(loc) != conns_.end()) {
+    return true;
+  }
+
+  // Open a new asynchronous socket
+  ConnInfo ci;
+  Rpc rpc;
+
+  // TODO(eschkufz) Add some better error handling here. We assume that if the
+  // first connection attempt succeded, then all subsequent parts of the
+  // handshake will succeed as well.
+
+  // Step 1: Open the asynchronous socket and sent a register request.  The
+  // reply will contain the id the remote compiler associates with this
+  // compiler.
+  ci.async_sock = get_sock(loc);
+  if (ci.async_sock == nullptr) {
+    return false;
+  }
+  Rpc(Rpc::Type::OPEN_CONN_1, 0, 0, 0).serialize(*ci.async_sock);
+  ci.async_sock->flush();
+  rpc.deserialize(*ci.async_sock);
+  assert(rpc.type_ == Rpc::Type::OKAY);
+  ci.pid = rpc.pid_;
+
+  // Step 2: Open the synchronous socket and send a register request. This
+  // time around, send the pid so that the new socket can be associated with
+  // this connection in the remote compiler.
+  ci.sync_sock = get_sock(loc);
+  assert(ci.sync_sock != nullptr);
+  Rpc(Rpc::Type::OPEN_CONN_2, ci.pid, 0, 0).serialize(*ci.sync_sock);
+  ci.sync_sock->flush();
+  rpc.deserialize(*ci.sync_sock);
+  assert(rpc.type_ == Rpc::Type::OKAY);
+
+  // Step 3: Create a thread to listen for asynchronous messages 
+  get_compiler()->schedule_asynchronous([this]{async_loop();});
+
+  // Step 4: Archive the connection
+  conns_[loc] = ci;
+  return true;
+}
+
+sockstream* ProxyCompiler::get_sock(const string& loc) {
   auto* sock = (loc.find(':') != string::npos) ? get_tcp_sock(loc) : get_unix_sock(loc);
   if (sock->error()) {
     delete sock;
