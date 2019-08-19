@@ -75,7 +75,7 @@ class RemoteCompiler : public Compiler, public Thread {
     std::vector<std::vector<size_t>> engine_index_;
 
     // Compiler Interface:
-    void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
+    void schedule_state_safe_interrupt(Runtime::Interrupt int_, Runtime::Interrupt alt) override;
     void schedule_asynchronous(Runtime::Asynchronous async) override;
     Interface* get_interface(const std::string& loc) override;
 

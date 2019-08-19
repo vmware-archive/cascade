@@ -52,9 +52,10 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
   sock_ = nullptr;
 }
 
-void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
+void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_, Runtime::Interrupt alt) {
   // TODO(eschkufz) Implement this!!!
   (void) int_;
+  (void) alt;
 }
 
 void RemoteCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
