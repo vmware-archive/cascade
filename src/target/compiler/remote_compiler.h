@@ -64,18 +64,19 @@ class RemoteCompiler : public Compiler, public Thread {
     // Socket and Engine Indices:
     //
     // Protects concurrent access to indices
-    std::mutex lock_;
+    std::mutex elock_;
+    std::mutex slock_;
     // The ith element of this vector contains a socket for fd=i
     std::vector<sockstream*> socks_; 
     // The ith element of this vector contains the engines with local engine id i
     std::vector<std::vector<Engine*>> engines_;
-    // Maps a proxy core id to its synchronous and asynchronous socket ids
+    // Maps a proxy core id to its asynchronous and synchronous socket ids
     std::vector<std::pair<size_t, size_t>> sock_index_;
     // Maps a proxy core / engine id to a local engine id
     std::vector<std::vector<size_t>> engine_index_;
 
     // Compiler Interface:
-    void schedule_state_safe_interrupt(Runtime::Interrupt int_, Runtime::Interrupt alt) override;
+    void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
     void schedule_asynchronous(Runtime::Asynchronous async) override;
     Interface* get_interface(const std::string& loc) override;
 
@@ -114,6 +115,7 @@ class RemoteCompiler : public Compiler, public Thread {
 
     // Index Helpers:
     Engine* get_engine(const Rpc& rpc);
+    sockstream* get_sock(size_t idx);
 };
 
 } // namespace cascade

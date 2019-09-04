@@ -120,9 +120,10 @@ class Runtime : public Thread {
     // Identical to the two argument form, but blocks until the interrupt
     // completes execution or alt is executed in its place.
     void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
-    // Identical to schedule_blocking_interrupt, but wraps the call to int__ between
-    // calls to save() and restart() to guarantee state safety.
-    void schedule_state_safe_interrupt(Interrupt int__, Interrupt alt);
+    // Schedules an interrupt either between a call to save and restart if the
+    // simulation is currently active, or immediately if a call to finish
+    // already took place. This method blocks until completion.
+    void schedule_state_safe_interrupt(Interrupt int__);
     // Schedules an asynchronous task. Asynchronous tasks begin execution out
     // of phase with the logic time and may begin and end mid-step. If an
     // asynchronous task invokes any of the schedule_xxx_interrupt methods, it

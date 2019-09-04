@@ -91,6 +91,9 @@ struct Rpc : Serializable {
     OPEN_CONN_1,
     OPEN_CONN_2,
     CLOSE_CONN,
+    STATE_SAFE_BEGIN,
+    STATE_SAFE_OKAY,
+    STATE_SAFE_FINISH,
 
     // Proxy Core Codes:
     TEARDOWN_ENGINE

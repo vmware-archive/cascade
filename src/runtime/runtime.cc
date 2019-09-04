@@ -247,13 +247,13 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
   }
 }
 
-void Runtime::schedule_state_safe_interrupt(Interrupt int__, Interrupt alt) {
+void Runtime::schedule_state_safe_interrupt(Interrupt int__) {
   schedule_blocking_interrupt(
-    [this, int__, alt]{
+    [this, int__]{
       // As with retarget(), invoking this method in a state where item_evals_ >
       // 0 can be problematic. This condition guarantees safety.
       if (item_evals_ > 0) {
-        return schedule_state_safe_interrupt(int__, alt);
+        return schedule_state_safe_interrupt(int__);
       }
       ofstream ofs("state.dump");
       assert(ofs.is_open());
@@ -267,7 +267,7 @@ void Runtime::schedule_state_safe_interrupt(Interrupt int__, Interrupt alt) {
       root_->restart(ifs);
       ifs.close();
     },
-    alt
+    int__
   );
 }
 

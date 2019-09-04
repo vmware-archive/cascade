@@ -74,7 +74,7 @@ class ProxyCompiler : public CoreCompiler {
     template <typename T>
     ProxyCore<T>* generic_compile(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
-    void async_loop();
+    void async_loop(sockstream* sock);
     void stop_compile(Engine::Id id) override;
     void stop_async() override;
 

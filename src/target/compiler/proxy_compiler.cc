@@ -83,8 +83,42 @@ Reset* ProxyCompiler::compile_reset(Engine::Id id, ModuleDeclaration* md, Interf
   return generic_compile<Reset>(id, md, interface);
 }
 
-void ProxyCompiler::async_loop() {
-  // TODO(exchkufz) implement me
+void ProxyCompiler::async_loop(sockstream* sock) {
+  fd_set master_set;
+  FD_ZERO(&master_set);
+  FD_SET(sock->descriptor(), &master_set);
+
+  fd_set read_set;
+  FD_ZERO(&read_set);
+
+  struct timeval timeout = {0, 1000};
+
+  while (running_) {
+    read_set = master_set;
+    select(sock->descriptor()+1, &read_set, nullptr, nullptr, &timeout);
+    if (!FD_ISSET(sock->descriptor(), &read_set)) {
+      continue;
+    }
+
+    // The only message we expect here is the beginning of a state-safe
+    // handshake or a notification that the remote connection was closed.
+    Rpc rpc; 
+    rpc.deserialize(*sock);
+    if (rpc.type_ != Rpc::Type::STATE_SAFE_BEGIN) {
+      return;
+    }
+
+    // Schedule a state safe interrupt which tells the remote compiler to fire
+    // its interrupt handler. Block until the remote compiler replies that it's
+    // finished. We don't expect to see a close message here.
+    get_compiler()->schedule_state_safe_interrupt([sock]{
+      Rpc(Rpc::Type::STATE_SAFE_OKAY).serialize(*sock);
+      sock->flush();
+      Rpc res;
+      res.deserialize(*sock);
+      assert(res.type_ == Rpc::Type::STATE_SAFE_FINISH);
+    });
+  }
 }
 
 void ProxyCompiler::stop_compile(Engine::Id id) {
@@ -144,7 +178,7 @@ bool ProxyCompiler::open(const string& loc) {
   assert(rpc.type_ == Rpc::Type::OKAY);
 
   // Step 3: Create a thread to listen for asynchronous messages 
-  get_compiler()->schedule_asynchronous([this]{async_loop();});
+  get_compiler()->schedule_asynchronous([this, ci]{async_loop(ci.async_sock);});
 
   // Step 4: Archive the connection
   conns_[loc] = ci;

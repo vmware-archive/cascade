@@ -92,8 +92,10 @@ class Compiler {
     // Scheduling Interface:
     //
     // Schedules a blocking interrupt in a state safe window defined by all
-    // registered compilers. This method is thread safe.
-    virtual void schedule_state_safe_interrupt(Runtime::Interrupt int_, Runtime::Interrupt alt) = 0;
+    // registered compilers. This method is thread safe, but should only be
+    // invoked by second-pass jit-compilers. Invoking this method in a first-
+    // pass compiler will cause the runtime to hang.
+    virtual void schedule_state_safe_interrupt(Runtime::Interrupt int_) = 0;
     // Schedules an asynchronous task
     virtual void schedule_asynchronous(Runtime::Asynchronous async) = 0;
 

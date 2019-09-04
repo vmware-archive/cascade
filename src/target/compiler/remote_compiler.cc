@@ -52,10 +52,28 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
   sock_ = nullptr;
 }
 
-void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_, Runtime::Interrupt alt) {
-  // TODO(eschkufz) Implement this!!!
-  (void) int_;
-  (void) alt;
+void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
+  // Send a state safe begin request to every registered compiler and wait 
+  // for them to reply with a state safe okay
+  for (const auto& si : sock_index_) {
+    auto* asock = get_sock(si.first);
+    Rpc(Rpc::Type::STATE_SAFE_BEGIN).serialize(*asock);
+    asock->flush();
+    Rpc res;
+    res.deserialize(*asock);
+    assert(res.type_ == STATE_SAFE_OKAY);
+  }
+
+  // We now have every known instance of cascade either blocked in a state safe
+  // window or reporting that it's executed its finish statement.
+  int_();
+
+  // Send a state safe finish response to every known instance of cascade
+  for (const auto& si : sock_index_) {
+    auto* asock = get_sock(si.first);
+    Rpc(Rpc::Type::STATE_SAFE_FINISH).serialize(*asock);
+    asock->flush();
+  }
 }
 
 void RemoteCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
@@ -115,6 +133,8 @@ void RemoteCompiler::run_logic() {
 
       // Listener logic: New connections are added to the read set
       if ((i == tl.descriptor()) || (i == ul.descriptor())) {
+        lock_guard<mutex> lg(slock_);
+
         auto* sock = (i == tl.descriptor()) ? tl.accept() : ul.accept();
         const auto fd = sock->descriptor();
         FD_SET(fd, &master_set);
@@ -134,18 +154,22 @@ void RemoteCompiler::run_logic() {
         switch (rpc.type_) {
 
           // Compiler ABI: 
-          case Rpc::Type::COMPILE:
+          case Rpc::Type::COMPILE: {
+            lock_guard<mutex> lg(slock_);
             compile(sock, rpc);
             sock = nullptr;
             socks_[i] = nullptr;
             FD_CLR(i, &master_set);
             break;
-          case Rpc::Type::STOP_COMPILE: 
+          }
+          case Rpc::Type::STOP_COMPILE: {
+            lock_guard<mutex> lg(slock_);
             stop_compile(sock, rpc);
             sock = nullptr;
             socks_[i] = nullptr;
             FD_CLR(i, &master_set);
             break;
+          }
 
           // Core ABI:
           case Rpc::Type::GET_STATE:
@@ -205,6 +229,8 @@ void RemoteCompiler::run_logic() {
             open_conn_2(sock, rpc);
             break;
           case Rpc::Type::CLOSE_CONN: {
+            lock_guard<mutex> lg(slock_);
+
             Rpc(Rpc::Type::OKAY).serialize(*sock);
             sock->flush();
             sock = nullptr;
@@ -231,6 +257,7 @@ void RemoteCompiler::run_logic() {
   }
 
   // Stop all asynchronous threads. 
+  stop_async();
   pool_.stop_now();
 
   // We have exclusive access to the indices. Delete their contents.
@@ -261,7 +288,7 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
 
   // Add a new entry to the engine table if necessary
   auto eid = 0;
-  { lock_guard<mutex> lg(lock_);
+  { lock_guard<mutex> lg(elock_);
     if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
       engine_index_.resize(rpc.pid_+1);
       engine_index_[rpc.pid_].resize(rpc.eid_+1);
@@ -274,12 +301,12 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
   // Now create a new thread to compile the code, enter it into the
   // engine table, and close the socket when it's done.
   schedule_asynchronous([this, sock, rpc, md, eid]{
-    sock_ = socks_[sock_index_[rpc.pid_].second];
+    sock_ = get_sock(sock_index_[rpc.pid_].second);
     assert(sock_ != nullptr);
     auto* e = Compiler::compile(eid, md);
 
     if (e != nullptr) {
-      { lock_guard<mutex> lg(lock_);
+      { lock_guard<mutex> lg(elock_);
         engines_[eid].push_back(e);
         Rpc(Rpc::Type::OKAY, rpc.pid_, rpc.eid_, engines_[eid].size()-1).serialize(*sock);
       }
@@ -293,7 +320,10 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
 }
 
 void RemoteCompiler::stop_compile(sockstream* sock, const Rpc& rpc) {
-  auto eid = engine_index_[rpc.pid_][rpc.eid_];
+  auto eid = 0;
+  { lock_guard<mutex> lg(elock_);
+    eid = engine_index_[rpc.pid_][rpc.eid_];
+  }
   Compiler::stop_compile(eid);
   Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
@@ -427,7 +457,7 @@ void RemoteCompiler::open_conn_2(sockstream* sock, const Rpc& rpc) {
 }
 
 void RemoteCompiler::teardown_engine(sockstream* sock, const Rpc& rpc) {
-  { lock_guard<mutex> lg(lock_);
+  { lock_guard<mutex> lg(elock_);
     delete engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
     engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_] = nullptr;
   }
@@ -436,8 +466,13 @@ void RemoteCompiler::teardown_engine(sockstream* sock, const Rpc& rpc) {
 } 
 
 Engine* RemoteCompiler::get_engine(const Rpc& rpc) {
-  lock_guard<mutex> lg(lock_);
+  lock_guard<mutex> lg(elock_);
   return engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
+}
+
+sockstream* RemoteCompiler::get_sock(size_t idx) {
+  lock_guard<mutex> lg(slock_);
+  return socks_[idx];
 }
 
 } // namespace cascade
