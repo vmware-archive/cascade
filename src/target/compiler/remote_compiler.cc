@@ -257,7 +257,8 @@ void RemoteCompiler::run_logic() {
   }
 
   // Stop all asynchronous threads. 
-  stop_async();
+  Compiler::stop_compile();
+  Compiler::stop_async();
   pool_.stop_now();
 
   // We have exclusive access to the indices. Delete their contents.

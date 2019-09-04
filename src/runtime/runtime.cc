@@ -106,17 +106,16 @@ Runtime::~Runtime() {
   // new asyncrhonous threads have been started (the only place this happens is
   // inside interrupts).
 
-  // INVARIANT: All outstanding asynchronous threads should be terminated
-  // before we begin destroying major components. The only place these threads
-  // may be activated is through the compiler. 
-
   compiler_->stop_compile();
   compiler_->stop_async();
   pool_.stop_now();
 
-  // At this point, there are no loose threads, and any thread which finished
-  // execution after the interrupt queue was shutdown will have fired off its
-  // backup handler if any.
+  // INVARIANT: All outstanding asynchronous threads have finished executing,
+  // and any interrupts scheduled by those threads have either fizzled or had
+  // their alternate callbacks executed. 
+  
+  // INVARIANT: There is now a single active thread of control in the runtime
+  // and it is safe to tear down state.
 
   delete program_;
   if (root_ != nullptr) {
