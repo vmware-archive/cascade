@@ -35,7 +35,6 @@
 #include <vector>
 #include "common/bits.h"
 #include "target/core.h"
-#include "target/core/de10/quartus_server.h"
 #include "target/core/de10/var_table.h"
 #include "verilog/ast/visitors/visitor.h"
 
@@ -47,7 +46,7 @@ class interfacestream;
 class De10Logic : public Logic {
   public:
     // Constructors:
-    De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc);
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc, size_t slot);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -79,11 +78,9 @@ class De10Logic : public Logic {
     const Identifier* open_loop_clock() const;
 
   private:
-    // Quartus Server State:
-    QuartusServer::Id id_;
-
-    // Compiler Handle:
+    // Compiler State:
     De10Compiler* dc_;
+    size_t slot_;
 
     // Source Management:
     ModuleDeclaration* src_;

@@ -61,7 +61,7 @@ void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
     asock->flush();
     Rpc res;
     res.deserialize(*asock);
-    assert(res.type_ == STATE_SAFE_OKAY);
+    assert(res.type_ == Rpc::Type::STATE_SAFE_OKAY);
   }
 
   // We now have every known instance of cascade either blocked in a state safe

@@ -44,7 +44,7 @@ using namespace std;
 
 namespace cascade {
 
-string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id)  {
+string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t slot)  {
   stringstream ss;
 
   // Generate index tables before doing anything even remotely invasive
@@ -54,7 +54,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, Quartu
   // Emit a new declaration. The module name is formed using the slot id
   // assigned by the quartus server.
   ss.str(string());
-  ss << "M" << static_cast<int>(id);
+  ss << "M" << static_cast<int>(slot);
   auto* res = new ModuleDeclaration(
     new Attributes(),
     new Identifier(ss.str())

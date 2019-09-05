@@ -62,6 +62,9 @@ De10Compiler::De10Compiler() : CoreCompiler() {
     virtual_base_ = reinterpret_cast<volatile uint8_t*>(mmap(nullptr, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE));
   }
 
+  sequence_ = 0;
+  slots_.resize(4, {0, State::FREE, ""});
+
   set_host("localhost"); 
   set_port(9900);
 }
@@ -86,23 +89,55 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
   return *this;
 }
 
-void De10Compiler::cleanup(QuartusServer::Id id) {
-  sockstream sock(host_.c_str(), port_);;
-  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
-  sock.put(static_cast<uint8_t>(id));
-  sock.flush();
-  sock.get();
+void De10Compiler::release(size_t slot) {
+  // Return this slot to the pool if necessary. No need to interrupt or abort
+  // other compilations. 
+  lock_guard<mutex> lg(lock_);
+  slots_[slot].state = State::FREE;
 }
 
 void De10Compiler::stop_compile(Engine::Id id) {
-  // TODO(eschkufz) implement me!
-  (void) id;
-  /*
-  sockstream sock(host_.c_str(), port_);;
-  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::ABORT));
-  sock.flush();
-  sock.get();
-  */
+  // Variables which cross critical sections
+  size_t this_sequence = 0;
+
+  // Record an error and return if we can't connect to the quartus server
+  sockstream sock(host_.c_str(), port_);
+  if (sock.error()) {
+    get_compiler()->error("Unable to connect to quartus compilation server");
+    return;
+  }
+
+  // Return this slot to the pool. If there are any other active slots, we'll
+  // need to advance the sequence counter and initiate a compilation.
+  { lock_guard<mutex> lg(lock_);
+    auto any_active = false;
+    for (auto& s : slots_) {
+      if (s.id == id) {
+        s.state = State::FREE;
+      } 
+      if (s.state == State::WAITING) {
+        any_active = true;
+      }
+    }
+    if (!any_active) {
+      return;
+    }
+    this_sequence = ++sequence_;
+    compile(&sock);
+  }
+
+  // Compilation can take a long time, so block on completion outside of
+  // the critical section.
+  const auto cache_id = block_on_compile(&sock);
+
+  // If compilation returned failure or the sequence number has been advanced,
+  // another thread has taken over compilation and we can return. Otherwise, we
+  // can reporgram the device and alert any threads that are waiting.
+  { lock_guard<mutex> lg(lock_);
+    if ((cache_id != -1) && (this_sequence == sequence_)) {
+      reprogram(&sock, cache_id);
+    }
+  }
 }
 
 void De10Compiler::stop_async() {
@@ -162,84 +197,100 @@ De10Led* De10Compiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interfa
 }
 
 De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
-  // TODO(eschkufz) do something with id
-  (void) id;
+  // Variables which cross critical sections
+  De10Logic* de = nullptr;
+  size_t this_sequence = 0;
+  int slot = -1;
 
-  // Connect to quartus server
-  sockstream sock1(host_.c_str(), port_);
-  if (sock1.error()) {
+  // Record an error and return if we can't connect to the quartus server
+  sockstream sock(host_.c_str(), port_);
+  if (sock.error()) {
     get_compiler()->error("Unable to connect to quartus compilation server");
     return nullptr;
   }
-  // Send a slot request. If it comes back negative, the server is full.
-  sock1.put(static_cast<uint8_t>(QuartusServer::Rpc::REQUEST_SLOT));
-  sock1.flush();
-  const auto sid = sock1.get();
-  if (sid == static_cast<uint8_t>(-1)) {
-    get_compiler()->error("No remaining slots available on de10 fabric");
-    return nullptr;
+
+  // Find a new slot and generate code for this module. If either step fails,
+  // return nullptr. Otherwise, we'll need to advance the sequence counter and
+  // initiate a compilation.
+  { lock_guard<mutex> lg(lock_);
+    for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+      if (slots_[i].state == State::FREE) {
+        slot = i;
+        break;
+      }
+    }
+    if (slot == -1) {
+      get_compiler()->error("No remaining slots available on de10 fabric");
+      return nullptr;
+    }
+
+    // Create a new core with address identity based on module id
+    volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (slot << 14);
+    de = new De10Logic(interface, md, addr, this, slot);
+
+    // Register inputs, state, and outputs. Invoke these methods
+    // lexicographically to ensure a deterministic variable table ordering. The
+    // final invocation of index_tasks is lexicographic by construction, as
+    // it's based on a recursive descent of the AST.
+    ModuleInfo info(md);
+    map<VId, const Identifier*> is;
+    for (auto* i : info.inputs()) {
+      is.insert(make_pair(to_vid(i), i));
+    }
+    for (const auto& i : is) {
+      de->set_input(i.second, i.first);
+    }
+    map<VId, const Identifier*> ss;
+    for (auto* s : info.stateful()) {
+      ss.insert(make_pair(to_vid(s), s));
+    }
+    for (const auto& s : ss) {
+      de->set_state(s.second, s.first);
+    }
+    map<VId, const Identifier*> os;
+    for (auto* o : info.outputs()) {
+      os.insert(make_pair(to_vid(o), o));
+    }
+    for (const auto& o : os) {
+      de->set_output(o.second, o.first);
+    }
+    de->index_tasks();
+
+    // Check table and index sizes. If this program uses too much state, we won't
+    // be able to uniquely name its elements using our current addressing scheme.
+    if (de->get_table().size() >= 0x1000) {
+      get_compiler()->error("Unable to compile a module with more than 4096 entries in variable table");
+      delete de;
+      return nullptr;
+    }
+
+    // Update this core's slot state.
+    slots_[slot].id = id;
+    slots_[slot].state = State::WAITING;
+    slots_[slot].text = De10Rewrite().run(md, de, slot);
+
+    this_sequence = ++sequence_;
+    compile(&sock);
   }
 
-  // Create a new core with address identity based on module id
-  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (sid << 14);
-  auto* de = new De10Logic(interface, sid, md, addr, this);
+  // Compilation can take a long time, so block on completion outside of
+  // the critical section.
+  const auto cache_id = block_on_compile(&sock);
 
-  // Register inputs, state, and outputs. Invoke these methods
-  // lexicographically to ensure a deterministic variable table ordering. The
-  // final invocation of index_tasks is lexicographic by construction, as it's
-  // based on a recursive descent of the AST.
-  ModuleInfo info(md);
-  map<VId, const Identifier*> is;
-  for (auto* i : info.inputs()) {
-    is.insert(make_pair(to_vid(i), i));
+  // If compilation returned failure or the sequence number has been advanced,
+  // another thread has taken over compilation and we'll have to wait .
+  // Otherwise, we can reporgram the device and alert any threads that are
+  // waiting.
+  { unique_lock<mutex> ul(lock_);
+    if ((cache_id != -1) && (this_sequence == sequence_)) {
+      reprogram(&sock, cache_id);
+    } else {
+      while (slots_[slot].state == State::WAITING) {
+        cv_.wait(ul);
+      }
+    }
   }
-  for (const auto& i : is) {
-    de->set_input(i.second, i.first);
-  }
-  map<VId, const Identifier*> ss;
-  for (auto* s : info.stateful()) {
-    ss.insert(make_pair(to_vid(s), s));
-  }
-  for (const auto& s : ss) {
-    de->set_state(s.second, s.first);
-  }
-  map<VId, const Identifier*> os;
-  for (auto* o : info.outputs()) {
-    os.insert(make_pair(to_vid(o), o));
-  }
-  for (const auto& o : os) {
-    de->set_output(o.second, o.first);
-  }
-  de->index_tasks();
-
-  // Check table and index sizes. If this program uses too much state, we won't
-  // be able to uniquely name its elements using our current addressing scheme.
-  if (de->get_table().size() >= 0x1000) {
-    get_compiler()->error("Unable to compile a module with more than 4096 entries in variable table");
-    delete de;
-    return nullptr;
-  }
-
-  // Blocking call to compile.  At this point, we don't expect compilations to
-  // fail.  A non-zero return value indicates that the compilation was aborted. 
-  sockstream sock2(host_.c_str(), port_);
-  sock2.put(static_cast<uint8_t>(QuartusServer::Rpc::UPDATE_SLOT));
-  sock2.put(static_cast<uint8_t>(sid));
-  const auto text = De10Rewrite().run(md, de, sid);
-  sock2.write(text.c_str(), text.length());
-  sock2.put('\0');
-  sock2.flush();
-  if (sock2.get() == 0) {
-    return de;
-  }
-
-  // If the compilation was aborted, return this slot to the server.
-  sockstream sock3(host_.c_str(), port_);
-  sock3.put(static_cast<uint8_t>(QuartusServer::Rpc::RETURN_SLOT));
-  sock3.put(static_cast<uint8_t>(sid));
-  sock3.flush();
-  delete de;
-  return nullptr;
+  return de;
 }
 
 De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
@@ -263,6 +314,20 @@ De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interfa
   delete md;
 
   return new De10Pad(interface, oid, w, pad_addr);
+}
+
+void De10Compiler::compile(sockstream* sock) {
+  (void) sock;
+}
+
+int De10Compiler::block_on_compile(sockstream* sock) {
+  (void) sock;
+  return -1;
+}
+
+void De10Compiler::reprogram(sockstream* sock, size_t id) {
+  (void) sock;
+  (void) id;
 }
 
 } // namespace cascade

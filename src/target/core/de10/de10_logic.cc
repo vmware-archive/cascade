@@ -45,15 +45,15 @@ using namespace std;
 
 namespace cascade {
 
-De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc) : Logic(interface), table_(addr) { 
-  id_ = id;
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc, size_t slot) : Logic(interface), table_(addr) { 
   src_ = src;
   dc_ = dc;
+  slot_ = slot;
   tasks_.push_back(nullptr);
 }
 
 De10Logic::~De10Logic() {
-  dc_->cleanup(id_);
+  dc_->release(slot_);
   delete src_;
   for (auto& s : streams_) {
     delete s.second;
