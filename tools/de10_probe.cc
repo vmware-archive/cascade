@@ -35,7 +35,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "cl/cl.h"
-#include "target/core/de10/quartus_server.h"
 
 using namespace cascade;
 using namespace cascade::cl;
@@ -52,7 +51,7 @@ constexpr auto LOG_PIO_BASE = 0x00040000u;
 #define MANGLE(addr, idx) ((volatile uint8_t*)(((idx) << 2) + (size_t)addr))
 
 __attribute__((unused)) auto& g1 = Group::create("Configuration Options");
-auto& mid = StrArg<QuartusServer::Id>::create("--mid")
+auto& mid = StrArg<size_t>::create("--mid")
   .usage("<MId>")
   .description("Module ID")
   .initial(0);

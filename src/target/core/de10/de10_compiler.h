@@ -93,9 +93,10 @@ class De10Compiler : public CoreCompiler {
     De10Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Compilation Helpers:
+    void kill_all(sockstream* sock);
     void compile(sockstream* sock);
-    int block_on_compile(sockstream* sock);
-    void reprogram(sockstream* sock, size_t id);
+    bool block_on_compile(sockstream* sock);
+    void reprogram(sockstream* sock);
 };
 
 } // namespace cascade

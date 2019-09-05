@@ -37,6 +37,8 @@
 #include "common/sockstream.h"
 #include "target/compiler.h"
 #include "target/core/de10/de10_rewrite.h"
+#include "target/core/de10/program_boxer.h"
+#include "target/core/de10/quartus_server.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/ast.h"
@@ -100,43 +102,53 @@ void De10Compiler::stop_compile(Engine::Id id) {
   // Variables which cross critical sections
   size_t this_sequence = 0;
 
-  // Record an error and return if we can't connect to the quartus server
+  // Open a connection to the quartus server
   sockstream sock(host_.c_str(), port_);
-  if (sock.error()) {
-    get_compiler()->error("Unable to connect to quartus compilation server");
-    return;
-  }
 
-  // Return this slot to the pool. If there are any other active slots, we'll
-  // need to advance the sequence counter and initiate a compilation.
+  // If this slot either doesn't exist or isn't in the waiting state, there's
+  // nothing to do. Otherwise, if it's the only slot that's waiting, we can
+  // issue a killall and return. If there are others, we'll need to perform a
+  // full recompile.
   { lock_guard<mutex> lg(lock_);
-    auto any_active = false;
+    auto stopped = false;
+    auto others_waiting = false;
+
     for (auto& s : slots_) {
-      if (s.id == id) {
-        s.state = State::FREE;
-      } 
       if (s.state == State::WAITING) {
-        any_active = true;
+        if (s.id == id) {
+          s.state = State::FREE;
+          stopped = true;
+        } else {
+          others_waiting = true;
+        }
       }
     }
-    if (!any_active) {
+    if (!stopped) {
       return;
     }
-    this_sequence = ++sequence_;
-    compile(&sock);
+
+    if (sock.error()) {
+      return;
+    } else if (others_waiting) {
+      this_sequence = ++sequence_;
+      compile(&sock);
+    } else {
+      kill_all(&sock);
+      return;
+    }
   }
 
   // Compilation can take a long time, so block on completion outside of
   // the critical section.
-  const auto cache_id = block_on_compile(&sock);
+  const auto res = block_on_compile(&sock);
 
   // If compilation returned failure or the sequence number has been advanced,
   // another thread has taken over compilation and we can return. Otherwise, we
   // can reporgram the device and alert any threads that are waiting.
   { lock_guard<mutex> lg(lock_);
-    if ((cache_id != -1) && (this_sequence == sequence_)) {
-      reprogram(&sock, cache_id);
-    }
+    if (res && (this_sequence == sequence_)) {
+      reprogram(&sock);
+    } 
   }
 }
 
@@ -275,15 +287,15 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
 
   // Compilation can take a long time, so block on completion outside of
   // the critical section.
-  const auto cache_id = block_on_compile(&sock);
+  const auto res = block_on_compile(&sock);
 
   // If compilation returned failure or the sequence number has been advanced,
   // another thread has taken over compilation and we'll have to wait .
   // Otherwise, we can reporgram the device and alert any threads that are
   // waiting.
   { unique_lock<mutex> ul(lock_);
-    if ((cache_id != -1) && (this_sequence == sequence_)) {
-      reprogram(&sock, cache_id);
+    if (res && (this_sequence == sequence_)) {
+      reprogram(&sock);
     } else {
       while (slots_[slot].state == State::WAITING) {
         cv_.wait(ul);
@@ -316,18 +328,46 @@ De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interfa
   return new De10Pad(interface, oid, w, pad_addr);
 }
 
+void De10Compiler::kill_all(sockstream* sock) {
+  sock->put(static_cast<uint8_t>(QuartusServer::Rpc::KILL_ALL));
+  sock->flush();
+  sock->get();
+  cv_.notify_all();
+}
+
 void De10Compiler::compile(sockstream* sock) {
-  (void) sock;
+  ProgramBoxer pb;
+  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+    if (slots_[i].state != State::FREE) {
+      pb.push(i, slots_[i].text);
+    }
+  }
+  const auto text = pb.get();
+
+  sock->put(static_cast<uint8_t>(QuartusServer::Rpc::COMPILE));
+  sock->write(text.c_str(), text.length());
+  sock->put('\0');
+  sock->flush();
+  sock->get();
 }
 
-int De10Compiler::block_on_compile(sockstream* sock) {
-  (void) sock;
-  return -1;
+bool De10Compiler::block_on_compile(sockstream* sock) {
+  return (static_cast<QuartusServer::Rpc>(sock->get()) == QuartusServer::Rpc::OKAY);
 }
 
-void De10Compiler::reprogram(sockstream* sock, size_t id) {
-  (void) sock;
-  (void) id;
+void De10Compiler::reprogram(sockstream* sock) {
+  get_compiler()->schedule_state_safe_interrupt([this, sock]{
+    sock->put(static_cast<uint8_t>(QuartusServer::Rpc::REPROGRAM));
+    sock->flush();
+    sock->get();
+
+    for (auto& s : slots_) {
+      if (s.state == State::WAITING) {
+        s.state = State::CURRENT;
+      }     
+    }
+    cv_.notify_all();
+  });
 }
 
 } // namespace cascade
