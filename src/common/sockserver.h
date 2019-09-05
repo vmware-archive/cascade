@@ -67,8 +67,10 @@ inline sockserver::sockserver(uint32_t port, size_t backlog) {
   if (fd_ == -1) {
     return;
   } else if (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) {
+    ::close(fd_);
     fd_ = -1;
   } else if (::listen(fd_, backlog) != 0) {
+    ::close(fd_);
     fd_ = -1;
   } 
 }
@@ -84,8 +86,10 @@ inline sockserver::sockserver(const char* path, size_t backlog) {
   if (fd_ == -1) {
     return;
   } else if (::bind(fd_, (struct sockaddr*) &addr, sizeof(addr)) != 0) {
+    ::close(fd_);
     fd_ = -1;
   } else if (::listen(fd_, backlog) != 0) {
+    ::close(fd_);
     fd_ = -1;
   } 
 }

@@ -105,6 +105,7 @@ inline int sockstream::unix_sock(const char* path) {
 
   fd_ = socket(AF_UNIX, SOCK_STREAM, 0);
   if ((fd_ != -1) && (::connect(fd_, (struct sockaddr*)&dest, sizeof(dest)) != 0)) {
+    ::close(fd_);
     fd_ = -1;
   } 
   return fd_;
@@ -119,6 +120,7 @@ inline int sockstream::inet_sock(const char* host, uint32_t port) {
 
   fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if ((fd_ != -1) && (::connect(fd_, (struct sockaddr*)&dest, sizeof(dest)) != 0)) {
+    ::close(fd_);
     fd_ = -1;
   } 
   return fd_;
