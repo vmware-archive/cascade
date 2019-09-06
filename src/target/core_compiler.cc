@@ -50,6 +50,16 @@ CoreCompiler& CoreCompiler::set_compiler(Compiler* c) {
 }
 
 Core* CoreCompiler::compile(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+  const auto* delay = md->get_attrs()->get<Number>("__delay");
+  if (delay != nullptr) {
+    this_thread::sleep_for(chrono::seconds(delay->get_val().to_uint()));
+  }
+  if (md->get_attrs()->find("__state_safe_int")) {
+    get_compiler()->schedule_state_safe_interrupt([]{
+      cout << "State Safe Interrupt" << endl;
+    });
+  }
+
   const auto* std = md->get_attrs()->get<String>("__std");
   if (std->eq("clock")) {
     return compile_clock(id, md, interface);

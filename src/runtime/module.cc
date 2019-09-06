@@ -342,7 +342,8 @@ void Module::compile_and_replace(size_t ignore) {
   const auto jit = std->eq("logic") && ((tsep != string::npos) || (lsep != string::npos));
 
   // If we're jit compiling, we'll need a second copy of the source need to
-  // adjust the annotations. 
+  // adjust the annotations. We'll also need to erase debugging annotations from
+  // the first pass source.
   ModuleDeclaration* md2 = nullptr;
   if (jit) {
     md2 = md->clone();
@@ -354,6 +355,8 @@ void Module::compile_and_replace(size_t ignore) {
       md2->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(lsep+1)));
       md->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(0, lsep)));
     }
+    md->get_attrs()->erase("__delay");
+    md->get_attrs()->erase("__state_safe_int");
   } else {
     md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
@@ -383,21 +386,6 @@ void Module::compile_and_replace(size_t ignore) {
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
-      // Debugging Triggers:
-      const auto* delay = md2->get_attrs()->get<Number>("__delay");
-      if (delay != nullptr) {
-        rt_->schedule_blocking_interrupt([this, delay]{
-          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "(artificial compilation delay " << delay->get_val().to_uint() << "s)" << endl;
-          this_thread::sleep_for(chrono::seconds(delay->get_val().to_uint()));
-        });
-      }
-      if (md2->get_attrs()->find("__state_safe_int")) {
-        rt_->schedule_state_safe_interrupt([this]{
-          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "(artificial state-safe interrupt)" << endl;
-        });
-      }
-
-      // Compilation:
       DeleteInitial().run(md2);
       auto* e_slow = rt_->get_compiler()->compile(engine_->get_id(), md2);
 
