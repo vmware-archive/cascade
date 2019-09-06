@@ -53,6 +53,8 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
 }
 
 void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
+  lock_guard<mutex> lg(slock_);
+
   // Send a state safe begin request to every registered compiler and wait 
   // for them to reply with a state safe okay
   for (const auto& si : sock_index_) {
@@ -115,7 +117,7 @@ void RemoteCompiler::run_logic() {
   fd_set read_set;
   FD_ZERO(&read_set);
 
-  struct timeval timeout = {0, 1000};
+  struct timeval timeout = {1, 0};
   auto max_fd = max(tl.descriptor(), ul.descriptor());
 
   pool_.set_num_threads(4);
@@ -147,7 +149,7 @@ void RemoteCompiler::run_logic() {
       }
 
       // Client: Grab the socket associated with this fd and handle the request
-      auto* sock = socks_[i];
+      auto* sock = get_sock(i);
       do {
         Rpc rpc;
         rpc.deserialize(*sock);
@@ -222,12 +224,17 @@ void RemoteCompiler::run_logic() {
             break;
 
           // Proxy Compiler Codes:
-          case Rpc::Type::OPEN_CONN_1: 
+          case Rpc::Type::OPEN_CONN_1: {
+            lock_guard<mutex> lg(slock_);
             open_conn_1(sock, rpc);
+            FD_CLR(sock->descriptor(), &master_set);                                              
             break;
-          case Rpc::Type::OPEN_CONN_2:
+          }
+          case Rpc::Type::OPEN_CONN_2: {
+            lock_guard<mutex> lg(slock_);
             open_conn_2(sock, rpc);
             break;
+          }
           case Rpc::Type::CLOSE_CONN: {
             lock_guard<mutex> lg(slock_);
 
@@ -236,7 +243,6 @@ void RemoteCompiler::run_logic() {
             sock = nullptr;
             delete socks_[sock_index_[rpc.pid_].first];
             socks_[sock_index_[rpc.pid_].first] = nullptr;
-            FD_CLR(sock_index_[rpc.pid_].first, &master_set);
             delete socks_[sock_index_[rpc.pid_].second];
             socks_[sock_index_[rpc.pid_].second] = nullptr;
             FD_CLR(sock_index_[rpc.pid_].second, &master_set);
@@ -302,6 +308,8 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
   // Now create a new thread to compile the code, enter it into the
   // engine table, and close the socket when it's done.
   schedule_asynchronous([this, sock, rpc, md, eid]{
+    // TODO(eschkufz) Race condition here between when we set sock_ and when
+    // it's read.  Also, note the unguarded access to sock_index_
     sock_ = get_sock(sock_index_[rpc.pid_].second);
     assert(sock_ != nullptr);
     auto* e = Compiler::compile(eid, md);
@@ -324,14 +332,14 @@ void RemoteCompiler::stop_compile(sockstream* sock, const Rpc& rpc) {
   auto eid = 0;
   { lock_guard<mutex> lg(elock_);
     if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
-      return;
-    }
-    eid = engine_index_[rpc.pid_][rpc.eid_];
-    if (eid == -1) {
-      return;
+      eid = -1;
+    } else {
+      eid = engine_index_[rpc.pid_][rpc.eid_];
     }
   }
-  Compiler::stop_compile(eid);
+  if (eid != -1) {
+    Compiler::stop_compile(eid);
+  }
   Rpc(Rpc::Type::OKAY).serialize(*sock);
   sock->flush();
   delete sock;

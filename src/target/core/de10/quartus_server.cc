@@ -106,7 +106,7 @@ void QuartusServer::run_logic() {
   fd_set read_set;
   FD_ZERO(&read_set);
 
-  struct timeval timeout = {0, 1000};
+  struct timeval timeout = {1, 0};
 
   while (!stop_requested()) {
     read_set = master_set;

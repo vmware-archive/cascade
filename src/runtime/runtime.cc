@@ -254,17 +254,10 @@ void Runtime::schedule_state_safe_interrupt(Interrupt int__) {
       if (item_evals_ > 0) {
         return schedule_state_safe_interrupt(int__);
       }
-      ofstream ofs("state.dump");
-      assert(ofs.is_open());
-      root_->save(ofs);
-      ofs.close();
-
+      stringstream ss;
+      root_->save(ss);
       int__();
-
-      ifstream ifs("state.dump");
-      assert(ifs.is_open());
-      root_->restart(ifs);
-      ifs.close();
+      root_->restart(ss);
     },
     int__
   );
