@@ -58,7 +58,7 @@ void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
   // Send a state safe begin request to every registered compiler and wait 
   // for them to reply with a state safe okay
   for (const auto& si : sock_index_) {
-    auto* asock = get_sock(si.first);
+    auto* asock = socks_[si.first];
     Rpc(Rpc::Type::STATE_SAFE_BEGIN).serialize(*asock);
     asock->flush();
     Rpc res;
@@ -72,7 +72,7 @@ void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
 
   // Send a state safe finish response to every known instance of cascade
   for (const auto& si : sock_index_) {
-    auto* asock = get_sock(si.first);
+    auto* asock = socks_[si.first];
     Rpc(Rpc::Type::STATE_SAFE_FINISH).serialize(*asock);
     asock->flush();
   }
