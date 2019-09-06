@@ -58,6 +58,7 @@ class Attributes : public Node {
 
     // Lookup Interface:
     void erase(const std::string& s);
+    bool find(const std::string& s) const;
     template <typename T>
     const T* get(const std::string& s) const;
     void set_or_replace(const Attributes* rhs);
@@ -101,6 +102,15 @@ inline void Attributes::erase(const std::string& s) {
   if (i != end_as()) {
     purge_as(i);
   }
+}
+
+inline bool Attributes::find(const std::string& s) const {
+  for (auto i = begin_as(), ie = end_as(); i != ie; ++i) {
+    if ((*i)->get_lhs()->eq(s)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename T>

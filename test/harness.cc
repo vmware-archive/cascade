@@ -95,6 +95,13 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(sb->str(), expected);
 }
 
+void run_concurrent(const string& march, const string& path, const string& expected) {
+  std::thread t1(run_code, march, path, expected);
+  std::thread t2(run_code, march, path, expected);
+  t1.join();
+  t2.join();
+}
+
 void run_benchmark(const string& path, const string& expected) {
   auto* sb = new stringbuf();
 

@@ -129,7 +129,9 @@ Runtime::~Runtime() {
   delete isolate_;
 
   for (auto* s : streambufs_) {
-    delete s;
+    if ((s != cin.rdbuf()) && (s != cout.rdbuf()) && (s != clog.rdbuf())) {
+      delete s;
+    }
   }
 }
 

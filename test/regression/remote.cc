@@ -37,11 +37,6 @@ using namespace cascade;
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  // Create a slave runtime for remote tests. This doesn't actually solve
-  // the race condition of running a remote test before the slave runtime
-  // enters its accept loop, but if there's anything in between here and
-  // the first remote test, it makes it *excepptionally unlikely* that it
-  // will ever happen.
   CascadeSlave slave;
   slave.set_listeners("/tmp/fpga_socket", 8800);
   slave.run();
@@ -69,4 +64,8 @@ TEST(remote, bubble) {
 }
 TEST(remote, regex) {
   run_code("minimal_remote", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+}
+
+TEST(concurrent, bitcoin) {
+  run_concurrent("minimal_concurrent", "data/test/benchmark/bitcoin/run_12.v", "00001314 00001398\n");
 }

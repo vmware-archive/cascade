@@ -191,6 +191,9 @@ void Module::save(ostream& os) {
     assert(p != nullptr);
     assert(p->is(Node::Tag::module_instantiation));
 
+    const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    ostream(rt_->rdbuf(Runtime::stdinfo_)) << "<save> " << fid << endl;
+
     os << "MODULE:" << endl;
     os << rt_->get_isolate()->isolate(static_cast<const ModuleInstantiation*>(p)) << endl;
     
@@ -231,16 +234,15 @@ void Module::restart(std::istream& is) {
     const auto* p = (*i)->psrc_->get_parent();
     assert(p != nullptr);
     assert(p->is(Node::Tag::module_instantiation));
+
+    const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
+    ostream(rt_->rdbuf(Runtime::stdinfo_)) << "<restart> " << fid << endl;
+
     const auto id = rt_->get_isolate()->isolate(static_cast<const ModuleInstantiation*>(p));
     const auto itr = save.find(id);
-
     if (itr == save.end()) {
       continue;
     }
-
-    ostream os(rt_->rdbuf(Runtime::stdinfo_));
-    const auto fid = Resolve().get_readable_full_id(static_cast<const ModuleInstantiation*>(p)->get_iid());
-    os << "Updated state for " << fid << endl;
 
     (*i)->engine_->set_input(itr->second.first);
     (*i)->engine_->set_state(itr->second.second);
@@ -381,6 +383,21 @@ void Module::compile_and_replace(size_t ignore) {
       TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
+      // Debugging Triggers:
+      const auto* delay = md2->get_attrs()->get<Number>("__delay");
+      if (delay != nullptr) {
+        rt_->schedule_blocking_interrupt([this, delay]{
+          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "(artificial compilation delay " << delay->get_val().to_uint() << "s)" << endl;
+          this_thread::sleep_for(chrono::seconds(delay->get_val().to_uint()));
+        });
+      }
+      if (md2->get_attrs()->find("__state_safe_int")) {
+        rt_->schedule_state_safe_interrupt([this]{
+          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "(artificial state-safe interrupt)" << endl;
+        });
+      }
+
+      // Compilation:
       DeleteInitial().run(md2);
       auto* e_slow = rt_->get_compiler()->compile(engine_->get_id(), md2);
 
