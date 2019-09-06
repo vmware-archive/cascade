@@ -156,10 +156,6 @@ void De10Compiler::stop_compile(Engine::Id id) {
   delete sock;
 }
 
-void De10Compiler::stop_async() {
-  // Does nothing. This class does not schedule any asynchronous tasks.
-}
-
 De10Gpio* De10Compiler::compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   (void) id;
 

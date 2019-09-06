@@ -37,13 +37,18 @@ using namespace std;
 namespace cascade {
 
 ProxyCompiler::ProxyCompiler() : CoreCompiler() { 
+  pool_.set_num_threads(4);
+  pool_.run();
   running_ = true;
 }
 
 ProxyCompiler::~ProxyCompiler() {
+        cout << "BEGIN DESTROY" << endl;
+  running_ = false;
+  pool_.stop_now();
+
   // TODO(eschkufz) Add some better error handling here. We assume that if a
   // connection was opened, all further communication will succeed.
-
   for (auto& c : conns_) {
     Rpc(Rpc::Type::CLOSE_CONN, c.second.pid, 0, 0).serialize(*c.second.sync_sock);
     c.second.sync_sock->flush();
@@ -53,6 +58,7 @@ ProxyCompiler::~ProxyCompiler() {
     delete c.second.async_sock;
     delete c.second.sync_sock;
   }
+        cout << "OKAY" << endl;
 }
 
 Clock* ProxyCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
@@ -136,10 +142,6 @@ void ProxyCompiler::stop_compile(Engine::Id id) {
   }
 }
 
-void ProxyCompiler::stop_async() {
-  running_ = false;
-}
-
 bool ProxyCompiler::open(const string& loc) {
   // Nothing to do if we already have a connection to this location
   if (conns_.find(loc) != conns_.end()) {
@@ -178,7 +180,7 @@ bool ProxyCompiler::open(const string& loc) {
   assert(rpc.type_ == Rpc::Type::OKAY);
 
   // Step 3: Create a thread to listen for asynchronous messages 
-  get_compiler()->schedule_asynchronous([this, ci]{async_loop(ci.async_sock);});
+  pool_.insert([this, ci]{async_loop(ci.async_sock);});
 
   // Step 4: Archive the connection
   conns_[loc] = ci;

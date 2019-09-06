@@ -113,12 +113,6 @@ void Compiler::stop_compile() {
   }
 }
 
-void Compiler::stop_async() {
-  for (auto& cc : ccs_) {
-    cc.second->stop_async();
-  } 
-}
-
 void Compiler::error(const string& s) {
   lock_guard<mutex> lg(lock_);
   what_ = (what_ == "") ? s : what_;

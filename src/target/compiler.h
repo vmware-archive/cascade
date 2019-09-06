@@ -77,9 +77,6 @@ class Compiler {
     // amount of time. If an invocation of compile() would return normally it
     // may do so, otherwise, it will return nullptr.
     void stop_compile(); 
-    // Causes all takss invoked through schedule_asynchronous() to return in
-    // a *reasonably short* amount of time.
-    void stop_async();
 
     // Error Reporting Interface:
     //
@@ -96,8 +93,6 @@ class Compiler {
     // invoked by second-pass jit-compilers. Invoking this method in a first-
     // pass compiler will cause the runtime to hang.
     virtual void schedule_state_safe_interrupt(Runtime::Interrupt int_) = 0;
-    // Schedules an asynchronous task
-    virtual void schedule_asynchronous(Runtime::Asynchronous async) = 0;
 
   protected:
     // Interface Compilation... Interface:

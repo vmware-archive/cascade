@@ -46,7 +46,6 @@ class LocalCompiler : public Compiler {
     Runtime* rt_;
 
     void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
-    void schedule_asynchronous(Runtime::Asynchronous async) override;
     Interface* get_interface(const std::string& loc) override;
 };
 
@@ -56,10 +55,6 @@ inline LocalCompiler::LocalCompiler(Runtime* rt) : Compiler() {
 
 inline void LocalCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
   rt_->schedule_state_safe_interrupt(int_);
-}
-
-inline void LocalCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
-  rt_->schedule_asynchronous(async);
 }
 
 inline Interface*LocalCompiler::get_interface(const std::string& loc) {

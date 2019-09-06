@@ -65,9 +65,6 @@ class CoreCompiler {
     // is safe to return the resulting pointer.  Otherwise, an implementation
     // may cause compile() to return nullptr.
     virtual void stop_compile(Engine::Id id) = 0;
-    // Forces any tasks invoked through a call to schedule_asynchronous() to 
-    // return in a *reasonably short* amount of time.
-    virtual void stop_async() = 0;
 
   protected:
     // These methods inherit ownership of md and are responsible for deleting

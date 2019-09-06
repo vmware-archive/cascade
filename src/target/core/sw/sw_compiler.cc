@@ -69,10 +69,6 @@ void SwCompiler::stop_compile(Engine::Id id) {
   (void) id;
 }
 
-void SwCompiler::stop_async() {
-  // Does nnothing. This class does not produce asynchronous tasks.
-}
-
 SwClock* SwCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   (void) id;
 

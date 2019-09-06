@@ -56,7 +56,6 @@ class De10Compiler : public CoreCompiler {
 
     void release(size_t slot);
     void stop_compile(Engine::Id id) override;
-    void stop_async() override;
 
   private:
     // Compilation States:

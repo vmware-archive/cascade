@@ -54,10 +54,13 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
 
 void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
   lock_guard<mutex> lg(slock_);
-
+  
   // Send a state safe begin request to every registered compiler and wait 
   // for them to reply with a state safe okay
   for (const auto& si : sock_index_) {
+    if (si.first == -1) {
+      continue;
+    }
     auto* asock = socks_[si.first];
     Rpc(Rpc::Type::STATE_SAFE_BEGIN).serialize(*asock);
     asock->flush();
@@ -72,14 +75,13 @@ void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
 
   // Send a state safe finish response to every known instance of cascade
   for (const auto& si : sock_index_) {
+    if (si.first == -1) {
+      continue;
+    }
     auto* asock = socks_[si.first];
     Rpc(Rpc::Type::STATE_SAFE_FINISH).serialize(*asock);
     asock->flush();
   }
-}
-
-void RemoteCompiler::schedule_asynchronous(Runtime::Asynchronous async) {
-  pool_.insert(async);
 }
 
 Interface* RemoteCompiler::get_interface(const std::string& loc) {
@@ -133,10 +135,11 @@ void RemoteCompiler::run_logic() {
         continue;
       }
 
-      // Listener logic: New connections are added to the read set
+      // Listener logic: New connections are added to the read set Note that
+      // this is a write critical section for sockets so it is guarded against
+      // race conditions with the state safe interrupt handler.
       if ((i == tl.descriptor()) || (i == ul.descriptor())) {
         lock_guard<mutex> lg(slock_);
-
         auto* sock = (i == tl.descriptor()) ? tl.accept() : ul.accept();
         const auto fd = sock->descriptor();
         FD_SET(fd, &master_set);
@@ -149,15 +152,18 @@ void RemoteCompiler::run_logic() {
       }
 
       // Client: Grab the socket associated with this fd and handle the request
-      auto* sock = get_sock(i);
+      // Note that this is a read, which can't interfere with the state safe
+      // interrupt handler and thus doesn't need to be guarded.
+      auto* sock = socks_[i];
       do {
         Rpc rpc;
         rpc.deserialize(*sock);
         switch (rpc.type_) {
 
-          // Compiler ABI: 
+          // Compiler ABI: Note that these methods remove elements from the
+          // sock index which aren't used anywhere else and thus don't need to
+          // be guarded.
           case Rpc::Type::COMPILE: {
-            lock_guard<mutex> lg(slock_);
             compile(sock, rpc);
             sock = nullptr;
             socks_[i] = nullptr;
@@ -165,7 +171,6 @@ void RemoteCompiler::run_logic() {
             break;
           }
           case Rpc::Type::STOP_COMPILE: {
-            lock_guard<mutex> lg(slock_);
             stop_compile(sock, rpc);
             sock = nullptr;
             socks_[i] = nullptr;
@@ -237,15 +242,15 @@ void RemoteCompiler::run_logic() {
           }
           case Rpc::Type::CLOSE_CONN: {
             lock_guard<mutex> lg(slock_);
-
             Rpc(Rpc::Type::OKAY).serialize(*sock);
             sock->flush();
             sock = nullptr;
             delete socks_[sock_index_[rpc.pid_].first];
-            socks_[sock_index_[rpc.pid_].first] = nullptr;
             delete socks_[sock_index_[rpc.pid_].second];
+            socks_[sock_index_[rpc.pid_].first] = nullptr;
             socks_[sock_index_[rpc.pid_].second] = nullptr;
             FD_CLR(sock_index_[rpc.pid_].second, &master_set);
+            sock_index_[rpc.pid_] = make_pair(-1,-1);
             break;
           }
 
@@ -262,9 +267,8 @@ void RemoteCompiler::run_logic() {
     }
   }
 
-  // Stop all asynchronous threads. 
+  // Stop all asynchronous compilation threads. 
   Compiler::stop_compile();
-  Compiler::stop_async();
   pool_.stop_now();
 
   // We have exclusive access to the indices. Delete their contents.
@@ -307,10 +311,10 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
 
   // Now create a new thread to compile the code, enter it into the
   // engine table, and close the socket when it's done.
-  schedule_asynchronous([this, sock, rpc, md, eid]{
+  pool_.insert([this, sock, rpc, md, eid]{
     // TODO(eschkufz) Race condition here between when we set sock_ and when
     // it's read.  Also, note the unguarded access to sock_index_
-    sock_ = get_sock(sock_index_[rpc.pid_].second);
+    sock_ = socks_[sock_index_[rpc.pid_].second];
     assert(sock_ != nullptr);
     auto* e = Compiler::compile(eid, md);
 
@@ -483,11 +487,6 @@ void RemoteCompiler::teardown_engine(sockstream* sock, const Rpc& rpc) {
 Engine* RemoteCompiler::get_engine(const Rpc& rpc) {
   lock_guard<mutex> lg(elock_);
   return engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
-}
-
-sockstream* RemoteCompiler::get_sock(size_t idx) {
-  lock_guard<mutex> lg(slock_);
-  return socks_[idx];
 }
 
 } // namespace cascade

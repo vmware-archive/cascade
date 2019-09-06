@@ -51,7 +51,6 @@ class SwCompiler : public CoreCompiler {
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
     void stop_compile(Engine::Id id) override;
-    void stop_async() override;
 
   private:
     SwClock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;

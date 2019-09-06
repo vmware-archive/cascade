@@ -34,6 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include "common/sockstream.h"
+#include "common/thread_pool.h"
 #include "target/compiler.h"
 #include "target/compiler/rpc.h"
 #include "target/core_compiler.h"
@@ -51,12 +52,16 @@ class ProxyCompiler : public CoreCompiler {
     ~ProxyCompiler() override;
 
   private:
+    // Connection State:
     struct ConnInfo {
       Id pid;
       sockstream* async_sock;
       sockstream* sync_sock;
     };
     std::unordered_map<std::string, ConnInfo> conns_;
+
+    // Asynchronous Control for State-Safe Requests:
+    ThreadPool pool_;
     bool running_;
 
     // Core Compiler Interface:
@@ -76,7 +81,6 @@ class ProxyCompiler : public CoreCompiler {
 
     void async_loop(sockstream* sock);
     void stop_compile(Engine::Id id) override;
-    void stop_async() override;
 
     bool open(const std::string& loc);
     bool close(const ConnInfo& ci);

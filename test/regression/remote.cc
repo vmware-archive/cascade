@@ -44,28 +44,34 @@ int main(int argc, char** argv) {
   return RUN_ALL_TESTS();
 }
 
-TEST(remote, hello_1) {
+TEST(one_to_one, hello_1) {
   run_code("minimal_remote", "data/test/regression/simple/hello_1.v", "Hello World");
 }
-TEST(remote, pipeline_1) {
+TEST(one_to_one, pipeline_1) {
   run_code("minimal_remote", "data/test/regression/simple/pipeline_1.v", "0123456789");
 }
-TEST(remote, pipeline_2) {
+TEST(one_to_one, pipeline_2) {
   run_code("minimal_remote", "data/test/regression/simple/pipeline_2.v", "0123456789");
 }
-TEST(remote, io) {
+TEST(one_to_one, io) {
   run_code("minimal_remote", "data/test/regression/simple/io_1.v", "1234512345");
 }
-TEST(remote, bitcoin) {
+TEST(one_to_one, bitcoin) {
   run_code("minimal_remote", "data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
-TEST(remote, bubble) {
+TEST(one_to_one, bubble) {
   run_code("minimal_remote", "data/test/benchmark/mips32/run_bubble_128.v", "1");
 }
-TEST(remote, regex) {
+TEST(one_to_one, regex) {
   run_code("minimal_remote", "data/test/benchmark/regex/run_disjunct_1.v", "424");
 }
 
-TEST(concurrent, bitcoin) {
+TEST(many_to_one, bitcoin) {
   run_concurrent("minimal_concurrent", "data/test/benchmark/bitcoin/run_12.v", "00001314 00001398\n");
+}
+TEST(many_to_one, regex) {
+  run_concurrent("minimal_concurrent", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+}
+TEST(many_to_one, array) {
+  run_concurrent("minimal_concurrent", "data/test/benchmark/array/run_5.v", "1048577\n");
 }
