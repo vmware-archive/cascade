@@ -101,9 +101,7 @@ void De10Compiler::release(size_t slot) {
 void De10Compiler::stop_compile(Engine::Id id) {
   // Variables which cross critical sections
   size_t this_sequence = 0;
-
-  // Open a connection to the quartus server
-  sockstream sock(host_.c_str(), port_);
+  sockstream* sock = nullptr;
 
   // If this slot either doesn't exist or isn't in the waiting state, there's
   // nothing to do. Otherwise, if it's the only slot that's waiting, we can
@@ -127,29 +125,35 @@ void De10Compiler::stop_compile(Engine::Id id) {
       return;
     }
 
-    if (sock.error()) {
-      return;
-    } else if (others_waiting) {
+    if (others_waiting) {
       this_sequence = ++sequence_;
-      compile(&sock);
+      sock = new sockstream(host_.c_str(), port_);
+      assert(!sock->error());
+      compile(sock);
     } else {
-      kill_all(&sock);
+      sock = new sockstream(host_.c_str(), port_);
+      assert(!sock->error());
+      kill_all(sock);
       return;
     }
   }
 
   // Compilation can take a long time, so block on completion outside of
   // the critical section.
-  const auto res = block_on_compile(&sock);
+  assert(!sock->error());
+  const auto res = block_on_compile(sock);
 
   // If compilation returned failure or the sequence number has been advanced,
   // another thread has taken over compilation and we can return. Otherwise, we
   // can reporgram the device and alert any threads that are waiting.
   { lock_guard<mutex> lg(lock_);
     if (res && (this_sequence == sequence_)) {
-      reprogram(&sock);
+      assert(!sock->error());
+      reprogram(sock);
     } 
   }
+
+  delete sock;
 }
 
 void De10Compiler::stop_async() {
