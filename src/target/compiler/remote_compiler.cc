@@ -292,7 +292,7 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
   { lock_guard<mutex> lg(elock_);
     if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
       engine_index_.resize(rpc.pid_+1);
-      engine_index_[rpc.pid_].resize(rpc.eid_+1);
+      engine_index_[rpc.pid_].resize(rpc.eid_+1, -1);
       engine_index_[rpc.pid_][rpc.eid_] = engines_.size();
       engines_.resize(engines_.size()+1);
     }
@@ -323,7 +323,13 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
 void RemoteCompiler::stop_compile(sockstream* sock, const Rpc& rpc) {
   auto eid = 0;
   { lock_guard<mutex> lg(elock_);
+    if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
+      return;
+    }
     eid = engine_index_[rpc.pid_][rpc.eid_];
+    if (eid == -1) {
+      return;
+    }
   }
   Compiler::stop_compile(eid);
   Rpc(Rpc::Type::OKAY).serialize(*sock);

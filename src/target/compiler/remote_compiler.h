@@ -73,7 +73,7 @@ class RemoteCompiler : public Compiler, public Thread {
     // Maps a proxy core id to its asynchronous and synchronous socket ids
     std::vector<std::pair<size_t, size_t>> sock_index_;
     // Maps a proxy core / engine id to a local engine id
-    std::vector<std::vector<size_t>> engine_index_;
+    std::vector<std::vector<int>> engine_index_;
 
     // Compiler Interface:
     void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
