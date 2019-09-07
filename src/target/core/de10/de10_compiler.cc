@@ -235,6 +235,7 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
       get_compiler()->error("No remaining slots available on de10 fabric");
       return nullptr;
     }
+    cout << "ALLOCATING SLOT FOR eid = " << id << " slot = " << slot << endl;
 
     // Create a new core with address identity based on module id
     volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (slot << 14);
@@ -276,6 +277,19 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
       return nullptr;
     }
 
+    // Free any slots that were working on this compilation. They're about to
+    // be killed. 
+    size_t index = 0;
+    for (auto& s : slots_) {
+      if ((s.id == id) && (s.state == State::WAITING)) {
+              cout << "ABORTING COMPILATION FOR slot = " << index << endl;
+        s.state = State::FREE;
+        cv_.notify_all();
+        break;
+      }
+      index++;
+    }
+
     // Update this core's slot state.
     slots_[slot].id = id;
     slots_[slot].state = State::WAITING;
@@ -289,12 +303,17 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
   // the critical section.
   const auto res = block_on_compile(&sock);
 
-  // If compilation returned failure or the sequence number has been advanced,
-  // another thread has taken over compilation and we'll have to wait .
-  // Otherwise, we can reporgram the device and alert any threads that are
-  // waiting.
+  // If we're no longer in the waiting state, it's because another thread has
+  // taken over compilation for this engine id. Return immediately with an
+  // aborted compilation.  If compilation returned failure or the sequence
+  // number has been advanced, another thread has taken over compilation and
+  // we'll have to wait .  Otherwise, we can reporgram the device and alert any
+  // threads that are waiting.
   { unique_lock<mutex> ul(lock_);
-    if (res && (this_sequence == sequence_)) {
+    if (slots_[slot].state != State::WAITING) {
+      delete de;
+      return nullptr;
+    } else if (res && (this_sequence == sequence_)) {
       reprogram(&sock);
     } else {
       while (slots_[slot].state == State::WAITING) {
