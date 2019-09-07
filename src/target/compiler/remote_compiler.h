@@ -47,7 +47,7 @@ class sockstream;
 class RemoteCompiler : public Compiler, public Thread {
   public:
     RemoteCompiler();
-    ~RemoteCompiler() override = default;
+    ~RemoteCompiler() override;
 
     RemoteCompiler& set_path(const std::string& p);
     RemoteCompiler& set_port(uint32_t p);

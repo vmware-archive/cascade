@@ -65,6 +65,11 @@ class CoreCompiler {
     // is safe to return the resulting pointer.  Otherwise, an implementation
     // may cause compile() to return nullptr.
     virtual void stop_compile(Engine::Id id) = 0;
+    // Target specific implementations may override this method to stop the
+    // execution of any asynchronous work they may have initiated. This method
+    // is invoked once,  prior to runtime teardown, after all compilation
+    // requests have returned. The default implementation does nothing.
+    virtual void stop_async();
 
   protected:
     // These methods inherit ownership of md and are responsible for deleting

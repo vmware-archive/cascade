@@ -46,15 +46,13 @@ namespace cascade {
 
 class ProxyCompiler : public CoreCompiler {
   public:
-    typedef uint32_t Id;
-
     ProxyCompiler();
     ~ProxyCompiler() override;
 
   private:
     // Connection State:
     struct ConnInfo {
-      Id pid;
+      uint32_t pid;
       sockstream* async_sock;
       sockstream* sync_sock;
     };
@@ -65,6 +63,7 @@ class ProxyCompiler : public CoreCompiler {
     bool running_;
 
     // Core Compiler Interface:
+    void stop_async() override;
     Clock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
     Custom* compile_custom(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
     Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;

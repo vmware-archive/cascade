@@ -105,18 +105,18 @@ Runtime::~Runtime() {
   // INVARIANT: At this point we know that the interrupt queue is empty and no
   // new asyncrhonous threads have been started (the only place this happens is
   // inside interrupts). Stop any outstanding compilations and wait for them to
-  // return.
+  // return. When that's done, stop any asynchronous jobs associated with
+  // compilers.
 
   compiler_->stop_compile();
   pool_.stop_now();
+  compiler_->stop_async();
 
   // INVARIANT: All outstanding asynchronous threads have finished executing,
   // and any interrupts scheduled by those threads have either fizzled or had
-  // their alternate callbacks executed. 
+  // their alternate callbacks executed. It's now safe to tear down the
+  // runtime.
   
-  // INVARIANT: The only active threads of control are now in the runtime or in
-  // the implementations of a compiler. It is safe to tear down state.
-
   delete program_;
   if (root_ != nullptr) {
     delete root_;

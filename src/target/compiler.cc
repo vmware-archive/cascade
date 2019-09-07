@@ -105,6 +105,12 @@ void Compiler::stop_compile(Engine::Id id) {
   }
 }
 
+void Compiler::stop_async() {
+  for (auto& cc : ccs_) {
+    cc.second->stop_async();
+  }
+}
+
 void Compiler::stop_compile() {
   for (auto& cc : ccs_) {
     for (auto id : ids_) {

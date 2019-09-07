@@ -43,10 +43,6 @@ ProxyCompiler::ProxyCompiler() : CoreCompiler() {
 }
 
 ProxyCompiler::~ProxyCompiler() {
-        cout << "BEGIN DESTROY" << endl;
-  running_ = false;
-  pool_.stop_now();
-
   // TODO(eschkufz) Add some better error handling here. We assume that if a
   // connection was opened, all further communication will succeed.
   for (auto& c : conns_) {
@@ -58,7 +54,11 @@ ProxyCompiler::~ProxyCompiler() {
     delete c.second.async_sock;
     delete c.second.sync_sock;
   }
-        cout << "OKAY" << endl;
+}
+
+void ProxyCompiler::stop_async() {
+  running_ = false;
+  pool_.stop_now();
 }
 
 Clock* ProxyCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
@@ -139,6 +139,7 @@ void ProxyCompiler::stop_compile(Engine::Id id) {
     Rpc rpc;
     rpc.deserialize(*sock);
     assert(rpc.type_ == Rpc::Type::OKAY);
+    delete sock;
   }
 }
 

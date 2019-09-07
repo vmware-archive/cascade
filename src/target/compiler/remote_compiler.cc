@@ -52,6 +52,10 @@ RemoteCompiler::RemoteCompiler() : Compiler(), Thread() {
   sock_ = nullptr;
 }
 
+RemoteCompiler::~RemoteCompiler() {
+  Compiler::stop_async();
+}
+
 void RemoteCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
   lock_guard<mutex> lg(slock_);
   
@@ -300,13 +304,15 @@ void RemoteCompiler::compile(sockstream* sock, const Rpc& rpc) {
   // Add a new entry to the engine table if necessary
   auto eid = 0;
   { lock_guard<mutex> lg(elock_);
-    if ((rpc.pid_ >= engine_index_.size()) || (rpc.eid_ >= engine_index_[rpc.pid_].size())) {
+    if (rpc.pid_ >= engine_index_.size()) {
       engine_index_.resize(rpc.pid_+1);
-      engine_index_[rpc.pid_].resize(rpc.eid_+1, -1);
-      engine_index_[rpc.pid_][rpc.eid_] = engines_.size();
-      engines_.resize(engines_.size()+1);
     }
+    if (rpc.eid_ >= engine_index_[rpc.pid_].size()) {
+      engine_index_[rpc.pid_].resize(rpc.eid_+1, -1);
+    }
+    engine_index_[rpc.pid_][rpc.eid_] = engines_.size();
     eid = engine_index_[rpc.pid_][rpc.eid_];
+    engines_.resize(engines_.size()+1);
   }
 
   // Now create a new thread to compile the code, enter it into the
@@ -479,9 +485,9 @@ void RemoteCompiler::teardown_engine(sockstream* sock, const Rpc& rpc) {
   { lock_guard<mutex> lg(elock_);
     delete engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_];
     engines_[engine_index_[rpc.pid_][rpc.eid_]][rpc.n_] = nullptr;
+    Rpc(Rpc::Type::OKAY).serialize(*sock);
+    sock->flush();
   }
-  Rpc(Rpc::Type::OKAY).serialize(*sock);
-  sock->flush();
 } 
 
 Engine* RemoteCompiler::get_engine(const Rpc& rpc) {

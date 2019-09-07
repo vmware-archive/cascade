@@ -32,6 +32,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -58,6 +59,17 @@
 #include "verilog/transform/loop_unroll.h"
 
 using namespace std;
+
+namespace {
+
+// TODO(eschkufz) This is a bit overkill and not exactly the right way to do
+// what this is being used for. This mutex sequentializes the execution of the
+// alternate interrupts scheduled with schedule_interrupt(). This prevents multiple
+// threads from interleaving the execution of ~Engine();
+
+mutex alt_lock_;
+
+} // namespace
 
 namespace cascade {
 
@@ -398,6 +410,7 @@ void Module::compile_and_replace(size_t ignore) {
         }
       },
       [e_slow] {
+        lock_guard<mutex> lg(alt_lock_);
         if (e_slow != nullptr) {
           delete e_slow;
         }

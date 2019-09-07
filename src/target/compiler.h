@@ -77,6 +77,8 @@ class Compiler {
     // amount of time. If an invocation of compile() would return normally it
     // may do so, otherwise, it will return nullptr.
     void stop_compile(); 
+    // Invokes stop_async() on all registered compilers.
+    void stop_async();
 
     // Error Reporting Interface:
     //

@@ -76,6 +76,10 @@ Core* CoreCompiler::compile(Engine::Id id, ModuleDeclaration* md, Interface* int
   }
 }
 
+void CoreCompiler::stop_async() {
+  // Does nothing.
+}
+
 Clock* CoreCompiler::compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   (void) id;
   (void) interface;
