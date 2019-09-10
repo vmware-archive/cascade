@@ -9,15 +9,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(regression harness.cc ${REGRESSION_DIR})
 target_link_libraries(regression CONAN_PKG::gtest)
-target_link_libraries(regression libcascade uuid verilog)
+target_link_libraries(regression libcascade verilog)
 
 add_executable(benchmark harness.cc benchmark/benchmark.cc)
 target_link_libraries(benchmark CONAN_PKG::gtest CONAN_PKG::google-benchmark)
-target_link_libraries(benchmark libcascade uuid verilog)
+target_link_libraries(benchmark libcascade verilog)
 
 add_executable(microbenchmark harness.cc benchmark/microbenchmark.cc)
 target_link_libraries(microbenchmark CONAN_PKG::gtest CONAN_PKG::google-benchmark)
-target_link_libraries(microbenchmark libcascade uuid verilog)
+target_link_libraries(microbenchmark libcascade verilog)
 
 add_test(NAME regression 
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/regression 
