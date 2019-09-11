@@ -61,7 +61,9 @@ class De10Compiler : public CoreCompiler {
     // Compilation States:
     enum class State : uint8_t {
       FREE = 0,
+      COMPILING,
       WAITING,
+      STOPPED,
       CURRENT
     };
     // Slot Information:
@@ -82,7 +84,6 @@ class De10Compiler : public CoreCompiler {
     // Program Management:
     std::mutex lock_;
     std::condition_variable cv_;
-    size_t sequence_;
     std::vector<Slot> slots_;
 
     // Compiler Interface:
@@ -92,10 +93,12 @@ class De10Compiler : public CoreCompiler {
     De10Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Compilation Helpers:
-    void kill_all(sockstream* sock);
+    bool id_in_use(Engine::Id id) const;
+    int get_free_slot() const;
     void compile(sockstream* sock);
     bool block_on_compile(sockstream* sock);
     void reprogram(sockstream* sock);
+    void kill_all(sockstream* sock);
 };
 
 } // namespace cascade

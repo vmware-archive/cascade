@@ -32,7 +32,6 @@
 #define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 
 #include <unordered_map>
-#include <mutex>
 #include <string>
 #include "common/thread.h"
 #include "common/thread_pool.h"
@@ -71,8 +70,8 @@ class QuartusServer : public Thread {
 
     // Comoilation State:
     ThreadPool pool_;
-    std::mutex lock_;
     std::unordered_map<std::string, std::string> cache_;
+    bool busy_;
 
     // Thread Interface:
     void run_logic() override;

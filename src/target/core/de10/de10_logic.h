@@ -46,7 +46,7 @@ class interfacestream;
 class De10Logic : public Logic {
   public:
     // Constructors:
-    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc, size_t slot);
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -54,6 +54,7 @@ class De10Logic : public Logic {
     De10Logic& set_state(const Identifier* id, VId vid);
     De10Logic& set_output(const Identifier* id, VId vid);
     De10Logic& index_tasks();
+    De10Logic& set_slot(int slot);
 
     // Configuraton Properties:
     const VarTable32& get_table() const;
@@ -80,7 +81,7 @@ class De10Logic : public Logic {
   private:
     // Compiler State:
     De10Compiler* dc_;
-    size_t slot_;
+    int slot_;
 
     // Source Management:
     ModuleDeclaration* src_;

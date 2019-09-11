@@ -45,15 +45,17 @@ using namespace std;
 
 namespace cascade {
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc, size_t slot) : Logic(interface), table_(addr) { 
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc) : Logic(interface), table_(addr) { 
   src_ = src;
   dc_ = dc;
-  slot_ = slot;
+  slot_ = -1;
   tasks_.push_back(nullptr);
 }
 
 De10Logic::~De10Logic() {
-  dc_->release(slot_);
+  if (slot_ != -1) {
+    dc_->release(slot_);
+  }
   delete src_;
   for (auto& s : streams_) {
     delete s.second;
@@ -90,6 +92,11 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
 De10Logic& De10Logic::index_tasks() {
   Inserter i(this);
   src_->accept(&i);
+  return *this;
+}
+
+De10Logic& De10Logic::set_slot(int slot) {
+  slot_ = slot;
   return *this;
 }
 

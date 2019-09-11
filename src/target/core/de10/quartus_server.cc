@@ -45,6 +45,8 @@ QuartusServer::QuartusServer() : Thread() {
   set_quartus_path("");
   set_port(9900);
   set_usb("");
+
+  busy_ = false;
 }
 
 QuartusServer& QuartusServer::set_cache_path(const string& path) {
@@ -118,37 +120,43 @@ void QuartusServer::run_logic() {
     auto* sock = server.accept();
     const auto rpc = static_cast<QuartusServer::Rpc>(sock->get());
     
-    // Easy Case: Kill all quartus tasks in this thread
+    // At most one compilation thread can be active at once. Issue kill-alls
+    // until this is no longer the case.
     if (rpc == Rpc::KILL_ALL) {
-      kill_all();
+      while (busy_) {
+        kill_all();
+        this_thread::sleep_for(chrono::seconds(1));
+      }
       sock->put(static_cast<uint8_t>(Rpc::OKAY));
       sock->flush();
       delete sock;
     } 
-    // Hard Case: Kill all quartus tasks in this thread *and* create a new
-    // thread to recompile everything, and then possibly reprogram the device.
+    // Kill the one compilation thread if necessary and then fire off a new thread to
+    // attempt a recompilation. When the new thread is finished it will reset the busy
+    // flag.
     else if (rpc == Rpc::COMPILE) {
+      while (busy_) {
+        kill_all();
+        this_thread::sleep_for(chrono::seconds(1));
+      }
+      sock->put(static_cast<uint8_t>(Rpc::OKAY));
+      sock->flush();
+      busy_ = true;
+
       pool_.insert([this, sock]{
         string text = "";
         getline(*sock, text, '\0'); 
-
-        kill_all();
-        ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
-        ofs << text << endl;
-        ofs.flush();
-
-        sock->put(static_cast<uint8_t>(Rpc::OKAY));
-        sock->flush();
         const auto res = compile(text);
         sock->put(static_cast<uint8_t>(res ? Rpc::OKAY : Rpc::ERROR));
         sock->flush();
-
         if (res) {
           sock->get();
           reprogram(text);
           sock->put(static_cast<uint8_t>(Rpc::OKAY));
           sock->flush();    
         }
+
+        busy_ = false;
         delete sock;
       });
     }
@@ -164,8 +172,10 @@ void QuartusServer::run_logic() {
 }
 
 void QuartusServer::init_pool() {
+  // We have the invariant that there is exactly one compile thread out at any
+  // given time, so no need to prime the pool with anything more than that.
   pool_.stop_now();
-  pool_.set_num_threads(4);
+  pool_.set_num_threads(1);
   pool_.run();
 }
 
@@ -200,21 +210,15 @@ void QuartusServer::kill_all() {
 }
 
 bool QuartusServer::compile(const std::string& text) {
-  // Nothing to do if this code is already in the cache. Otherwise, 
-  { lock_guard<mutex> lg(lock_);
-    if (cache_.find(text) != cache_.end()) {
-      return true;
-    }
+  // Nothing to do if this code is already in the cache. 
+  if (cache_.find(text) != cache_.end()) {
+    return true;
   }
-  // Okay... so this method should really be atomic, but aside from protecting
-  // access to the in-memory cache, the only thing we're really worried about
-  // is a race condition on two threads writing out a bitstream at the same
-  // time. The only way that could happen is if the second thread came to life
-  // and invoked kill-all exactly after this thread finished its called to asm,
-  // and then a perversely unfair scheduler gave that thread enough cpu time
-  // that it made it all the way through compilation and overwrote the
-  // bitstream before this thread came back online. If that ever happens, I'll
-  // eat my hat.
+
+  // Otherwise, compile the code and add a new entry to the cache
+  ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+  ofs << text << endl;
+  ofs.flush();
   if (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
     return false;
   } 
@@ -227,27 +231,27 @@ bool QuartusServer::compile(const std::string& text) {
   if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   }
-  // Update the cache
-  { lock_guard<mutex> lg(lock_);
-    stringstream ss;
-    ss << "bitstream_" << cache_.size() << ".sof";
-    const auto file = ss.str();
-    System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
 
-    ofstream ofs(cache_path_ + "/index.txt", ios::app);
-    ofs << text << '\0' << file << '\0';
-    ofs.flush();
-  }
+  // If we've made it this far, we're bound for success. Kill all can't stop us.
+  stringstream ss;
+  ss << "bitstream_" << cache_.size() << ".sof";
+  const auto file = ss.str();
+  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
+
+  ofstream ofs2(cache_path_ + "/index.txt", ios::app);
+  ofs2 << text << '\0' << file << '\0';
+  ofs2.flush();
+
   return true;
 }
 
 void QuartusServer::reprogram(const std::string& text) {
-  string path = "";
-  { lock_guard<mutex> lg(lock_);
-    const auto itr = cache_.find(text);
-    assert(itr != cache_.end());
-    path = itr->second;
-  }
+  // This method can't be stopped by kill all and shouldn't ever be invoked
+  // unless this program is in the cache.
+  const auto itr = cache_.find(text);
+  assert(itr != cache_.end());
+
+  const auto path = itr->second;
   System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + path + "@2\"");
 }
 
