@@ -242,6 +242,8 @@ bool QuartusServer::compile(const std::string& text) {
   ofs2 << text << '\0' << file << '\0';
   ofs2.flush();
 
+  cache_[text] = file;
+
   return true;
 }
 
