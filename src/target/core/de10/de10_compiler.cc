@@ -368,7 +368,7 @@ void De10Compiler::reprogram(sockstream* sock) {
     sock->flush();
     sock->get();
     for (auto& s : slots_) {
-      if (s.state == State::WAITING) {
+      if ((s.state == State::COMPILING) || (s.state == State::WAITING)) {
         s.state = State::CURRENT;
       }     
     }
