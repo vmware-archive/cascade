@@ -763,7 +763,12 @@ end
 `endif
 ```
 
-Next, you'll need to create a compiler for your backend. Take a look at the ```CoreCompiler``` class which is defined in ```src/target/core_compiler.h```. Your compiler must be a subclass of this type, and be able to code user logic as well as instantiations of any of the Standard Library components you introduced in your ```--march``` file. For the example shown above, this means that you would need to override the following methods:
+Next, you'll need to create a compiler for your backend. Take a look at the
+```CoreCompiler``` class which is defined in ```src/target/core_compiler.h```.
+Your compiler must be a subclass of this type, and be able to compile user
+logic as well as instantiations of any of the Standard Library components you
+introduced in your ```--march``` file. For the example shown above, this means
+that you would need to override the following methods:
 
 ```c++
 virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
@@ -796,64 +801,15 @@ orchestrates the communication and computation necessary to satisfy the
 semantics of Verilog while at the same time providing support for the
 just-in-time features described above. 
 
-Once you've finished implementing your compiler, you'll need to tell the
-Cascade compiler how to invoke it. Take a look at ```src/target/compiler.h```.
-You'll need to add a new private member and a public configuration method.
+Once you've finished implementing your compiler, you'll need to register it by
+adding a few lines of code to ```src/cascade/cascade.cc```.
 ```c++
-  public:
-    Compiler& set_my_backend_compiler(MyBackendCompiler* mbc);
-  private:
-    MyBackendCompiler* mbc_;
-```
-Now take a look at ```src/target/compiler.cc```. You'll need to update a few
-methods as shown below:
-```c++
-Compiler::Compiler() {
+Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   // ...
-  mbc_ = nullptr;
+  runtime_.get_compiler()->set("sw", new SwCompiler());
+  runtime_.get_compiler()->set("my_backend", new MyBackendCompiler());
   // ...
 }
-
-Compiler::~Compiler() {
-  // ...
-  if (mbc_ != nullptr) {
-    mbc_->abort();
-  }
-  // ...
-  pool_.stop_now();
-  // ...
-  if (mbc_ != nullptr) {
-    delete mbc_;
-  }
-  // ...
-}
-
-Compiler& Compiler::set_my_backend_compiler(MyBackendCompiler* mbc) {
-  assert(mbc_ == nullptr);
-  assert(mbc != nullptr);
-  mbc_ = mbc;
-  mbc_->set_compiler(this);
-  return *this;
-}
-
-Engine* Compiler::compile(ModuleDeclaration* md) {
-  // ...
-  } else if (target->eq("sw")) {
-    cc = sw_compiler_;
-  } else if (target->eq("my_backend")) {
-    cc = mbc_;
-  } else {
-  // ...
-}
-```
-Finally, you'll need to add a few lines of code to ```tools/cascade.cc```.
-```c++
-// ...
-auto* mbc = new MyBackendCompiler(...);
-// ...
-auto* c = new Compiler();
-  c->set_my_backend_compiler(mbc);
-// ...
 ```
 
 Rebuild your source and... everything should just work... Happy debugging!
