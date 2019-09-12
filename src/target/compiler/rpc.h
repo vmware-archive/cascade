@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_COMMON_RPC_H
-#define CASCADE_SRC_TARGET_COMMON_RPC_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_RPC_H
+#define CASCADE_SRC_TARGET_COMPILER_RPC_H
 
 #include <iostream>
 #include "common/serializable.h"
@@ -44,6 +44,7 @@ struct Rpc : Serializable {
 
     // Compiler API:
     COMPILE,  
+    STOP_COMPILE,
 
     // Core API:
     GET_STATE,
@@ -86,40 +87,57 @@ struct Rpc : Serializable {
     SPUTC,
     SPUTN,
 
-    // Teardown Codes:
-    ENGINE_TEARDOWN,
-    CONNECTION_TEARDOWN
+    // Proxy Compiler Codes:
+    OPEN_CONN_1,
+    OPEN_CONN_2,
+    CLOSE_CONN,
+    STATE_SAFE_BEGIN,
+    STATE_SAFE_OKAY,
+    STATE_SAFE_FINISH,
+
+    // Proxy Core Codes:
+    TEARDOWN_ENGINE
   };
-  typedef uint32_t Id;
 
   Rpc();
-  Rpc(Type type, Id id);
+  Rpc(Type type);
+  Rpc(Type type, uint32_t pid, uint32_t eid, uint32_t n);
   ~Rpc() override = default;
 
   size_t deserialize(std::istream& is) override;
   size_t serialize(std::ostream& os) const override;
 
   Type type_;
-  Id id_;
+  uint32_t pid_;
+  uint32_t eid_;
+  uint32_t n_;
 };
 
-inline Rpc::Rpc() : Rpc(Type::FAIL, 0) { }
+inline Rpc::Rpc() : Rpc(Type::FAIL, 0, 0, 0) { }
 
-inline Rpc::Rpc(Type type, Id id) : Serializable() {
+inline Rpc::Rpc(Type type) : Rpc(type, 0, 0, 0) { }
+
+inline Rpc::Rpc(Type type, uint32_t pid, uint32_t eid, uint32_t n) : Serializable() {
   type_ = type;
-  id_ = id;
+  pid_ = pid;
+  eid_ = eid;
+  n_ = n;
 }
 
 inline size_t Rpc::deserialize(std::istream& is) {
   is.read(reinterpret_cast<char*>(&type_), sizeof(type_));
-  is.read(reinterpret_cast<char*>(&id_), sizeof(id_));
-  return sizeof(type_) + sizeof(id_);
+  is.read(reinterpret_cast<char*>(&pid_), sizeof(pid_));
+  is.read(reinterpret_cast<char*>(&eid_), sizeof(eid_));
+  is.read(reinterpret_cast<char*>(&n_), sizeof(n_));
+  return sizeof(type_) + sizeof(pid_) + sizeof(eid_) + sizeof(n_);
 }
 
 inline size_t Rpc::serialize(std::ostream& os) const {
   os.write(const_cast<char*>(reinterpret_cast<const char*>(&type_)), sizeof(type_));
-  os.write(const_cast<char*>(reinterpret_cast<const char*>(&id_)), sizeof(id_));
-  return sizeof(type_) + sizeof(id_);
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&pid_)), sizeof(pid_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&eid_)), sizeof(eid_));
+  os.write(const_cast<char*>(reinterpret_cast<const char*>(&n_)), sizeof(n_));
+  return sizeof(type_) + sizeof(pid_) + sizeof(eid_) + sizeof(n_);
 }
 
 } // namespace cascade

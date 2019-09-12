@@ -74,7 +74,6 @@ class Declaration : public ModuleItem {
     VAL_ATTR(Type, type);
     MAYBE_ATTR(RangeExpression, dim);
 
-    friend class Inline;
     friend class Resolve;
     DECORATION(Vector<const Expression*>*, uses);
 };

@@ -32,7 +32,6 @@
 #define CASCADE_SRC_TARGET_CORE_SW_SW_COMPILER_H
 
 #include <mutex>
-#include <string>
 #include "target/core/sw/sw_clock.h"
 #include "target/core/sw/sw_led.h"
 #include "target/core/sw/sw_logic.h"
@@ -47,22 +46,18 @@ class SwCompiler : public CoreCompiler {
     SwCompiler();
     ~SwCompiler() override = default;
 
-    // TODO(eschkufz) delete this method once we remove fifos and memories
-    SwCompiler& set_include_dirs(const std::string& s);
     SwCompiler& set_led(Bits* b, std::mutex* l);
     SwCompiler& set_pad(Bits* b, std::mutex* l);
     SwCompiler& set_reset(Bits* b, std::mutex* l);
 
-    void abort() override;
+    void stop_compile(Engine::Id id) override;
 
   private:
-    SwClock* compile_clock(Interface* interface, ModuleDeclaration* md) override;
-    SwLed* compile_led(Interface* interface, ModuleDeclaration* md) override;
-    SwLogic* compile_logic(Interface* interface, ModuleDeclaration* md) override;
-    SwPad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
-    SwReset* compile_reset(Interface* interface, ModuleDeclaration* md) override;
-
-    std::string include_dirs_;
+    SwClock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwLed* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwLogic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwPad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    SwReset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     Bits* led_;
     Bits* pad_;

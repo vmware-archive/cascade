@@ -34,7 +34,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "target/core/de10/quartus_server.h"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/builder.h"
 #include "verilog/ast/visitors/editor.h"
@@ -48,7 +47,7 @@ class Machinify;
 
 class De10Rewrite {
   public:
-    std::string run(const ModuleDeclaration* md, const De10Logic* de, QuartusServer::Id id);
+    std::string run(const ModuleDeclaration* md, const De10Logic* de, size_t slot);
 
   private:
     // Records variables which appear in timing control statements

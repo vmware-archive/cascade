@@ -40,10 +40,7 @@
 
 namespace cascade {
 
-class Compiler;
-class DataPlane;
 class Engine;
-class Isolate;
 class Runtime;
 
 class Module {
@@ -52,95 +49,70 @@ class Module {
       friend class Module;
       public:
         Module* operator*() const;
-
         iterator& operator++();
         bool operator==(const iterator& rhs) const;
         bool operator!=(const iterator& rhs) const;
 
       private:
         std::forward_list<Module*> path_;
-
         iterator();
         explicit iterator(Module* m);
     };
 
     // Constructors:
-    Module(const ModuleDeclaration* psrc, Runtime* rt, DataPlane* dp, Isolate* isolate, Compiler* compiler);
+    Module(const ModuleDeclaration* psrc, Runtime* rt, Module* parent = nullptr);
     ~Module();
 
-    // Runtime Interface:
-    // 
-    // Reads the state of the module hierarchy from an istream. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    // Note: This method makes no attempt to check whether the file that it
-    // reads is a good match to its internal state.
-    void restart(std::istream& is);
-    // Forces a recompilation of the entire module hierarchy. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    void rebuild();
-    // Dumps the state of the module hierarchy to an ostream. This method
-    // should only be called in a state where synchronize has been invoked and
-    // no further changes have been made to the text of the user's program.
-    void save(std::ostream& os);
+    // Hierarchy Interface:
+    iterator begin();
+    iterator end();
+
+    // Returns the engine associated with this module:
+    Engine* engine();
+    // Returns the number of modules in this hierarchy:
+    size_t size() const;
+
     // Synchronizes the module hierarchy with changes which have been made to
     // the ast since the previous invocation of synchronize. n is the number of
     // items which have been added to the top-level module in the interim.
     void synchronize(size_t n);
-
-    // Hierarchy Interface:
-    // 
-    // Returns the first element in a depth-first traversal of the hierarchy.
-    iterator begin();
-    // Returns the last element in a depth-first traversal of the hierarchy.
-    iterator end();
-
-    // Attribute Interface:
-    // 
-    // Returns the engine associated with this module.
-    Engine* engine();
+    // Forces a recompilation of the entire module hierarchy.
+    void rebuild();
+    // Dumps the state of the module hierarchy to an ostream. 
+    void save(std::ostream& os);
+    // Reads the state of the module hierarchy from an istream. 
+    void restart(std::istream& is);
 
   private:
-    // Instantiation Helper Class:
-    struct Instantiator : Visitor {
-      explicit Instantiator(Module* ptr);
-      ~Instantiator() override = default;
-
-      void visit(const CaseGenerateConstruct* cgc) override;
-      void visit(const IfGenerateConstruct* igc) override;
-      void visit(const LoopGenerateConstruct* lgc) override;
-      void visit(const ModuleInstantiation* mi) override;
-
-      Module* ptr_;
-      std::vector<Module*> instances_;
+    // Instantiate modules based on source code
+    class Instantiator : public Visitor {
+      public:
+        explicit Instantiator(Module* ptr);
+        ~Instantiator() override = default;
+      private:
+        void visit(const CaseGenerateConstruct* cgc) override;
+        void visit(const IfGenerateConstruct* igc) override;
+        void visit(const LoopGenerateConstruct* lgc) override;
+        void visit(const ModuleInstantiation* mi) override;
+        Module* ptr_;
+        std::vector<Module*> instances_;
     };
 
-    // Runtime State:
+    // Runtime Handle:
     Runtime* rt_;
-    DataPlane* dp_;
-    Isolate* isolate_;
-    Compiler* compiler_;
-
-    // Implementation State:
-    ModuleDeclaration* src_;
-    Engine* engine_;
-    size_t version_;
 
     // Hierarchical State:
     const ModuleDeclaration* psrc_;
     Module* parent_;
     std::vector<Module*> children_;
 
-    // Compilation Helpers:
-    //
-    // Generates ir source for this module.  Initial statements which appear
-    // within the first 'ignore' items of this module are masked as ignored.
-    // The caller of this method assumes ownership of the resulting code.
-    ModuleDeclaration* regenerate_ir_source(size_t ignore);
+    // Engine State:
+    Engine* engine_;
+    size_t version_;
 
-    // Constructors:
-    Module(const ModuleDeclaration* psrc, Module* parent);
+    // Helper Methods:
+    ModuleDeclaration* regenerate_ir_source(size_t ignore);
+    void compile_and_replace(size_t ignore);
 };
 
 } // namespace cascade

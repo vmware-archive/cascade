@@ -45,13 +45,17 @@ using namespace std;
 
 namespace cascade {
 
-De10Logic::De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* src, volatile uint8_t* addr) : Logic(interface), table_(addr) { 
-  id_ = id;
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc) : Logic(interface), table_(addr) { 
   src_ = src;
+  dc_ = dc;
+  slot_ = -1;
   tasks_.push_back(nullptr);
 }
 
 De10Logic::~De10Logic() {
+  if (slot_ != -1) {
+    dc_->release(slot_);
+  }
   delete src_;
   for (auto& s : streams_) {
     delete s.second;
@@ -88,6 +92,11 @@ De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
 De10Logic& De10Logic::index_tasks() {
   Inserter i(this);
   src_->accept(&i);
+  return *this;
+}
+
+De10Logic& De10Logic::set_slot(int slot) {
+  slot_ = slot;
   return *this;
 }
 
@@ -204,12 +213,6 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   // No need to handle outputs here (or above). This optimization assumes that
   // this module doesn't have any.
   return itr - counter;
-}
-
-void De10Logic::cleanup(CoreCompiler* cc) {
-  auto* dc = dynamic_cast<De10Compiler*>(cc);
-  assert(dc != nullptr);
-  dc->cleanup(id_);
 }
 
 bool De10Logic::open_loop_enabled() const {

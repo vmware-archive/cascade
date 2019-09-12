@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_INTERFACE_H
-#define CASCADE_SRC_TARGET_INTERFACE_LOCAL_LOCAL_INTERFACE_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_LOCAL_INTERFACE_H
+#define CASCADE_SRC_TARGET_COMPILER_LOCAL_INTERFACE_H
 
 #include "runtime/data_plane.h"
 #include "runtime/runtime.h"
@@ -70,11 +70,11 @@ inline LocalInterface::LocalInterface(Runtime* rt) : Interface() {
 }
 
 inline void LocalInterface::write(VId id, const Bits* b) {
-  rt_->write(id, b);
+  rt_->get_data_plane()->write(id, b);
 }
 
 inline void LocalInterface::write(VId id, bool b) {
-  rt_->write(id, b);
+  rt_->get_data_plane()->write(id, b);
 }
 
 inline void LocalInterface::finish(uint32_t arg) {

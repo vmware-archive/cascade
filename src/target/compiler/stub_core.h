@@ -28,47 +28,79 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
-#define CASCADE_SRC_TARGET_INTERFACE_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_STUB_CORE_H
+#define CASCADE_SRC_TARGET_COMPILER_STUB_CORE_H
 
-#include <string>
-#include "verilog/ast/ast_fwd.h"
+#include "target/core.h"
+#include "target/input.h"
+#include "target/state.h"
 
 namespace cascade {
 
-class Compiler;
-class Interface;
-
-// This class encapsulates target-specific logic for generating target-specific
-// instances of module/runtime interfaces. This class is intended to be thread
-// safe.  Target-specific implementations of this class must guarantee
-// reentrancy.
-
-class InterfaceCompiler {
+class StubCore : public Core {
   public:
-    InterfaceCompiler();
-    virtual ~InterfaceCompiler() = default;
+    explicit StubCore(Interface* interface);
+    ~StubCore() override = default;
 
-    // Attaches a reference to the main compiler.
-    InterfaceCompiler& set_compiler(Compiler* compiler);
+    State* get_state() override;
+    void set_state(const State* s) override;
+    Input* get_input() override;
+    void set_input(const Input* i) override;
 
-    // Returns a target-specific implementation of a module/runtime interface
-    // or nullptr to indicate an aborted compilation. In the event of an error,
-    // this method must call the error() method to explain what happened. 
-    virtual Interface* compile(ModuleDeclaration* md) = 0;
-    // This method must force any invocations of compile() to stop running
-    // and return nullptr in a 'reasonably short' amount of time.
-    virtual void abort() = 0;
+    void read(VId id, const Bits* b) override;
+    void evaluate() override;
+    bool there_are_updates() const override;
+    void update() override;
+    bool there_were_tasks() const override;
 
-  protected:
-    // Logs an error message explaining why the most recent compilation failed.
-    // This method is thread safe.
-    void error(const std::string& s);
-
-  private:
-    // Reference to main compiler
-    Compiler* compiler_;
+    bool is_stub() const override;
 };
+
+inline StubCore::StubCore(Interface* interface) : Core(interface) { }
+
+inline State* StubCore::get_state() {
+  return new State();
+} 
+
+inline void StubCore::set_state(const State* s) {
+  // Does nothing.
+  (void) s;
+}
+
+inline Input* StubCore::get_input() {
+  return new Input();
+}
+
+inline void StubCore::set_input(const Input* i) {
+  // Does nothing.
+  (void) i;
+}
+
+inline void StubCore::read(VId id, const Bits* b) {
+  // Does nothing.
+  (void) id;
+  (void) b;
+}
+
+inline void StubCore::evaluate() {
+   // Does nothing.
+}
+
+inline bool StubCore::there_are_updates() const {
+  return false;
+}
+
+inline void StubCore::update() {
+  // Does nothing.
+}
+
+inline bool StubCore::there_were_tasks() const {
+  return false;
+}
+
+inline bool StubCore::is_stub() const {
+  return true;
+}
 
 } // namespace cascade
 

@@ -28,61 +28,38 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
-#define CASCADE_SRC_TARGET_COMMON_REMOTE_RUNTIME_H
+#ifndef CASCADE_SRC_TARGET_COMPILER_LOCAL_COMPILER_H
+#define CASCADE_SRC_TARGET_COMPILER_LOCAL_COMPILER_H
 
-#include <string>
-#include "common/bits.h"
-#include "common/thread.h"
-#include "target/common/rpc.h"
+#include "runtime/runtime.h"
+#include "target/compiler.h"
+#include "target/compiler/local_interface.h"
 
 namespace cascade {
 
-class Compiler;
-class Engine;
-class sockstream;
-
-class RemoteRuntime : public Thread {
+class LocalCompiler : public Compiler {
   public:
-    RemoteRuntime();
-    ~RemoteRuntime() override;
-
-    RemoteRuntime& set_compiler(Compiler* c);
-    RemoteRuntime& set_path(const std::string& p);
-    RemoteRuntime& set_port(uint32_t p);
+    LocalCompiler(Runtime* rt);
+    ~LocalCompiler() override = default;
 
   private:
-    Compiler* compiler_;
-    std::string path_;
-    uint32_t port_;
+    Runtime* rt_;
 
-    // Thread Interface:
-    void run_logic() override;
-
-    // Compiler Interface:
-    Engine* compile(sockstream* sock);
-    
-    // Core Interface:
-    void get_state(sockstream* sock, Engine* e);
-    void set_state(sockstream* sock, Engine* e);
-    void get_input(sockstream* sock, Engine* e);
-    void set_input(sockstream* sock, Engine* e);
-    void finalize(sockstream* sock, Rpc::Id id, Engine* e);
-
-    void overrides_done_step(sockstream* sock, Engine* e);
-    void done_step(sockstream* sock, Engine* e);
-    void overrides_done_simulation(sockstream* sock, Engine* e);
-    void done_simulation(sockstream* sock, Engine* e);
-
-    void read(sockstream* sock, Engine* e);
-    void evaluate(sockstream* sock, Rpc::Id id, Engine* e);
-    void there_are_updates(sockstream* sock, Engine* e);
-    void update(sockstream* sock, Rpc::Id id, Engine* e);
-    void there_were_tasks(sockstream* sock, Engine* e);
-
-    void conditional_update(sockstream* sock, Rpc::Id id, Engine* e);
-    void open_loop(sockstream* sock, Rpc::Id id, Engine* e);
+    void schedule_state_safe_interrupt(Runtime::Interrupt int_) override;
+    Interface* get_interface(const std::string& loc) override;
 };
+
+inline LocalCompiler::LocalCompiler(Runtime* rt) : Compiler() {
+  rt_ = rt;
+}
+
+inline void LocalCompiler::schedule_state_safe_interrupt(Runtime::Interrupt int_) {
+  rt_->schedule_state_safe_interrupt(int_);
+}
+
+inline Interface*LocalCompiler::get_interface(const std::string& loc) {
+  return (loc != "remote") ? new LocalInterface(rt_) : nullptr;
+}
 
 } // namespace cascade
 

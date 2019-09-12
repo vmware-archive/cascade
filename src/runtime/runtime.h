@@ -41,7 +41,9 @@
 #include "common/bits.h"
 #include "common/log.h"
 #include "common/thread.h"
+#include "common/thread_pool.h"
 #include "runtime/ids.h"
+#include "target/engine.h"
 #include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
@@ -66,17 +68,30 @@ class Runtime : public Thread {
 
     // Typedefs:
     typedef std::function<void()> Interrupt;
+    typedef ThreadPool::Job Asynchronous;
 
     // Constructors:
     explicit Runtime();
     ~Runtime() override;
 
     // Configuration Interface:
-    Runtime& set_compiler(Compiler* c);
+    // 
+    // These methods should all be invoked prior to starting the runtime
+    // thread. Invoking these methods afterwards is undefined.
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& set_disable_inlining(bool di);
     Runtime& set_profile_interval(size_t n);
+
+    // Major Component Accessors and Helpers:
+    //
+    // These methods may be invoked after starting the runtime thread, but the
+    // use of these pointers should be handled with care, as these objects have
+    // their own constraints on defined behavior.
+    Compiler* get_compiler();
+    DataPlane* get_data_plane();
+    Isolate* get_isolate();
+    Engine::Id get_next_id();
 
     // Eval Interface:
     //
@@ -105,21 +120,17 @@ class Runtime : public Thread {
     // Identical to the two argument form, but blocks until the interrupt
     // completes execution or alt is executed in its place.
     void schedule_blocking_interrupt(Interrupt int_, Interrupt alt);
+    // Schedules an interrupt either between a call to save and restart if the
+    // simulation is currently active, or immediately if a call to finish
+    // already took place. This method blocks until completion.
+    void schedule_state_safe_interrupt(Interrupt int__);
+    // Schedules an asynchronous task. Asynchronous tasks begin execution out
+    // of phase with the logic time and may begin and end mid-step. If an
+    // asynchronous task invokes any of the schedule_xxx_interrupt methods, it
+    // must use the two-argument form.
+    void schedule_asynchronous(Asynchronous async);
     // Returns true if the runtime has executed a finish statement.
     bool is_finished() const;
-
-    // Data Plane Interface:
-    //
-    // Writes a value to the dataplane. Invoking this method to insert
-    // arbitrary values may be useful for simulating noisy circuits. However in
-    // general, the use of this method is probably best left to modules which
-    // are going about their normal execution.
-    void write(VId id, const Bits* bits);
-    // Writes a value to the dataplane. Invoking this method to insert
-    // arbitrary values may be useful for simulating noisy circuits. However in
-    // general, the use of this method is probably best left to modules which
-    // are going about their normal execution.
-    void write(VId id, bool b);
 
     // System Task Interface:
     //
@@ -152,16 +163,20 @@ class Runtime : public Thread {
     uint32_t sputn(FId id, const char* c, uint32_t n);
 
   private:
+    // Thread Pool:
+    ThreadPool pool_;
+
     // Major Components:
     Log* log_;
     Parser* parser_;
+    Compiler* compiler_;
     DataPlane* dp_;
     Isolate* isolate_;
-    Compiler* compiler_;
 
     // Program State:
     Program* program_;
     Module* root_;
+    Engine::Id next_id_;
 
     // Configuration State:
     bool disable_inlining_;

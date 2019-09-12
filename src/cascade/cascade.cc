@@ -32,10 +32,9 @@
 #include "cascade/cascade.h"
 #include "runtime/runtime.h"
 #include "target/compiler.h"
+#include "target/compiler/proxy_compiler.h"
 #include "target/core/de10/de10_compiler.h"
-#include "target/core/proxy/proxy_compiler.h"
 #include "target/core/sw/sw_compiler.h"
-#include "target/interface/local/local_compiler.h"
 
 using namespace std;
 
@@ -46,6 +45,11 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
 
   set_enable_inlining(true);
   set_open_loop_target(1);
+
+  runtime_.get_compiler()->set("de10", new De10Compiler());
+  runtime_.get_compiler()->set("proxy", new ProxyCompiler());
+  runtime_.get_compiler()->set("sw", new SwCompiler());
+
   set_quartus_server("localhost", 9900);
 }
 
@@ -73,19 +77,10 @@ Cascade& Cascade::set_open_loop_target(size_t n) {
 
 Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
   assert(!is_running_);
-  auto* dc = new De10Compiler();
-    dc->set_host(host);
-    dc->set_port(port);
-  auto* lc = new LocalCompiler();
-    lc->set_runtime(&runtime_);
-  auto* pc = new ProxyCompiler();
-  auto* sc = new SwCompiler();
-  auto* c = new Compiler();
-    c->set_de10_compiler(dc);
-    c->set_local_compiler(lc);
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-  runtime_.set_compiler(c);
+  auto* dc = runtime_.get_compiler()->get("de10");
+  assert(dc != nullptr);
+  static_cast<De10Compiler*>(dc)->set_host(host);
+  static_cast<De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 

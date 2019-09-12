@@ -35,6 +35,7 @@
 #include <string>
 #include "runtime/ids.h"
 #include "target/core.h"
+#include "target/engine.h"
 #include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
@@ -42,8 +43,7 @@ namespace cascade {
 class Compiler;
 
 // This class encapsulates target-specific logic for generating target-specific
-// instances of module core logic. This class is intended to be thread safe.
-// Target-specific implementations of this class must guarantee reentrancy.
+// instances of module core logic. 
 
 class CoreCompiler {
   public:
@@ -53,34 +53,42 @@ class CoreCompiler {
     // Attaches a reference to the main compiler.
     CoreCompiler& set_compiler(Compiler* compiler);
 
-    // Returns a target-specific implementation of a module core or nullptr to
-    // indicate an aborted compilation. This method dispatches control to the
-    // protected methods below based on the value of the __std annotation. 
-    Core* compile(Interface* interface, ModuleDeclaration* md);
-    // This method must force any invocations of compile() to stop running
-    // and return nullptr in a 'reasonably short' amount of time.
-    virtual void abort() = 0;
+    // Compilation Interface:
+    //
+    // Returns a target-specific implementation of a Core or nullptr to
+    // indicate a failed compilation. This method dispatches control to the
+    // protected methods below based on the __std annotation.  Implementations
+    // must be thread-safe. 
+    Core* compile(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    // Forces any invocation of compile() associated with id to stop running in
+    // a *reasonably short* amount of time. If the compilation would finish, it
+    // is safe to return the resulting pointer.  Otherwise, an implementation
+    // may cause compile() to return nullptr.
+    virtual void stop_compile(Engine::Id id) = 0;
+    // Target specific implementations may override this method to stop the
+    // execution of any asynchronous work they may have initiated. This method
+    // is invoked once,  prior to runtime teardown, after all compilation
+    // requests have returned. The default implementation does nothing.
+    virtual void stop_async();
 
   protected:
-    // These methods may be overriden to provide a target-specific
-    // implementation of each of the standard library module types or nullptr
-    // to indicate an aborted compilation. In the event of an error, these
-    // methods must call the error() method to explain what happened. The
-    // default behavior is to delete md, return nullptr, and report that no
-    // implementation strategy is available. The compile_custom() method is
-    // invoked whenever a Compiler is presented with a user-defined __std
+    // These methods inherit ownership of md and are responsible for deleting
+    // it or passing it off to another owner with the same expectation. In the
+    // event of a failed compilation these methods must call the error() method
+    // to explain what happened. The default behavior is to delete md, return
+    // nullptr, and report that no implementation strategy is available.  The
+    // compile_custom() method is invoked in response to a user-defined __std
     // annotation.
-    virtual Clock* compile_clock(Interface* interface, ModuleDeclaration* md);
-    virtual Custom* compile_custom(Interface* interface, ModuleDeclaration* md);
-    virtual Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md);
-    virtual Led* compile_led(Interface* interface, ModuleDeclaration* md);
-    virtual Pad* compile_pad(Interface* interface, ModuleDeclaration* md);
-    virtual Reset* compile_reset(Interface* interface, ModuleDeclaration* md);
-    virtual Logic* compile_logic(Interface* interface, ModuleDeclaration* md);
+    virtual Clock* compile_clock(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Custom* compile_custom(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Reset* compile_reset(Engine::Id id, ModuleDeclaration* md, Interface* interface);
+    virtual Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface);
 
-    // Logs an error message explaining why the most recent compilation failed.
-    // This method is thread safe.
-    void error(const std::string& s);
+    // Returns a pointer to this core compiler's enclosing top-level compiler
+    Compiler* get_compiler();
 
     // Returns the canonical name for a variable identifier.
     MId to_mid(const Identifier* id) const;

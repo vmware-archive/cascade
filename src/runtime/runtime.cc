@@ -43,7 +43,7 @@
 #include "runtime/isolate.h"
 #include "runtime/module.h"
 #include "runtime/nullbuf.h"
-#include "target/compiler.h"
+#include "target/compiler/local_compiler.h"
 #include "target/engine.h"
 #include "verilog/parse/parser.h"
 #include "verilog/print/text/text_printer.h"
@@ -55,14 +55,18 @@ using namespace std;
 namespace cascade {
 
 Runtime::Runtime() : Thread() {
+  pool_.set_num_threads(4);
+  pool_.run();
+
   log_ = new Log();
   parser_ = new Parser(log_);
+  compiler_ = new LocalCompiler(this);
   dp_ = new DataPlane();
   isolate_ = new Isolate();
-  compiler_ = new Compiler();
 
   program_ = new Program();
   root_ = nullptr;
+  next_id_ = 0;
 
   enable_open_loop_ = false;
   open_loop_itrs_ = 2;
@@ -87,6 +91,32 @@ Runtime::Runtime() : Thread() {
 }
 
 Runtime::~Runtime() {
+  // INVARIANT: The runtime should always be in a state where finish was called
+  // before teardown. This guarantees that outstanding async threads won't
+  // attempt to schedule interrupts that will never be serviced.
+
+  stop_now();
+  if (!finished_) {
+    finish(0);
+    run();
+    stop_now();
+  }
+
+  // INVARIANT: At this point we know that the interrupt queue is empty and no
+  // new asyncrhonous threads have been started (the only place this happens is
+  // inside interrupts). Stop any outstanding compilations and wait for them to
+  // return. When that's done, stop any asynchronous jobs associated with
+  // compilers.
+
+  compiler_->stop_compile();
+  pool_.stop_now();
+  compiler_->stop_async();
+
+  // INVARIANT: All outstanding asynchronous threads have finished executing,
+  // and any interrupts scheduled by those threads have either fizzled or had
+  // their alternate callbacks executed. It's now safe to tear down the
+  // runtime.
+  
   delete program_;
   if (root_ != nullptr) {
     delete root_;
@@ -94,19 +124,15 @@ Runtime::~Runtime() {
 
   delete log_;
   delete parser_;
+  delete compiler_;
   delete dp_;
   delete isolate_;
-  delete compiler_;
 
   for (auto* s : streambufs_) {
-    delete s;
+    if ((s != cin.rdbuf()) && (s != cout.rdbuf()) && (s != clog.rdbuf())) {
+      delete s;
+    }
   }
-}
-
-Runtime& Runtime::set_compiler(Compiler* c) {
-  delete compiler_;
-  compiler_ = c;
-  return *this;
 }
 
 Runtime& Runtime::set_include_dirs(const string& s) {
@@ -128,6 +154,22 @@ Runtime& Runtime::set_profile_interval(size_t n) {
   profile_interval_ = n;
   last_check_ = ::time(nullptr);
   return *this;
+}
+
+DataPlane* Runtime::get_data_plane() {
+  return dp_;
+}
+
+Compiler* Runtime::get_compiler() {
+  return compiler_;
+}
+
+Isolate* Runtime::get_isolate() {
+  return isolate_;
+}
+
+Engine::Id Runtime::get_next_id() {
+  return next_id_++;
 }
 
 pair<bool, bool> Runtime::eval(istream& is) {
@@ -206,16 +248,29 @@ void Runtime::schedule_blocking_interrupt(Interrupt int_, Interrupt alt) {
   }
 }
 
+void Runtime::schedule_state_safe_interrupt(Interrupt int__) {
+  schedule_blocking_interrupt(
+    [this, int__]{
+      // As with retarget(), invoking this method in a state where item_evals_ >
+      // 0 can be problematic. This condition guarantees safety.
+      if (item_evals_ > 0) {
+        return schedule_state_safe_interrupt(int__);
+      }
+      stringstream ss;
+      root_->save(ss);
+      int__();
+      root_->restart(ss);
+    },
+    int__
+  );
+}
+
+void Runtime::schedule_asynchronous(Asynchronous async) {
+  pool_.insert(async); 
+}
+
 bool Runtime::is_finished() const {
   return finished_;
-}
-
-void Runtime::write(VId id, const Bits* bits) {
-  dp_->write(id, bits);
-}
-
-void Runtime::write(VId id, bool b) {
-  dp_->write(id, b);
 }
 
 void Runtime::finish(uint32_t arg) {
@@ -508,7 +563,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
   // Otherwise, count this as an item instantiated within the root.
   const auto* src = program_->root_elab()->second;
   if (src->size_items() == 6) {
-    root_ = new Module(src, this, dp_, isolate_, compiler_);
+    root_ = new Module(src, this);
     item_evals_ = 6;
   } else {
     ++item_evals_;

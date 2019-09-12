@@ -179,21 +179,20 @@ void Inline::inline_source(ModuleInstantiation* mi) {
           break;
       }
       d->swap_id(pd->get_decl());
-      swap(d->uses_, pd->get_decl()->uses_);
       inline_src.push_back(d);
       delete pd;
-    } else if (item->is(Node::Tag::port_declaration)) {
+    } else if (item->is(Node::Tag::parameter_declaration)) {
       auto* pad = static_cast<ParameterDeclaration*>(item);
       auto* ld = new LocalparamDeclaration(
         new Attributes(),
-        pad->get_id()->clone(),
+        pad->clone_id(),
         pad->get_type(),
         pad->clone_dim(),
-        pad->get_val()->clone()
+        pad->clone_val()
       );
       ld->get_attrs()->set_or_replace("__inline", new String("parameter"));
       ld->swap_id(pad);
-      swap(ld->uses_, pad->uses_);
+      ld->swap_val(pad);
       inline_src.push_back(ld);
       delete pad;
     } else {

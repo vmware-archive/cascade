@@ -28,59 +28,23 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
-#define CASCADE_SRC_TARGET_INTERFACE_REMOTE_REMOTE_COMPILER_H
+#include "gtest/gtest.h"
+#include "harness.h"
 
-#include "target/common/rpc.h"
-#include "target/interface/remote/remote_interface.h"
-#include "target/interface_compiler.h"
+using namespace cascade;
 
-namespace cascade {
-
-class RemoteCompiler : public InterfaceCompiler {
-  public:
-    RemoteCompiler();
-    ~RemoteCompiler() override = default;
-
-    RemoteCompiler& set_sock(sockstream* sock);
-    RemoteCompiler& set_id(Rpc::Id id);
-
-    RemoteInterface* compile(ModuleDeclaration* md) override;
-    void abort() override;  
-
-  private:
-    sockstream* sock_;
-    Rpc::Id id_;
-};
-
-inline RemoteCompiler::RemoteCompiler() {
-  set_sock(nullptr);
-  set_id(0);
+TEST(no_inline, array) {
+  run_code("minimal_no_inline", "data/test/benchmark/array/run_5.v", "1048577\n");
 }
-
-inline RemoteCompiler& RemoteCompiler::set_sock(sockstream* sock) {
-  sock_ = sock;
-  return *this;
+TEST(no_inline, bitcoin) {
+  run_code("minimal_no_inline", "data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
-
-inline RemoteCompiler& RemoteCompiler::set_id(Rpc::Id id) {
-  id_ = id;
-  return *this;
+TEST(no_inline, mips32) {
+  run_code("minimal_no_inline", "data/test/benchmark/mips32/run_bubble_128.v", "1");
 }
-
-inline RemoteInterface* RemoteCompiler::compile(ModuleDeclaration* md) {
-  (void) md;
-  if (sock_ == nullptr) {
-    error("Unable to compile a remote interface without a reference to a memory buffer");
-    return nullptr;
-  }
-  return new RemoteInterface(sock_, id_);
+TEST(no_inline, nw) {
+  run_code("minimal_no_inline", "data/test/benchmark/nw/run_4.v", "-1126");
 }
-
-inline void RemoteCompiler::abort() {
-  // Does nothing.
+TEST(no_inline, regex) {
+  run_code("minimal_no_inline", "data/test/benchmark/regex/run_disjunct_1.v", "424");
 }
-
-} // namespace cascade
-
-#endif

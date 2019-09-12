@@ -35,18 +35,18 @@
 #include <vector>
 #include "common/bits.h"
 #include "target/core.h"
-#include "target/core/de10/quartus_server.h"
 #include "target/core/de10/var_table.h"
 #include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
+class De10Compiler;
 class interfacestream;
 
 class De10Logic : public Logic {
   public:
     // Constructors:
-    De10Logic(Interface* interface, QuartusServer::Id id, ModuleDeclaration* md, volatile uint8_t* addr);
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr, De10Compiler* dc);
     ~De10Logic() override;
 
     // Configuration Methods:
@@ -54,6 +54,7 @@ class De10Logic : public Logic {
     De10Logic& set_state(const Identifier* id, VId vid);
     De10Logic& set_output(const Identifier* id, VId vid);
     De10Logic& index_tasks();
+    De10Logic& set_slot(int slot);
 
     // Configuraton Properties:
     const VarTable32& get_table() const;
@@ -73,15 +74,14 @@ class De10Logic : public Logic {
 
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
-    void cleanup(CoreCompiler* cc) override;
-
     // Optimization Properties:
     bool open_loop_enabled() const;
     const Identifier* open_loop_clock() const;
 
   private:
-    // Quartus Server State:
-    QuartusServer::Id id_;
+    // Compiler State:
+    De10Compiler* dc_;
+    int slot_;
 
     // Source Management:
     ModuleDeclaration* src_;

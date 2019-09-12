@@ -33,14 +33,14 @@
 
 #include <cassert>
 #include "common/sockstream.h"
-#include "target/common/rpc.h"
+#include "target/compiler/rpc.h"
 #include "target/interface.h"
 
 namespace cascade {
 
 class RemoteInterface : public Interface {
   public:
-    explicit RemoteInterface(sockstream* sock, Rpc::Id id);
+    explicit RemoteInterface(sockstream* sock);
     ~RemoteInterface() override = default;
 
     void write(VId id, const Bits* b) override;
@@ -64,51 +64,49 @@ class RemoteInterface : public Interface {
       
   private:
     sockstream* sock_;
-    Rpc::Id id_;
 }; 
 
-inline RemoteInterface::RemoteInterface(sockstream* sock, Rpc::Id id) : Interface() {
+inline RemoteInterface::RemoteInterface(sockstream* sock) : Interface() {
   sock_ = sock;
-  id_ = id;
 }
 
 inline void RemoteInterface::write(VId id, const Bits* b) {
-  Rpc(Rpc::Type::WRITE_BITS, id_).serialize(*sock_);
+  Rpc(Rpc::Type::WRITE_BITS).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   b->serialize(*sock_);
 }
 
 inline void RemoteInterface::write(VId id, bool b) {
-  Rpc(Rpc::Type::WRITE_BOOL, id_).serialize(*sock_);
+  Rpc(Rpc::Type::WRITE_BOOL).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->put(b ? 1 : 0);
 }
 
 inline void RemoteInterface::finish(uint32_t arg) {
-  Rpc(Rpc::Type::FINISH, id_).serialize(*sock_);
+  Rpc(Rpc::Type::FINISH).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&arg), 4);
 }
 
 inline void RemoteInterface::restart(const std::string& s) {
-  Rpc(Rpc::Type::RESTART, id_).serialize(*sock_);
+  Rpc(Rpc::Type::RESTART).serialize(*sock_);
   sock_->write(s.c_str(), s.length());
   sock_->put('\0');
 }
 
 inline void RemoteInterface::retarget(const std::string& s) {
-  Rpc(Rpc::Type::RETARGET, id_).serialize(*sock_);
+  Rpc(Rpc::Type::RETARGET).serialize(*sock_);
   sock_->write(s.c_str(), s.length());
   sock_->put('\0');
 }
 
 inline void RemoteInterface::save(const std::string& s) {
-  Rpc(Rpc::Type::SAVE, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SAVE).serialize(*sock_);
   sock_->write(s.c_str(), s.length());
   sock_->put('\0');
 }
 
 inline FId RemoteInterface::fopen(const std::string& path, uint8_t mode) {
-  Rpc(Rpc::Type::FOPEN, id_).serialize(*sock_);
+  Rpc(Rpc::Type::FOPEN).serialize(*sock_);
   sock_->write(path.c_str(), path.length());
   sock_->put('\0');
   sock_->write(reinterpret_cast<const char*>(&mode), sizeof(mode));
@@ -120,7 +118,7 @@ inline FId RemoteInterface::fopen(const std::string& path, uint8_t mode) {
 }
 
 inline int32_t RemoteInterface::in_avail(FId id) {
-  Rpc(Rpc::Type::IN_AVAIL, id_).serialize(*sock_);
+  Rpc(Rpc::Type::IN_AVAIL).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->flush();
 
@@ -130,7 +128,7 @@ inline int32_t RemoteInterface::in_avail(FId id) {
 }
 
 inline uint32_t RemoteInterface::pubseekoff(FId id, int32_t off, uint8_t way, uint8_t which) {
-  Rpc(Rpc::Type::PUBSEEKOFF, id_).serialize(*sock_);
+  Rpc(Rpc::Type::PUBSEEKOFF).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->write(reinterpret_cast<const char*>(&off), sizeof(off));
   sock_->write(reinterpret_cast<const char*>(&way), sizeof(way));
@@ -143,7 +141,7 @@ inline uint32_t RemoteInterface::pubseekoff(FId id, int32_t off, uint8_t way, ui
 }
 
 inline uint32_t RemoteInterface::pubseekpos(FId id, int32_t pos, uint8_t which) {
-  Rpc(Rpc::Type::PUBSEEKPOS, id_).serialize(*sock_);
+  Rpc(Rpc::Type::PUBSEEKPOS).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->write(reinterpret_cast<const char*>(&pos), sizeof(pos));
   sock_->write(reinterpret_cast<const char*>(&which), sizeof(which));
@@ -155,7 +153,7 @@ inline uint32_t RemoteInterface::pubseekpos(FId id, int32_t pos, uint8_t which) 
 }
 
 inline int32_t RemoteInterface::pubsync(FId id) {
-  Rpc(Rpc::Type::PUBSYNC, id_).serialize(*sock_);
+  Rpc(Rpc::Type::PUBSYNC).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->flush();
 
@@ -165,7 +163,7 @@ inline int32_t RemoteInterface::pubsync(FId id) {
 }
 
 inline int32_t RemoteInterface::sbumpc(FId id) {
-  Rpc(Rpc::Type::SBUMPC, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SBUMPC).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->flush();
 
@@ -175,7 +173,7 @@ inline int32_t RemoteInterface::sbumpc(FId id) {
 }
 
 inline int32_t RemoteInterface::sgetc(FId id) {
-  Rpc(Rpc::Type::SGETC, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SGETC).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->flush();
 
@@ -185,7 +183,7 @@ inline int32_t RemoteInterface::sgetc(FId id) {
 }
 
 inline uint32_t RemoteInterface::sgetn(FId id, char* c, uint32_t n) {
-  Rpc(Rpc::Type::SGETN, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SGETN).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
   sock_->flush();
@@ -197,7 +195,7 @@ inline uint32_t RemoteInterface::sgetn(FId id, char* c, uint32_t n) {
 }
 
 inline int32_t RemoteInterface::sputc(FId id, char c) {
-  Rpc(Rpc::Type::SPUTC, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SPUTC).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->put(c);
   sock_->flush();
@@ -208,7 +206,7 @@ inline int32_t RemoteInterface::sputc(FId id, char c) {
 }
 
 inline uint32_t RemoteInterface::sputn(FId id, const char* c, uint32_t n) {
-  Rpc(Rpc::Type::SPUTN, id_).serialize(*sock_);
+  Rpc(Rpc::Type::SPUTN).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&id), sizeof(id));
   sock_->write(reinterpret_cast<const char*>(&n), sizeof(n));
   sock_->write(c, n);

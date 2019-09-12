@@ -30,8 +30,8 @@
 
 #include "cascade/cascade_slave.h"
 #include "target/compiler.h"
+#include "target/compiler/proxy_compiler.h"
 #include "target/core/de10/de10_compiler.h"
-#include "target/core/proxy/proxy_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace std;
@@ -40,6 +40,11 @@ namespace cascade {
 
 CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
+
+  remote_compiler_.set("de10", new De10Compiler());
+  remote_compiler_.set("proxy", new ProxyCompiler());
+  remote_compiler_.set("sw", new SwCompiler());
+
   set_quartus_server("localhost", 9900);
 }
 
@@ -48,42 +53,36 @@ CascadeSlave::~CascadeSlave() {
 }
 
 CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
-  remote_runtime_.set_path(path);
-  remote_runtime_.set_port(port);
+  remote_compiler_.set_path(path);
+  remote_compiler_.set_port(port);
   return *this;
 }
 
 CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
-  auto* dc = new De10Compiler();
-    dc->set_host(host);
-    dc->set_port(port);
-  auto* pc = new ProxyCompiler();
-  auto* sc = new SwCompiler();
-  auto* c = new Compiler();
-    c->set_de10_compiler(dc);
-    c->set_proxy_compiler(pc);
-    c->set_sw_compiler(sc);
-  remote_runtime_.set_compiler(c);
+  auto* dc = remote_compiler_.get("de10");
+  assert(dc != nullptr);
+  static_cast<De10Compiler*>(dc)->set_host(host);
+  static_cast<De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 
 CascadeSlave& CascadeSlave::run() {
-  remote_runtime_.run();
+  remote_compiler_.run();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::request_stop() {
-  remote_runtime_.request_stop();
+  remote_compiler_.request_stop();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::wait_for_stop() {
-  remote_runtime_.wait_for_stop();
+  remote_compiler_.wait_for_stop();
   return *this;
 }
 
 CascadeSlave& CascadeSlave::stop_now() {
-  remote_runtime_.stop_now();
+  remote_compiler_.stop_now();
   return *this;
 }
 

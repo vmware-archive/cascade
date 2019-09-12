@@ -31,261 +31,91 @@
 #include "target/compiler.h"
 
 #include <cassert>
-#include "runtime/data_plane.h"
-#include "runtime/runtime.h"
-#include "target/core/de10/de10_compiler.h"
-#include "target/core/proxy/proxy_compiler.h"
-#include "target/core/sw/sw_compiler.h"
+#include "target/compiler/stub_core.h"
+#include "target/core_compiler.h"
 #include "target/engine.h"
-#include "target/interface/local/local_compiler.h"
-#include "target/interface/remote/remote_compiler.h"
 #include "verilog/analyze/module_info.h"
-#include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
-#include "verilog/transform/delete_initial.h"
 
 using namespace std;
 
 namespace cascade {
 
-Compiler::Compiler() {
-  de10_compiler_ = nullptr;
-  proxy_compiler_ = nullptr;
-  sw_compiler_ = nullptr;
-
-  local_compiler_ = nullptr;
-  remote_compiler_ = nullptr;
-
-  // We only really need two jit threads, one for the current background job,
-  // and a second to preempt it if necessary before it finishes. But since
-  // there's startup and shutdown costs associated with threads, let's double
-  // provision.
-  pool_.stop_now();
-  pool_.set_num_threads(4);
-  pool_.run();
-
-  seq_compile_ = 1;
-  seq_build_ = 0;
-}
-
 Compiler::~Compiler() {
-  if (de10_compiler_ != nullptr) {
-    de10_compiler_->abort();
-  }
-  if (proxy_compiler_ != nullptr) {
-    proxy_compiler_->abort();
-  }
-  if (sw_compiler_ != nullptr) {
-    sw_compiler_->abort();
-  }
-  if (local_compiler_ != nullptr) {
-    local_compiler_->abort();
-  }
-  if (remote_compiler_ != nullptr) {
-    remote_compiler_->abort();
-  }
-
-  pool_.stop_now();
-
-  if (de10_compiler_ != nullptr) {
-    delete de10_compiler_;
-  }
-  if (proxy_compiler_ != nullptr) {
-    delete proxy_compiler_;
-  }
-  if (sw_compiler_ != nullptr) {
-    delete sw_compiler_;
-  }
-  if (local_compiler_ != nullptr) {
-    delete local_compiler_;
-  }
-  if (remote_compiler_ != nullptr) {
-    delete remote_compiler_;
+  for (auto& cc : ccs_) {
+    delete cc.second;
   }
 }
 
-Compiler& Compiler::set_de10_compiler(De10Compiler* c) {
-  assert(de10_compiler_ == nullptr);
+Compiler& Compiler::set(const string& id, CoreCompiler* c) {
+  assert(ccs_.find(id) == ccs_.end());
   assert(c != nullptr);
-  de10_compiler_ = c;
-  de10_compiler_->set_compiler(this);
+  c->set_compiler(this);
+  ccs_[id] = c;
   return *this;
 }
 
-Compiler& Compiler::set_proxy_compiler(ProxyCompiler* c) {
-  assert(proxy_compiler_ == nullptr);
-  assert(c != nullptr);
-  proxy_compiler_ = c;
-  proxy_compiler_->set_compiler(this);
-  return *this;
+CoreCompiler* Compiler::get(const std::string& id) {
+  const auto itr = ccs_.find(id);
+  return (itr == ccs_.end()) ? nullptr : itr->second;
 }
 
-Compiler& Compiler::set_sw_compiler(SwCompiler* c) {
-  assert(sw_compiler_ == nullptr);
-  assert(c != nullptr);
-  sw_compiler_ = c;
-  sw_compiler_->set_compiler(this);
-  return *this;
+Engine* Compiler::compile_stub(Engine::Id id, const ModuleDeclaration* md) {
+  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+  auto* i = get_interface(loc);
+  assert(i != nullptr);
+  return new Engine(id, i, new StubCore(i));
 }
 
-Compiler& Compiler::set_local_compiler(LocalCompiler* c) {
-  assert(local_compiler_ == nullptr);
-  assert(c != nullptr);
-  local_compiler_ = c;
-  local_compiler_->set_compiler(this);
-  return *this;
-}
+Engine* Compiler::compile(Engine::Id id, ModuleDeclaration* md) {
+  const auto loc = md->get_attrs()->get<String>("__loc")->get_readable_val();
+  auto* i = get_interface(loc);
+  if (i == nullptr) {
+    error("Unable to provide an interface for a module with incompatible __loc annotation");
+    delete md; 
+    return nullptr;
+  }
 
-Compiler& Compiler::set_remote_compiler(RemoteCompiler* c) {
-  assert(remote_compiler_ == nullptr);
-  assert(c != nullptr);
-  remote_compiler_ = c;
-  remote_compiler_->set_compiler(this);
-  return *this;
-}
-
-Engine* Compiler::compile(ModuleDeclaration* md) {
   if (StubCheck().check(md)) {
     delete md;
-    return new Engine();
+    return new Engine(id, i, new StubCore(i));
   }
 
-  const auto* loc = md->get_attrs()->get<String>("__loc");
-  const auto* target = md->get_attrs()->get<String>("__target");
-
-  InterfaceCompiler* ic = nullptr;
-  if (loc != nullptr && loc->eq("remote")) {
-    ic = remote_compiler_; 
-  } else {
-    ic = local_compiler_;
-  }
-
-  CoreCompiler* cc = nullptr;
-  if (loc != nullptr && !loc->eq("runtime") && !loc->eq("remote")) {
-    cc = proxy_compiler_;      
-  } else if (target->eq("de10")) {
-    cc = de10_compiler_; 
-  } else if (target->eq("sw")) {
-    cc = sw_compiler_;
-  } else {
-    error("Unable to compile module with unsupported target type " + target->get_readable_val());
-    delete md;
-    return nullptr;
-  }
-
-  if (ic == nullptr) {
-    error("Unable to locate the required interface compiler");
-    delete md;
-    return nullptr;
-  }
-  auto* i = ic->compile(md);
-  if (i == nullptr) {
-    // No need to attach an error message here, ic will already have done so if necessary.
-    delete md;
-    return nullptr;
-  }
-
+  const auto target = md->get_attrs()->get<String>("__target")->get_readable_val();
+  auto* cc = ((loc != "remote") && (loc != "local")) ? get("proxy") : get(target);
   if (cc == nullptr) {
     error("Unable to locate the required core compiler");
     delete md;
     return nullptr;
   }
-  auto* c = cc->compile(i, md);
+
+  ids_.insert(id);
+  auto* c = cc->compile(id, md, i);
   if (c == nullptr) {
-    // No need to attach an error message here, cc will already have done so if necessary.
     delete i;
     return nullptr;
   }
 
-  return new Engine(i, c, ic, cc);
+  return new Engine(id, i, c);
 }
 
-void Compiler::compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id) {
-  // Bump the sequence number for this engine
-  ++version;
-  const auto this_version = version;
-
-  // Record human readable name for this module
-  const auto fid = Resolve().get_readable_full_id(id);
-
-  // Lookup annotations 
-  const auto* std = md->get_attrs()->get<String>("__std");
-  const auto* t = md->get_attrs()->get<String>("__target");
-  const auto* l = md->get_attrs()->get<String>("__loc");
-
-  // Check: Is this a stub, an std module, was jit compilation requested?  
-  const auto tsep = t->get_readable_val().find_first_of(';');
-  const auto lsep = l->get_readable_val().find_first_of(';');
-  const auto jit = std->eq("logic") && !StubCheck().check(md) && ((tsep != string::npos) || (lsep != string::npos));
-
-  // If we're jit compiling, we'll need a second copy of the source and we'll
-  // need to adjust the annotations. Otherwise just allocate a dummy module.
-  // Having a non-null module as an invariant simplifies the code path below.
-  ModuleDeclaration* md2 = nullptr;
-  if (jit) {
-    md2 = md->clone();
-    if (tsep != string::npos) {
-      md2->get_attrs()->set_or_replace("__target", new String(t->get_readable_val().substr(tsep+1)));
-      md->get_attrs()->set_or_replace("__target", new String(t->get_readable_val().substr(0, tsep)));
-    }
-    if (lsep != string::npos) {
-      md2->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(lsep+1)));
-      md->get_attrs()->set_or_replace("__loc", new String(l->get_readable_val().substr(0, lsep)));
-    }
-  } else {
-    md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
+void Compiler::stop_compile(Engine::Id id) {
+  for (auto& cc : ccs_) {
+    cc.second->stop_compile(id);
   }
+}
 
-  // Fast Path. Compile and replace the original engine.  If an error occurred,
-  // then simply preserve the original message. If compilation was aborted
-  // without explanation, that's an error that requires explanation.
-  stringstream ss;
-  TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
-  auto* e_fast = compile(md);
-  if (e_fast == nullptr) {
-    if (!error()) {
-      error("An unhandled error occurred during module compilation");
-    }
-  } else {
-    e->replace_with(e_fast);
-    if (e->is_stub()) {
-      ostream(rt->rdbuf(Runtime::stdinfo_)) << "Deferring " << ss.str() << endl;
-    } else {
-      ostream(rt->rdbuf(Runtime::stdinfo_)) << "Finished " << ss.str() << endl;
-    }
+void Compiler::stop_async() {
+  for (auto& cc : ccs_) {
+    cc.second->stop_async();
   }
+}
 
-  // Slow Path: Schedule a thread to compile in the background and swap in the
-  // results in a safe runtime window when it's done. Note that we schedule an
-  // interrupt regardless. This is to trigger an interaction with the runtime
-  // even if only just for the sake of catching an error. 
-  if (jit && (e_fast != nullptr)) {
-    pool_.insert(new ThreadPool::Job([this, rt, e, md2, fid, this_version, &version]{
-      stringstream ss;
-      TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
-      const auto str = ss.str();
-
-      DeleteInitial().run(md2);
-      auto* e_slow = compile(md2);
-      // If compilation came back before the runtime is shutdown, we can swap
-      // it in place of the fast-pass compilation. Otherwise we delete it.
-      rt->schedule_interrupt([e, e_slow, rt, str, this_version, &version]{
-        if ((this_version < version) || (e_slow == nullptr)) {
-          ostream(rt->rdbuf(Runtime::stdinfo_)) << "Aborted " << str << endl;
-        } else {
-          e->replace_with(e_slow);
-          ostream(rt->rdbuf(Runtime::stdinfo_)) << "Finished " << str << endl;
-        }
-      },
-      [e_slow] {
-        if (e_slow != nullptr) {
-          delete e_slow;
-        }
-      });
-    }));
-  } else {
-    delete md2;
+void Compiler::stop_compile() {
+  for (auto& cc : ccs_) {
+    for (auto id : ids_) {
+      cc.second->stop_compile(id);
+    }
   }
 }
 
@@ -321,6 +151,21 @@ void Compiler::StubCheck::visit(const InitialConstruct* ic) {
 
 void Compiler::StubCheck::visit(const FinishStatement* fs) {
   (void) fs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const RestartStatement* rs) {
+  (void) rs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const RetargetStatement* rs) {
+  (void) rs;
+  stub_ = false;
+}
+
+void Compiler::StubCheck::visit(const SaveStatement* ss) {
+  (void) ss;
   stub_ = false;
 }
 

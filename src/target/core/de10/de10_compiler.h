@@ -31,18 +31,20 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
 
+#include <condition_variable>
+#include <mutex>
 #include <stdint.h>
 #include <string>
+#include <vector>
 #include "target/core_compiler.h"
 #include "target/core/de10/de10_gpio.h"
 #include "target/core/de10/de10_led.h"
 #include "target/core/de10/de10_logic.h"
 #include "target/core/de10/de10_pad.h"
-#include "target/core/de10/quartus_server.h"
 
 namespace cascade {
 
-class QuartusClient;
+class sockstream;
 
 class De10Compiler : public CoreCompiler {
   public:
@@ -52,23 +54,51 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_host(const std::string& host);
     De10Compiler& set_port(uint32_t port);
 
-    void cleanup(QuartusServer::Id id);
-    void abort() override;
+    void release(size_t slot);
+    void stop_compile(Engine::Id id) override;
 
   private:
+    // Compilation States:
+    enum class State : uint8_t {
+      FREE = 0,
+      COMPILING,
+      WAITING,
+      STOPPED,
+      CURRENT
+    };
+    // Slot Information:
+    struct Slot {
+      Engine::Id id;
+      State state;
+      std::string text;
+    };
+
+    // Configuration State:
+    std::string host_;
+    uint32_t port_;
+
     // Memory Mapped State:
     int fd_;
     volatile uint8_t* virtual_base_;
 
-    // Quartus Compiler Location:
-    std::string host_;
-    uint32_t port_;
+    // Program Management:
+    std::mutex lock_;
+    std::condition_variable cv_;
+    std::vector<Slot> slots_;
 
-    // Compilation Request Ordering:
-    De10Gpio* compile_gpio(Interface* interface, ModuleDeclaration* md) override;
-    De10Led* compile_led(Interface* interface, ModuleDeclaration* md) override;
-    De10Logic* compile_logic(Interface* interface, ModuleDeclaration* md) override;
-    De10Pad* compile_pad(Interface* interface, ModuleDeclaration* md) override;
+    // Compiler Interface:
+    De10Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    De10Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+
+    // Compilation Helpers:
+    bool id_in_use(Engine::Id id) const;
+    int get_free_slot() const;
+    void compile(sockstream* sock);
+    bool block_on_compile(sockstream* sock);
+    void reprogram(sockstream* sock);
+    void kill_all(sockstream* sock);
 };
 
 } // namespace cascade

@@ -59,7 +59,7 @@ class ThreadPool : public Thread {
     ThreadPool& set_num_threads(size_t n);
 
     // Schedule a new job. Ignores jobs scheduled between stop() and start().
-    void insert(Job* job);
+    void insert(Job job);
 
   protected:
     // Start a new pool of num_threads_ threads.
@@ -73,9 +73,9 @@ class ThreadPool : public Thread {
 
     size_t num_threads_;
     std::vector<std::thread> threads_;
-    std::stack<Job*> jobs_;
+    std::stack<Job> jobs_;
 
-    Job* get();
+    std::pair<bool, Job> get();
 };
 
 inline ThreadPool::ThreadPool() : Thread() {
@@ -87,7 +87,7 @@ inline ThreadPool& ThreadPool::set_num_threads(size_t n) {
   return *this;
 }
 
-inline void ThreadPool::insert(Job* job) {
+inline void ThreadPool::insert(Job job) {
   {
     std::lock_guard<std::mutex> lg(lock_);
     jobs_.push(job);
@@ -99,12 +99,12 @@ inline void ThreadPool::run_logic() {
   for (size_t i = 0; i < num_threads_; ++i) {
     threads_.push_back(std::thread([this]{
       while (true) {
-        if (auto* job = get()) {
-          (*job)();
-          delete job;
-          continue;
-        } 
-        return;
+        auto job = get();
+        if (job.first) {
+          job.second();
+        } else {
+          return;
+        }
       }
     }));
   }  
@@ -119,17 +119,17 @@ inline void ThreadPool::stop_logic() {
   threads_.clear();
 }
 
-inline ThreadPool::Job* ThreadPool::get() {
+inline std::pair<bool, ThreadPool::Job> ThreadPool::get() {
   std::unique_lock<std::mutex> ul(lock_);
   while (jobs_.empty() && !stop_requested()) {
     cv_.wait(ul);
   }
   if (!jobs_.empty()) {
-    auto* res = jobs_.top();
+    auto res = jobs_.top();
     jobs_.pop();
-    return res;
+    return std::make_pair(true, res);
   }
-  return nullptr;
+  return std::make_pair(false, Job());
 }
 
 } // namespace cascade

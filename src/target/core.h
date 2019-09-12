@@ -38,7 +38,6 @@ namespace cascade {
 
 // This class encapsulates the target-specific implementation of module logic.
 
-class CoreCompiler;
 class Interface;
 class Input;
 class State;
@@ -127,10 +126,6 @@ class Core {
     virtual bool is_custom() const;
     virtual bool is_logic() const;
     virtual bool is_stub() const;
-
-    // Target specific implementations may override this method to perform any
-    // last-minute cleanup in the compiler that created this core.
-    virtual void cleanup(CoreCompiler* c);
 
   protected:
     Interface* interface();
@@ -254,11 +249,6 @@ inline bool Core::is_logic() const {
 
 inline bool Core::is_stub() const {
   return false;
-}
-
-inline void Core::cleanup(CoreCompiler* cc) {
-  // Does nothing.
-  (void) cc;
 }
 
 inline Interface* Core::interface() {

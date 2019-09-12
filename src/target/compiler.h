@@ -32,91 +32,80 @@
 #define CASCADE_SRC_TARGET_COMPILER_H
 
 #include <mutex>
+#include <set>
 #include <string>
-#include "common/thread_pool.h"
+#include <unordered_map>
+#include <unordered_set>
+#include "runtime/runtime.h"
 #include "verilog/ast/ast_fwd.h"
-#include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
 class CoreCompiler;
-class De10Compiler;
 class Engine;
-class InterfaceCompiler;
-class LocalCompiler;
-class ProxyCompiler;
-class RemoteCompiler;
-class Runtime;
-class SwCompiler;
+class Interface;
 
 class Compiler {
   public:
-    // Constructors:
-    Compiler();
-    ~Compiler();
+    virtual ~Compiler();
 
-    // Non-Tread-Safe Core Compiler Configuration:
-    // These methods must only be called before the first invocation of
-    // compile() and they cannot be called more than once. Once you configure a
-    // compiler, you're stuck with it.
-    Compiler& set_de10_compiler(De10Compiler* c);
-    Compiler& set_proxy_compiler(ProxyCompiler* c);
-    Compiler& set_sw_compiler(SwCompiler* c);
-
-    // Non-Thread-Safe Interface Compiler Configuration:
-    // These methods must only be called before the first invocation of compile()
-    // and they cannot be called more than once. Once you configure a compiler,
-    // you're stuck with it.
-    Compiler& set_local_compiler(LocalCompiler* c);
-    Compiler& set_remote_compiler(RemoteCompiler* c);
+    // Configuration Interface:
+    //
+    // These methods are not thread-safe. The results on invoking these methods
+    // after the first invocation of compile() or to replace a previously
+    // registered compiler are undefined.
+    Compiler& set(const std::string& id, CoreCompiler* c);
+    CoreCompiler* get(const std::string& id);
 
     // Compilation Interface:
     // 
-    // Compiles a module declaration into a new engine. Returns nullptr if
-    // compilation was aborted (either due to premature termination or error).
-    // In the case of error, the thread safe interface will indicate what
-    // happened.
-    Engine* compile(ModuleDeclaration* md);
-    // Compiles a module declaration into a new engine, transfers the runtime
-    // state of a preexisting engine into the new engine, and then swaps the
-    // identities of the two engines (effectively updating the compilation
-    // state of the original engine). This method may also use the runtime's
-    // interrupt interface to schedule a slower compilation and an asynchronous
-    // jit update to the engine at a later time. In the event of an error, the
-    // thread safe interface will indicate what happened. In the event that md
-    // has been mangled beyond recognition, id can be used to provide a legible
-    // identifier for the sake of logging.
-    void compile_and_replace(Runtime* rt, Engine* e, size_t& version, ModuleDeclaration* md, const Identifier* id);
+    // These methods are all thread-safe and return immediately.
+    // 
+    // Ignores md and returns an engine backed by a StubCore.  This method does
+    // not take ownership of md and is undefined for modules with incompatible
+    // __loc annotations.
+    Engine* compile_stub(Engine::Id id, const ModuleDeclaration* md);
+    // Compiles md using the core compiler specified by the __target
+    // annotation.  This method takes ownership of md.
+    Engine* compile(Engine::Id id, ModuleDeclaration* md);
+    // Causes all invocations of compile() associated with id to return in a
+    // *reasonably short* amount of time. If an invocation of compile() would
+    // return normally it may do so, otherwise, it will return nullptr.
+    void stop_compile(Engine::Id id); 
+    // Causes all invocations of compile() to return in a *reasonably short*
+    // amount of time. If an invocation of compile() would return normally it
+    // may do so, otherwise, it will return nullptr.
+    void stop_compile(); 
+    // Invokes stop_async() on all registered compilers.
+    void stop_async();
 
-    // Thread-Safe Error Interface:
+    // Error Reporting Interface:
+    //
+    // These methods are all thread safe and report errors if any in-flight
+    // compilations encountered an error.
     void error(const std::string& s);
     bool error();
     std::string what();
 
+    // Scheduling Interface:
+    //
+    // Schedules a blocking interrupt in a state safe window defined by all
+    // registered compilers. This method is thread safe, but should only be
+    // invoked by second-pass jit-compilers. Invoking this method in a first-
+    // pass compiler will cause the runtime to hang.
+    virtual void schedule_state_safe_interrupt(Runtime::Interrupt int_) = 0;
+
+  protected:
+    // Interface Compilation... Interface:
+    //
+    // Sanity checks the __loc annotation on a module declaration and returns
+    // either the interface provided by this compiler or nullptr.
+    virtual Interface* get_interface(const std::string& loc) = 0;
+
   private:
-    // Core Compilers:
-    De10Compiler* de10_compiler_;
-    ProxyCompiler* proxy_compiler_;
-    SwCompiler* sw_compiler_;
-
-    // Interface Compilers:
-    LocalCompiler* local_compiler_;
-    RemoteCompiler* remote_compiler_;
-
-    // JIT State:
-    ThreadPool pool_;
-    size_t seq_compile_;
-    size_t seq_build_;
-
-    // Error State:
-    std::mutex lock_;
-    std::string what_;
-
-    // Helper Class: Checks whether a module is a stub: a module with no inputs
-    // or outputs, and no side-effects.
-    // 
-    // TODO: This class has bit-rotted
+    // Checks whether a module is a stub: a module with no inputs or outputs,
+    // and no runtime-visible side-effects.
     class StubCheck : public Visitor {
       public:
         ~StubCheck() override = default;
@@ -125,7 +114,20 @@ class Compiler {
         bool stub_;
         void visit(const InitialConstruct* ic) override;
         void visit(const FinishStatement* fs) override;
+        void visit(const RestartStatement* rs) override;
+        void visit(const RetargetStatement* rs) override;
+        void visit(const SaveStatement* ss) override;
     };    
+
+    // Compilers:
+    std::unordered_map<std::string, CoreCompiler*> ccs_;
+
+    // Compilation State:
+    std::unordered_set<Engine::Id> ids_;
+
+    // Error State:
+    std::mutex lock_;
+    std::string what_;
 };
 
 } // namespace cascade

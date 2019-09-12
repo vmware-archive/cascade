@@ -31,11 +31,8 @@
 #ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 #define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
 
-#include <condition_variable>
-#include <mutex>
-#include <string>
 #include <unordered_map>
-#include <vector>
+#include <string>
 #include "common/thread.h"
 #include "common/thread_pool.h"
 
@@ -45,14 +42,13 @@ class sockstream;
 
 class QuartusServer : public Thread {
   public:
-    // RPC Interface:
-    typedef uint8_t Id;
+    // RPC Types:
     enum class Rpc : uint8_t {
       ERROR = 0,
-      REQUEST_SLOT,
-      UPDATE_SLOT,
-      RETURN_SLOT,
-      ABORT
+      OKAY,
+      KILL_ALL,
+      COMPILE,
+      REPROGRAM
     };
 
     QuartusServer();
@@ -66,39 +62,26 @@ class QuartusServer : public Thread {
     bool error() const;
 
   private:
-    enum class State : uint8_t {
-      OPEN = 0,
-      CURRENT,
-      WAITING
-    };
-
+    // Condiguration State:
     std::string cache_path_;
     std::string quartus_path_;
     uint32_t port_;
     std::string usb_;
 
+    // Comoilation State:
     ThreadPool pool_;
     std::unordered_map<std::string, std::string> cache_;
-    std::vector<std::pair<QuartusServer::State, std::string>> slots_;
+    bool busy_;
 
-    std::mutex lock_;
-    std::condition_variable cv_;
-    size_t version_;
+    // Thread Interface:
+    void run_logic() override;
 
+    // Helper Methods:
     void init_pool();
     void init_cache();
-    void init_slots();
-    void init_versioning();
-
-    void request_slot(sockstream* sock);
-    void update_slot(sockstream* sock);
-    void return_slot(sockstream* sock);
-    void abort(sockstream* sock);
-
-    void killall();
-    void recompile(size_t my_version);
-
-    void run_logic() override;
+    void kill_all();
+    bool compile(const std::string& text);
+    void reprogram(const std::string& text);
 };
 
 } // namespace cascade
