@@ -235,6 +235,7 @@ case "${unameOut}" in
                 check_homebrew cmake MISSING
                 check_homebrew flex MISSING
                 check_homebrew bison MISSING
+                check_homebrew python3 MISSING
                 MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                 MISSING_LIST=${MISSING_LIST:1}
                 if [ ${#MISSING[@]} -gt 0 ]; then 
