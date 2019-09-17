@@ -76,7 +76,9 @@ void EventExpand::edit(TimingControlStatement* tcs) {
   // Create a new timing control with an explicit list
   auto* ctrl = new EventControl();
   for (auto& r : reads) {
-    ctrl->push_back_events(new Event(Event::Type::EDGE, r.second->clone()));
+    auto* e = r.second->clone();
+    e->purge_dim();
+    ctrl->push_back_events(new Event(Event::Type::EDGE, e));
   }
   tcs->replace_ctrl(ctrl);
 }
