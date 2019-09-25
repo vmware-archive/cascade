@@ -1675,6 +1675,14 @@ inline void BitsBase<T, BT, ST>::bitwise_sxr_const(const BitsBase& lhs, size_t s
     }
     return;
   }
+  // Another Easy Case: We're shifting more bits than we have here
+  if (samt >= lhs.size()) {
+    const auto val = (arith && lhs.get(lhs.size()-1)) ? T(-1) : T(0);
+    for (size_t i = 0, ie = val_.size(); i < ie; ++i) {
+      val_[i] = val;
+    }
+    return;
+  }
 
   // This algorithm works from lowest to highest order, one word at a time
   // word: The current word we're looking at
