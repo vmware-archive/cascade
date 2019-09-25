@@ -65,9 +65,9 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
       error = true;
     }
     if (input) {
-      for (auto i = begin; i != end; ++i) {
+      for (auto i = begin+1; i != end; ++i) {
         if (!(*i)->is(cascade::Node::Tag::identifier)) {
-          error = false;
+          error = true;
         }
       }
     }
@@ -81,15 +81,14 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
   if (!error) {
     sb = new cascade::SeqBlock(); 
     if (simple) {
-      sb->push_back_stmts(input ?
-        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::GetStatement(fd->clone(), new cascade::String("%_"), static_cast<cascade::Identifier*>((*begin)->clone()))) :  
-        static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%_"), (*begin)->clone()))
-      );
+      assert(!input);
+      sb->push_back_stmts(static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String("%_"), (*begin)->clone())));
     } else {
       size_t i = 0;
       auto itr = begin;
     
-      const auto& str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
+      assert((*itr)->is(cascade::Node::Tag::string));
+      const auto str = static_cast<const cascade::String*>(*itr++)->get_readable_val();
       while (i < str.length()) {
         if (str[i] == '%') {
           const auto ie = str.find_first_of("bBcCdDeEfFgGhHoOsSuU", i)+1;
@@ -98,7 +97,6 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
             static_cast<cascade::SystemTaskEnableStatement*>(new cascade::PutStatement(fd->clone(), new cascade::String(str.substr(i, ie-i)), (*itr++)->clone()))
           );
           i = ie;
-          continue;
         } else {
           const auto ie = str.find_first_of('%', i);
           sb->push_back_stmts(input ?
