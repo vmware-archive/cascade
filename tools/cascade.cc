@@ -191,7 +191,7 @@ int main(int argc, char** argv) {
   }
   auto* fb = new filebuf();
   if (::enable_log.value()) {
-    fb->open("cascade.log", ios::app);
+    fb->open("cascade.log", ios::app | ios::out);
   }
   ::cascade_.set_stdlog(fb);
 

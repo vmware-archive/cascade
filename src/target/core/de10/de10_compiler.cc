@@ -95,7 +95,7 @@ void De10Compiler::release(size_t slot) {
   // invoked on successfully compiled cores, which means we don't have to worry
   // about transfering compilation ownership or invoking a killall.
   lock_guard<mutex> lg(lock_);
-  assert(slots_[slot].state = State::CURRENT);
+  assert(slots_[slot].state == State::CURRENT);
   slots_[slot].state = State::FREE;
   cv_.notify_all();
 }
