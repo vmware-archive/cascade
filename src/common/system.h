@@ -33,9 +33,6 @@
 
 #include <cstdlib>
 #include <string>
-#ifdef __APPLE__
-#include <libproc.h>
-#endif
 #include <unistd.h>
 
 namespace cascade {
@@ -51,14 +48,8 @@ struct System {
 
 inline std::string System::src_root() {
   char result[1024];
-  #ifdef __APPLE__
-    const auto pid = getpid();
-    const auto count = proc_pidpath(pid, result, 1024);
-  #else
-    const auto count = readlink("/proc/self/exe", result, 1024);
-  #endif
+  const auto count = readlink("/proc/self/exe", result, 1024);
   const auto path = std::string(result, (count > 0) ? count : 0);
-
   return path.substr(0, path.rfind('/')) + "/../..";
 }
 

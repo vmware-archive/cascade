@@ -72,4 +72,4 @@ add_library(verilog ${BISON_verilog_parser_OUTPUTS} ${FLEX_verilog_lexer_OUTPUTS
 
 add_subdirectory(src/cascade)
 add_subdirectory(tools)
-#add_subdirectory(test)
+add_subdirectory(test)
