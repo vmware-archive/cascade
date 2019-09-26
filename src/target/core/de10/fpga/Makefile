@@ -1,12 +1,13 @@
 all: qsys quartus program
 
 qsys:
-	~/intelFPGA_lite/17.1/quartus/sopc_builder/bin/qsys-generate soc_system.qsys --synthesis=VERILOG
+	~/intelFPGA_lite/18.1/quartus/sopc_builder/bin/qsys-generate soc_system.qsys --synthesis=VERILOG
 
 quartus:
-	~/intelFPGA_lite/17.1/quartus/bin/quartus_map DE10_NANO_SoC_GHRD.qpf
-	~/intelFPGA_lite/17.1/quartus/bin/quartus_fit DE10_NANO_SoC_GHRD.qpf
-	~/intelFPGA_lite/17.1/quartus/bin/quartus_asm DE10_NANO_SoC_GHRD.qpf
+	~/intelFPGA_lite/18.1/quartus/bin/quartus_map DE10_NANO_SoC_GHRD.qpf
+	~/intelFPGA_lite/18.1/quartus/bin/quartus_fit DE10_NANO_SoC_GHRD.qpf
+	~/intelFPGA_lite/18.1/quartus/bin/quartus_asm DE10_NANO_SoC_GHRD.qpf
+	~/intelFPGA_lite/18.1/quartus/bin/quartus_cpf -c sof2rbf.cof
 
 program:
 	~/intelFPGA_lite/17.1/quartus/bin/quartus_pgm -c "DE-SoC [1-2]" --mode JTAG -o "P;output_files/DE10_NANO_SoC_GHRD.sof@2"
