@@ -81,7 +81,6 @@ class QuartusServer : public Thread {
     void init_cache();
     void kill_all();
     bool compile(const std::string& text);
-    void reprogram(const std::string& text);
 };
 
 } // namespace cascade

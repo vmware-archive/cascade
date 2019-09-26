@@ -149,11 +149,21 @@ void QuartusServer::run_logic() {
         const auto res = compile(text);
         sock->put(static_cast<uint8_t>(res ? Rpc::OKAY : Rpc::ERROR));
         sock->flush();
+
         if (res) {
           sock->get();
-          reprogram(text);
-          sock->put(static_cast<uint8_t>(Rpc::OKAY));
+          
+          const auto itr = cache_.find(text);
+          assert(itr != cache_.end());
+          ifstream ifs(itr->second);
+          string rbf((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
+          uint32_t len = rbf.length();
+
+          sock->write(reinterpret_cast<const char*>(&len), sizeof(len));
+          sock->write(rbf.c_str(), len);
           sock->flush();    
+
+          sock->get();
         }
 
         busy_ = false;
@@ -231,12 +241,15 @@ bool QuartusServer::compile(const std::string& text) {
   if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   }
+  if (System::execute(quartus_path_ + "/bin/quartus_cpf " + System::src_root() + "/src/target/core/de10/fpga/sof2rbf.cof") != 0) {
+    return false;
+  }
 
   // If we've made it this far, we're bound for success. Kill all can't stop us.
   stringstream ss;
-  ss << "bitstream_" << cache_.size() << ".sof";
+  ss << "bitstream_" << cache_.size() << ".rbf";
   const auto file = ss.str();
-  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
+  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.rbf " + cache_path_ + "/" + file);
 
   ofstream ofs2(cache_path_ + "/index.txt", ios::app);
   ofs2 << text << '\0' << file << '\0';
@@ -245,16 +258,6 @@ bool QuartusServer::compile(const std::string& text) {
   cache_[text] = file;
 
   return true;
-}
-
-void QuartusServer::reprogram(const std::string& text) {
-  // This method can't be stopped by kill all and shouldn't ever be invoked
-  // unless this program is in the cache.
-  const auto itr = cache_.find(text);
-  assert(itr != cache_.end());
-
-  const auto path = itr->second;
-  System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + path + "@2\"");
 }
 
 } // namespace cascade
