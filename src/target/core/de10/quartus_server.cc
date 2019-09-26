@@ -149,11 +149,23 @@ void QuartusServer::run_logic() {
         const auto res = compile(text);
         sock->put(static_cast<uint8_t>(res ? Rpc::OKAY : Rpc::ERROR));
         sock->flush();
+
         if (res) {
           sock->get();
-          reprogram(text);
-          sock->put(static_cast<uint8_t>(Rpc::OKAY));
+          
+          const auto itr = cache_.find(text);
+          assert(itr != cache_.end());
+          ifstream ifs(cache_path_ + "/" + itr->second, ios::binary);
+          
+          stringstream rbf;
+          rbf << ifs.rdbuf();
+          uint32_t len = rbf.str().length();
+
+          sock->write(reinterpret_cast<const char*>(&len), sizeof(len));
+          sock->write(rbf.str().c_str(), len);
           sock->flush();    
+
+          sock->get();
         }
 
         busy_ = false;
@@ -201,12 +213,11 @@ void QuartusServer::init_cache() {
 }
 
 void QuartusServer::kill_all() {
-  // Note that we do not kill quartus_pgm.  It runs quickly and an
-  // inconsistently programmed fpga is a nightmware we don't want to consider.
+  // Note that we don't kill anything downstream of place and route as these
+  // passess all run to completion in short order.
   System::execute("killall java > /dev/null 2>&1");
   System::execute("killall quartus_map > /dev/null 2>&1");
   System::execute("killall quartus_fit > /dev/null 2>&1");
-  System::execute("killall quartus_asm > /dev/null 2>&1");
 }
 
 bool QuartusServer::compile(const std::string& text) {
@@ -228,15 +239,18 @@ bool QuartusServer::compile(const std::string& text) {
   if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   } 
+
+  // If we've made it this far, we're bound for success. Kill all can't stop us.
   if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   }
-
-  // If we've made it this far, we're bound for success. Kill all can't stop us.
+  if (System::execute(quartus_path_ + "/bin/quartus_cpf -c " + System::src_root() + "/src/target/core/de10/fpga/sof2rbf.cof") != 0) {
+    return false;
+  }
   stringstream ss;
-  ss << "bitstream_" << cache_.size() << ".sof";
+  ss << "bitstream_" << cache_.size() << ".rbf";
   const auto file = ss.str();
-  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof " + cache_path_ + "/" + file);
+  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.rbf " + cache_path_ + "/" + file);
 
   ofstream ofs2(cache_path_ + "/index.txt", ios::app);
   ofs2 << text << '\0' << file << '\0';
@@ -245,16 +259,6 @@ bool QuartusServer::compile(const std::string& text) {
   cache_[text] = file;
 
   return true;
-}
-
-void QuartusServer::reprogram(const std::string& text) {
-  // This method can't be stopped by kill all and shouldn't ever be invoked
-  // unless this program is in the cache.
-  const auto itr = cache_.find(text);
-  assert(itr != cache_.end());
-
-  const auto path = itr->second;
-  System::execute(quartus_path_ + "/bin/quartus_pgm -c \"DE-SoC " + usb_ + "\" --mode JTAG -o \"P;" + cache_path_ + "/" + path + "@2\"");
 }
 
 } // namespace cascade
