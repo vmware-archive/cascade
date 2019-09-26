@@ -179,8 +179,7 @@ void config_fpga(const char* path)
   int rbf = open(path, (O_RDONLY|O_SYNC));
   if (rbf < 0) {
     // Some error happened...
-    //printf("\n%s\n\n",
-      "Error opening file. Check for an appropiate fpga_config_file.rbf file.");
+    //printf("\n%s\n\n", Error opening file. Check for an appropiate fpga_config_file.rbf file.");
     exit(-1);
   }
 
