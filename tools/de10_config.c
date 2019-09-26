@@ -119,6 +119,7 @@ void report_status()
   uint16_t gpio_intstatus_reg  = alt_read_hword(virtualbase + GPIO_INTSTATUS);
   uint8_t cd  = BIT(gpio_intstatus_reg, 1); // configuration done register
 
+  /*
   printf("%s\n",      "******************************************************");
   printf("%s 0x%x\n", "MSEL Pin Config.....", msel);
   printf("%s %s\n",   "FPGA State..........", status_code(mode) );
@@ -129,6 +130,7 @@ void report_status()
   printf("%s 0x%x\n", "CONF DONE...........", cd);
   printf("%s 0x%x\n", "Ctrl.en?............", ctrl_en);
   printf("%s\n",      "******************************************************");
+  */
 }
 
 uint8_t fpga_state()
@@ -151,7 +153,7 @@ void set_cdratio()
   control_reg = INSERT_BITS(control_reg, cdratio_mask, cdratio, 6);
   alt_write_hword(virtualbase + CTRL_OFFSET, control_reg);
 
-  printf("%s 0x%x.\n", "Setting cdratio with", cdratio);
+  //printf("%s 0x%x.\n", "Setting cdratio with", cdratio);
 }
 
 void reset_fpga()
@@ -163,7 +165,7 @@ void reset_fpga()
 
   alt_write_byte(virtualbase + STAT_OFFSET, status);
 
-  printf("%s.\n", "Resetting FPGA");
+  //printf("%s.\n", "Resetting FPGA");
 }
 
 void config_fpga(const char* path)
@@ -177,7 +179,7 @@ void config_fpga(const char* path)
   int rbf = open(path, (O_RDONLY|O_SYNC));
   if (rbf < 0) {
     // Some error happened...
-    printf("\n%s\n\n",
+    //printf("\n%s\n\n",
       "Error opening file. Check for an appropiate fpga_config_file.rbf file.");
     exit(-1);
   }
@@ -190,12 +192,12 @@ void config_fpga(const char* path)
   // We advancse every 4 bytes (32 bits).
 
   bool run_while = true;
-  printf("%s\n", "Loading rbf file.");
+  //printf("%s\n", "Loading rbf file.");
 
   while(run_while) {
     ssize_t read_result = read(rbf, data_buffer, 4);
     if (read_result < 4) {
-      printf("%s\n", "EOF reached.");
+      //printf("%s\n", "EOF reached.");
       run_while = false;
     }
 
@@ -248,13 +250,13 @@ void set_nconfigpull(uint8_t value)
 void fpga_off()
 {
   set_nconfigpull(1);
-  printf("%s.\n", "Turning FPGA Off");
+  //printf("%s.\n", "Turning FPGA Off");
 }
 
 void fpga_on()
 {
   set_nconfigpull(0);
-  printf("%s.\n", "Turning FPGA On");
+  //printf("%s.\n", "Turning FPGA On");
 }
 
 // ****************************************************************************
