@@ -155,12 +155,14 @@ void QuartusServer::run_logic() {
           
           const auto itr = cache_.find(text);
           assert(itr != cache_.end());
-          ifstream ifs(itr->second);
-          string rbf((istreambuf_iterator<char>(ifs)), istreambuf_iterator<char>());
-          uint32_t len = rbf.length();
+          ifstream ifs(cache_path_ + "/" + itr->second, ios::binary);
+          
+          stringstream rbf;
+          rbf << ifs.rdbuf();
+          uint32_t len = rbf.str().length();
 
           sock->write(reinterpret_cast<const char*>(&len), sizeof(len));
-          sock->write(rbf.c_str(), len);
+          sock->write(rbf.str().c_str(), len);
           sock->flush();    
 
           sock->get();
@@ -211,12 +213,11 @@ void QuartusServer::init_cache() {
 }
 
 void QuartusServer::kill_all() {
-  // Note that we do not kill quartus_pgm.  It runs quickly and an
-  // inconsistently programmed fpga is a nightmware we don't want to consider.
+  // Note that we don't kill anything downstream of place and route as these
+  // passess all run to completion in short order.
   System::execute("killall java > /dev/null 2>&1");
   System::execute("killall quartus_map > /dev/null 2>&1");
   System::execute("killall quartus_fit > /dev/null 2>&1");
-  System::execute("killall quartus_asm > /dev/null 2>&1");
 }
 
 bool QuartusServer::compile(const std::string& text) {
@@ -238,14 +239,14 @@ bool QuartusServer::compile(const std::string& text) {
   if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   } 
+
+  // If we've made it this far, we're bound for success. Kill all can't stop us.
   if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   }
-  if (System::execute(quartus_path_ + "/bin/quartus_cpf " + System::src_root() + "/src/target/core/de10/fpga/sof2rbf.cof") != 0) {
+  if (System::execute(quartus_path_ + "/bin/quartus_cpf -c " + System::src_root() + "/src/target/core/de10/fpga/sof2rbf.cof") != 0) {
     return false;
   }
-
-  // If we've made it this far, we're bound for success. Kill all can't stop us.
   stringstream ss;
   ss << "bitstream_" << cache_.size() << ".rbf";
   const auto file = ss.str();
