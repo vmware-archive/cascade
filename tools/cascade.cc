@@ -87,25 +87,42 @@ auto& open_loop_target = StrArg<size_t>::create("--open_loop_target")
   .description("Maximum number of seconds to run in open loop for before transferring control back to runtime")
   .initial(1);
 
+__attribute__((unused)) auto& g5 = Group::create("REPL Options");
+auto& disable_repl = FlagArg::create("--disable_repl")
+  .description("Disables the REPL and treats user input as stdin");
+
 class inbuf : public streambuf {
   public:
     inbuf(streambuf* sb) : streambuf() { 
       sb_ = sb;
+      prompt_ = false;
     }
     ~inbuf() override = default;
 
   private:
     streambuf* sb_;
+    bool prompt_;
+
     int sync() override {
       return sb_->pubsync();
     }
     int_type uflow() override {
       const auto res =  sb_->sbumpc();
-      if (res == '\n') {
+      prompt(res);
+      prompt_ = false;
+      return res;
+    }
+    int_type underflow() override {
+      const auto res = sb_->sgetc();
+      prompt(res);
+      return res;
+    }
+    void prompt(int_type c) {
+      if ((c == '\n') && !prompt_) {
+        prompt_ = true;
         cout << ">>> ";
         cout.flush();
       }
-      return res;
     }
 };
 
@@ -135,13 +152,15 @@ class outbuf : public streambuf {
     }
 };
 
-Cascade cascade_;
+// Allocate cascade on the heap so we can guarantee that it's torn down before
+// stack or static variables.
+Cascade* cascade_ = nullptr;
 
+// Signal Handlers:
 void int_handler(int sig) {
   (void) sig;
-  ::cascade_.request_stop();
+  ::cascade_->request_stop();
 }
-
 void segv_handler(int sig) {
   (void) sig;
   cerr << "\033[31mCASCADE SHUTDOWN UNEXPECTEDLY\033[00m" << endl;
@@ -171,52 +190,63 @@ int main(int argc, char** argv) {
     sigaction(SIGINT, &action, nullptr);
   }
 
+  // Create a new cascade
+  ::cascade_ = new Cascade();
+
   // Set command line flags
-  ::cascade_.set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
-  ::cascade_.set_enable_inlining(!::disable_inlining.value());
-  ::cascade_.set_open_loop_target(::open_loop_target.value());
-  ::cascade_.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
-  ::cascade_.set_profile_interval(::profile.value());
+  ::cascade_->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  ::cascade_->set_enable_inlining(!::disable_inlining.value());
+  ::cascade_->set_open_loop_target(::open_loop_target.value());
+  ::cascade_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
+  ::cascade_->set_profile_interval(::profile.value());
 
   // Map standard streams to colored outbufs
-  ::cascade_.set_stdout(new outbuf());
+  if (::disable_repl.value()) {
+    ::cascade_->set_stdin(cin.rdbuf());
+  }
+  ::cascade_->set_stdout(new outbuf());
   if (!::disable_error.value()) {
-    ::cascade_.set_stderr(new outbuf("\033[31m"));
+    ::cascade_->set_stderr(new outbuf("\033[31m"));
   }
   if (!::disable_warning.value()) {
-    ::cascade_.set_stdwarn(new outbuf("\033[33m"));
+    ::cascade_->set_stdwarn(new outbuf("\033[33m"));
   }
   if (::enable_info.value()) {
-    ::cascade_.set_stdinfo(new outbuf("\033[37m"));
+    ::cascade_->set_stdinfo(new outbuf("\033[37m"));
   }
   auto* fb = new filebuf();
   if (::enable_log.value()) {
     fb->open("cascade.log", ios::app | ios::out);
   }
-  ::cascade_.set_stdlog(fb);
+  ::cascade_->set_stdlog(fb);
 
-  // Print the initial prompt, start cascade, and read the march file and -e
-  // file (if provided)
+  // Print the initial prompt
   cout << ">>> ";
-  ::cascade_.run();
+  
+  // Start cascade, and read the march file and -e file (if provided)
+  ::cascade_->run();
   if (::input_path.value() != "") {
-    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
-               << "`include \"" << ::input_path.value() <<  "\"" << endl;
+    *::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
+                << "`include \"" << ::input_path.value() <<  "\"" << endl;
   } else {
-    ::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
+    *::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
   }
-  ::cascade_.stop_now();
+  ::cascade_->stop_now();
 
-  // Switch to reading from cin
-  ::cascade_.rdbuf(cin.rdbuf());
-  ::cascade_.run();
-  ::cascade_.wait_for_stop();
+  // Switch to reading from cin if the REPL wasn't disable and wait for finish
+  if (!::disable_repl.value()) {
+    ::cascade_->rdbuf(cin.rdbuf());
+  }
+  ::cascade_->run();
+  ::cascade_->wait_for_stop();
 
   // If cascade isn't finished by now, it's because we've caught a signal.
-  if (!::cascade_.is_finished()) {
+  // Either way, we can delete it now.
+  if (!::cascade_->is_finished()) {
     cerr << "\033[31mCaught Signal\033[00m" << endl;
   }
-  cout << "Goodbye!" << endl;
+  delete ::cascade_;
 
+  cout << "Goodbye!" << endl;
   return 0;
 }
