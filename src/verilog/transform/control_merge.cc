@@ -38,7 +38,7 @@
 #include "verilog/analyze/navigate.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 
 using namespace std;
 
@@ -60,7 +60,7 @@ void ControlMerge::run(ModuleDeclaration* md) {
         assert(ac->get_stmt()->is_subclass_of(Node::Tag::timing_control_statement));
         const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
         stringstream ss;
-        TextPrinter(ss) << tcs->get_ctrl();
+        ss << tcs->get_ctrl();
         always_index[ss.str()].push_back(tcs);
         break;
       }

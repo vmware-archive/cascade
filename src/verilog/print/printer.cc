@@ -707,11 +707,6 @@ Printer& Printer::operator<<(Color c) {
   return *this;
 }
 
-Printer& Printer::operator<<(Node* n) {
-  n->accept(this);
-  return *this;
-}
-
 Printer& Printer::operator<<(const Node* n) {
   n->accept(this);
   return *this;

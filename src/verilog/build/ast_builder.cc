@@ -28,59 +28,48 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "verilog/transform/event_expand.h"
+#include "verilog/build/ast_builder.h"
 
-#include <map>
-#include <sstream>
-#include <string>
-#include "verilog/analyze/read_set.h"
-#include "verilog/analyze/resolve.h"
-#include "verilog/ast/ast.h"
-#include "verilog/print/print.h"
+#include "verilog/parse/parser.h"
 
 using namespace std;
 
 namespace cascade {
 
-EventExpand::EventExpand() : Editor() { }
+AstBuilder::AstBuilder() : ostream(&sb_), sb_() { }
 
-void EventExpand::run(ModuleDeclaration* md) {
-  md->accept(this);
-}
+AstBuilder::iterator AstBuilder::begin() {
+  // Clear any previous results
+  res_.clear();
+  // Create a new log and parser
+  Log log;
+  Parser parser(&log);
 
-void EventExpand::edit(TimingControlStatement* tcs) {
-  // Proceed as normal for everything other than an empty event control
-  if (!tcs->get_ctrl()->is(Node::Tag::event_control)) {
-    return Editor::edit(tcs);
-  }
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-  if (!ec->empty_events()) {
-    return Editor::edit(tcs);
-  }
-
-  // Look up the variable dependencies for this statement. We don't *currently*
-  // support system task statements here. Sort lexicographically to ensure
-  // deterministic compiles.
-  map<string, const Identifier*> reads;
-  for (auto* i : ReadSet(tcs->get_stmt())) {
-    if (i->is(Node::Tag::identifier)) {
-      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(i));
-      assert(r != nullptr);
-
-      stringstream ss;
-      ss << r;
-      reads.insert(make_pair(ss.str(), r));
+  // Read from this stream until error or end of file
+  for (auto done = false; !done; ) { 
+    istream is(&sb_);
+    done = parser.parse(is) || log.error();
+    if (!log.error()) {
+      for (auto* n : parser) {
+        res_.push_back(n);
+      }
     }
   }
-
-  // Create a new timing control with an explicit list
-  auto* ctrl = new EventControl();
-  for (auto& r : reads) {
-    auto* e = r.second->clone();
-    e->purge_dim();
-    ctrl->push_back_events(new Event(Event::Type::EDGE, e));
+  // If we encountered a parser error, free any partial results
+  if (log.error()) {
+    for (auto* n : res_) {
+      delete n;
+    }
+    res_.clear();
   }
-  tcs->replace_ctrl(ctrl);
+  // Either way, clear the stream 
+  sb_.str("");
+
+  return res_.begin();
+}
+
+AstBuilder::iterator AstBuilder::end() {
+  return res_.end();
 }
 
 } // namespace cascade

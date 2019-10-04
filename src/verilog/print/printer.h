@@ -101,13 +101,13 @@ class Printer : public Visitor {
     void visit(const EventControl* ec) override;
     void visit(const VariableAssign* va) override;
 
-    Printer& operator<<(Color c);
-    Printer& operator<<(Node* n);
     Printer& operator<<(const Node* n);
+
+  protected:
+    Printer& operator<<(Color c);
     Printer& operator<<(uint64_t n);
     Printer& operator<<(const std::string& s);
 
-  protected:
     virtual std::string reset() = 0;
     virtual std::string red() = 0;
     virtual std::string green() = 0;

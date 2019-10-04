@@ -40,7 +40,7 @@
 #include "target/core_compiler.h"
 #include "target/compiler/proxy_core.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 
 namespace cascade {
 
@@ -111,7 +111,7 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Engine::Id id, ModuleDeclara
 
   // Send a blocking compile request
   Rpc(Rpc::Type::COMPILE, conn.pid, id, 0).serialize(*sock);
-  TextPrinter(*sock) << md << "\n";
+  *sock << md << "\n";
   delete md;
   sock->flush();
 

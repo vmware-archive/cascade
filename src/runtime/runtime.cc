@@ -46,7 +46,7 @@
 #include "target/compiler/local_compiler.h"
 #include "target/engine.h"
 #include "verilog/parse/parser.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 #include "verilog/program/inline.h"
 #include "verilog/program/program.h"
 
@@ -786,7 +786,7 @@ void Runtime::log_event(const string& type, Node* n) {
   stringstream ss;
   ss << "*** " << type << " @ " << logical_time_;
   if (n != nullptr) {
-    TextPrinter(ss) << "\n" << n;  
+    ss << endl << n;  
   }
   auto s = ss.str();
 
