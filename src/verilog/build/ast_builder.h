@@ -33,6 +33,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace cascade {
@@ -44,10 +45,19 @@ class AstBuilder : public std::ostream {
     typedef std::vector<Node*>::iterator iterator;
 
     AstBuilder();
+    AstBuilder(const std::string& s);
     ~AstBuilder() override = default;
 
+    // Discards all previous results and parses everything which has been
+    // passed to this stream since the last invocation of begin(). Ownership of
+    // any resulting objects passes on to the caller.  On error, begin == end.
     iterator begin();
+    // Returns a pointer to the end of the result range.
     iterator end();
+
+    // Invokes begin, and returns the first element or nullptr if none exist.
+    // All other elements are deleted.
+    operator Node*();
 
   private:
     std::stringbuf sb_;

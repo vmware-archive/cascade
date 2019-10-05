@@ -38,6 +38,10 @@ namespace cascade {
 
 AstBuilder::AstBuilder() : ostream(&sb_), sb_() { }
 
+AstBuilder::AstBuilder(const string& s) : AstBuilder() {
+  sb_.str(s);
+}
+
 AstBuilder::iterator AstBuilder::begin() {
   // Clear any previous results
   res_.clear();
@@ -70,6 +74,18 @@ AstBuilder::iterator AstBuilder::begin() {
 
 AstBuilder::iterator AstBuilder::end() {
   return res_.end();
+}
+
+AstBuilder::operator Node*() {
+  auto itr = begin();
+  if (itr == end()) {
+    return nullptr;
+  }
+  auto* res = *itr;
+  for (++itr; itr != end(); ++itr) {
+    delete *itr;
+  }
+  return res;
 }
 
 } // namespace cascade
