@@ -42,7 +42,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 
 using namespace std;
 
@@ -537,7 +537,7 @@ void SwLogic::visit(const VariableAssign* va) {
 }
 
 void SwLogic::log(const string& op, const Node* n) {
-  TextPrinter(cout) << "[" << src_->get_id() << "] " << op << " " << n << "\n";
+  cout << "[" << src_->get_id() << "] " << op << " " << n << endl;
 }
 
 } // namespace cascade

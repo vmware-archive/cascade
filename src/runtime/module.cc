@@ -45,7 +45,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/inline.h"
 #include "verilog/transform/block_flatten.h"
@@ -375,7 +375,7 @@ void Module::compile_and_replace(size_t ignore) {
 
   // Fast Path. Compile and replace the original engine.  
   stringstream ss;
-  TextPrinter(ss) << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
+  ss << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
   auto* e_fast = rt_->get_compiler()->compile(engine_->get_id(), md);
   if (e_fast == nullptr) {
     if (!rt_->get_compiler()->error()) {
@@ -395,7 +395,7 @@ void Module::compile_and_replace(size_t ignore) {
   if (jit && (e_fast != nullptr)) {
     rt_->schedule_asynchronous(Runtime::Asynchronous([this, this_version, md2, fid]{
       stringstream ss;
-      TextPrinter(ss) << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
+      ss << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
       const auto str = ss.str();
 
       DeleteInitial().run(md2);

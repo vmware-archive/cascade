@@ -40,7 +40,7 @@
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 #include "verilog/parse/parser.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/program.h"
 
@@ -264,28 +264,28 @@ void TypeCheck::warn(const string& s, const Node* n) {
 
   auto* ptr = n;
   if (decl_check_) {
-    TextPrinter(ss) << "In module declaration ";
+    ss << "In module declaration ";
   } else if (instantiation_ != nullptr) {
-    TextPrinter(ss) << "In module instantiation ";
+    ss << "In module instantiation ";
     ptr = instantiation_;
   } else {
-    TextPrinter(ss) << "In module item ";
+    ss << "In module item ";
   }
 
   if (parser_ == nullptr) {
-    TextPrinter(ss) << "in <unable to access location --- contact developers>: ";
+    ss << "in <unable to access location --- contact developers>: ";
   } else {
     const auto loc = parser_->get_loc(ptr);
     if (loc.first == "<top>") {
-      TextPrinter(ss) << "in final line of user input: ";
+      ss << "in final line of user input: ";
     } else {
-      TextPrinter(ss) << "in " << loc.first << " on line " << loc.second << ": ";
+      ss << "in " << loc.first << " on line " << loc.second << ": ";
     }
   }
   
-  TextPrinter(ss) << ptr << "\n" << s;
+  ss << ptr << "\n" << s;
   if (ptr != n) {
-    TextPrinter(ss) << ", see previous warnings for more information";
+    ss << ", see previous warnings for more information";
   }
 
   log_->warn(ss.str());
@@ -296,28 +296,28 @@ void TypeCheck::error(const string& s, const Node* n) {
 
   auto* ptr = n;
   if (decl_check_) {
-    TextPrinter(ss) << "In module declaration ";
+    ss << "In module declaration ";
   } else if (instantiation_ != nullptr) {
-    TextPrinter(ss) << "In module instantiation ";
+    ss << "In module instantiation ";
     ptr = instantiation_;
   } else {
-    TextPrinter(ss) << "In module item ";
+    ss << "In module item ";
   }
 
   if (parser_ == nullptr) {
-    TextPrinter(ss) << "in <unable to access location --- contact developers>: ";
+    ss << "in <unable to access location --- contact developers>: ";
   } else {
     const auto loc = parser_->get_loc(ptr);
     if (loc.first == "<top>") {
-      TextPrinter(ss) << "in final line of user input: ";
+      ss << "in final line of user input: ";
     } else {
-      TextPrinter(ss) << "in " << loc.first << " on line " << loc.second << ": ";
+      ss << "in " << loc.first << " on line " << loc.second << ": ";
     }
   }
   
-  TextPrinter(ss) << ptr << "\n" << s;
+  ss << ptr << "\n" << s;
   if (ptr != n) {
-    TextPrinter(ss) << ", see previous warnings for more information";
+    ss << ", see previous warnings for more information";
   }
 
   log_->error(ss.str());

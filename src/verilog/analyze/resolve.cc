@@ -34,7 +34,7 @@
 #include "verilog/analyze/indices.h"
 #include "verilog/analyze/navigate.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/inline.h"
 
@@ -81,7 +81,7 @@ string Resolve::get_readable_full_id(const Identifier* id) {
   assert(fid != nullptr);
 
   stringstream ss;
-  TextPrinter(ss) << fid;
+  ss << fid;
   delete fid;
 
   return ss.str();

@@ -28,59 +28,39 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "verilog/transform/event_expand.h"
-
-#include <map>
-#include <sstream>
-#include <string>
-#include "verilog/analyze/read_set.h"
-#include "verilog/analyze/resolve.h"
-#include "verilog/ast/ast.h"
 #include "verilog/print/print.h"
+
+#include <cassert>
+#include <iostream>
+#include "verilog/ast/ast.h"
+#include "verilog/print/term/term_printer.h"
+#include "verilog/print/text/text_printer.h"
 
 using namespace std;
 
 namespace cascade {
 
-EventExpand::EventExpand() : Editor() { }
+const int format_idx_ = ios_base::xalloc();
 
-void EventExpand::run(ModuleDeclaration* md) {
-  md->accept(this);
+ostream& operator<<(ostream& os, const Format fmt) {
+  os.iword(format_idx_) = static_cast<long>(fmt); 
+  return os;
 }
 
-void EventExpand::edit(TimingControlStatement* tcs) {
-  // Proceed as normal for everything other than an empty event control
-  if (!tcs->get_ctrl()->is(Node::Tag::event_control)) {
-    return Editor::edit(tcs);
+ostream& operator<<(ostream& os, const Node* n) {
+  const auto fmt = static_cast<Format>(os.iword(format_idx_));
+  switch (fmt) {
+    case text:
+      TextPrinter(os) << n;
+      break;
+    case color:
+      TermPrinter(os) << n;
+      break;
+    default:
+      assert(false);
+      break;
   }
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-  if (!ec->empty_events()) {
-    return Editor::edit(tcs);
-  }
-
-  // Look up the variable dependencies for this statement. We don't *currently*
-  // support system task statements here. Sort lexicographically to ensure
-  // deterministic compiles.
-  map<string, const Identifier*> reads;
-  for (auto* i : ReadSet(tcs->get_stmt())) {
-    if (i->is(Node::Tag::identifier)) {
-      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(i));
-      assert(r != nullptr);
-
-      stringstream ss;
-      ss << r;
-      reads.insert(make_pair(ss.str(), r));
-    }
-  }
-
-  // Create a new timing control with an explicit list
-  auto* ctrl = new EventControl();
-  for (auto& r : reads) {
-    auto* e = r.second->clone();
-    e->purge_dim();
-    ctrl->push_back_events(new Event(Event::Type::EDGE, e));
-  }
-  tcs->replace_ctrl(ctrl);
+  return os;
 }
 
 } // namespace cascade

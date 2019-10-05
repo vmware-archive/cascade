@@ -38,7 +38,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "verilog/print/text/text_printer.h"
+#include "verilog/print/print.h"
 
 using namespace std;
 
@@ -83,7 +83,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
 
   // Holy cow! We're done!
   ss.str(string());
-  TextPrinter(ss) << res;
+  ss << res;
   delete res;
   return ss.str();
 }

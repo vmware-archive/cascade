@@ -28,59 +28,25 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "verilog/transform/event_expand.h"
+#ifndef CASCADE_SRC_VERILOG_PRINT_PRINT_H
+#define CASCADE_SRC_VERILOG_PRINT_PRINT_H
 
-#include <map>
-#include <sstream>
-#include <string>
-#include "verilog/analyze/read_set.h"
-#include "verilog/analyze/resolve.h"
-#include "verilog/ast/ast.h"
-#include "verilog/print/print.h"
-
-using namespace std;
+#include <iosfwd>
+#include <stdint.h>
+#include "verilog/ast/ast_fwd.h"
 
 namespace cascade {
 
-EventExpand::EventExpand() : Editor() { }
+const extern int format_idx_;
 
-void EventExpand::run(ModuleDeclaration* md) {
-  md->accept(this);
-}
+enum Format : uint8_t {
+  text = 0,
+  color = 1
+};
 
-void EventExpand::edit(TimingControlStatement* tcs) {
-  // Proceed as normal for everything other than an empty event control
-  if (!tcs->get_ctrl()->is(Node::Tag::event_control)) {
-    return Editor::edit(tcs);
-  }
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-  if (!ec->empty_events()) {
-    return Editor::edit(tcs);
-  }
-
-  // Look up the variable dependencies for this statement. We don't *currently*
-  // support system task statements here. Sort lexicographically to ensure
-  // deterministic compiles.
-  map<string, const Identifier*> reads;
-  for (auto* i : ReadSet(tcs->get_stmt())) {
-    if (i->is(Node::Tag::identifier)) {
-      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(i));
-      assert(r != nullptr);
-
-      stringstream ss;
-      ss << r;
-      reads.insert(make_pair(ss.str(), r));
-    }
-  }
-
-  // Create a new timing control with an explicit list
-  auto* ctrl = new EventControl();
-  for (auto& r : reads) {
-    auto* e = r.second->clone();
-    e->purge_dim();
-    ctrl->push_back_events(new Event(Event::Type::EDGE, e));
-  }
-  tcs->replace_ctrl(ctrl);
-}
+std::ostream& operator<<(std::ostream& os, const Format fmt);
+std::ostream& operator<<(std::ostream& os, const Node* n);
 
 } // namespace cascade
+
+#endif

@@ -28,59 +28,42 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "verilog/transform/event_expand.h"
+#ifndef CASCADE_SRC_VERILOG_BUILD_AST_BUILDER_H
+#define CASCADE_SRC_VERILOG_BUILD_AST_BUILDER_H
 
-#include <map>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include "verilog/analyze/read_set.h"
-#include "verilog/analyze/resolve.h"
-#include "verilog/ast/ast.h"
-#include "verilog/print/print.h"
-
-using namespace std;
+#include <vector>
 
 namespace cascade {
 
-EventExpand::EventExpand() : Editor() { }
+class Node;
 
-void EventExpand::run(ModuleDeclaration* md) {
-  md->accept(this);
-}
+class AstBuilder : public std::ostream {
+  public:
+    typedef std::vector<Node*>::iterator iterator;
 
-void EventExpand::edit(TimingControlStatement* tcs) {
-  // Proceed as normal for everything other than an empty event control
-  if (!tcs->get_ctrl()->is(Node::Tag::event_control)) {
-    return Editor::edit(tcs);
-  }
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-  if (!ec->empty_events()) {
-    return Editor::edit(tcs);
-  }
+    AstBuilder();
+    AstBuilder(const std::string& s);
+    ~AstBuilder() override = default;
 
-  // Look up the variable dependencies for this statement. We don't *currently*
-  // support system task statements here. Sort lexicographically to ensure
-  // deterministic compiles.
-  map<string, const Identifier*> reads;
-  for (auto* i : ReadSet(tcs->get_stmt())) {
-    if (i->is(Node::Tag::identifier)) {
-      const auto* r = Resolve().get_resolution(static_cast<const Identifier*>(i));
-      assert(r != nullptr);
+    // Discards all previous results and parses everything which has been
+    // passed to this stream since the last invocation of begin(). Ownership of
+    // any resulting objects passes on to the caller.  On error, begin == end.
+    iterator begin();
+    // Returns a pointer to the end of the result range.
+    iterator end();
 
-      stringstream ss;
-      ss << r;
-      reads.insert(make_pair(ss.str(), r));
-    }
-  }
+    // Invokes begin, and returns the first element or nullptr if none exist.
+    // All other elements are deleted.
+    operator Node*();
 
-  // Create a new timing control with an explicit list
-  auto* ctrl = new EventControl();
-  for (auto& r : reads) {
-    auto* e = r.second->clone();
-    e->purge_dim();
-    ctrl->push_back_events(new Event(Event::Type::EDGE, e));
-  }
-  tcs->replace_ctrl(ctrl);
-}
+  private:
+    std::stringbuf sb_;
+    std::vector<Node*> res_;
+};
 
-} // namespace cascade
+} // namespace caascade
+
+#endif
