@@ -57,7 +57,6 @@ class QuartusServer : public Thread {
     QuartusServer& set_cache_path(const std::string& path);
     QuartusServer& set_quartus_path(const std::string& path);
     QuartusServer& set_port(uint32_t port);
-    QuartusServer& set_usb(const std::string& usb);
 
     bool error() const;
 
@@ -66,7 +65,6 @@ class QuartusServer : public Thread {
     std::string cache_path_;
     std::string quartus_path_;
     uint32_t port_;
-    std::string usb_;
 
     // Comoilation State:
     ThreadPool pool_;
