@@ -35,14 +35,15 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "verilog/ast/ast.h"
+#include "verilog/parse/parser.h"
 
 namespace cascade {
 
-class Node;
-
+template <typename T>
 class AstBuilder : public std::ostream {
   public:
-    typedef std::vector<Node*>::iterator iterator;
+    typedef typename std::vector<T*>::iterator iterator;
 
     AstBuilder();
     AstBuilder(const std::string& s);
@@ -57,12 +58,73 @@ class AstBuilder : public std::ostream {
 
     // Invokes begin, and returns the first element or nullptr if none exist.
     // All other elements are deleted.
-    operator Node*();
+    T* get();
 
   private:
     std::stringbuf sb_;
-    std::vector<Node*> res_;
+    std::vector<T*> res_;
 };
+
+using NodeBuilder = AstBuilder<Node>;
+using DeclBuilder = AstBuilder<ModuleDeclaration>;
+using ItemBuilder = AstBuilder<ModuleItem>;
+
+template <typename T>
+inline AstBuilder<T>::AstBuilder() : std::ostream(&sb_), sb_() { }
+
+template <typename T>
+inline AstBuilder<T>::AstBuilder(const std::string& s) : AstBuilder() {
+  sb_.str(s);
+}
+
+template <typename T>
+inline typename AstBuilder<T>::iterator AstBuilder<T>::begin() {
+  // Clear any previous results
+  res_.clear();
+  // Create a new log and parser
+  Log log;
+  Parser parser(&log);
+
+  // Read from this stream until error or end of file
+  for (auto done = false; !done; ) { 
+    std::istream is(&sb_);
+    done = parser.parse(is) || log.error();
+    if (!log.error()) {
+      for (auto* n : parser) {
+        res_.push_back(static_cast<T*>(n));
+      }
+    }
+  }
+  // If we encountered a parser error, free any partial results
+  if (log.error()) {
+    for (auto* n : res_) {
+      delete n;
+    }
+    res_.clear();
+  }
+  // Either way, clear the stream 
+  sb_.str("");
+
+  return res_.begin();
+}
+
+template <typename T>
+inline typename  AstBuilder<T>::iterator AstBuilder<T>::end() {
+  return res_.end();
+}
+
+template <typename T>
+inline T* AstBuilder<T>::get() {
+  auto itr = begin();
+  if (itr == end()) {
+    return nullptr;
+  }
+  auto* res = *itr;
+  for (++itr; itr != end(); ++itr) {
+    delete *itr;
+  }
+  return res;
+}
 
 } // namespace caascade
 
