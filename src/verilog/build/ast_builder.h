@@ -49,20 +49,21 @@ class AstBuilder : public std::ostream {
     AstBuilder(const std::string& s);
     ~AstBuilder() override = default;
 
-    // Discards all previous results and parses everything which has been
-    // passed to this stream since the last invocation of begin(). Ownership of
-    // any resulting objects passes on to the caller.  On error, begin == end.
     iterator begin();
-    // Returns a pointer to the end of the result range.
     iterator end();
 
-    // Invokes begin, and returns the first element or nullptr if none exist.
-    // All other elements are deleted.
+    // Returns the first parse from the stream, deletes everything else.
     T* get();
 
   private:
     std::stringbuf sb_;
     std::vector<T*> res_;
+
+    // Does nothing if no input is available. Otherwise, discards all previous
+    // results and parses everything which has been passed to this stream since
+    // the last invocation of begin(). Ownership of any resulting objects
+    // passes on to the caller.  On error, begin == end.
+    void sync();
 };
 
 using NodeBuilder = AstBuilder<Node>;
@@ -73,19 +74,48 @@ template <typename T>
 inline AstBuilder<T>::AstBuilder() : std::ostream(&sb_), sb_() { }
 
 template <typename T>
-inline AstBuilder<T>::AstBuilder(const std::string& s) : AstBuilder() {
-  sb_.str(s);
-}
+inline AstBuilder<T>::AstBuilder(const std::string& s) : sb_(s) { }
 
 template <typename T>
 inline typename AstBuilder<T>::iterator AstBuilder<T>::begin() {
+  sync();
+  return res_.begin();
+}
+
+template <typename T>
+inline typename AstBuilder<T>::iterator AstBuilder<T>::end() {
+  sync();
+  return res_.end();
+}
+
+template <typename T>
+inline T* AstBuilder<T>::get() {
+  sync();
+  if (res_.empty()) {
+    return nullptr;
+  }
+  if (res_.size() == 1) {
+    return res_[0]; 
+  }
+  for (size_t i = 1, ie = res_.size(); i < ie; ++i) {
+    delete res_[i];
+  }
+  res_.resize(1);
+  return res_[0];
+}
+
+template <typename T>
+inline void AstBuilder<T>::sync() {
+  // Nothing to do if no new inputs are available
+  if (sb_.str() == "") {
+    return;
+  }
+
   // Clear any previous results
   res_.clear();
-  // Create a new log and parser
+  // Read from this stream until error or end of file
   Log log;
   Parser parser(&log);
-
-  // Read from this stream until error or end of file
   for (auto done = false; !done; ) { 
     std::istream is(&sb_);
     done = parser.parse(is) || log.error();
@@ -104,26 +134,6 @@ inline typename AstBuilder<T>::iterator AstBuilder<T>::begin() {
   }
   // Either way, clear the stream 
   sb_.str("");
-
-  return res_.begin();
-}
-
-template <typename T>
-inline typename  AstBuilder<T>::iterator AstBuilder<T>::end() {
-  return res_.end();
-}
-
-template <typename T>
-inline T* AstBuilder<T>::get() {
-  auto itr = begin();
-  if (itr == end()) {
-    return nullptr;
-  }
-  auto* res = *itr;
-  for (++itr; itr != end(); ++itr) {
-    delete *itr;
-  }
-  return res;
 }
 
 } // namespace caascade

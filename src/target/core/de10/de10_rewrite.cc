@@ -63,12 +63,10 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   db << "input wire[31:0] __in;" << endl;
   db << "output reg[31:0] __out;" << endl;
   db << "output wire __wait;" << endl;
-  db << "reg __read_prev = 0;" << endl;
-  db << "always @(posedge __clk) __read_prev <= __read;" << endl;
-  db << "wire __read_request = (!__read_prev && __read);" << endl;
   db << "endmodule" << endl;
   auto *res = db.get();
 
+  emit_avalon_vars(res);
   emit_var_table(res, de);
   emit_shadow_vars(res, md, de);
   emit_view_vars(res, md, de);
@@ -82,6 +80,7 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   TriggerReschedule tr;
   res->accept(&tr);
 
+  emit_avalon_logic(res);
   emit_update_logic(res, de);
   emit_state_logic(res, de, &mfy);
   emit_trigger_logic(res, &ti);
@@ -117,6 +116,13 @@ void De10Rewrite::TriggerIndex::visit(const Event* e) {
   }
 }
 
+void De10Rewrite::emit_avalon_vars(ModuleDeclaration* res) {
+  ItemBuilder ib;
+  ib << "reg __read_prev = 0;" << endl;
+  ib << "wire __read_request;" << endl; 
+  res->push_back_items(ib.begin(), ib.end()); 
+}
+
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   ItemBuilder ib;
 
@@ -150,6 +156,7 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
     auto* rd = static_cast<const RegDeclaration*>(itr->first->get_parent())->clone();
     rd->get_id()->purge_ids();
     rd->get_id()->push_front_ids(new Id(v.first + "_next"));
+    rd->replace_val(nullptr);
     ib << rd << endl;
     delete rd;
   }
@@ -194,7 +201,7 @@ void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
       auto* lhs = itr->first->clone();
       lhs->purge_dim();
       emit_subscript(lhs, i, ie, Evaluate().get_arity(itr->first));
-      ib << lhs << " = {";
+      ib << "assign " << lhs << " = {";
       delete lhs;
       
       for (size_t j = 0, je = itr->second.words_per_element; j < je; ) {
@@ -225,15 +232,27 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
   for (const auto& v : vars) {
     assert(v.second->get_parent() != nullptr);
     assert(v.second->get_parent()->is_subclass_of(Node::Tag::declaration));
-    auto* d = static_cast<const Declaration*>(v.second->get_parent())->clone();
+    const auto* d = static_cast<const Declaration*>(v.second->get_parent());
 
-    d->get_id()->purge_ids();
-    d->get_id()->push_back_ids(new Id(v.first + "_prev"));
-    ib << d << endl;
-    delete d; 
+    auto* rd = new RegDeclaration(
+      new Attributes(),
+      new Identifier(v.first + "_prev"),
+      d->get_type(),
+      d->is_non_null_dim() ? d->clone_dim() : nullptr,
+      nullptr
+    );
+    ib << rd << endl;
+    delete rd; 
   }
 
   res->push_back_items(ib.begin(), ib.end());
+}
+
+void De10Rewrite::emit_avalon_logic(ModuleDeclaration* res) {
+  ItemBuilder ib;
+  ib << "always @(posedge __clk) __read_prev <= __read;" << endl;
+  ib << "assign __read_request = (!__read_prev && __read);" << endl;
+  res->push_back_items(ib.begin(), ib.end()); 
 }
 
 void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {
@@ -313,7 +332,7 @@ void De10Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex*
   if (ti->posedges_.empty() && ti->negedges_.empty()) {
     ib << "wire __any_triggers = 0;" << endl;
   } else {
-    ib << "wire __any_trigers = |{";
+    ib << "wire __any_triggers = |{";
     for (auto i = ti->negedges_.begin(), ie = ti->negedges_.end(); i != ie; ) {
       ib << i->first << "_negedge";
       if ((++i != ie) || !ti->posedges_.empty()) {
