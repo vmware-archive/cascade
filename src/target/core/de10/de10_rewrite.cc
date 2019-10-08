@@ -38,6 +38,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
+#include "verilog/build/ast_builder.h"
 #include "verilog/print/print.h"
 
 using namespace std;
@@ -51,16 +52,19 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   TriggerIndex ti;
   md->accept(&ti);
 
-  // Emit a new declaration. The module name is formed using the slot id
-  // assigned by the quartus server.
-  ss.str(string());
-  ss << "M" << static_cast<int>(slot);
-  auto* res = new ModuleDeclaration(
-    new Attributes(),
-    new Identifier(ss.str())
-  );
+  // Emit a new declaration, with module name based on slot id. This
+  // declaration will use the Avalon Memory-mapped slave interface.
+  DeclBuilder db;
+  db << "module M" << static_cast<int>(slot) << "(__clk, __read, __vid, __in, __out, __wait);" << endl;
+  db << "input wire __clk;" << endl;
+  db << "input wire __read;" << endl;
+  db << "input wire[13:0] __vid;" << endl;
+  db << "input wire[31:0] __in;" << endl;
+  db << "output reg[31:0] __out;" << endl;
+  db << "output wire __wait;" << endl;
+  db << "endmodule" << endl;
+  auto *res = db.get();
 
-  emit_port_vars(res);
   emit_var_table(res, de);
   emit_shadow_vars(res, md, de);
   emit_view_vars(res, md, de);
@@ -109,55 +113,17 @@ void De10Rewrite::TriggerIndex::visit(const Event* e) {
   }
 }
 
-void De10Rewrite::emit_port_vars(ModuleDeclaration* res) {
-  // This is the avalon memory mapped slave interface.
-
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__clk")));
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__read")));
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__vid")));
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__in")));
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__out")));
-  res->push_back_ports(new ArgAssign(nullptr, new Identifier("__wait")));
-
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), new Identifier("__clk"), Declaration::Type::UNSIGNED, nullptr
-  )));
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), new Identifier("__read"), Declaration::Type::UNSIGNED, nullptr
-  )));
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), new Identifier("__vid"), Declaration::Type::UNSIGNED, new RangeExpression(14, 0)
-  )));
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::INPUT, new NetDeclaration(
-    new Attributes(), new Identifier("__in"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0)
-  )));
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new RegDeclaration(
-    new Attributes(), new Identifier("__out"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
-  )));
-  res->push_back_items(new PortDeclaration(new Attributes(), PortDeclaration::Type::OUTPUT, new NetDeclaration(
-    new Attributes(), new Identifier("__wait"), Declaration::Type::UNSIGNED, nullptr
-  )));
-
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__read_prev"), Declaration::Type::UNSIGNED, nullptr, new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__read_request"), Declaration::Type::UNSIGNED
-  ));
-}
-
 void De10Rewrite::emit_var_table(ModuleDeclaration* res, const De10Logic* de) {
   // This is the hardware image of the table owned by the de logic core.
   // We emit a separate variable for each segment: variables and expressions.
 
   const auto var_seg_arity = max(static_cast<size_t>(16), de->get_table().var_size());
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__var"), new RangeExpression(var_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
-  ));
   const auto expr_seg_arity = max(static_cast<size_t>(16), de->get_table().expr_size());
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier(new Id("__expr"), new RangeExpression(expr_seg_arity, 0)), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), nullptr
-  ));
+
+  ItemBuilder ib;
+  ib << "reg[31:0] __var[" << (var_seg_arity-1) << ":0];" << endl;
+  ib << "reg[31:0] __expr[" << (expr_seg_arity-1) << ":0];" << endl;
+  res->push_back_items(ib.begin(), ib.end());
 }
 
 void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
@@ -167,24 +133,30 @@ void De10Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
 
   const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
 
-  map<string, RegDeclaration*> shadows;
+  map<string, const RegDeclaration*> shadows;
   for (auto* s : ModuleInfo(md).stateful()) {
     assert(s->get_parent()->is(Node::Tag::reg_declaration));
-    auto* rd = static_cast<RegDeclaration*>(s->get_parent()->clone());
-    rd->get_id()->purge_ids();
-    rd->get_id()->push_back_ids(new Id(s->front_ids()->get_readable_sid() + "_next"));
-    rd->replace_val(nullptr);
+    const auto* rd = static_cast<const RegDeclaration*>(s->get_parent());
     shadows.insert(make_pair(rd->get_id()->front_ids()->get_readable_sid(), rd));
   }
-  for (auto& s : shadows) {
-    res->push_back_items(s.second);
+
+  ItemBuilder ib;
+  for (const auto& s : shadows) {
+    const auto* rd = s.second;
+    ib << "reg" << ((rd->get_type() == Declaration::Type::SIGNED) ? " signed" : (rd->get_type() == Declaration::Type::REAL) ? " real" : "");
+    if (rd->is_non_null_dim()) {
+      ib << "[" << rd->get_dim() << "]";
+    }
+    ib << " " << s.first << "_next";
+    for (auto i = rd->get_id()->begin_dim(), ie = rd->get_id()->end_dim(); i != ie; ++i) {
+      ib << "[" << *i << "]";
+    }
+    ib << ";" << endl;
   }
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__prev_update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
-  ));
-  res->push_back_items(new RegDeclaration(
-    new Attributes(), new Identifier("__update_mask"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0), new Number(Bits(32, 0))
-  ));
+  ib << "reg[" << (update_arity-1) << ":0] __prev_update_mask = 0;" << endl;
+  ib << "reg[" << (update_arity-1) << ":0] __update_mask = 0;" << endl;
+
+  res->push_back_items(ib.begin(), ib.end());
 }
 
 void De10Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
@@ -245,13 +217,19 @@ void De10Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* 
     vars[e.first] = e.second;
   }
 
-  for (auto& v : vars) {
-    const auto* decl = static_cast<const Declaration*>(v.second->get_parent());
-    const auto* re = decl->get_dim();
-    res->push_back_items(new RegDeclaration(
-      new Attributes(), new Identifier(v.first+"_prev"), Declaration::Type::UNSIGNED, (re != nullptr) ? re->clone() : nullptr, new Number(Bits(false))
-    ));
+  ItemBuilder ib;
+  ib << "reg __read_prev = 0;" << endl;
+  ib << "wire __read_request;" << endl;
+  for (const auto& v : vars) {
+    const auto* d = static_cast<const Declaration*>(v.second->get_parent());
+    ib << "reg";
+    if (d->is_non_null_dim()) {
+      ib << "[" << d->get_dim() << "]";
+    }
+    ib << " " << v.first << "_prev = 0;" << endl;
   }
+
+  res->push_back_items(ib.begin(), ib.end());
 }
 
 void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de) {

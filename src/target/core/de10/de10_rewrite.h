@@ -59,7 +59,6 @@ class De10Rewrite {
       void visit(const Event* e) override;
     };
 
-    void emit_port_vars(ModuleDeclaration* res);
     void emit_var_table(ModuleDeclaration* res, const De10Logic* de);
     void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
     void emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
