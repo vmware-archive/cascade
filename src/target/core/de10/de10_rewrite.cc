@@ -239,61 +239,14 @@ void De10Rewrite::emit_update_logic(ModuleDeclaration* res, const De10Logic* de)
 
   const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
 
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__update_queue"), Declaration::Type::UNSIGNED, new RangeExpression(update_arity, 0)
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__update_queue"), 
-    new BinaryExpression(new Identifier("__prev_update_mask"), BinaryExpression::Op::CARAT, new Identifier("__update_mask"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__there_are_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__there_are_updates"), 
-    new UnaryExpression(UnaryExpression::Op::PIPE, new Identifier("__update_queue"))
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__apply_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__apply_updates"), 
-    new BinaryExpression(
-      new BinaryExpression(
-        new Identifier("__read_request"), 
-        BinaryExpression::Op::AAMP, 
-        new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().apply_update_index())))
-      ),
-      BinaryExpression::Op::PPIPE,
-      new BinaryExpression(
-        new Identifier("__there_are_updates"), 
-        BinaryExpression::Op::AAMP,
-        new Identifier("__open_loop_tick")
-      )
-    )
-  ));
-  res->push_back_items(new NetDeclaration(
-    new Attributes(), new Identifier("__drop_updates"), Declaration::Type::UNSIGNED
-  ));
-  res->push_back_items(new ContinuousAssign(
-    new Identifier("__drop_updates"), 
-    new BinaryExpression(
-      new Identifier("__read_request"), 
-      BinaryExpression::Op::AAMP, 
-      new BinaryExpression(new Identifier("__vid"), BinaryExpression::Op::EEQ, new Number(Bits(32, de->get_table().drop_update_index())))
-    )
-  ));
-  res->push_back_items(new AlwaysConstruct(new TimingControlStatement(
-    new EventControl(new Event(Event::Type::POSEDGE, new Identifier("__clk"))),
-    new NonblockingAssign(
-      new Identifier("__prev_update_mask"),
-      new ConditionalExpression(
-        new BinaryExpression(new Identifier("__apply_updates"), BinaryExpression::Op::PPIPE, new Identifier("__drop_updates")),
-        new Identifier("__update_mask"), 
-        new Identifier("__prev_update_mask")
-      )
-    ))
-  )); 
+  ItemBuilder ib;
+  ib << "wire[" << (update_arity-1) << ":0] __update_queue = (__prev_update_mask ^ __update_mask);" << endl;
+  ib << "wire __there_are_updates = |__update_queue;" << endl;
+  ib << "wire __apply_updates = ((__read_request && (__vid == " << de->get_table().apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << endl;
+  ib << "wire __drop_updates = (__read_request && (__vid == " << de->get_table().drop_update_index() << "));" << endl;
+  ib << "always @(posedge __clk) __prev_update_mask <= ((__apply_updates || __drop_updates) ? __update_mask : __prev_update_mask);" << endl;
+  
+  res->push_back_items(ib.begin(), ib.end());
 }
 
 void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, const Machinify* mfy) {
