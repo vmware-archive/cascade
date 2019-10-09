@@ -44,7 +44,6 @@ QuartusServer::QuartusServer() : Thread() {
   set_cache_path("/tmp/quartus_cache/");
   set_quartus_path("");
   set_port(9900);
-  set_usb("");
 
   busy_ = false;
 }
@@ -61,11 +60,6 @@ QuartusServer& QuartusServer::set_quartus_path(const string& path) {
 
 QuartusServer& QuartusServer::set_port(uint32_t port) {
   port_ = port;
-  return *this;
-}
-
-QuartusServer& QuartusServer::set_usb(const string& usb) {
-  usb_ = usb;
   return *this;
 }
 

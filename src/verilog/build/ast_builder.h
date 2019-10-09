@@ -35,34 +35,106 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "verilog/ast/ast.h"
+#include "verilog/parse/parser.h"
 
 namespace cascade {
 
-class Node;
-
+template <typename T>
 class AstBuilder : public std::ostream {
   public:
-    typedef std::vector<Node*>::iterator iterator;
+    typedef typename std::vector<T*>::iterator iterator;
 
     AstBuilder();
     AstBuilder(const std::string& s);
     ~AstBuilder() override = default;
 
-    // Discards all previous results and parses everything which has been
-    // passed to this stream since the last invocation of begin(). Ownership of
-    // any resulting objects passes on to the caller.  On error, begin == end.
     iterator begin();
-    // Returns a pointer to the end of the result range.
     iterator end();
 
-    // Invokes begin, and returns the first element or nullptr if none exist.
-    // All other elements are deleted.
-    operator Node*();
+    // Returns the first parse from the stream, deletes everything else.
+    T* get();
 
   private:
     std::stringbuf sb_;
-    std::vector<Node*> res_;
+    std::vector<T*> res_;
+
+    // Does nothing if no input is available. Otherwise, discards all previous
+    // results and parses everything which has been passed to this stream since
+    // the last invocation of begin(). Ownership of any resulting objects
+    // passes on to the caller.  On error, begin == end.
+    void sync();
 };
+
+using NodeBuilder = AstBuilder<Node>;
+using DeclBuilder = AstBuilder<ModuleDeclaration>;
+using ItemBuilder = AstBuilder<ModuleItem>;
+
+template <typename T>
+inline AstBuilder<T>::AstBuilder() : std::ostream(&sb_), sb_() { }
+
+template <typename T>
+inline AstBuilder<T>::AstBuilder(const std::string& s) : sb_(s) { }
+
+template <typename T>
+inline typename AstBuilder<T>::iterator AstBuilder<T>::begin() {
+  sync();
+  return res_.begin();
+}
+
+template <typename T>
+inline typename AstBuilder<T>::iterator AstBuilder<T>::end() {
+  sync();
+  return res_.end();
+}
+
+template <typename T>
+inline T* AstBuilder<T>::get() {
+  sync();
+  if (res_.empty()) {
+    return nullptr;
+  }
+  if (res_.size() == 1) {
+    return res_[0]; 
+  }
+  for (size_t i = 1, ie = res_.size(); i < ie; ++i) {
+    delete res_[i];
+  }
+  res_.resize(1);
+  return res_[0];
+}
+
+template <typename T>
+inline void AstBuilder<T>::sync() {
+  // Nothing to do if no new inputs are available
+  if (sb_.str() == "") {
+    return;
+  }
+
+  // Clear any previous results
+  res_.clear();
+  // Read from this stream until error or end of file
+  Log log;
+  Parser parser(&log);
+  for (auto done = false; !done; ) { 
+    std::istream is(&sb_);
+    done = parser.parse(is) || log.error();
+    if (!log.error()) {
+      for (auto* n : parser) {
+        res_.push_back(static_cast<T*>(n));
+      }
+    }
+  }
+  // If we encountered a parser error, free any partial results
+  if (log.error()) {
+    for (auto* n : res_) {
+      delete n;
+    }
+    res_.clear();
+  }
+  // Either way, clear the stream 
+  sb_.str("");
+}
 
 } // namespace caascade
 
