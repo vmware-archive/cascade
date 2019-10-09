@@ -373,6 +373,14 @@ void Module::compile_and_replace(size_t ignore) {
     md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
 
+  // Check whether the first pass compilation is sw
+  if (!md->get_attrs()->get<String>("__target")->eq("sw")) {
+    rt_->get_compiler()->error("First pass compilation must target software");
+    delete md;
+    delete md2;
+    return;
+  }
+
   // Fast Path. Compile and replace the original engine.  
   stringstream ss;
   ss << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
