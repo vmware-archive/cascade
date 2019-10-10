@@ -91,6 +91,8 @@ class DeAlias : public Rewriter {
     Expression* rewrite(Identifier* id) override;
     // Updates module items, ignores ports
     ModuleDeclaration* rewrite(ModuleDeclaration* md) override;
+    // Does nothing.
+    Statement* rewrite(DebugStatement* ds) override;
 };
 
 } // namespace cascade

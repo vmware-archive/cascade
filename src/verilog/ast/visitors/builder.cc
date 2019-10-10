@@ -371,6 +371,13 @@ Statement* Builder::build(const TimingControlStatement* tcs) {
   );
 }
 
+Statement* Builder::build(const DebugStatement* ds) {
+  return new DebugStatement(
+    ds->accept_action(this),
+    ds->accept_arg(this)
+  );
+}
+
 Statement* Builder::build(const FflushStatement* fs) {
   return new FflushStatement(
     fs->accept_fd(this)

@@ -714,6 +714,11 @@ void TypeCheck::visit(const WhileStatement* ws) {
   Visitor::visit(ws);
 }
 
+void TypeCheck::visit(const DebugStatement* ds) {
+  // Don't descend beyond here
+  (void) ds;
+}
+
 void TypeCheck::visit(const GetStatement* gs) {
   gs->accept_fd(this);
   // Don't descend on format string

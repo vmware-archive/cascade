@@ -268,6 +268,11 @@ void Editor::edit(TimingControlStatement* tcs) {
   tcs->accept_stmt(this);
 }
 
+void Editor::edit(DebugStatement* ds) {
+  ds->accept_action(this);
+  ds->accept_arg(this);
+}
+
 void Editor::edit(FflushStatement* fs) {
   fs->accept_fd(this);
 }

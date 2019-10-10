@@ -89,6 +89,7 @@ class Printer : public Visitor {
     void visit(const ParBlock* pb) override;
     void visit(const SeqBlock* sb) override;
     void visit(const TimingControlStatement* tcs) override;
+    void visit(const DebugStatement* ds) override;
     void visit(const FflushStatement* fs) override;
     void visit(const FinishStatement* fs) override;
     void visit(const FseekStatement* fs) override;

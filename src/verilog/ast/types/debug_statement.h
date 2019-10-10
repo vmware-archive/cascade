@@ -28,55 +28,58 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_TRANSFORM_INDEX_NORMALIZE_H
-#define CASCADE_SRC_VERILOG_TRANSFORM_INDEX_NORMALIZE_H
+#ifndef CASCADE_SRC_VERILOG_AST_DEBUG_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_DEBUG_STATEMENT_H
 
-#include <stddef.h>
-#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/number.h"
+#include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-class IndexNormalize {
+class DebugStatement : public SystemTaskEnableStatement {
   public:
-    void run(ModuleDeclaration* md);
+    // Constructors:
+    explicit DebugStatement(Number* action);
+    explicit DebugStatement(Number* action, Identifier* arg);
+    ~DebugStatement() override;
+
+    // Node Interface:
+    NODE(DebugStatement)
+    DebugStatement* clone() const override;
+
+    // Get/Set:
+    PTR_GET_SET(DebugStatement, Number, action)
+    MAYBE_GET_SET(DebugStatement, Identifier, arg)
 
   private:
-    class FixDecls : public Editor {
-      public: 
-        FixDecls();
-        ~FixDecls() override = default;
-      private:
-        void edit(GenvarDeclaration* gd) override;
-        void edit(LocalparamDeclaration* ld) override;
-        void edit(NetDeclaration* nd) override;
-        void edit(ParameterDeclaration* pd) override;
-        void edit(RegDeclaration* rd) override;
-
-        void fix_arity(Identifier* id) const;
-        void fix_dim(RangeExpression* re) const;
-    };
-
-    class FixUses : public Editor {
-      public:
-        FixUses();
-        ~FixUses() override = default;
-      private:
-        void edit(Attributes* a) override;
-        void edit(Identifier* i) override;
-        void edit(ModuleDeclaration* md) override;
-        void edit(GenvarDeclaration* gd) override;
-        void edit(LocalparamDeclaration* ld) override;
-        void edit(NetDeclaration* nd) override;
-        void edit(ParameterDeclaration* pd) override;
-        void edit(RegDeclaration* rd) override;
-        void edit(DebugStatement* ds) override;
-
-        void fix_use(Identifier* id, size_t n, const RangeExpression* re) const;
-        void fix_scalar(Identifier* id, size_t n, size_t delta) const;
-        void fix_range(Identifier* id, size_t n, size_t delta) const;
-     };
+    PTR_ATTR(Number, action);
+    MAYBE_ATTR(Identifier, arg);
 };
 
-} // namespace cascade
+inline DebugStatement::DebugStatement(Number* action__) : SystemTaskEnableStatement(Node::Tag::debug_statement) {
+  PTR_SETUP(action);
+  MAYBE_DEFAULT_SETUP(arg);
+  parent_ = nullptr;
+}
+
+inline DebugStatement::DebugStatement(Number* action__, Identifier* arg__) : DebugStatement(action__) {
+  MAYBE_SETUP(arg);
+}
+
+inline DebugStatement::~DebugStatement() {
+  PTR_TEARDOWN(action);
+  MAYBE_TEARDOWN(arg);
+}
+
+inline DebugStatement* DebugStatement::clone() const {
+  auto* res =  new DebugStatement(action_->clone());
+  MAYBE_CLONE(arg);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif
+

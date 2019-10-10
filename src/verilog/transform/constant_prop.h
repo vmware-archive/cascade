@@ -80,6 +80,7 @@ class ConstantProp : public Rewriter {
     Expression* rewrite(UnaryExpression* ue) override;
     // TODO(eschkufz) Add support for constexpr evaluating case statements
     Statement* rewrite(ConditionalStatement* cs) override;
+    Statement* rewrite(DebugStatement* ds) override;
 };
 
 } // namespace cascade

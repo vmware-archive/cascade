@@ -216,28 +216,32 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %token WIRE        "wire"
 
 /* System Task Identifiers */
-%token SYS_DISPLAY  "$display"
-%token SYS_ERROR    "$error"
-%token SYS_FATAL    "$fatal"
-%token SYS_FEOF     "$feof"
-%token SYS_FDISPLAY "$fdisplay"
-%token SYS_FFLUSH   "$fflush"
-%token SYS_FINISH   "$finish"
-%token SYS_FOPEN    "$fopen"
-%token SYS_FREAD    "$fread"
-%token SYS_FSCANF   "$fscanf"
-%token SYS_FSEEK    "$fseek"
-%token SYS_FWRITE   "$fwrite"
-%token SYS_GET      "$__get"
-%token SYS_INFO     "$info"
-%token SYS_PUT      "$__put"
-%token SYS_RESTART  "$restart"
-%token SYS_RETARGET "$retarget"
-%token SYS_REWIND   "$rewind"
-%token SYS_SAVE     "$save"
-%token SYS_SCANF    "$scanf"
-%token SYS_WARNING  "$warning"
-%token SYS_WRITE    "$write"
+%token SYS_DEBUG       "$__debug"
+%token SYS_DISPLAY     "$display"
+%token SYS_ERROR       "$error"
+%token SYS_FATAL       "$fatal"
+%token SYS_FEOF        "$feof"
+%token SYS_FDISPLAY    "$fdisplay"
+%token SYS_FFLUSH      "$fflush"
+%token SYS_FINISH      "$finish"
+%token SYS_FOPEN       "$fopen"
+%token SYS_FREAD       "$fread"
+%token SYS_FSCANF      "$fscanf"
+%token SYS_FSEEK       "$fseek"
+%token SYS_FWRITE      "$fwrite"
+%token SYS_GET         "$__get"
+%token SYS_INFO        "$info"
+%token SYS_LIST        "$list"
+%token SYS_PUT         "$__put"
+%token SYS_RESTART     "$restart"
+%token SYS_RETARGET    "$retarget"
+%token SYS_REWIND      "$rewind"
+%token SYS_SAVE        "$save"
+%token SYS_SCANF       "$scanf"
+%token SYS_SHOWSCOPES  "$showscopes"
+%token SYS_SHOWVARS    "$showvars"
+%token SYS_WARNING     "$warning"
+%token SYS_WRITE       "$write"
 
 /* Identifiers and Strings */
 %token <std::string> SIMPLE_ID
@@ -462,6 +466,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <Expression*> eq_ce_Q
 %type <std::vector<Expression*>> expression_P
 %type <Expression*> expression_Q
+%type <std::vector<Identifier*>> hierarchical_identifier_P
 %type <Identifier*> generate_block_id_Q
 %type <size_t> integer_L
 %type <std::vector<ModuleItem*>> list_of_port_declarations_Q
@@ -1528,7 +1533,12 @@ loop_statement
 
 /* A.6.9 Task Enable Statements */
 system_task_enable
-  : SYS_DISPLAY SCOLON { 
+  : SYS_DEBUG OPAREN number COMMA hierarchical_identifier CPAREN SCOLON { 
+    auto* ds = new DebugStatement($3, $5);
+    $$ = ds;
+    parser->set_loc($$);
+  }
+  | SYS_DISPLAY SCOLON { 
     auto* sb = new SeqBlock();
     sb->push_back_stmts(new PutStatement(new Identifier("STDOUT"), new String("\n")));
     sb->push_back_stmts(new FflushStatement(new Identifier("STDOUT")));
@@ -1698,6 +1708,16 @@ system_task_enable
     $$ = sb;
     parser->set_loc($$);
   }
+  | SYS_LIST SCOLON {
+    auto* ds = new DebugStatement(new Number(Bits(32, 0)));
+    $$ = ds;
+    parser->set_loc($$);
+  }
+  | SYS_LIST OPAREN hierarchical_identifier CPAREN SCOLON {
+    auto* ds = new DebugStatement(new Number(Bits(32, 0)), $3);
+    $$ = ds;
+    parser->set_loc($$);
+  }
   | SYS_PUT OPAREN expression COMMA string_ CPAREN SCOLON {
     $$ = new PutStatement($3, $5);
   }
@@ -1725,6 +1745,31 @@ system_task_enable
     if (sb == nullptr) {
       error(parser->get_loc(), "Found incorrectly formatted $scanf() statement!");
       YYERROR;
+    }
+    $$ = sb;
+    parser->set_loc($$);
+  }
+  | SYS_SHOWSCOPES SCOLON {
+    auto* ds = new DebugStatement(new Number(Bits(32, 1)));
+    $$ = ds;
+    parser->set_loc($$);
+  }
+  | SYS_SHOWSCOPES OPAREN number CPAREN SCOLON {
+    const auto arg = ($3->get_val().to_uint() == 0) ? 1 : 2;
+    delete $3;
+    auto* ds = new DebugStatement(new Number(Bits(32, arg)));
+    $$ = ds;
+    parser->set_loc($$);
+  }
+  | SYS_SHOWVARS SCOLON {
+    auto* ds = new DebugStatement(new Number(Bits(32, 3)));
+    $$ = ds;
+    parser->set_loc($$);
+  }
+  | SYS_SHOWVARS OPAREN hierarchical_identifier_P CPAREN SCOLON {
+    auto* sb = new SeqBlock();
+    for (auto* i : $3) {
+      sb->push_back_stmts(new DebugStatement(new Number(Bits(32, 3)), i));
     }
     $$ = sb;
     parser->set_loc($$);
@@ -2104,6 +2149,15 @@ expression_P
 expression_Q
   : %empty { $$ = nullptr; }
   | expression { $$ = $1; }
+  ;
+hierarchical_identifier_P
+  : hierarchical_identifier { 
+    $$.push_back($1); 
+  }
+  | hierarchical_identifier_P COMMA identifier {
+    $$ = $1;
+    $$.push_back($3);
+  }
   ;
 generate_block_id_Q
   : %empty { $$ = nullptr; }

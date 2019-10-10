@@ -293,6 +293,13 @@ void De10Logic::handle_tasks() {
   Evaluate eval;
   Sync sync(this);
   switch (task->get_tag()) {
+    case Node::Tag::debug_statement: {
+      const auto* ds = static_cast<const DebugStatement*>(task);
+      stringstream ss;
+      ss << ds->get_arg();
+      interface()->debug(Evaluate().get_value(ds->get_action()).to_uint(), ss.str());
+      break;
+    }
     case Node::Tag::finish_statement: {
       const auto* fs = static_cast<const FinishStatement*>(task);
       fs->accept_arg(&sync);
@@ -425,6 +432,11 @@ void De10Logic::Inserter::visit(const FseekStatement* fs) {
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
+}
+
+void De10Logic::Inserter::visit(const DebugStatement* ds) {
+  de_->tasks_.push_back(ds);
+  // Don't descend, there aren't any expressions below here
 }
 
 void De10Logic::Inserter::visit(const GetStatement* gs) {

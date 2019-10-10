@@ -52,6 +52,7 @@ namespace cascade {
 // 6. Attribute annotations which appear inside the module are removed.
 // 7. The 'ignore' oldest initial blocks are deleted.
 // 8. fork/join blocks are replaced by begin/end blocks.
+// 9. debug statements have scopes attached to them.
 
 class Isolate : public Builder {
   public:
@@ -86,6 +87,7 @@ class Isolate : public Builder {
     ModuleItem* build(const PortDeclaration* pd) override;
     Statement* build(const ParBlock* pb) override;
     Statement* build(const SeqBlock* sb) override;
+    Statement* build(const DebugStatement* db) override;
 
     // Returns a mangled identifier
     Identifier* to_mangled_id(const ModuleInstantiation* mi);

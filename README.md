@@ -489,6 +489,9 @@ brief description of their behavior is shown below.
 |                       | $write(fmt, args...)        |  x        |             |                  |
 | Scanf                 | $scanf(fmt, args...)        |  x        |             |                  |
 | Debugging             | $monitor(var)               |           | x           |                  |
+|                       | $list(name)                 |  x        |             |                  |
+|                       | $showscopes(n)              |  x        |             |                  |
+|                       | $showvars(vars...)          |  x        |             |                  |
 | Logging               | $info(fmt, args...)         |  x        |             |                  |    
 |                       | $warning(fmt, args...)      |  x        |             |                  |
 |                       | $error(fmt, args...)        |  x        |             |                  |

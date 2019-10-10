@@ -170,6 +170,11 @@ void IndexNormalize::FixUses::edit(RegDeclaration* rd) {
   (void) rd;
 }
 
+void IndexNormalize::FixUses::edit(DebugStatement* ds) {
+  // Does nothing; don't descend past here.
+  (void) ds;
+}
+
 void IndexNormalize::FixUses::fix_use(Identifier* id, size_t n, const RangeExpression* re) const {
   assert(Constant().is_static_constant(re));
   const auto rng = Evaluate().get_range(re);

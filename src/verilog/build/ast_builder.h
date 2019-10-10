@@ -74,7 +74,7 @@ template <typename T>
 inline AstBuilder<T>::AstBuilder() : std::ostream(&sb_), sb_() { }
 
 template <typename T>
-inline AstBuilder<T>::AstBuilder(const std::string& s) : sb_(s) { }
+inline AstBuilder<T>::AstBuilder(const std::string& s) : std::ostream(&sb_), sb_(s) { }
 
 template <typename T>
 inline typename AstBuilder<T>::iterator AstBuilder<T>::begin() {

@@ -261,4 +261,9 @@ Statement* ConstantProp::rewrite(ConditionalStatement* cs) {
   return Rewriter::rewrite(cs);
 }
 
+Statement* ConstantProp::rewrite(DebugStatement* ds) {
+  // Don't descend past here
+  return ds;
+}
+
 } // namespace cascade

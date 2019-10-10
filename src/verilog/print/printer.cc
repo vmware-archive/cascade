@@ -583,6 +583,17 @@ void Printer::visit(const TimingControlStatement* ptc) {
   ptc->accept_stmt(this);
 }
 
+void Printer::visit(const DebugStatement* ds) {
+  *this << Color::YELLOW << "$__debug" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ds->accept_action(this);
+  if (ds->is_non_null_arg()) {
+    *this << Color::RED << "," << Color::RESET;
+    ds->accept_arg(this);
+  }
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const FflushStatement* fs) {
   *this << Color::YELLOW << "$fflush" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;

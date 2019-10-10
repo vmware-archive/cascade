@@ -89,6 +89,7 @@ struct Builder {
   virtual Statement* build(const ParBlock* pb);
   virtual Statement* build(const SeqBlock* sb);
   virtual Statement* build(const TimingControlStatement* rcs);
+  virtual Statement* build(const DebugStatement* ds);
   virtual Statement* build(const FflushStatement* fs);
   virtual Statement* build(const FinishStatement* fs);
   virtual Statement* build(const FseekStatement* fs);

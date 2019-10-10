@@ -46,10 +46,11 @@ class RemoteInterface : public Interface {
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
 
+    void debug(uint32_t action, const std::string& arg) override;
     void finish(uint32_t arg) override;
-    void restart(const std::string& s) override;
+    void restart(const std::string& path) override;
     void retarget(const std::string& s) override;
-    void save(const std::string& s) override;
+    void save(const std::string& path) override;
 
     FId fopen(const std::string& path, uint8_t mode) override;
     int32_t in_avail(FId id) override;
@@ -82,14 +83,21 @@ inline void RemoteInterface::write(VId id, bool b) {
   sock_->put(b ? 1 : 0);
 }
 
+inline void RemoteInterface::debug(uint32_t action, const std::string& arg) {
+  Rpc(Rpc::Type::DEBUG).serialize(*sock_);
+  sock_->write(reinterpret_cast<const char*>(&action), 4);
+  sock_->write(arg.c_str(), arg.length());
+  sock_->put('\0');
+}
+
 inline void RemoteInterface::finish(uint32_t arg) {
   Rpc(Rpc::Type::FINISH).serialize(*sock_);
   sock_->write(reinterpret_cast<const char*>(&arg), 4);
 }
 
-inline void RemoteInterface::restart(const std::string& s) {
+inline void RemoteInterface::restart(const std::string& path) {
   Rpc(Rpc::Type::RESTART).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
+  sock_->write(path.c_str(), path.length());
   sock_->put('\0');
 }
 
@@ -99,9 +107,9 @@ inline void RemoteInterface::retarget(const std::string& s) {
   sock_->put('\0');
 }
 
-inline void RemoteInterface::save(const std::string& s) {
+inline void RemoteInterface::save(const std::string& path) {
   Rpc(Rpc::Type::SAVE).serialize(*sock_);
-  sock_->write(s.c_str(), s.length());
+  sock_->write(path.c_str(), path.length());
   sock_->put('\0');
 }
 

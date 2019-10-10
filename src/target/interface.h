@@ -51,10 +51,11 @@ class Interface {
 
     // These methods must perform whatever target-specific logic is necessary to
     // invoke the corresponding system task calls on the runtime.
+    virtual void debug(uint32_t action, const std::string& arg) = 0;
     virtual void finish(uint32_t arg) = 0;
-    virtual void restart(const std::string& s) = 0;
+    virtual void restart(const std::string& path) = 0;
     virtual void retarget(const std::string& s) = 0;
-    virtual void save(const std::string& s) = 0;
+    virtual void save(const std::string& path) = 0;
 
     // These methods must perform whatever target-specific logic is necessary
     // to invoke the corresponding stream calls on the runtime.

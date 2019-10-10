@@ -476,6 +476,16 @@ void SwLogic::visit(const FseekStatement* fs) {
   notify(fs);
 }
 
+void SwLogic::visit(const DebugStatement* ds) {
+  if (!silent_) {
+    stringstream ss;
+    ss << ds->get_arg();
+    interface()->debug(Evaluate().get_value(ds->get_action()).to_uint(), ss.str());
+    there_were_tasks_ = true;
+  }
+  notify(ds);
+}
+
 void SwLogic::visit(const GetStatement* gs) {
   if (!silent_) {
     const auto fd = eval_.get_value(gs->get_fd()).to_uint();

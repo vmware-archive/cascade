@@ -310,6 +310,12 @@ Statement* Rewriter::rewrite(TimingControlStatement* tcs) {
   return tcs;
 }
 
+Statement* Rewriter::rewrite(DebugStatement* ds) {
+  ds->accept_action(this);
+  ds->accept_arg(this);
+  return ds;
+}
+
 Statement* Rewriter::rewrite(FflushStatement* fs) {
   fs->accept_fd(this);
   return fs;

@@ -244,6 +244,14 @@ inline void ProxyCore<T>::recv() {
         break;
       }
 
+      case Rpc::Type::DEBUG: {
+        uint32_t action = 0;
+        sock_->read(reinterpret_cast<char*>(&action), 4);
+        std::string arg = "";
+        getline(*sock_, arg, '\0');
+        T::interface()->debug(action, arg);
+        break;
+      }
       case Rpc::Type::FINISH: {
         uint32_t code = 0;
         sock_->read(reinterpret_cast<char*>(&code), 4);

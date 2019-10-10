@@ -45,6 +45,9 @@
 #include "runtime/nullbuf.h"
 #include "target/compiler/local_compiler.h"
 #include "target/engine.h"
+#include "verilog/analyze/navigate.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/build/ast_builder.h"
 #include "verilog/parse/parser.h"
 #include "verilog/print/print.h"
 #include "verilog/program/inline.h"
@@ -271,6 +274,36 @@ void Runtime::schedule_asynchronous(Asynchronous async) {
 
 bool Runtime::is_finished() const {
   return finished_;
+}
+
+void Runtime::debug(uint32_t action, const string& arg) {
+  schedule_interrupt([this, action, arg]{
+    const auto* r = resolve(arg);
+    if (r == nullptr) {
+      ostream(rdbuf(stderr_)) << "Unable to resolve " << arg << "!" << endl; 
+      return;
+    }
+    switch (action) {
+      case 0: 
+        list(r);
+        break; 
+      case 1: 
+        showscopes(r); 
+        break;
+      case 2: 
+        recursive_showscopes(r);
+        break;
+      case 3:
+        if (r->is_subclass_of(Node::Tag::declaration)) {
+          showvars(static_cast<const Declaration*>(r)->get_id());
+        } else {
+          recursive_showvars(r);
+        }
+        break;
+      default:
+        break;
+    }
+  });
 }
 
 void Runtime::finish(uint32_t arg) {
@@ -808,6 +841,74 @@ void Runtime::log_freq() {
     ostream(rdbuf(stdlog_)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
   };
   schedule_interrupt(event, event);
+}
+
+const Node* Runtime::resolve(const string& arg) {
+  // Create a new navigation object and point it at the root
+  Navigate nav(program_->root_elab()->second);
+  const Node* res = nav.where();
+
+  // Not exactly the prettiest way to do this, but it works.
+  const auto* temp = ItemBuilder("assign " + arg + " = 0;").get();
+  const auto* id = static_cast<const ContinuousAssign*>(temp)->get_lhs();
+
+  // Walk along the ids in this identifier, ignoring the first, which root
+  for (auto i = ++id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
+    // Update res on success
+    if (nav.down(*i)) {
+      res = nav.where();
+    } 
+    // If we failed on the last element, we might have found an id
+    else if (i+1 == ie) {
+      res = nav.find_name(*i);
+      if (res != nullptr) {
+        res = Resolve().get_resolution(static_cast<const Identifier*>(res))->get_parent();
+      }
+    } 
+    // If we failed anywhere else, we've just failed
+    else {
+      res = nullptr;
+      break;
+    }
+  }
+  delete temp;
+  return res;
+}
+
+void Runtime::list(const Node* n) {
+  ostream(rdbuf(stdout_)) << color << n << text << endl;
+}
+
+void Runtime::showscopes(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    const auto s = Resolve().get_readable_full_id(Navigate(*i).name());
+    ostream(rdbuf(stdout_)) << s << endl;
+  }
+}
+
+void Runtime::recursive_showscopes(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    Navigate child(*i);
+    const auto s = Resolve().get_readable_full_id(child.name());
+    ostream(rdbuf(stdout_)) << s << endl;
+    recursive_showscopes(child.where());
+  }
+}
+
+void Runtime::showvars(const Identifier* id) {
+  ostream(rdbuf(stdout_)) << Resolve().get_readable_full_id(id) << endl;
+}
+
+void Runtime::recursive_showvars(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.name_begin(), ie = nav.name_end(); i != ie; ++i) {
+    showvars(*i);
+  }
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    recursive_showvars(Navigate(*i).where());
+  }
 }
 
 string Runtime::current_frequency() const {

@@ -71,6 +71,7 @@ struct Rpc : Serializable {
     WRITE_BITS,
     WRITE_BOOL,
 
+    DEBUG,
     FINISH,
     RESTART,
     RETARGET,

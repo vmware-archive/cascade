@@ -115,6 +115,7 @@ class TypeCheck : public Visitor {
     void visit(const ForStatement* fs) override;
     void visit(const RepeatStatement* rs) override;
     void visit(const WhileStatement* ws) override;
+    void visit(const DebugStatement* ds) override;
     void visit(const GetStatement* gs) override;
     void visit(const PutStatement* ps) override;
     void visit(const RestartStatement* rs) override;
