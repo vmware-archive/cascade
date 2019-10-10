@@ -811,8 +811,20 @@ void Runtime::log_checker_errors() {
 }
 
 void Runtime::log_compiler_errors() {
-  ostream(rdbuf(stderr_)) << "Internal Compiler Error:\n  > " << compiler_->what() << endl;
-  finish(0);
+  const auto what = compiler_->what();
+  if (what.first) {
+    ostream(rdbuf(stderr_)) 
+      << "Fatal Compiler Error:" << endl 
+      << " > " << what.second << endl
+      << " > " << "Shutting Down!" << endl;
+    finish(0);
+  } else {
+    ostream(rdbuf(stderr_)) 
+      << "Compiler Error:" << endl 
+      << " > " << what.second << endl
+      << " > " << "Control will remain in software-simulation!" << endl;
+    compiler_->clear();
+  }
 }
 
 void Runtime::log_event(const string& type, Node* n) {

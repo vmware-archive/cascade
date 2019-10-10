@@ -372,10 +372,9 @@ void Module::compile_and_replace(size_t ignore) {
   } else {
     md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
-
   // Check whether the first pass compilation is sw
-  if (!md->get_attrs()->get<String>("__target")->eq("sw")) {
-    rt_->get_compiler()->error("First pass compilation must target software");
+  if (std->eq("logic") && !md->get_attrs()->get<String>("__target")->eq("sw")) {
+    rt_->get_compiler()->fatal("Fast-pass compilation for logic must target software!");
     delete md;
     delete md2;
     return;
@@ -386,9 +385,7 @@ void Module::compile_and_replace(size_t ignore) {
   ss << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
   auto* e_fast = rt_->get_compiler()->compile(engine_->get_id(), md);
   if (e_fast == nullptr) {
-    if (!rt_->get_compiler()->error()) {
-      rt_->get_compiler()->error("An unhandled error occurred during module compilation");
-    }
+    rt_->get_compiler()->fatal("Unable to complete fast-pass compilation!");
   } else {
     engine_->replace_with(e_fast);
     if (engine_->is_stub()) {
