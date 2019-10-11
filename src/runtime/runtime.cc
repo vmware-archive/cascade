@@ -45,6 +45,8 @@
 #include "runtime/nullbuf.h"
 #include "target/compiler/local_compiler.h"
 #include "target/engine.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/analyze/module_info.h"
 #include "verilog/analyze/navigate.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/build/ast_builder.h"
@@ -293,7 +295,7 @@ void Runtime::debug(uint32_t action, const string& arg) {
       case 2: 
         recursive_showscopes(r);
         break;
-      case 3:
+      case 3: 
         if (r->is_subclass_of(Node::Tag::declaration)) {
           showvars(static_cast<const Declaration*>(r)->get_id());
         } else {
@@ -910,7 +912,35 @@ void Runtime::recursive_showscopes(const Node* n) {
 }
 
 void Runtime::showvars(const Identifier* id) {
-  ostream(rdbuf(stdout_)) << Resolve().get_readable_full_id(id) << endl;
+  ostream os(rdbuf(stdout_));
+
+  // Print full id
+  os << Resolve().get_readable_full_id(id) << endl;
+
+  // Print text of original declaration
+  os << "  " << color << id->get_parent() << text << endl;
+
+  // Print width, arity, and properties
+  const auto arity = Evaluate().get_arity(id);
+  os << "  " << Evaluate().get_width(id) << " bit ";
+  if (arity.empty()) {
+    os << "scalar ";
+  } else {
+    for (auto i = arity.begin(), ie = arity.end(); i != ie; ) {
+      os << *i;
+      if (++i != ie) {
+        os << "x";
+      }
+    }
+    os << " element array ";
+  }
+  ModuleInfo info(Resolve().get_parent(id));
+  os << (info.is_input(id) ? "input " : "");
+  os << (info.is_output(id) ? "output " : "");
+  os << (info.is_stateful(id) ? "stateful " : "");
+  os << (info.is_read(id) ? "externally read " : "");
+  os << (info.is_write(id) ? "externally written " : "");
+  os << endl;
 }
 
 void Runtime::recursive_showvars(const Node* n) {
