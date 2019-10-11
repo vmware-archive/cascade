@@ -2,7 +2,7 @@
 %require  "3.0.4"
 %defines 
 %define api.namespace {cascade}
-%define api.parser.class {yyParser}
+%define parser_class_name {yyParser}
 
 %define api.token.constructor
 %define api.value.type variant
