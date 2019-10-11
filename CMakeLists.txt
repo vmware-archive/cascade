@@ -1,21 +1,11 @@
 cmake_minimum_required(VERSION 3.2)
-
-# Required by PMM
-cmake_policy(SET CMP0057 NEW)
+project(cascade)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(FLEX 2.6.0)
 find_package(BISON)
-
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/pmm.cmake")
-   message(STATUS "Downloading pmm.cmake from https://github.com/vector-of-bool/pmm")
-   file(DOWNLOAD "https://raw.githubusercontent.com/vector-of-bool/pmm/1.3.0/pmm.cmake"
-                 "${CMAKE_BINARY_DIR}/pmm.cmake")
-endif()
-
-include(${CMAKE_BINARY_DIR}/pmm.cmake)
 
 if (APPLE)
     set(cxxlib libc++)
@@ -30,15 +20,6 @@ if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^armv7*")
 else()
     set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
 endif()
-
-pmm(
-    CONAN
-        BUILD missing
-        BINCRAFTERS
-        COMMUNITY
-        SETTINGS compiler.libcxx=${cxxlib} ${force_compiler} arch=${force_arch}
-        REMOTES mpusz https://api.bintray.com/conan/mpusz/conan-mpusz
-    )
 
 include(CTest)
 enable_testing()
