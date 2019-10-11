@@ -72,7 +72,6 @@ class ModuleDeclaration : public Node {
     friend class ModuleInfo;
     DECORATION(size_t, next_update);
     DECORATION(std::unordered_set<const Identifier*>, locals);
-    DECORATION(std::unordered_set<const Identifier*>, externals);
     DECORATION(std::unordered_set<const Identifier*>, inputs);
     DECORATION(std::unordered_set<const Identifier*>, outputs);
     DECORATION(std::unordered_set<const Identifier*>, stateful);

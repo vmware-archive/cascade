@@ -56,7 +56,6 @@ void ModuleInfo::invalidate() {
 
   md_->next_update_ = 0;
   unordered_set<const Identifier*>().swap(md_->locals_);
-  unordered_set<const Identifier*>().swap(md_->externals_);
   unordered_set<const Identifier*>().swap(md_->inputs_);
   unordered_set<const Identifier*>().swap(md_->outputs_);
   unordered_set<const Identifier*>().swap(md_->stateful_);
@@ -112,12 +111,6 @@ bool ModuleInfo::is_output(const Identifier* id) {
   return (r == nullptr) ? false : (md_->outputs_.find(r) != md_->outputs_.end());
 }
 
-bool ModuleInfo::is_external(const Identifier* id) {
-  refresh();
-  const auto* r = Resolve().get_resolution(id);
-  return (r == nullptr) ? false : (md_->externals_.find(r) != md_->externals_.end());
-}
-
 bool ModuleInfo::is_read(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
@@ -154,11 +147,6 @@ const unordered_set<const Identifier*>& ModuleInfo::outputs() {
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
   refresh();
   return md_->stateful_;
-}
-
-const unordered_set<const Identifier*>& ModuleInfo::externals() {
-  refresh();
-  return md_->externals_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::reads() {
@@ -460,9 +448,6 @@ void ModuleInfo::record_local_read(const Identifier* id) {
 }
 
 void ModuleInfo::record_external_read(const Identifier* id) {
-  if (md_->externals_.find(id) == md_->externals_.end()) {
-    md_->externals_.insert(id);
-  }
   if (md_->reads_.find(id) == md_->reads_.end()) {
     md_->reads_.insert(id);
   }
@@ -475,9 +460,6 @@ void ModuleInfo::record_local_write(const Identifier* id) {
 }
 
 void ModuleInfo::record_external_write(const Identifier* id) {
-  if (md_->externals_.find(id) == md_->externals_.end()) {
-    md_->externals_.insert(id);
-  }
   if (md_->writes_.find(id) == md_->writes_.end()) {
     md_->writes_.insert(id);
   }

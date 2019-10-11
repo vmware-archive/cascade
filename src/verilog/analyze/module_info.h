@@ -71,7 +71,6 @@ class ModuleInfo : public Visitor {
     // Variable Queries:
     //
     // Returns true if this variable resolves to a declaration in this module.
-    // Note that !is_local(x) =/= is_external(x).
     bool is_local(const Identifier* id);
     // Returns true if this a local variable which was declared as an input port.
     bool is_input(const Identifier* id);
@@ -83,9 +82,6 @@ class ModuleInfo : public Visitor {
     // statement.
     // TODO(eschkufz) this semantics isn't quite correct. 
     bool is_stateful(const Identifier* id);
-    // Returns true if variable resolves to a declaration outside of this
-    // module.  Note that !is_external(x) =/= is_local(x).
-    bool is_external(const Identifier* id);
     // Returns true if this variable is read by another module, either through
     // a module instantiation or a hierarchical dereference in a location other
     // than the lhs of an assignment. 
@@ -108,8 +104,6 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*>& outputs(); 
     // Returns the set of variables for which is_stateful(x) returns true.
     const std::unordered_set<const Identifier*>& stateful(); 
-    // Returns the set of variables for which is_external(x) returns true.
-    const std::unordered_set<const Identifier*>& externals(); 
     // Returns the set of variables for which is_read(x) returns true.
     const std::unordered_set<const Identifier*>& reads(); 
     // Returns the set of variables for which is_write(x) returns true.
