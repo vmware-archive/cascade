@@ -96,7 +96,11 @@ check_homebrew() {
     else
         echo -e "${RED}missing${NC}"
         MISSING=$2[@]
-        MISSING+=($1)
+        if [ $1 == "gtest" ]; then
+            MISSING+=("script/gtest.rb")
+        else
+            MISSING+=($1)
+        fi
         return 0
     fi
 }

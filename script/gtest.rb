@@ -1,5 +1,6 @@
 # Homebrew Formula for Google Test
-# Usage: brew install gtest.rb
+# Usage: brew install gtest.rb 
+# Original Code Found Here: https://gist.github.com/Kronuz/96ac10fbd8472eb1e7566d740c4034f8
 
 require 'formula'
 
