@@ -197,12 +197,21 @@ De10Led* De10Compiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interfa
 
 De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   unique_lock<mutex> lg(lock_);
+  ModuleInfo info(md);
+
+  // Check for invariants that the de10 backend assumes
+  if (info.uses_mixed_triggers()) {
+    get_compiler()->error("The De10 backend does not currently support code with mixed triggers!");
+    delete md;
+    return nullptr;
+  }
 
   // Find a new slot and generate code for this module. If either step fails,
   // return nullptr. Otherwise, advance the sequence counter and compile.
   const auto slot = get_free_slot();
   if (slot == -1) {
     get_compiler()->error("No remaining slots available on de10 fabric");
+    delete md;
     return nullptr;
   }
 
@@ -212,9 +221,8 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
 
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering. The
-  // final invocation of index_tasks is lexicographic by construction, as
-  // it's based on a recursive descent of the AST.
-  ModuleInfo info(md);
+  // final invocation of index_tasks is lexicographic by construction, as it's
+  // based on a recursive descent of the AST.
   map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
     is.insert(make_pair(to_vid(i), i));

@@ -161,9 +161,6 @@ void Module::synchronize(size_t n) {
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     const auto ignore = (*i == this) ? (psrc_->size_items() - n) : 0;
     (*i)->compile_and_replace(ignore);
-    if (rt_->get_compiler()->error()) {
-      return;
-    }
   }
   // Synchronize subscriptions with the dataplane. Note that we do this *after*
   // recompilation.  This guarantees that the variable names used by
@@ -189,9 +186,6 @@ void Module::rebuild() {
   for (auto i = iterator(this), ie = end(); i != ie; ++i) {
     const auto ignore = (*i)->psrc_->size_items();
     (*i)->compile_and_replace(ignore);
-    if (rt_->get_compiler()->error()) {
-      return;
-    }
   }
 }
 

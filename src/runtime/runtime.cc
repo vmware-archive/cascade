@@ -609,13 +609,7 @@ bool Runtime::eval_item(ModuleItem* mi) {
 }
 
 void Runtime::rebuild() {
-  // Nothing to do if something went wrong with the compiler after the last
-  // time this method was called. Trigger a fatal interrupt that will be
-  // handled before the next time step.
-  if (compiler_->error()) {
-    return log_compiler_errors();
-  }
-  // Also nothing to do if no items have been eval'ed since the last time this
+  // Nothing to do if no items have been eval'ed since the last time this
   // method was called
   if (item_evals_ == 0) {
     return;
@@ -627,7 +621,7 @@ void Runtime::rebuild() {
   root_->synchronize(item_evals_);
   item_evals_ = 0;
   if (compiler_->error()) {
-    return log_compiler_errors();
+    log_compiler_errors();
   } 
 
   // Clear scheduling state
@@ -712,10 +706,8 @@ void Runtime::drain_interrupts() {
     return;
   }
   // Slow Path: 
-  // We have at least one interrupt.  which could be an eval event (which will
-  // require a code rebuild) or a jit handoff.  Schedule a call at the very end
-  // of the interrupt queue to first check whether the compiler is in a sound
-  // state (ie, jit handoff hasn't failed) and then to rebuild the codebase.
+  // We have at least one interrupt, which could be an eval event.  Schedule a
+  // call at the end of the queue to rebuild the codebase if necessary.
   schedule_interrupt([this]{
     rebuild();
   });

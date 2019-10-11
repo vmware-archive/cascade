@@ -87,6 +87,7 @@ class ModuleDeclaration : public Node {
     DECORATION(ConnMap, connections);
     typedef std::unordered_map<const Identifier*, const ModuleDeclaration*> ChildMap;
     DECORATION(ChildMap, children);
+    DECORATION(bool, uses_mixed_triggers);
 
     friend class Navigate;
     DECORATION(Scope, scope_idx);
@@ -99,6 +100,7 @@ inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id_
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
   next_update_ = 0;
+  uses_mixed_triggers_ = false;
   scope_idx_.next_supdate_ = 0;
 }
 

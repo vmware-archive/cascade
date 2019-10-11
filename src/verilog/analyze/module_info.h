@@ -68,7 +68,7 @@ class ModuleInfo : public Visitor {
     // Returns nullptr for module declarations, id for instantiations.
     const Identifier* id();
 
-    // Variable Queries:
+    // Variable Properties:
     //
     // Returns true if this variable resolves to a declaration in this module.
     bool is_local(const Identifier* id);
@@ -93,6 +93,12 @@ class ModuleInfo : public Visitor {
     // Returns true if this variable resolves to a module instantiation in this
     // module.
     bool is_child(const Identifier* id);
+
+    // Control Properties:
+    //
+    // Returns true if this module contains at least one always block with a
+    // combination of pos/neg edge triggers and variable triggers.
+    bool uses_mixed_triggers();
 
     // Variable Indices:
     //
@@ -173,6 +179,7 @@ class ModuleInfo : public Visitor {
     void visit(const NonblockingAssign* na) override;
     void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;
+    void visit(const EventControl* ec) override;
 
     // Cache Maintenance Helpers:
     void refresh();

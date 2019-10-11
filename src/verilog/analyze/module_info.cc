@@ -67,6 +67,7 @@ void ModuleInfo::invalidate() {
   Vector<const Identifier*>().swap(md_->ordered_ports_);
   ModuleDeclaration::ConnMap().swap(md_->connections_);
   ModuleDeclaration::ChildMap().swap(md_->children_);
+  md_->uses_mixed_triggers_ = false;
 }
 
 bool ModuleInfo::is_declaration() {
@@ -127,6 +128,11 @@ bool ModuleInfo::is_child(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
   return (r == nullptr) ? false : (md_->children_.find(r) != md_->children_.end());
+}
+
+bool ModuleInfo::uses_mixed_triggers() {
+  refresh();
+  return md_->uses_mixed_triggers_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::locals() {
@@ -730,6 +736,34 @@ void ModuleInfo::visit(const VariableAssign* va) {
   va->accept_lhs(this);
   lhs_ = false;
   va->accept_rhs(this);
+}
+
+void ModuleInfo::visit(const EventControl* ec) {
+  Visitor::visit(ec);
+
+  // Nothing to do if we already know this module uses mixed triggers
+  if (md_->uses_mixed_triggers_) {
+    return;
+  }
+    
+  // Otherwise, check for the presence of both pos/neg edge and edge
+  auto edge = false;
+  auto var = false;
+  for (auto i = ec->begin_events(), ie = ec->end_events(); i != ie; ++i) {
+    switch ((*i)->get_type()) {
+      case Event::Type::POSEDGE:
+      case Event::Type::NEGEDGE:
+        edge = true;
+        break;
+      case Event::Type::EDGE:
+        var = true;
+        break;
+      default:
+        assert(false);
+        break;
+    } 
+  }
+  md_->uses_mixed_triggers_ = edge && var;
 }
 
 void ModuleInfo::refresh() {
