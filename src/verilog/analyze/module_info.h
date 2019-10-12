@@ -77,10 +77,8 @@ class ModuleInfo : public Visitor {
     // Returns true if this a local variable which was declared as an output
     // port.
     bool is_output(const Identifier* id);
-    // Returns true if this a local variable which is declared with type reg
-    // and either never assigned to or assigned through a get() or fopen()
-    // statement.
-    // TODO(eschkufz) this semantics isn't quite correct. 
+    // Returns true if this is a local variable declared with type reg which is
+    // not an implied wire.
     bool is_stateful(const Identifier* id);
     // Returns true if this variable is read by another module, either through
     // a module instantiation or a hierarchical dereference in a location other
@@ -177,12 +175,13 @@ class ModuleInfo : public Visitor {
     void visit(const PortDeclaration* pd) override;
     void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
-    void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;
     void visit(const EventControl* ec) override;
 
     // Cache Maintenance Helpers:
     void refresh();
+    bool is_implied_latch(const Identifier* id);
+    bool is_implied_wire(const Identifier* id);
 };
 
 } // namespace cascade 

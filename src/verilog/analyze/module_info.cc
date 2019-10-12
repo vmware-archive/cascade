@@ -30,7 +30,9 @@
 
 #include "verilog/analyze/module_info.h"
 
+#include <unordered_set>
 #include "verilog/ast/ast.h"
+#include "verilog/analyze/read_set.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/inline.h"
@@ -609,28 +611,6 @@ void ModuleInfo::visit(const ParameterDeclaration* pd) {
 void ModuleInfo::visit(const RegDeclaration* rd) {
   md_->locals_.insert(rd->get_id());   
   record_external_use(rd->get_id());
-  if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
-    md_->stateful_.insert(rd->get_id());
-  }
-  for (auto i = Resolve().use_begin(rd->get_id()), ie = Resolve().use_end(rd->get_id()); i != ie; ++i) {
-    switch((*i)->get_parent()->get_tag()) {
-      case Node::Tag::variable_assign:
-        if (static_cast<const VariableAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
-        break;
-      case Node::Tag::continuous_assign:
-        if (static_cast<const ContinuousAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
-        break;
-      case Node::Tag::blocking_assign:
-        if (static_cast<const BlockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
-        break;
-      case Node::Tag::nonblocking_assign:
-        if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) { return; } 
-        break;
-      default:
-        break;
-    }
-  }
-  md_->stateful_.insert(rd->get_id());
 }
 
 void ModuleInfo::visit(const ModuleInstantiation* mi) {
@@ -709,26 +689,6 @@ void ModuleInfo::visit(const NonblockingAssign* na) {
   na->accept_lhs(this);
   lhs_ = false;
   na->accept_rhs(this);
-
-  auto* r = Resolve().get_resolution(na->get_lhs());
-  assert(r != nullptr);
-
-  if (md_->locals_.find(r) == md_->locals_.end()) {
-    return;
-  }
-  if (md_->stateful_.find(r) != md_->stateful_.end()) {
-    return;
-  }
-  md_->stateful_.insert(r);
-}
-
-void ModuleInfo::visit(const GetStatement* gs) {
-  Visitor::visit(gs);
-  if (gs->is_non_null_var()) {
-    const auto* r = Resolve().get_resolution(gs->get_var());
-    assert(r != nullptr);
-    md_->stateful_.insert(r);
-  }
 }
 
 void ModuleInfo::visit(const VariableAssign* va) {
@@ -767,9 +727,118 @@ void ModuleInfo::visit(const EventControl* ec) {
 }
 
 void ModuleInfo::refresh() {
-  for (auto e = md_->size_items(); md_->next_update_ < e; ++md_->next_update_) {
+  const auto size = md_->size_items();
+  if (md_->next_update_ == size) {
+    return;
+  }
+
+  for (; md_->next_update_ < size; ++md_->next_update_) {
     md_->get_items(md_->next_update_)->accept(this);
   }
+  for (auto* l : md_->locals_) {
+    if (l->get_parent()->is(Node::Tag::reg_declaration) && !is_implied_wire(l)) {
+      md_->stateful_.insert(l);
+    }
+  }
+}
+
+bool ModuleInfo::is_implied_latch(const Identifier* id) {
+  return false;
+}
+
+bool ModuleInfo::is_implied_wire(const Identifier* id) {
+  assert(id->get_parent()->is(Node::Tag::reg_declaration));
+  const auto* rd = static_cast<const RegDeclaration*>(id->get_parent());
+
+  // A register which is intiialized with an fopen can't be a wire
+  if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
+    return false;
+  }
+
+  const TimingControlStatement* tcs_use = nullptr;
+  for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
+    switch((*i)->get_parent()->get_tag()) {
+      // Regs which appear in get statements can't be wires
+      case Node::Tag::get_statement:
+        if (static_cast<const GetStatement*>((*i)->get_parent())->get_var() == *i) {
+          return false;
+        }
+        break;
+      // Anything which is the target of a non-blocking assignment can't be a wire
+      case Node::Tag::nonblocking_assign:
+        if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) {
+          return false;
+        }
+        break;
+      // The hard case: variables which are the targets of blocking assigns
+      case Node::Tag::blocking_assign: {
+        const auto* ba = static_cast<const BlockingAssign*>((*i)->get_parent());
+        if (ba->get_lhs() != *i) {
+          break;
+        }
+
+        // Record the dependencies of this assignment 
+        ReadSet rs1(ba->get_rhs());
+        unordered_set<const Expression*> deps(rs1.begin(), rs1.end());
+
+        // Walk up the AST until we find the enclosing timing control
+        // statement.  Add dependencies from conditional and case statements.
+        const auto* n = ba->get_parent();
+        for (; !n->is(Node::Tag::timing_control_statement); n = n->get_parent()) {
+          if (n->is(Node::Tag::conditional_statement)) {
+            ReadSet rs2(static_cast<const ConditionalStatement*>(n)->get_if());
+            deps.insert(rs2.begin(), rs2.end());
+          } else if (n->is(Node::Tag::case_statement)) {
+            ReadSet rs3(static_cast<const CaseStatement*>(n)->get_cond());
+            deps.insert(rs3.begin(), rs3.end());
+          } else if (n->is(Node::Tag::initial_construct)) {
+            return false;
+          }
+        }
+        unordered_set<const Identifier*> id_deps;
+        for (const auto* d : deps) {
+          if (d->is(Node::Tag::identifier)) {
+            id_deps.insert(Resolve().get_resolution(static_cast<const Identifier*>(d)));
+          }
+        }
+        const auto* tcs = static_cast<const TimingControlStatement*>(n);
+        const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
+
+        // Walk along the event control and collect its triggers. If we see an
+        // edge trigger this can't be a wire.
+        unordered_set<const Identifier*> trigs;
+        for (auto i = ec->begin_events(), ie = ec->end_events(); i != ie; ++i) {
+          if ((*i)->get_type() != Event::Type::EDGE) {
+            return false;
+          }
+          if ((*i)->get_expr()->is(Node::Tag::identifier)) {
+            trigs.insert(Resolve().get_resolution(static_cast<const Identifier*>((*i)->get_expr())));
+          }
+        }
+
+        // If we're here it's because this is a value-triggered block. If we've
+        // been to a different one already, or we depend on a value that doesn't
+        // appear in its trigger list, we can't be a register.
+        if ((tcs_use != nullptr) && (tcs != tcs_use)) {
+          return false;
+        }
+        tcs_use = tcs;
+        for (const auto* d : id_deps) {
+          if (trigs.find(d) == trigs.end()) {
+            return false;
+          }
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  // If control has reached here, and we saw at least one use of a wire-style
+  // assignment, then this is a wire. Otherwise, this is a register.
+  return (tcs_use != nullptr);
 }
 
 } // namespace cascade
