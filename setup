@@ -96,7 +96,11 @@ check_homebrew() {
     else
         echo -e "${RED}missing${NC}"
         MISSING=$2[@]
-        MISSING+=($1)
+        if [ $1 == "gtest" ]; then
+            MISSING+=("script/gtest.rb")
+        else
+            MISSING+=($1)
+        fi
         return 0
     fi
 }
@@ -196,6 +200,9 @@ case "${unameOut}" in
                     check_dpkg bison MISSING
                     check_dpkg python3-venv MISSING
                     check_dpkg python3-dev MISSING
+                    check_dpkg libncurses5-dev MISSING
+                    check_dpkg libbenchmark-dev MISSING
+                    check_dpkg libgtest-dev MISSING
                     MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                     MISSING_LIST=${MISSING_LIST:1}
                     if [ ${#MISSING[@]} -gt 0 ]; then 
@@ -203,7 +210,14 @@ case "${unameOut}" in
                         echo "Would you like us to install these packages using apt for you?"
                         select yn in "Yes" "No"; do
                             case $yn in
-                                Yes ) apt-get install -y --no-install-recommends ${MISSING_LIST}; break;;
+                                Yes ) sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
+                                      cd /usr/src/gtest; \
+                                      sudo cmake CMakeLists.txt; \
+                                      sudo make; \
+                                      cd -; \
+                                      sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
+                                      sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a; \
+                                      break;;
                                 No ) echo "Please install these packages manually, then run this script again.";
                                 exit 1;;
                             esac
@@ -236,6 +250,9 @@ case "${unameOut}" in
                 check_homebrew flex MISSING
                 check_homebrew bison MISSING
                 check_homebrew python3 MISSING
+                check_homebrew ncurses MISSING
+                check_homebrew google-benchmark MISSING
+                check_homebrew gtest MISSING
                 MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                 MISSING_LIST=${MISSING_LIST:1}
                 if [ ${#MISSING[@]} -gt 0 ]; then 
