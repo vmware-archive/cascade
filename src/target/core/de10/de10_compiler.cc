@@ -199,9 +199,16 @@ De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Int
   unique_lock<mutex> lg(lock_);
   ModuleInfo info(md);
 
-  // Check for invariants that the de10 backend assumes
+  // Check for unsupported language features
+  auto unsupported = false;
   if (info.uses_mixed_triggers()) {
     get_compiler()->error("The De10 backend does not currently support code with mixed triggers!");
+    unsupported = true;
+  } else if (!info.implied_latches().empty()) {
+    get_compiler()->error("The De10 backend does not currently support the use of implied latches!");
+    unsupported = true;
+  }
+  if (unsupported) {
     delete md;
     return nullptr;
   }
