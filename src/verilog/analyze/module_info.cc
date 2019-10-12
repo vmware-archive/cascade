@@ -61,6 +61,8 @@ void ModuleInfo::invalidate() {
   unordered_set<const Identifier*>().swap(md_->inputs_);
   unordered_set<const Identifier*>().swap(md_->outputs_);
   unordered_set<const Identifier*>().swap(md_->stateful_);
+  unordered_set<const Identifier*>().swap(md_->implied_wires_);
+  unordered_set<const Identifier*>().swap(md_->implied_latches_);
   unordered_set<const Identifier*>().swap(md_->reads_);
   unordered_set<const Identifier*>().swap(md_->writes_);
   ModuleDeclaration::ParamSet().swap(md_->named_params_);
@@ -106,6 +108,18 @@ bool ModuleInfo::is_stateful(const Identifier* id) {
   refresh();
   const auto* r = Resolve().get_resolution(id);
   return (r == nullptr) ? false : (md_->stateful_.find(r) != md_->stateful_.end());
+}
+
+bool ModuleInfo::is_implied_wire(const Identifier* id) {
+  refresh();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->implied_wires_.find(r) != md_->implied_wires_.end());
+}
+
+bool ModuleInfo::is_implied_latch(const Identifier* id) {
+  refresh();
+  const auto* r = Resolve().get_resolution(id);
+  return (r == nullptr) ? false : (md_->implied_latches_.find(r) != md_->implied_latches_.end());
 }
 
 bool ModuleInfo::is_output(const Identifier* id) {
@@ -155,6 +169,16 @@ const unordered_set<const Identifier*>& ModuleInfo::outputs() {
 const unordered_set<const Identifier*>& ModuleInfo::stateful() {
   refresh();
   return md_->stateful_;
+}
+
+const unordered_set<const Identifier*>& ModuleInfo::implied_wires() {
+  refresh();
+  return md_->implied_wires_;
+}
+
+const unordered_set<const Identifier*>& ModuleInfo::implied_latches() {
+  refresh();
+  return md_->implied_latches_;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::reads() {
@@ -736,23 +760,34 @@ void ModuleInfo::refresh() {
     md_->get_items(md_->next_update_)->accept(this);
   }
   for (auto* l : md_->locals_) {
-    if (l->get_parent()->is(Node::Tag::reg_declaration) && !is_implied_wire(l)) {
-      md_->stateful_.insert(l);
+    if (!l->get_parent()->is(Node::Tag::reg_declaration)) {
+      continue;
+    }
+    switch (get_type(l)) {
+      case Type::REG:
+        md_->stateful_.insert(l);
+        break;
+      case Type::IMPLIED_WIRE:
+        md_->implied_wires_.insert(l);
+        break;
+      case Type::IMPLIED_LATCH:
+        md_->stateful_.insert(l);
+        md_->implied_latches_.insert(l);
+        break;
+      default:
+        assert(false);
+        break;
     }
   }
 }
 
-bool ModuleInfo::is_implied_latch(const Identifier* id) {
-  return false;
-}
-
-bool ModuleInfo::is_implied_wire(const Identifier* id) {
+ModuleInfo::Type ModuleInfo::get_type(const Identifier* id) {
   assert(id->get_parent()->is(Node::Tag::reg_declaration));
   const auto* rd = static_cast<const RegDeclaration*>(id->get_parent());
 
   // A register which is intiialized with an fopen can't be a wire
   if (rd->is_non_null_val() && rd->get_val()->is(Node::Tag::fopen_expression)) {
-    return false;
+    return Type::REG;
   }
 
   const TimingControlStatement* tcs_use = nullptr;
@@ -761,13 +796,13 @@ bool ModuleInfo::is_implied_wire(const Identifier* id) {
       // Regs which appear in get statements can't be wires
       case Node::Tag::get_statement:
         if (static_cast<const GetStatement*>((*i)->get_parent())->get_var() == *i) {
-          return false;
+          return Type::REG;
         }
         break;
       // Anything which is the target of a non-blocking assignment can't be a wire
       case Node::Tag::nonblocking_assign:
         if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) {
-          return false;
+          return Type::REG;
         }
         break;
       // The hard case: variables which are the targets of blocking assigns
@@ -792,7 +827,7 @@ bool ModuleInfo::is_implied_wire(const Identifier* id) {
             ReadSet rs3(static_cast<const CaseStatement*>(n)->get_cond());
             deps.insert(rs3.begin(), rs3.end());
           } else if (n->is(Node::Tag::initial_construct)) {
-            return false;
+            return Type::REG;
           }
         }
         unordered_set<const Identifier*> id_deps;
@@ -809,7 +844,7 @@ bool ModuleInfo::is_implied_wire(const Identifier* id) {
         unordered_set<const Identifier*> trigs;
         for (auto i = ec->begin_events(), ie = ec->end_events(); i != ie; ++i) {
           if ((*i)->get_type() != Event::Type::EDGE) {
-            return false;
+            return Type::REG;
           }
           if ((*i)->get_expr()->is(Node::Tag::identifier)) {
             trigs.insert(Resolve().get_resolution(static_cast<const Identifier*>((*i)->get_expr())));
@@ -820,17 +855,16 @@ bool ModuleInfo::is_implied_wire(const Identifier* id) {
         // been to a different one already, or we depend on a value that doesn't
         // appear in its trigger list, we can't be a register.
         if ((tcs_use != nullptr) && (tcs != tcs_use)) {
-          return false;
+          return Type::IMPLIED_LATCH;
         }
         tcs_use = tcs;
         for (const auto* d : id_deps) {
           if (trigs.find(d) == trigs.end()) {
-            return false;
+            return Type::IMPLIED_LATCH;
           }
         }
         break;
       }
-
       default:
         break;
     }
@@ -838,7 +872,7 @@ bool ModuleInfo::is_implied_wire(const Identifier* id) {
 
   // If control has reached here, and we saw at least one use of a wire-style
   // assignment, then this is a wire. Otherwise, this is a register.
-  return (tcs_use != nullptr);
+  return (tcs_use != nullptr) ? Type::IMPLIED_WIRE : Type::REG;
 }
 
 } // namespace cascade

@@ -80,6 +80,12 @@ class ModuleInfo : public Visitor {
     // Returns true if this is a local variable declared with type reg which is
     // not an implied wire.
     bool is_stateful(const Identifier* id);
+    // Returns true if this is a local variable declared with type reg which is
+    // an implied wire.
+    bool is_implied_wire(const Identifier* id);
+    // Returns true if this is a local variable declared with type reg which is
+    // an implied latch.
+    bool is_implied_latch(const Identifier* id);
     // Returns true if this variable is read by another module, either through
     // a module instantiation or a hierarchical dereference in a location other
     // than the lhs of an assignment. 
@@ -108,6 +114,10 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*>& outputs(); 
     // Returns the set of variables for which is_stateful(x) returns true.
     const std::unordered_set<const Identifier*>& stateful(); 
+    // Returns the set of variables for which is_implied_wire(x) returns true.
+    const std::unordered_set<const Identifier*>& implied_wires(); 
+    // Returns the set of variables for which is_implied_latch(x) returns true.
+    const std::unordered_set<const Identifier*>& implied_latches(); 
     // Returns the set of variables for which is_read(x) returns true.
     const std::unordered_set<const Identifier*>& reads(); 
     // Returns the set of variables for which is_write(x) returns true.
@@ -179,9 +189,13 @@ class ModuleInfo : public Visitor {
     void visit(const EventControl* ec) override;
 
     // Cache Maintenance Helpers:
+    enum class Type {
+      REG = 0,
+      IMPLIED_WIRE,
+      IMPLIED_LATCH
+    };
     void refresh();
-    bool is_implied_latch(const Identifier* id);
-    bool is_implied_wire(const Identifier* id);
+    Type get_type(const Identifier* id);
 };
 
 } // namespace cascade 

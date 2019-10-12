@@ -930,6 +930,8 @@ void Runtime::showvars(const Identifier* id) {
   os << (info.is_input(id) ? "input " : "");
   os << (info.is_output(id) ? "output " : "");
   os << (info.is_stateful(id) ? "stateful " : "");
+  os << (info.is_implied_wire(id) ? "implied wire " : "");
+  os << (info.is_implied_latch(id) ? "implied latch " : "");
   os << (info.is_read(id) ? "externally read " : "");
   os << (info.is_write(id) ? "externally written " : "");
   os << endl;

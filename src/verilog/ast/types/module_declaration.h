@@ -75,6 +75,8 @@ class ModuleDeclaration : public Node {
     DECORATION(std::unordered_set<const Identifier*>, inputs);
     DECORATION(std::unordered_set<const Identifier*>, outputs);
     DECORATION(std::unordered_set<const Identifier*>, stateful);
+    DECORATION(std::unordered_set<const Identifier*>, implied_wires);
+    DECORATION(std::unordered_set<const Identifier*>, implied_latches);
     DECORATION(std::unordered_set<const Identifier*>, reads);
     DECORATION(std::unordered_set<const Identifier*>, writes);
     typedef std::unordered_set<const Identifier*, HashId, EqId> ParamSet;
