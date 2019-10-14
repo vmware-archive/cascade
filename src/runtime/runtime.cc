@@ -609,14 +609,18 @@ bool Runtime::eval_item(ModuleItem* mi) {
 }
 
 void Runtime::rebuild() {
-  // Nothing to do if no items have been eval'ed since the last time this
-  // method was called
+  // If nothing has been evaled since the last call, we don't have to worry
+  // about recompilation. But we might be here because of a jit handoff, in
+  // which case we still need to check for compiler errors.
   if (item_evals_ == 0) {
+    if (compiler_->error()) {
+      log_compiler_errors();
+    } 
     return;
   } 
 
-  // Inline as much as we can and compile whatever is new. Reset the item_evals_
-  // counter as soon as we're done.
+  // Inline as much as we can and compile whatever is new. Reset the
+  // item_evals_ counter as soon as we're done.
   program_->inline_all();
   root_->synchronize(item_evals_);
   item_evals_ = 0;
