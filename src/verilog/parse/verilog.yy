@@ -373,8 +373,8 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 
 /* A.6.1 Continuous Assignment Statements */
 %type <std::vector<ModuleItem*>> continuous_assign
-%type <std::vector<VariableAssign*>> list_of_net_assignments
-%type <VariableAssign*> net_assignment
+%type <std::vector<ContinuousAssign*>> list_of_net_assignments
+%type <ContinuousAssign*> net_assignment
 
 /* A.6.2 Procedural Blocks and Assignments */
 %type <InitialConstruct*> initial_construct
@@ -427,7 +427,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <Expression*> primary
 
 /* A.8.5 Expression Left-Side Values */
-%type <Identifier*> net_lvalue 
+%type <std::vector<Identifier*>> net_lvalue 
 %type <Identifier*> variable_lvalue
 
 /* A.8.6 Operators */
@@ -478,6 +478,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <std::vector<ModuleItem*>> module_or_generate_item_S
 %type <std::vector<ArgAssign*>> named_parameter_assignment_P
 %type <std::vector<ArgAssign*>> named_port_connection_P
+%type <std::vector<Identifier*>> net_lvalue_P
 %type <size_t> net_type_L
 %type <bool> net_type_Q
 %type <std::vector<ModuleItem*>> non_port_module_item_S
@@ -1353,11 +1354,8 @@ generate_block_or_null
 /* A.6.1 Continuous Assignment Statements */
 continuous_assign
   : ASSIGN /* drive_strength? delay3? */ list_of_net_assignments SCOLON {
-    for (auto id : $2) {
-      auto ca = new ContinuousAssign(id->get_lhs()->clone(), id->get_rhs()->clone());
-      parser->set_loc(ca, id->get_lhs());
-      delete id;
-      $$.push_back(ca);
+    for (auto* ca : $2) {
+      $$.push_back(static_cast<ModuleItem*>(ca));
     }
   }
   ;
@@ -1372,8 +1370,8 @@ list_of_net_assignments
   ;
 net_assignment
   : net_lvalue EQ expression { 
-    $$ = new VariableAssign($1,$3); 
-    parser->set_loc($$, $1);
+    $$ = new ContinuousAssign($1.begin(), $1.end(),$3); 
+    parser->set_loc($$, $1.front());
   }
   ;
 
@@ -1956,8 +1954,8 @@ primary
 
 /* A.8.5 Expression Left-Side Values */
 net_lvalue 
-  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
-  /* | '{' net_lvalue_P '}' */
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$.push_back($1); }
+  | OCURLY net_lvalue_P CCURLY { $$ = $2; }
   ;
 variable_lvalue
   : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
@@ -2210,6 +2208,15 @@ named_parameter_assignment_P
   | named_parameter_assignment_P COMMA named_parameter_assignment { 
     $$ = $1;
     $$.push_back($3);
+  }
+  ;
+net_lvalue_P
+  : net_lvalue {
+    $$.insert($$.end(), $1.begin(), $1.end());
+  }
+  | net_lvalue_P COMMA net_lvalue {
+    $$ = $1;
+    $$.insert($$.end(), $3.begin(), $3.end());
   }
   ;
 named_port_connection_P

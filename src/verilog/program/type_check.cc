@@ -485,6 +485,11 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
+  // CHECK: Continuous assignments which target concatenations
+  if (ca->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of continuous assigns which target concatenations!", ca);
+  }
+
   net_lval_ = true;
   ca->accept_lhs(this);
   net_lval_ = false;

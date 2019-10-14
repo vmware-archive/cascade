@@ -30,7 +30,10 @@
 
 #include "verilog/ast/visitors/builder.h"
 
+#include <vector>
 #include "verilog/ast/ast.h"
+
+using namespace std;
 
 namespace cascade {
 
@@ -221,8 +224,13 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 }
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
+  vector<Identifier*> lhs;
+  for (auto i = ca->begin_lhs(), ie = ca->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new ContinuousAssign(
-    ca->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     ca->accept_rhs(this)
   );
 }
