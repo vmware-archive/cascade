@@ -679,6 +679,10 @@ void TypeCheck::visit(const SeqBlock* sb) {
 void TypeCheck::visit(const BlockingAssign* ba) {
   // RECURSE: 
   Visitor::visit(ba);
+  // CHECK: Aassignments which target concatenations
+  if (ba->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of blocking assigns which target concatenations!", ba);
+  }
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(ba->get_lhs());
   if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
@@ -689,6 +693,10 @@ void TypeCheck::visit(const BlockingAssign* ba) {
 void TypeCheck::visit(const NonblockingAssign* na) {
   // RECURSE:
   Visitor::visit(na);
+  // CHECK: Aassignments which target concatenations
+  if (na->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of non-blocking assigns which target concatenations!", na);
+  }
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(na->get_lhs());
   if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {

@@ -428,7 +428,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 
 /* A.8.5 Expression Left-Side Values */
 %type <std::vector<Identifier*>> net_lvalue 
-%type <Identifier*> variable_lvalue
+%type <std::vector<Identifier*>> variable_lvalue
 
 /* A.8.6 Operators */
 %type <UnaryExpression::Op> unary_operator
@@ -497,6 +497,7 @@ cascade::SeqBlock* desugar_io(bool input, const cascade::Expression* fd, InItr b
 %type <IdList> simple_id_L
 %type <std::vector<Statement*>> statement_S
 %type <size_t> time_L
+%type <std::vector<Identifier*>> variable_lvalue_P
 
 /* Alternate Rules */
 /* These rules deviate from the Verilog Spec, due to LALR(1) parser quirks */
@@ -1384,19 +1385,19 @@ always_construct
   ;
 blocking_assignment
   : variable_lvalue EQ delay_or_event_control_Q expression {
-    $$ = new BlockingAssign($3, $1, $4);
-    parser->set_loc($$, $1);
+    $$ = new BlockingAssign($3, $1.begin(), $1.end(), $4);
+    parser->set_loc($$, $1.front());
   }
   ;
 nonblocking_assignment
   : variable_lvalue LEQ delay_or_event_control_Q expression {
-    $$ = new NonblockingAssign($3, $1, $4);
-    parser->set_loc($$, $1);
+    $$ = new NonblockingAssign($3, $1.begin(), $1.end(), $4);
+    parser->set_loc($$, $1.front());
   }
   ;
 variable_assignment
-  : variable_lvalue EQ expression { 
-    $$ = new VariableAssign($1,$3); 
+  : hierarchical_identifier /* TODO: variable_lvalue */ EQ expression { 
+    $$ = new VariableAssign($1, $3); 
     parser->set_loc($$, $1);
   }
   ;
@@ -1958,8 +1959,8 @@ net_lvalue
   | OCURLY net_lvalue_P CCURLY { $$ = $2; }
   ;
 variable_lvalue
-  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$ = $1; }
-  /* TODO | '{' variable_lvalue_P '}' */
+  : hierarchical_identifier /* [exp]* [rexp]? inlined */ { $$.push_back($1); }
+  | OCURLY variable_lvalue_P CCURLY { $$ = $2; }
   ;
 
 /* A.8.6 Operators */
@@ -2358,6 +2359,15 @@ statement_S
   ;
 time_L
   : TIME { $$ = parser->get_loc().begin.line; }
+  ;
+variable_lvalue_P
+  : variable_lvalue {
+    $$.insert($$.end(), $1.begin(), $1.end());
+  }
+  | variable_lvalue_P COMMA variable_lvalue {
+    $$ = $1;
+    $$.insert($$.end(), $3.begin(), $3.end());
+  }
   ;
 
 alt_parameter_declaration

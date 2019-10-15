@@ -308,17 +308,27 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 }
 
 Statement* Builder::build(const BlockingAssign* ba) {
+  vector<Identifier*> lhs;
+  for (auto i = ba->begin_lhs(), ie = ba->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new BlockingAssign(
     ba->accept_ctrl(this),
-    ba->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     ba->accept_rhs(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
+  vector<Identifier*> lhs;
+  for (auto i = na->begin_lhs(), ie = na->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new NonblockingAssign(
     na->accept_ctrl(this),
-    na->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     na->accept_rhs(this)
   );
 }

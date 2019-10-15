@@ -475,7 +475,14 @@ void Printer::visit(const PortDeclaration* pd) {
 }
 
 void Printer::visit(const BlockingAssign* ba) {
-  ba->accept_lhs(this);
+  if (ba->size_lhs() == 1) {
+    ba->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    ba->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " = " << Color::RESET;
   ba->accept_ctrl(this, []{}, [this]{*this << " ";});
   ba->accept_rhs(this);
@@ -483,7 +490,14 @@ void Printer::visit(const BlockingAssign* ba) {
 }
 
 void Printer::visit(const NonblockingAssign* na) {
-  na->accept_lhs(this);
+  if (na->size_lhs() == 1) {
+    na->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    na->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " <= " << Color::RESET;
   na->accept_ctrl(this, []{}, [this]{*this << " ";});
   na->accept_rhs(this);

@@ -42,8 +42,12 @@ namespace cascade {
 class BlockingAssign : public AssignStatement {
   public:
     // Constructors:
-    explicit BlockingAssign(Identifier* lhs__, Expression* rhs__);
-    BlockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__);
+    explicit BlockingAssign(Identifier* id__, Expression* rhs__);
+    BlockingAssign(TimingControl* ctrl__, Identifier* id__, Expression* rhs__);
+    template <typename LhsItr>
+    BlockingAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
+    template <typename LhsItr>
+    BlockingAssign(TimingControl* ctrl__, LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
     ~BlockingAssign() override;
 
     // Node Interface:
@@ -52,36 +56,73 @@ class BlockingAssign : public AssignStatement {
 
     // Get/Set
     MAYBE_GET_SET(BlockingAssign, TimingControl, ctrl)
-    PTR_GET_SET(BlockingAssign, Identifier, lhs)
+    MANY_GET_SET(BlockingAssign, Identifier, lhs)
     PTR_GET_SET(BlockingAssign, Expression, rhs)
+
+    // Extended Get/Set:
+    // 
+    // TODO(eschkufz) These methods are deprecated, and will be supported only
+    // until we complete the transition to supporting concatenations on the
+    // left hand side of blocking assigns.
+    Identifier* get_lhs();
+    const Identifier* get_lhs() const;
 
   private:
     MAYBE_ATTR(TimingControl, ctrl);
-    PTR_ATTR(Identifier, lhs);
+    MANY_ATTR(Identifier, lhs);
     PTR_ATTR(Expression, rhs);
+
+    explicit BlockingAssign(Expression* rhs__);
 };
 
-inline BlockingAssign::BlockingAssign(Identifier* lhs__, Expression* rhs__) : AssignStatement(Node::Tag::blocking_assign) {
-  MAYBE_DEFAULT_SETUP(ctrl);
-  PTR_SETUP(lhs); 
-  PTR_SETUP(rhs); 
-  parent_ = nullptr;
+inline BlockingAssign::BlockingAssign(Identifier* id__, Expression* rhs__) : BlockingAssign(rhs__) {
+  push_back_lhs(id__);
 }
 
-inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__) : BlockingAssign(lhs__, rhs__) {
+inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, Identifier* id__, Expression* rhs__) : BlockingAssign(rhs__) {
+  MAYBE_SETUP(ctrl);
+  push_back_lhs(id__);
+}
+
+template <typename LhsItr>
+inline BlockingAssign::BlockingAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : BlockingAssign(rhs__) {
+  MANY_SETUP(lhs);        
+}
+
+template <typename LhsItr>
+inline BlockingAssign::BlockingAssign(TimingControl* ctrl__, LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : BlockingAssign(rhs__) {
+  MANY_SETUP(lhs);
   MAYBE_SETUP(ctrl);
 }
 
 inline BlockingAssign::~BlockingAssign() {
   MAYBE_TEARDOWN(ctrl);
-  PTR_TEARDOWN(lhs);
+  MANY_TEARDOWN(lhs);
   PTR_TEARDOWN(rhs);
 }
 
 inline BlockingAssign* BlockingAssign::clone() const {
-  auto* res = new BlockingAssign(lhs_->clone(), rhs_->clone());
+  auto* res = new BlockingAssign(rhs_->clone());
   MAYBE_CLONE(ctrl);
+  MANY_CLONE(lhs);
   return res;
+}
+
+inline Identifier* BlockingAssign::get_lhs() {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline const Identifier* BlockingAssign::get_lhs() const {
+  assert(lhs_size() == 1);
+  return front_lhs();
+}
+
+inline BlockingAssign::BlockingAssign(Expression* rhs__) : AssignStatement(Node::Tag::blocking_assign) {
+  MAYBE_DEFAULT_SETUP(ctrl);
+  MANY_DEFAULT_SETUP(lhs); 
+  PTR_SETUP(rhs); 
+  parent_ = nullptr;
 }
 
 } // namespace cascade 
