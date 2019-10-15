@@ -41,6 +41,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/build/ast_builder.h"
 #include "verilog/print/print.h"
+#include "verilog/transform/block_flatten.h"
 
 using namespace std;
 
@@ -87,6 +88,9 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   emit_open_loop_logic(res, de);
   emit_var_logic(res, md, de);
   emit_output_logic(res, md, de);
+
+  // Final cleanup passes
+  BlockFlatten().run(res);
 
   // Holy cow! We're done!
   ss.str(string());
