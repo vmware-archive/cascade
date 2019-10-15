@@ -118,9 +118,7 @@ class TypeCheck : public Visitor {
     void visit(const DebugStatement* ds) override;
     void visit(const GetStatement* gs) override;
     void visit(const PutStatement* ps) override;
-    void visit(const RestartStatement* rs) override;
-    void visit(const RetargetStatement* rs) override;
-    void visit(const SaveStatement* ss) override;
+    void visit(const VariableAssign* va) override;
 
     // Checks whether a range is little-endian and begins at 0
     void check_width(const RangeExpression* re);

@@ -759,19 +759,13 @@ void TypeCheck::visit(const PutStatement* ps) {
   ps->accept_expr(this);
 }
 
-void TypeCheck::visit(const RestartStatement* rs) {
-  (void) rs;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const RetargetStatement* rs) {
-  (void) rs;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const SaveStatement* ss) {
-  (void) ss;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
+void TypeCheck::visit(const VariableAssign* va) {
+  // RECURSE:
+  Visitor::visit(va);
+  // CHECK: Aassignments which target concatenations
+  if (va->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of variable assigns which target concatenations!", va);
+  }
 }
 
 void TypeCheck::check_width(const RangeExpression* re) {

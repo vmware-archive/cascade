@@ -708,7 +708,14 @@ void Printer::visit(const EventControl* ec) {
 }
 
 void Printer::visit(const VariableAssign* va) {
-  va->accept_lhs(this);
+  if (va->size_lhs() == 1) {
+    va->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    va->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " = " << Color::RESET;
   va->accept_rhs(this);
 }

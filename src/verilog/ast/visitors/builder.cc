@@ -464,8 +464,13 @@ TimingControl* Builder::build(const EventControl* ec) {
 }
 
 VariableAssign* Builder::build(const VariableAssign* va) {
+  vector<Identifier*> lhs;
+  for (auto i = va->begin_lhs(), ie = va->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new VariableAssign(
-    va->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     va->accept_rhs(this)
   );
 }

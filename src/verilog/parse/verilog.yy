@@ -1396,9 +1396,9 @@ nonblocking_assignment
   }
   ;
 variable_assignment
-  : hierarchical_identifier /* TODO: variable_lvalue */ EQ expression { 
-    $$ = new VariableAssign($1, $3); 
-    parser->set_loc($$, $1);
+  : variable_lvalue EQ expression { 
+    $$ = new VariableAssign($1.begin(), $1.end(), $3); 
+    parser->set_loc($$, $1.front());
   }
   ;
 
