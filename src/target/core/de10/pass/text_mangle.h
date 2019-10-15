@@ -64,6 +64,7 @@ class TextMangle : public Builder {
     ModuleItem* build(const PortDeclaration* pd) override;
     Expression* build(const FeofExpression* fe) override;
     Statement* build(const NonblockingAssign* na) override;
+    Statement* build(const DebugStatement* ds) override;
     Statement* build(const FflushStatement* fs) override;
     Statement* build(const FinishStatement* fs) override;
     Statement* build(const FseekStatement* fs) override;

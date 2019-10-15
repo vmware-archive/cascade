@@ -413,6 +413,11 @@ void De10Logic::Inserter::visit(const FeofExpression* fe) {
   in_args_ = false;
 }
 
+void De10Logic::Inserter::visit(const DebugStatement* ds) {
+  de_->tasks_.push_back(ds);
+  // Don't descend, there aren't any expressions below here
+}
+
 void De10Logic::Inserter::visit(const FflushStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
@@ -432,11 +437,6 @@ void De10Logic::Inserter::visit(const FseekStatement* fs) {
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
-}
-
-void De10Logic::Inserter::visit(const DebugStatement* ds) {
-  de_->tasks_.push_back(ds);
-  // Don't descend, there aren't any expressions below here
 }
 
 void De10Logic::Inserter::visit(const GetStatement* gs) {

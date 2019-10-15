@@ -111,6 +111,13 @@ Statement* TextMangle::build(const NonblockingAssign* na) {
   return res;
 }
 
+Statement* TextMangle::build(const DebugStatement* ds) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
+}
+
 Statement* TextMangle::build(const FflushStatement* fs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
