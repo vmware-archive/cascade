@@ -70,7 +70,7 @@ class De10Rewrite {
     void emit_state_logic(ModuleDeclaration* res, const De10Logic* de, const Machinify* mfy);
     void emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti);
     void emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
+    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de, const Machinify* mfy);
     void emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de);
           
     void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;

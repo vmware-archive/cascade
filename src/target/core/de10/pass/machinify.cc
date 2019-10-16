@@ -36,23 +36,48 @@ using namespace std;
 
 namespace cascade {
 
-Machinify::Machinify() : Editor() { }
-
 Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
 }
 
-SeqBlock* Machinify::Generate::run(const Statement* s) {
+Machinify::Generate::~Generate() {
+  delete text_;
+}
+
+const ConditionalStatement* Machinify::Generate::text() const {
+  return text_;
+}
+
+const Identifier* Machinify::Generate::name() const {
+  const auto* t = text_->get_then();
+  assert(t->is(Node::Tag::seq_block));
+  const auto* sb = static_cast<const SeqBlock*>(t);
+  assert(sb->is_non_null_id());
+  return sb->get_id();
+}
+
+size_t Machinify::Generate::final_state() const {
+  return current().first;
+}
+
+Machinify::Generate::task_iterator Machinify::Generate::task_begin() const {
+  return task_states_.begin();
+}
+
+Machinify::Generate::task_iterator Machinify::Generate::task_end() const {
+  return task_states_.end();
+}
+
+void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   // Create a state machine with a single state
   machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
-  next_state();
 
   // Populate the state machine
+  next_state();
   s->accept(this);
 
-  // Now we need a done state. If the last state in the machine is currently
-  // empty, then we can use that one. Otherwise, we'll have to create one last
-  // transition to an empty state.
+  // Append a done state. If the last state in the machine is empty, we can use
+  // that one. Otherwise, we'll create one last transition to an empty state.
   auto c = current();
   if (!c.second->empty_stmts()) {
     if (task_states_.empty() || (task_states_.back() != c.first)) {
@@ -68,9 +93,11 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
   c.second->push_back_stmts(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
   c.second->push_back_stmts(new NonblockingAssign(new Identifier("__state"), new Identifier("__final")));
 
-  // Add declaration for state registers
-  auto* sb = new SeqBlock(machine_);
-  sb->replace_id(name());
+  // Create a sequential block to hold the state machine. This block will hold
+  // local declarations for constant values.
+  stringstream ss;
+  ss << "__machine_" << idx_;
+  auto* sb = new SeqBlock(new Identifier(ss.str()), machine_);
   sb->push_back_decls(new LocalparamDeclaration(
     new Attributes(), new Identifier("__final"), Declaration::Type::UNSIGNED, new Number(Bits(32, machine_->size_items()-1))
   ));
@@ -81,25 +108,32 @@ SeqBlock* Machinify::Generate::run(const Statement* s) {
     new Attributes(), new Identifier("__task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(false))
   ));
 
-  return sb;
-}
+  // Create a trigger expression to guard this block
+  auto i = ec->begin_events();
+  Expression* guard = to_guard(*i++);
+  for (auto ie = ec->end_events(); i != ie; ++i) {
+    guard = new BinaryExpression(to_guard(*i), BinaryExpression::Op::PPIPE, guard);
+  }
 
-Identifier* Machinify::Generate::name() const {
-  stringstream ss;
-  ss << "__machine_" << idx_;
-  return new Identifier(ss.str());
-}
-
-size_t Machinify::Generate::final_state() const {
-  return current().first;
-}
-
-Machinify::Generate::task_iterator Machinify::Generate::task_begin() const {
-  return task_states_.begin();
-}
-
-Machinify::Generate::task_iterator Machinify::Generate::task_end() const {
-  return task_states_.end();
+  // Tie everything together into a conditional statement
+  text_ = new ConditionalStatement(
+    new Identifier("__continue"), 
+    sb,
+    new SeqBlock(
+      new NonblockingAssign(
+        new Identifier("__state"),
+        new ConditionalExpression(
+          new Identifier("__reset"),
+          new Identifier("__final"),
+          new ConditionalExpression(
+            guard,
+            new Number(Bits(false)),
+            new Identifier("__state")
+          )
+        )
+      )
+    )
+  );
 }
 
 void Machinify::Generate::visit(const BlockingAssign* ba) {
@@ -285,6 +319,47 @@ void Machinify::Generate::next_state() {
   machine_->push_back_items(ci);
 }
 
+Identifier* Machinify::Generate::to_guard(const Event* e) const {
+  assert(e->get_expr()->is(Node::Tag::identifier));
+  const auto* i = static_cast<const Identifier*>(e->get_expr());
+  switch (e->get_type()) {
+    case Event::Type::NEGEDGE:
+      return new Identifier(i->front_ids()->get_readable_sid()+"_negedge");
+    case Event::Type::POSEDGE:
+      return new Identifier(i->front_ids()->get_readable_sid()+"_posedge");
+    default:
+      assert(false);
+      return nullptr;
+  }
+}
+
+void Machinify::run(ModuleDeclaration* md) {
+  for (auto i = md->begin_items(); i != md->end_items(); ) {
+    // Ignore everything other than always constructs
+    if (!(*i)->is(Node::Tag::always_construct)) {
+      ++i;
+      continue;
+    }
+
+    // Ignore combinational always constructs
+    auto* ac = static_cast<AlwaysConstruct*>(*i);
+    assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
+    auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
+    assert(tcs->get_ctrl()->is(Node::Tag::event_control));
+    auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
+    if (ec->front_events()->get_type() == Event::Type::EDGE) {
+      ++i;
+      continue;
+    }
+      
+    // Generate a state machine for this block and remove it from the AST.
+    Generate gen(generators_.size());
+    gen.run(ec, tcs->get_stmt());
+    generators_.push_back(gen);
+    i = md->purge_items(i);
+  }
+}
+
 Machinify::const_iterator Machinify::begin() const {
   return generators_.begin();
 }
@@ -293,7 +368,7 @@ Machinify::const_iterator Machinify::end() const {
   return generators_.end();
 }
 
-Machinify::TaskCheck::TaskCheck() : Visitor() { }
+Machinify::TaskCheck::TaskCheck() : Visitor() { } 
 
 bool Machinify::TaskCheck::run(const Node* n) {
   res_ = false; 
@@ -306,32 +381,6 @@ void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
   if (i->eq("__task_id")) {
     res_ = true;
   }
-}
-
-void Machinify::edit(ModuleDeclaration* md) {
-  md->accept_items(this);
-}
-
-void Machinify::edit(AlwaysConstruct* ac) {
-  assert(ac->get_stmt()->is(Node::Tag::timing_control_statement));
-  const auto* tcs = static_cast<const TimingControlStatement*>(ac->get_stmt());
-  assert(tcs->get_ctrl()->is(Node::Tag::event_control));
-  const auto* ec = static_cast<const EventControl*>(tcs->get_ctrl());
-
-  // Nothing to do if this is a combinational always block
-  if (ec->front_events()->get_type() == Event::Type::EDGE) {
-    return;
-  }
-  // Also nothing to do if there's no file i/o in this block
-  if (!TaskCheck().run(ac)) {
-    return;
-  }
-  // Otherwise, replace this block with a reentrant state machine
-  Generate gen(generators_.size());
-  auto* machine = gen.run(tcs->get_stmt());
-  auto* ctrl = ec->clone();
-  ac->replace_stmt(new TimingControlStatement(ctrl, machine));
-  generators_.push_back(gen);
 }
 
 } // namespace cascade

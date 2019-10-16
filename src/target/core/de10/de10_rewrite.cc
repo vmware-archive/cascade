@@ -35,7 +35,6 @@
 #include "target/core/de10/de10_logic.h"
 #include "target/core/de10/pass/machinify.h"
 #include "target/core/de10/pass/text_mangle.h"
-#include "target/core/de10/pass/trigger_reschedule.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
@@ -77,16 +76,14 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   TextMangle tm(md, de);
   md->accept_items(&tm, res->back_inserter_items());
   Machinify mfy;
-  res->accept(&mfy);
-  TriggerReschedule tr;
-  res->accept(&tr);
+  mfy.run(res);
 
   emit_avalon_logic(res);
   emit_update_logic(res, de);
   emit_state_logic(res, de, &mfy);
   emit_trigger_logic(res, &ti);
   emit_open_loop_logic(res, de);
-  emit_var_logic(res, md, de);
+  emit_var_logic(res, md, de, &mfy);
   emit_output_logic(res, md, de);
 
   // Final cleanup passes
@@ -365,7 +362,7 @@ void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
+void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de, const Machinify* mfy) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table as well
@@ -383,6 +380,9 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 
   ItemBuilder ib;
   ib << "always @(posedge __clk) begin" << endl;
+  for (auto i = mfy->begin(), ie = mfy->end(); i != ie; ++i) {
+    ib << i->text() << endl;
+  }
   for (const auto& v : vars) {
     const auto itr = v.second;
     const auto arity = Evaluate().get_arity(itr->first);
