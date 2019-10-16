@@ -75,13 +75,16 @@ Expression* TextMangle::build(const FeofExpression* fe) {
 }
 
 Statement* TextMangle::build(const BlockingAssign* ba) {
-  // Look up the target of this assignment and its entry in the variable table
+  // Look up the target of this assignment 
   const auto* r = Resolve().get_resolution(ba->get_lhs());
   assert(r != nullptr);
-  const auto titr = de_->get_table().var_find(r);
-  assert(titr != de_->get_table().var_end());
 
-  // Replace the original assignment with an assignment to a concatenation
+  // If this entry doesn't appear in the vtable, we can leave it as is
+  const auto titr = de_->get_table().var_find(r);
+  if (titr == de_->get_table().var_end()) {
+    return ba->clone();
+  }
+  // Otherwise, replace the original assignment with an assignment to a concatenation
   vector<Identifier*> lhs;
   for (size_t i = 0, ie = titr->second.words_per_element; i < ie; ++i) {
     lhs.push_back(new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+ie-i-1))));

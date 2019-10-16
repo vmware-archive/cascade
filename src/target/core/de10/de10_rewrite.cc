@@ -278,7 +278,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
   } else {
     ib << "wire __there_were_tasks = |{";
     for (auto i = mfy->begin(), ie = mfy->end(); i != ie;) {
-      ib << i->name() << ".__task_id != 0";
+      ib << "__task_id[" << i->name() << "] != 0";
       if (++i != ie) {
         ib << ",";
       }
@@ -286,7 +286,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
     ib << "};" << endl;
     ib << "wire __all_final = &{";
     for (auto i = mfy->begin(), ie = mfy->end(); i != ie; ) {
-      ib << i->name() << ".__state == " << i->name() << ".__final";
+      ib << "__state[" << i->name() << "] == " << i->final_state(); 
       if (++i != ie) {
         ib << ",";
       }
@@ -379,6 +379,8 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   }
 
   ItemBuilder ib;
+  ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << endl;
+  ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << endl;
   ib << "always @(posedge __clk) begin" << endl;
   for (auto i = mfy->begin(), ie = mfy->end(); i != ie; ++i) {
     ib << i->text() << endl;
@@ -391,7 +393,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 
     for (size_t i = 0, ie = itr->second.elements; i < ie; ++i) {
       for (size_t j = 0, je = itr->second.words_per_element; j < je; ++j) {
-        ib << "__var[" << idx << "] = ";
+        ib << "__var[" << idx << "] <= ";
         if (de->open_loop_enabled() && (itr->first == de->open_loop_clock())) {
           ib << "__open_loop_tick ? {31'd0,~" << itr->first->front_ids()->get_readable_sid() << "} : ";
         }
@@ -452,10 +454,10 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   }
   
   ib << de->get_table().there_are_updates_index() << ": __out = __there_are_updates;" << endl;
-  ib << de->get_table().there_were_tasks_index() << ": __out = __machine_0.__task_id;" << endl;
+  ib << de->get_table().there_were_tasks_index() << ": __out = __task_id[0];" << endl;
   ib << de->get_table().done_index() << ": __out = __done;" << endl;
   ib << de->get_table().open_loop_index() << ": __out = __open_loop;" << endl;
-  ib << de->get_table().debug_index() << ": __out = __machine_0.__state;" << endl;
+  ib << de->get_table().debug_index() << ": __out = __state[0];" << endl;
   ib << "default: __out = ((__vid < " << de->get_table().var_size() << ") ? __var[__vid] : __expr[(__vid - " << de->get_table().var_size() << ")]);" << endl;
   ib << "endcase" << endl;
   ib << "assign __wait = (__open_loop_tick || (__any_triggers || __continue));" << endl;

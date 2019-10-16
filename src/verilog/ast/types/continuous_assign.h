@@ -95,7 +95,7 @@ inline Identifier* ContinuousAssign::get_lhs() {
 }
 
 inline const Identifier* ContinuousAssign::get_lhs() const {
-  assert(lhs_size() == 1);
+  assert(size_lhs() == 1);
   return front_lhs();
 }
 

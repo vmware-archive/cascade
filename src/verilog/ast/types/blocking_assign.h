@@ -114,7 +114,7 @@ inline Identifier* BlockingAssign::get_lhs() {
 }
 
 inline const Identifier* BlockingAssign::get_lhs() const {
-  assert(lhs_size() == 1);
+  assert(size_lhs() == 1);
   return front_lhs();
 }
 

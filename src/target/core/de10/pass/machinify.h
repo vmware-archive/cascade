@@ -54,10 +54,10 @@ class Machinify {
         typedef typename std::vector<size_t>::const_iterator task_iterator;
 
         Generate(size_t idx);
-        ~Generate();
+        ~Generate() override = default;
 
         const ConditionalStatement* text() const;
-        const Identifier* name() const; 
+        size_t name() const;
 
         size_t final_state() const;
         task_iterator task_begin() const;
@@ -98,6 +98,8 @@ class Machinify {
     };
 
     typedef typename std::vector<Generate>::const_iterator const_iterator;
+
+    ~Machinify();
 
     void run(ModuleDeclaration* md);
     const_iterator begin() const;

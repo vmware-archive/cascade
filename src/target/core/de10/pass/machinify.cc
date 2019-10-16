@@ -40,20 +40,12 @@ Machinify::Generate::Generate(size_t idx) : Visitor() {
   idx_ = idx;
 }
 
-Machinify::Generate::~Generate() {
-  delete text_;
-}
-
 const ConditionalStatement* Machinify::Generate::text() const {
   return text_;
 }
 
-const Identifier* Machinify::Generate::name() const {
-  const auto* t = text_->get_then();
-  assert(t->is(Node::Tag::seq_block));
-  const auto* sb = static_cast<const SeqBlock*>(t);
-  assert(sb->is_non_null_id());
-  return sb->get_id();
+size_t Machinify::Generate::name() const {
+  return idx_;
 }
 
 size_t Machinify::Generate::final_state() const {
@@ -70,7 +62,7 @@ Machinify::Generate::task_iterator Machinify::Generate::task_end() const {
 
 void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   // Create a state machine with a single state
-  machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier("__state"));
+  machine_ = new CaseStatement(CaseStatement::Type::CASE, new Identifier(new Id("__state"), new Number(Bits(32, idx_))));
 
   // Populate the state machine
   next_state();
@@ -81,7 +73,7 @@ void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   auto c = current();
   if (!c.second->empty_stmts()) {
     if (task_states_.empty() || (task_states_.back() != c.first)) {
-      c.second->push_back_stmts(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
+      c.second->push_back_stmts(new NonblockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
     }
     transition(c.second, c.first+1);
     next_state();
@@ -90,49 +82,26 @@ void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   assert(c.second->get_parent()->is(Node::Tag::case_item));
   auto* ci = static_cast<CaseItem*>(c.second->get_parent());
   ci->purge_exprs();
-  c.second->push_back_stmts(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
-  c.second->push_back_stmts(new NonblockingAssign(new Identifier("__state"), new Identifier("__final")));
+  c.second->push_back_stmts(new NonblockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
+  c.second->push_back_stmts(new NonblockingAssign(new Identifier(new Id("__state"), new Number(Bits(32, idx_))), new Number(Bits(32, final_state()))));
 
-  // Create a sequential block to hold the state machine. This block will hold
-  // local declarations for constant values.
-  stringstream ss;
-  ss << "__machine_" << idx_;
-  auto* sb = new SeqBlock(new Identifier(ss.str()), machine_);
-  sb->push_back_decls(new LocalparamDeclaration(
-    new Attributes(), new Identifier("__final"), Declaration::Type::UNSIGNED, new Number(Bits(32, machine_->size_items()-1))
-  ));
-  sb->push_back_decls(new RegDeclaration(
-    new Attributes(), new Identifier("__state"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Identifier("__final")
-  ));
-  sb->push_back_decls(new RegDeclaration(
-    new Attributes(), new Identifier("__task_id"), Declaration::Type::UNSIGNED, new RangeExpression(32, 0), new Number(Bits(false))
-  ));
-
-  // Create a trigger expression to guard this block
+  // Tie everything together into a conditional statement
   auto i = ec->begin_events();
   Expression* guard = to_guard(*i++);
   for (auto ie = ec->end_events(); i != ie; ++i) {
     guard = new BinaryExpression(to_guard(*i), BinaryExpression::Op::PPIPE, guard);
   }
-
-  // Tie everything together into a conditional statement
   text_ = new ConditionalStatement(
     new Identifier("__continue"), 
-    sb,
-    new SeqBlock(
-      new NonblockingAssign(
-        new Identifier("__state"),
-        new ConditionalExpression(
-          new Identifier("__reset"),
-          new Identifier("__final"),
-          new ConditionalExpression(
-            guard,
-            new Number(Bits(false)),
-            new Identifier("__state")
-          )
-        )
+    machine_,
+    new SeqBlock(new NonblockingAssign(
+      new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
+      new ConditionalExpression(
+        new Identifier("__reset"),
+        new Number(Bits(32, final_state())),
+        new ConditionalExpression(guard, new Number(Bits(false)), new Identifier(new Id("__state"), new Number(Bits(32, idx_))))
       )
-    )
+    ))
   );
 }
 
@@ -141,11 +110,18 @@ void Machinify::Generate::visit(const BlockingAssign* ba) {
 }
 
 void Machinify::Generate::visit(const NonblockingAssign* na) {
-  append(na);
-
-  // If this is a task, we need to record the state that it appears in
+  // Check whether this is a task
   const auto is_task = na->get_lhs()->eq("__task_id");
-  if (is_task) {
+
+  // If it's not, we can append it and move on. Otherwise, we need to record
+  // the state that it appears in and mangle it a bit.
+  if (!is_task) {
+    append(na);
+  } else {
+    auto* c = na->clone();
+    c->get_lhs()->push_front_dim(new Number(Bits(32, idx_)));
+    append(c);
+    delete c;
     task_states_.push_back(current().first);
   }
 
@@ -198,7 +174,7 @@ void Machinify::Generate::visit(const CaseStatement* cs) {
   for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
     branch->push_back_items(new CaseItem(
       new NonblockingAssign(
-        new Identifier("__state"),
+        new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
         new Number(Bits(32, begins[idx++].first))
       )
     ));
@@ -260,11 +236,11 @@ void Machinify::Generate::visit(const ConditionalStatement* cs) {
   auto* branch = new ConditionalStatement(
     cs->get_if()->clone(),
     new NonblockingAssign(
-      new Identifier("__state"),
+      new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
       new Number(Bits(32, then_begin.first))
     ),
     new NonblockingAssign(
-      new Identifier("__state"),
+      new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
       new Number(Bits(32, !empty_else ? else_begin.first : (then_end.first + 1)))
     )
   );
@@ -303,7 +279,7 @@ void Machinify::Generate::transition(size_t n) {
 
 void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
   sb->push_back_stmts(new NonblockingAssign(
-    new Identifier("__state"),
+    new Identifier(new Id("__state"), new Number(Bits(32, 0))),
     new Number(Bits(32, n))
   ));
 }
@@ -311,7 +287,7 @@ void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
 void Machinify::Generate::next_state() {
   if (!machine_->empty_items()) {
     if (task_states_.empty() || (task_states_.back() != current().first)) {
-      append(new NonblockingAssign(new Identifier("__task_id"), new Number(Bits(32, 0))));
+      append(new NonblockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
     }
   }
   auto* ci = new CaseItem(new SeqBlock());
@@ -330,6 +306,12 @@ Identifier* Machinify::Generate::to_guard(const Event* e) const {
     default:
       assert(false);
       return nullptr;
+  }
+}
+
+Machinify::~Machinify() {
+  for (auto gen : generators_) {
+    delete gen.text_;
   }
 }
 
