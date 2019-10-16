@@ -68,7 +68,9 @@ Identifier* Resolve::get_full_id(const Identifier* id) {
   Navigate nav(id);
   auto* fid = id->clone();
   fid->purge_ids();
-  fid->push_back_ids(id->back_ids()->clone());
+  if (nav.lost() || (id != nav.name())) {
+    fid->push_back_ids(id->back_ids()->clone());
+  }
   while (!nav.lost() && nav.name() != nullptr) {
     fid->push_front_ids(nav.name()->front_ids()->clone());
     nav.up();

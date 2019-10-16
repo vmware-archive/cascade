@@ -45,10 +45,11 @@ class LocalInterface : public Interface {
     void write(VId id, const Bits* b) override;
     void write(VId id, bool b) override;
 
+    void debug(uint32_t action, const std::string& arg) override;
     void finish(uint32_t arg) override;
-    void restart(const std::string& s) override;
+    void restart(const std::string& path) override;
     void retarget(const std::string& s) override;
-    void save(const std::string& s) override;
+    void save(const std::string& path) override;
 
     FId fopen(const std::string& path, uint8_t mode) override;
     int32_t in_avail(FId id) override;
@@ -77,20 +78,24 @@ inline void LocalInterface::write(VId id, bool b) {
   rt_->get_data_plane()->write(id, b);
 }
 
+inline void LocalInterface::debug(uint32_t action, const std::string& arg) {
+  rt_->debug(action, arg);
+}
+
 inline void LocalInterface::finish(uint32_t arg) {
   rt_->finish(arg);
 }
 
-inline void LocalInterface::restart(const std::string& s) {
-  rt_->restart(s);
+inline void LocalInterface::restart(const std::string& path) {
+  rt_->restart(path);
 }
 
 inline void LocalInterface::retarget(const std::string& s) {
   rt_->retarget(s);
 }
 
-inline void LocalInterface::save(const std::string& s) {
-  rt_->save(s);
+inline void LocalInterface::save(const std::string& path) {
+  rt_->save(path);
 }
 
 inline FId LocalInterface::fopen(const std::string& path, uint8_t mode) {

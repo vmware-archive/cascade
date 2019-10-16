@@ -329,7 +329,14 @@ void Printer::visit(const InitialConstruct* ic) {
 
 void Printer::visit(const ContinuousAssign* ca) {
   *this << Color::GREEN << "assign " << Color::RESET;
-  ca->accept_lhs(this);
+  if (ca->size_lhs() == 1) {
+    ca->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    ca->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " = " << Color::RESET;
   ca->accept_rhs(this);
   *this << Color::RED << ";" << Color::RESET;
@@ -468,7 +475,14 @@ void Printer::visit(const PortDeclaration* pd) {
 }
 
 void Printer::visit(const BlockingAssign* ba) {
-  ba->accept_lhs(this);
+  if (ba->size_lhs() == 1) {
+    ba->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    ba->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " = " << Color::RESET;
   ba->accept_ctrl(this, []{}, [this]{*this << " ";});
   ba->accept_rhs(this);
@@ -476,7 +490,14 @@ void Printer::visit(const BlockingAssign* ba) {
 }
 
 void Printer::visit(const NonblockingAssign* na) {
-  na->accept_lhs(this);
+  if (na->size_lhs() == 1) {
+    na->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    na->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " <= " << Color::RESET;
   na->accept_ctrl(this, []{}, [this]{*this << " ";});
   na->accept_rhs(this);
@@ -583,6 +604,17 @@ void Printer::visit(const TimingControlStatement* ptc) {
   ptc->accept_stmt(this);
 }
 
+void Printer::visit(const DebugStatement* ds) {
+  *this << Color::YELLOW << "$__debug" << Color::RESET;
+  *this << Color::RED << "(" << Color::RESET;
+  ds->accept_action(this);
+  if (ds->is_non_null_arg()) {
+    *this << Color::RED << "," << Color::RESET;
+    ds->accept_arg(this);
+  }
+  *this << Color::RED << ");" << Color::RESET;
+}
+
 void Printer::visit(const FflushStatement* fs) {
   *this << Color::YELLOW << "$fflush" << Color::RESET;
   *this << Color::RED << "(" << Color::RESET;
@@ -676,7 +708,14 @@ void Printer::visit(const EventControl* ec) {
 }
 
 void Printer::visit(const VariableAssign* va) {
-  va->accept_lhs(this);
+  if (va->size_lhs() == 1) {
+    va->front_lhs()->accept(this);
+  } else {
+    *this << Color::RED << "{" << Color::RESET;
+    int cnt = 0;
+    va->accept_lhs(this, [this,&cnt]{if (cnt++) {*this << Color::RED << "," << Color::RESET;}}, []{});
+    *this << Color::RED << "}" << Color::RESET;
+  }
   *this << Color::RED << " = " << Color::RESET;
   va->accept_rhs(this);
 }

@@ -72,10 +72,11 @@ class ModuleDeclaration : public Node {
     friend class ModuleInfo;
     DECORATION(size_t, next_update);
     DECORATION(std::unordered_set<const Identifier*>, locals);
-    DECORATION(std::unordered_set<const Identifier*>, externals);
     DECORATION(std::unordered_set<const Identifier*>, inputs);
     DECORATION(std::unordered_set<const Identifier*>, outputs);
     DECORATION(std::unordered_set<const Identifier*>, stateful);
+    DECORATION(std::unordered_set<const Identifier*>, implied_wires);
+    DECORATION(std::unordered_set<const Identifier*>, implied_latches);
     DECORATION(std::unordered_set<const Identifier*>, reads);
     DECORATION(std::unordered_set<const Identifier*>, writes);
     typedef std::unordered_set<const Identifier*, HashId, EqId> ParamSet;
@@ -88,6 +89,7 @@ class ModuleDeclaration : public Node {
     DECORATION(ConnMap, connections);
     typedef std::unordered_map<const Identifier*, const ModuleDeclaration*> ChildMap;
     DECORATION(ChildMap, children);
+    DECORATION(bool, uses_mixed_triggers);
 
     friend class Navigate;
     DECORATION(Scope, scope_idx);
@@ -100,6 +102,7 @@ inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id_
   MANY_DEFAULT_SETUP(items);
   parent_ = nullptr;
   next_update_ = 0;
+  uses_mixed_triggers_ = false;
   scope_idx_.next_supdate_ = 0;
 }
 

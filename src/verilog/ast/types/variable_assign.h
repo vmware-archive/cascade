@@ -38,10 +38,12 @@
 
 namespace cascade {
 
-class VariableAssign : public Node {
+class VariableAssign : public ModuleItem {
   public:
     // Constructors:
-    VariableAssign(Identifier* lhs__, Expression* rhs__);
+    explicit VariableAssign(Identifier* id__, Expression* rhs__);
+    template <typename LhsItr>
+    VariableAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
     ~VariableAssign() override;
 
     // Node Interface:
@@ -49,27 +51,58 @@ class VariableAssign : public Node {
     VariableAssign* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(VariableAssign, Identifier, lhs)
+    MANY_GET_SET(VariableAssign, Identifier, lhs)
     PTR_GET_SET(VariableAssign, Expression, rhs)
 
+    // Extended Get/Set:
+    // 
+    // TODO(eschkufz) These methods are deprecated, and will be supported only
+    // until we complete the transition to supporting concatenations on the
+    // left hand side of variable assigns.
+    Identifier* get_lhs();
+    const Identifier* get_lhs() const;
+
   private:
-    PTR_ATTR(Identifier, lhs);
+    MANY_ATTR(Identifier, lhs);
     PTR_ATTR(Expression, rhs);
+
+    explicit VariableAssign(Expression* rhs__);
 };
 
-inline VariableAssign::VariableAssign(Identifier* lhs__, Expression* rhs__) : Node(Node::Tag::variable_assign) { 
-  PTR_SETUP(lhs);
-  PTR_SETUP(rhs);
-  parent_ = nullptr;
+inline VariableAssign::VariableAssign(Identifier* id__, Expression* rhs__) : VariableAssign(rhs__) {
+  push_back_lhs(id__);
+}
+
+template <typename LhsItr>
+inline VariableAssign::VariableAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : VariableAssign(rhs__) {
+  MANY_SETUP(lhs); 
 }
 
 inline VariableAssign::~VariableAssign() {
-  PTR_TEARDOWN(lhs);
+  MANY_TEARDOWN(lhs);
   PTR_TEARDOWN(rhs);
 }
 
 inline VariableAssign* VariableAssign::clone() const {
-  return new VariableAssign(lhs_->clone(), rhs_->clone());
+  auto* res = new VariableAssign(rhs_->clone());
+  MANY_CLONE(lhs);
+  return res;
+}
+
+inline Identifier* VariableAssign::get_lhs() {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline const Identifier* VariableAssign::get_lhs() const {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline VariableAssign::VariableAssign(Expression* rhs__) : ModuleItem(Node::Tag::continuous_assign) {
+  MANY_DEFAULT_SETUP(lhs);
+  PTR_SETUP(rhs);
+  parent_ = nullptr;
 }
 
 } // namespace cascade

@@ -42,8 +42,12 @@ namespace cascade {
 class NonblockingAssign : public AssignStatement {
   public:
     // Constructors:
-    explicit NonblockingAssign(Identifier* lhs__, Expression* rhs__);
-    NonblockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__);
+    explicit NonblockingAssign(Identifier* id__, Expression* rhs__);
+    NonblockingAssign(TimingControl* ctrl__, Identifier* id__, Expression* rhs__);
+    template <typename LhsItr>
+    NonblockingAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
+    template <typename LhsItr>
+    NonblockingAssign(TimingControl* ctrl__, LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
     ~NonblockingAssign() override;
 
     // Node Interface:
@@ -52,36 +56,73 @@ class NonblockingAssign : public AssignStatement {
 
     // Get/Set:
     MAYBE_GET_SET(NonblockingAssign, TimingControl, ctrl)
-    PTR_GET_SET(NonblockingAssign, Identifier, lhs)
+    MANY_GET_SET(NonblockingAssign, Identifier, lhs)
     PTR_GET_SET(NonblockingAssign, Expression, rhs)
+
+    // Extended Get/Set:
+    // 
+    // TODO(eschkufz) These methods are deprecated, and will be supported only
+    // until we complete the transition to supporting concatenations on the
+    // left hand side of non-blocking assigns.
+    Identifier* get_lhs();
+    const Identifier* get_lhs() const;
 
   private:
     MAYBE_ATTR(TimingControl, ctrl);
-    PTR_ATTR(Identifier, lhs);
+    MANY_ATTR(Identifier, lhs);
     PTR_ATTR(Expression, rhs);
+
+    explicit NonblockingAssign(Expression* rhs__);
 };
 
-inline NonblockingAssign::NonblockingAssign(Identifier* lhs__, Expression* rhs__) : AssignStatement(Node::Tag::nonblocking_assign) {
-  MAYBE_DEFAULT_SETUP(ctrl);
-  PTR_SETUP(lhs); 
-  PTR_SETUP(rhs); 
-  parent_ = nullptr;
+inline NonblockingAssign::NonblockingAssign(Identifier* id__, Expression* rhs__) : NonblockingAssign(rhs__) {
+  push_back_lhs(id__);
 }
 
-inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, Identifier* lhs__, Expression* rhs__) : NonblockingAssign(lhs__, rhs__) {
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, Identifier* id__, Expression* rhs__) : NonblockingAssign(rhs__) {
+  MAYBE_SETUP(ctrl);
+  push_back_lhs(id__);
+}
+
+template <typename LhsItr>
+inline NonblockingAssign::NonblockingAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : NonblockingAssign(rhs__) {
+  MANY_SETUP(lhs);        
+}
+
+template <typename LhsItr>
+inline NonblockingAssign::NonblockingAssign(TimingControl* ctrl__, LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : NonblockingAssign(rhs__) {
+  MANY_SETUP(lhs);
   MAYBE_SETUP(ctrl);
 }
 
 inline NonblockingAssign::~NonblockingAssign() {
   MAYBE_TEARDOWN(ctrl);
-  PTR_TEARDOWN(lhs);
+  MANY_TEARDOWN(lhs);
   PTR_TEARDOWN(rhs);
 }
 
 inline NonblockingAssign* NonblockingAssign::clone() const {
-  auto* res = new NonblockingAssign(lhs_->clone(), rhs_->clone());
+  auto* res = new NonblockingAssign(rhs_->clone());
   MAYBE_CLONE(ctrl);
+  MANY_CLONE(lhs);
   return res;
+}
+
+inline Identifier* NonblockingAssign::get_lhs() {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline const Identifier* NonblockingAssign::get_lhs() const {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline NonblockingAssign::NonblockingAssign(Expression* rhs__) : AssignStatement(Node::Tag::nonblocking_assign) {
+  MAYBE_DEFAULT_SETUP(ctrl);
+  MANY_DEFAULT_SETUP(lhs); 
+  PTR_SETUP(rhs); 
+  parent_ = nullptr;
 }
 
 } // namespace cascade 

@@ -68,24 +68,24 @@ class ModuleInfo : public Visitor {
     // Returns nullptr for module declarations, id for instantiations.
     const Identifier* id();
 
-    // Variable Queries:
+    // Variable Properties:
     //
     // Returns true if this variable resolves to a declaration in this module.
-    // Note that !is_local(x) =/= is_external(x).
     bool is_local(const Identifier* id);
     // Returns true if this a local variable which was declared as an input port.
     bool is_input(const Identifier* id);
     // Returns true if this a local variable which was declared as an output
     // port.
     bool is_output(const Identifier* id);
-    // Returns true if this a local variable which is declared with type reg
-    // and either never assigned to or assigned through a get() or fopen()
-    // statement.
-    // TODO(eschkufz) this semantics isn't quite correct. 
+    // Returns true if this is a local variable declared with type reg which is
+    // not an implied wire.
     bool is_stateful(const Identifier* id);
-    // Returns true if variable resolves to a declaration outside of this
-    // module.  Note that !is_external(x) =/= is_local(x).
-    bool is_external(const Identifier* id);
+    // Returns true if this is a local variable declared with type reg which is
+    // an implied wire.
+    bool is_implied_wire(const Identifier* id);
+    // Returns true if this is a local variable declared with type reg which is
+    // an implied latch.
+    bool is_implied_latch(const Identifier* id);
     // Returns true if this variable is read by another module, either through
     // a module instantiation or a hierarchical dereference in a location other
     // than the lhs of an assignment. 
@@ -98,6 +98,12 @@ class ModuleInfo : public Visitor {
     // module.
     bool is_child(const Identifier* id);
 
+    // Control Properties:
+    //
+    // Returns true if this module contains at least one always block with a
+    // combination of pos/neg edge triggers and variable triggers.
+    bool uses_mixed_triggers();
+
     // Variable Indices:
     //
     // Returns the set of variables for which is_local(x) returns true.
@@ -108,8 +114,10 @@ class ModuleInfo : public Visitor {
     const std::unordered_set<const Identifier*>& outputs(); 
     // Returns the set of variables for which is_stateful(x) returns true.
     const std::unordered_set<const Identifier*>& stateful(); 
-    // Returns the set of variables for which is_external(x) returns true.
-    const std::unordered_set<const Identifier*>& externals(); 
+    // Returns the set of variables for which is_implied_wire(x) returns true.
+    const std::unordered_set<const Identifier*>& implied_wires(); 
+    // Returns the set of variables for which is_implied_latch(x) returns true.
+    const std::unordered_set<const Identifier*>& implied_latches(); 
     // Returns the set of variables for which is_read(x) returns true.
     const std::unordered_set<const Identifier*>& reads(); 
     // Returns the set of variables for which is_write(x) returns true.
@@ -177,11 +185,17 @@ class ModuleInfo : public Visitor {
     void visit(const PortDeclaration* pd) override;
     void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
-    void visit(const GetStatement* gs) override;
     void visit(const VariableAssign* va) override;
+    void visit(const EventControl* ec) override;
 
     // Cache Maintenance Helpers:
+    enum class Type {
+      REG = 0,
+      IMPLIED_WIRE,
+      IMPLIED_LATCH
+    };
     void refresh();
+    Type get_type(const Identifier* id);
 };
 
 } // namespace cascade 

@@ -134,6 +134,8 @@ class Runtime : public Thread {
 
     // System Task Interface:
     //
+    // Schedules a $debug() at the end of this step and returns immediately.
+    void debug(uint32_t action, const std::string& arg);
     // Executes a $finish() and returns immediately.
     void finish(uint32_t arg);
     // Schedules a $restart() at the end of this step and returns immediately.
@@ -271,6 +273,25 @@ class Runtime : public Thread {
     void log_event(const std::string& type, Node* n = nullptr);
     // Dumps the current virtual clock frequency to stdlog
     void log_freq();
+
+    // Debug Helpers:
+    //
+    // Resolves an id in the program. Returns nullptr on failure.
+    const Node* resolve(const std::string& arg);
+    // Prints a code listing for n.
+    void list(const Node* n);
+    // Prints the scopes in n. This method is undefined for ids which don't
+    // point to scopes.
+    void showscopes(const Node* n);
+    // Prints the scopes in and below n. This method is undefined for ids which
+    // don't point to scopes.
+    void recursive_showscopes(const Node* n);
+    // Prints info for n if n is a variable. This method is undefined for ids
+    // which don't point to variables.
+    void showvars(const Identifier* id);
+    // Prints info for all of the variables below n. This method is undefined
+    // for ids which don't point to scopes.
+    void recursive_showvars(const Node* n);
 
     // Time Keeping Helpers:
     //

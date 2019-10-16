@@ -45,6 +45,7 @@ class SeqBlock : public BlockStatement {
     // Constructors:
     SeqBlock();
     explicit SeqBlock(Statement* stmt__);
+    explicit SeqBlock(Identifier* id__, Statement* stmt__);
     template <typename DeclsItr, typename StmtsItr>
     SeqBlock(Identifier* id__, DeclsItr decls_begin__, DeclsItr decls_end__, StmtsItr stmts_begin__, StmtsItr stmts_end__);
     ~SeqBlock() override;
@@ -74,6 +75,11 @@ inline SeqBlock::SeqBlock() : BlockStatement(Node::Tag::seq_block) {
 }
 
 inline SeqBlock::SeqBlock(Statement* stmt__) : SeqBlock() {
+  push_back_stmts(stmt__);
+}
+
+inline SeqBlock::SeqBlock(Identifier* id__, Statement* stmt__) : SeqBlock() {
+  MAYBE_SETUP(id);
   push_back_stmts(stmt__);
 }
 

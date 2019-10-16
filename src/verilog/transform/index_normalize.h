@@ -69,6 +69,7 @@ class IndexNormalize {
         void edit(NetDeclaration* nd) override;
         void edit(ParameterDeclaration* pd) override;
         void edit(RegDeclaration* rd) override;
+        void edit(DebugStatement* ds) override;
 
         void fix_use(Identifier* id, size_t n, const RangeExpression* re) const;
         void fix_scalar(Identifier* id, size_t n, size_t delta) const;

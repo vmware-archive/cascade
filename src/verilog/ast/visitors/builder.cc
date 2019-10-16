@@ -30,7 +30,10 @@
 
 #include "verilog/ast/visitors/builder.h"
 
+#include <vector>
 #include "verilog/ast/ast.h"
+
+using namespace std;
 
 namespace cascade {
 
@@ -221,8 +224,13 @@ ModuleItem* Builder::build(const InitialConstruct* ic) {
 }
 
 ModuleItem* Builder::build(const ContinuousAssign* ca) {
+  vector<Identifier*> lhs;
+  for (auto i = ca->begin_lhs(), ie = ca->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new ContinuousAssign(
-    ca->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     ca->accept_rhs(this)
   );
 }
@@ -300,17 +308,27 @@ ModuleItem* Builder::build(const PortDeclaration* pd) {
 }
 
 Statement* Builder::build(const BlockingAssign* ba) {
+  vector<Identifier*> lhs;
+  for (auto i = ba->begin_lhs(), ie = ba->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new BlockingAssign(
     ba->accept_ctrl(this),
-    ba->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     ba->accept_rhs(this)
   );
 }
 
 Statement* Builder::build(const NonblockingAssign* na) {
+  vector<Identifier*> lhs;
+  for (auto i = na->begin_lhs(), ie = na->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new NonblockingAssign(
     na->accept_ctrl(this),
-    na->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     na->accept_rhs(this)
   );
 }
@@ -368,6 +386,13 @@ Statement* Builder::build(const TimingControlStatement* tcs) {
   return new TimingControlStatement(
     tcs->accept_ctrl(this),
     tcs->accept_stmt(this)
+  );
+}
+
+Statement* Builder::build(const DebugStatement* ds) {
+  return new DebugStatement(
+    ds->accept_action(this),
+    ds->accept_arg(this)
   );
 }
 
@@ -439,8 +464,13 @@ TimingControl* Builder::build(const EventControl* ec) {
 }
 
 VariableAssign* Builder::build(const VariableAssign* va) {
+  vector<Identifier*> lhs;
+  for (auto i = va->begin_lhs(), ie = va->end_lhs(); i != ie; ++i) {
+    lhs.push_back((*i)->accept(this));
+  }
   return new VariableAssign(
-    va->accept_lhs(this),
+    lhs.begin(),
+    lhs.end(),
     va->accept_rhs(this)
   );
 }

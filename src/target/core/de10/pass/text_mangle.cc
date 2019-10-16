@@ -74,11 +74,28 @@ Expression* TextMangle::build(const FeofExpression* fe) {
   return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
 }
 
+Statement* TextMangle::build(const BlockingAssign* ba) {
+  // Look up the target of this assignment 
+  const auto* r = Resolve().get_resolution(ba->get_lhs());
+  assert(r != nullptr);
+
+  // If this entry doesn't appear in the vtable, we can leave it as is
+  const auto titr = de_->get_table().var_find(r);
+  if (titr == de_->get_table().var_end()) {
+    return ba->clone();
+  }
+  // Otherwise, replace the original assignment with an assignment to a concatenation
+  vector<Identifier*> lhs;
+  for (size_t i = 0, ie = titr->second.words_per_element; i < ie; ++i) {
+    lhs.push_back(new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+ie-i-1))));
+  }
+  return new BlockingAssign(lhs.begin(), lhs.end(), ba->get_rhs()->clone());
+}
+
 Statement* TextMangle::build(const NonblockingAssign* na) {
   auto* res = new SeqBlock();
 
-  // Look up the target of this assignment and the indices it spans in the
-  // variable table
+  // Look up the target of this assignment 
   const auto* lhs = na->get_lhs();
   const auto* r = Resolve().get_resolution(lhs);
   assert(r != nullptr);
@@ -109,6 +126,13 @@ Statement* TextMangle::build(const NonblockingAssign* na) {
   ));
 
   return res;
+}
+
+Statement* TextMangle::build(const DebugStatement* ds) {
+  return new NonblockingAssign(
+    new Identifier("__task_id"), 
+    new Number(Bits(32, task_index_++))
+  );
 }
 
 Statement* TextMangle::build(const FflushStatement* fs) {

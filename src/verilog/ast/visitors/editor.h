@@ -86,6 +86,7 @@ struct Editor {
   virtual void edit(ParBlock* pb);
   virtual void edit(SeqBlock* sb);
   virtual void edit(TimingControlStatement* rcs);
+  virtual void edit(DebugStatement* ds);
   virtual void edit(FflushStatement* fs);
   virtual void edit(FinishStatement* fs);
   virtual void edit(FseekStatement* fs);

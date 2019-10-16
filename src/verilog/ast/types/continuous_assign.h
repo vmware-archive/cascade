@@ -41,7 +41,9 @@ namespace cascade {
 class ContinuousAssign : public ModuleItem {
   public:
     // Constructors:
-    explicit ContinuousAssign(Identifier* lhs__, Expression* rhs__);
+    explicit ContinuousAssign(Identifier* id__, Expression* rhs__);
+    template <typename LhsItr>
+    ContinuousAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__);
     ~ContinuousAssign() override;
 
     // Node Interface:
@@ -49,27 +51,58 @@ class ContinuousAssign : public ModuleItem {
     ContinuousAssign* clone() const override;
 
     // Get/Set:
-    PTR_GET_SET(VariableAssign, Identifier, lhs)
-    PTR_GET_SET(VariableAssign, Expression, rhs)
+    MANY_GET_SET(ContinuousAssign, Identifier, lhs)
+    PTR_GET_SET(ContinuousAssign, Expression, rhs)
+
+    // Extended Get/Set:
+    // 
+    // TODO(eschkufz) These methods are deprecated, and will be supported only
+    // until we complete the transition to supporting concatenations on the
+    // left hand side of continuous assigns.
+    Identifier* get_lhs();
+    const Identifier* get_lhs() const;
 
   private:
-    PTR_ATTR(Identifier, lhs);
+    MANY_ATTR(Identifier, lhs);
     PTR_ATTR(Expression, rhs);
+
+    explicit ContinuousAssign(Expression* rhs__);
 };
 
-inline ContinuousAssign::ContinuousAssign(Identifier* lhs__, Expression* rhs__) : ModuleItem(Node::Tag::continuous_assign) {
-  PTR_SETUP(lhs);
-  PTR_SETUP(rhs);
-  parent_ = nullptr;
+inline ContinuousAssign::ContinuousAssign(Identifier* id__, Expression* rhs__) : ContinuousAssign(rhs__) {
+  push_back_lhs(id__);
+}
+
+template <typename LhsItr>
+inline ContinuousAssign::ContinuousAssign(LhsItr lhs_begin__, LhsItr lhs_end__, Expression* rhs__) : ContinuousAssign(rhs__) {
+  MANY_SETUP(lhs); 
 }
 
 inline ContinuousAssign::~ContinuousAssign() {
-  PTR_TEARDOWN(lhs);
+  MANY_TEARDOWN(lhs);
   PTR_TEARDOWN(rhs);
 }
 
 inline ContinuousAssign* ContinuousAssign::clone() const {
-  return new ContinuousAssign(lhs_->clone(), rhs_->clone());
+  auto* res = new ContinuousAssign(rhs_->clone());
+  MANY_CLONE(lhs);
+  return res;
+}
+
+inline Identifier* ContinuousAssign::get_lhs() {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline const Identifier* ContinuousAssign::get_lhs() const {
+  assert(size_lhs() == 1);
+  return front_lhs();
+}
+
+inline ContinuousAssign::ContinuousAssign(Expression* rhs__) : ModuleItem(Node::Tag::continuous_assign) {
+  MANY_DEFAULT_SETUP(lhs);
+  PTR_SETUP(rhs);
+  parent_ = nullptr;
 }
 
 } // namespace cascade 

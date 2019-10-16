@@ -34,18 +34,19 @@
 #include <stddef.h>
 #include <utility>
 #include <vector>
-#include "verilog/ast/visitors/editor.h"
 #include "verilog/ast/visitors/visitor.h"
 
 namespace cascade {
 
 // Pass 2: 
 //        
-// Transform always blocks into continuation-passing state machines if they
-// contain tasks. This pass uses system tasks as landmarks, but recall that
-// they've been replaced by non-blocking assigns to __next_task_id in pass 1.
+// Removes edge-triggered always blocks from the AST and transforms them into
+// continuation-passing state machines which can be combined later on into a
+// single monolithic always @(posedge __clk) block. This pass uses system tasks
+// as landmarks, but recall that they've been replaced by non-blocking assigns
+// to __next_task_id in pass 1.
 
-class Machinify : public Editor {
+class Machinify {
   public:
     // State Machine Construction Helpers:
     class Generate : public Visitor {
@@ -53,19 +54,24 @@ class Machinify : public Editor {
         typedef typename std::vector<size_t>::const_iterator task_iterator;
 
         Generate(size_t idx);
-        ~Generate() = default;
+        ~Generate() override = default;
 
-        SeqBlock* run(const Statement* s);
-        Identifier* name() const;
+        const ConditionalStatement* text() const;
+        size_t name() const;
+
         size_t final_state() const;
         task_iterator task_begin() const;
         task_iterator task_end() const;
 
       private:
+        friend class Machinify;
+
         CaseStatement* machine_;
+        ConditionalStatement* text_;
         std::vector<size_t> task_states_;
         size_t idx_;
 
+        void run(const EventControl* ec, const Statement* s);
         void visit(const BlockingAssign* ba) override;
         void visit(const NonblockingAssign* na) override;
         void visit(const SeqBlock* sb) override;
@@ -87,35 +93,32 @@ class Machinify : public Editor {
         // non-empty and the current state is not a task state, appends a
         // non-blocking assign task_id <= 0;
         void next_state();
+        // Transforms an event into a trigger signal
+        Identifier* to_guard(const Event* e) const;
     };
 
     typedef typename std::vector<Generate>::const_iterator const_iterator;
 
-    Machinify();
-    ~Machinify() override = default;
+    ~Machinify();
 
+    void run(ModuleDeclaration* md);
     const_iterator begin() const;
     const_iterator end() const;
 
   private:
     // Checks whether an always construct contains any task statements which
     // require us to trap into the runtime.
-    struct TaskCheck : public Visitor {
+    class TaskCheck : public Visitor {
       public:
         TaskCheck();
         ~TaskCheck() override = default;
-
         bool run(const Node* n);
-
       private:
         bool res_;
         void visit(const NonblockingAssign* na) override;
     };
 
     std::vector<Generate> generators_;
-
-    void edit(ModuleDeclaration* md) override;
-    void edit(AlwaysConstruct* ac) override;
 };
 
 } // namespace cascade

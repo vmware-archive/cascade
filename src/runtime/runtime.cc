@@ -45,6 +45,11 @@
 #include "runtime/nullbuf.h"
 #include "target/compiler/local_compiler.h"
 #include "target/engine.h"
+#include "verilog/analyze/evaluate.h"
+#include "verilog/analyze/module_info.h"
+#include "verilog/analyze/navigate.h"
+#include "verilog/analyze/resolve.h"
+#include "verilog/build/ast_builder.h"
 #include "verilog/parse/parser.h"
 #include "verilog/print/print.h"
 #include "verilog/program/inline.h"
@@ -271,6 +276,36 @@ void Runtime::schedule_asynchronous(Asynchronous async) {
 
 bool Runtime::is_finished() const {
   return finished_;
+}
+
+void Runtime::debug(uint32_t action, const string& arg) {
+  schedule_interrupt([this, action, arg]{
+    const auto* r = resolve(arg);
+    if (r == nullptr) {
+      ostream(rdbuf(stderr_)) << "Unable to resolve " << arg << "!" << endl; 
+      return;
+    }
+    switch (action) {
+      case 0: 
+        list(r);
+        break; 
+      case 1: 
+        showscopes(r); 
+        break;
+      case 2: 
+        recursive_showscopes(r);
+        break;
+      case 3: 
+        if (r->is_subclass_of(Node::Tag::declaration)) {
+          showvars(static_cast<const Declaration*>(r)->get_id());
+        } else {
+          recursive_showvars(r);
+        }
+        break;
+      default:
+        break;
+    }
+  });
 }
 
 void Runtime::finish(uint32_t arg) {
@@ -574,25 +609,23 @@ bool Runtime::eval_item(ModuleItem* mi) {
 }
 
 void Runtime::rebuild() {
-  // Nothing to do if something went wrong with the compiler after the last
-  // time this method was called. Trigger a fatal interrupt that will be
-  // handled before the next time step.
-  if (compiler_->error()) {
-    return log_compiler_errors();
-  }
-  // Also nothing to do if no items have been eval'ed since the last time this
-  // method was called
+  // If nothing has been evaled since the last call, we don't have to worry
+  // about recompilation. But we might be here because of a jit handoff, in
+  // which case we still need to check for compiler errors.
   if (item_evals_ == 0) {
+    if (compiler_->error()) {
+      log_compiler_errors();
+    } 
     return;
   } 
 
-  // Inline as much as we can and compile whatever is new. Reset the item_evals_
-  // counter as soon as we're done.
+  // Inline as much as we can and compile whatever is new. Reset the
+  // item_evals_ counter as soon as we're done.
   program_->inline_all();
   root_->synchronize(item_evals_);
   item_evals_ = 0;
   if (compiler_->error()) {
-    return log_compiler_errors();
+    log_compiler_errors();
   } 
 
   // Clear scheduling state
@@ -677,10 +710,8 @@ void Runtime::drain_interrupts() {
     return;
   }
   // Slow Path: 
-  // We have at least one interrupt.  which could be an eval event (which will
-  // require a code rebuild) or a jit handoff.  Schedule a call at the very end
-  // of the interrupt queue to first check whether the compiler is in a sound
-  // state (ie, jit handoff hasn't failed) and then to rebuild the codebase.
+  // We have at least one interrupt, which could be an eval event.  Schedule a
+  // call at the end of the queue to rebuild the codebase if necessary.
   schedule_interrupt([this]{
     rebuild();
   });
@@ -778,8 +809,20 @@ void Runtime::log_checker_errors() {
 }
 
 void Runtime::log_compiler_errors() {
-  ostream(rdbuf(stderr_)) << "Internal Compiler Error:\n  > " << compiler_->what() << endl;
-  finish(0);
+  const auto what = compiler_->what();
+  if (what.first) {
+    ostream(rdbuf(stderr_)) 
+      << "Fatal Compiler Error:" << endl 
+      << " > " << what.second << endl
+      << " > " << "Shutting Down!" << endl;
+    finish(0);
+  } else {
+    ostream(rdbuf(stderr_)) 
+      << "Compiler Error:" << endl 
+      << " > " << what.second << endl
+      << " > " << "Control will remain in software-simulation!" << endl;
+    compiler_->clear();
+  }
 }
 
 void Runtime::log_event(const string& type, Node* n) {
@@ -808,6 +851,104 @@ void Runtime::log_freq() {
     ostream(rdbuf(stdlog_)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
   };
   schedule_interrupt(event, event);
+}
+
+const Node* Runtime::resolve(const string& arg) {
+  // Create a new navigation object and point it at the root
+  Navigate nav(program_->root_elab()->second);
+  const Node* res = nav.where();
+
+  // Not exactly the prettiest way to do this, but it works.
+  const auto* temp = ItemBuilder("assign " + arg + " = 0;").get();
+  const auto* id = static_cast<const ContinuousAssign*>(temp)->get_lhs();
+
+  // Walk along the ids in this identifier, ignoring the first, which root
+  for (auto i = ++id->begin_ids(), ie = id->end_ids(); i != ie; ++i) {
+    // Update res on success
+    if (nav.down(*i)) {
+      res = nav.where();
+    } 
+    // If we failed on the last element, we might have found an id
+    else if (i+1 == ie) {
+      res = nav.find_name(*i);
+      if (res != nullptr) {
+        res = Resolve().get_resolution(static_cast<const Identifier*>(res))->get_parent();
+      }
+    } 
+    // If we failed anywhere else, we've just failed
+    else {
+      res = nullptr;
+      break;
+    }
+  }
+  delete temp;
+  return res;
+}
+
+void Runtime::list(const Node* n) {
+  ostream(rdbuf(stdout_)) << color << n << text << endl;
+}
+
+void Runtime::showscopes(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    const auto s = Resolve().get_readable_full_id(Navigate(*i).name());
+    ostream(rdbuf(stdout_)) << s << endl;
+  }
+}
+
+void Runtime::recursive_showscopes(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    Navigate child(*i);
+    const auto s = Resolve().get_readable_full_id(child.name());
+    ostream(rdbuf(stdout_)) << s << endl;
+    recursive_showscopes(child.where());
+  }
+}
+
+void Runtime::showvars(const Identifier* id) {
+  ostream os(rdbuf(stdout_));
+
+  // Print full id
+  os << Resolve().get_readable_full_id(id) << endl;
+
+  // Print text of original declaration
+  os << "  " << color << id->get_parent() << text << endl;
+
+  // Print width, arity, and properties
+  const auto arity = Evaluate().get_arity(id);
+  os << "  " << Evaluate().get_width(id) << " bit ";
+  if (arity.empty()) {
+    os << "scalar ";
+  } else {
+    for (auto i = arity.begin(), ie = arity.end(); i != ie; ) {
+      os << *i;
+      if (++i != ie) {
+        os << "x";
+      }
+    }
+    os << " element array ";
+  }
+  ModuleInfo info(Resolve().get_parent(id));
+  os << (info.is_input(id) ? "input " : "");
+  os << (info.is_output(id) ? "output " : "");
+  os << (info.is_stateful(id) ? "stateful " : "");
+  os << (info.is_implied_wire(id) ? "implied wire " : "");
+  os << (info.is_implied_latch(id) ? "implied latch " : "");
+  os << (info.is_read(id) ? "externally read " : "");
+  os << (info.is_write(id) ? "externally written " : "");
+  os << endl;
+}
+
+void Runtime::recursive_showvars(const Node* n) {
+  Navigate nav(n);
+  for (auto i = nav.name_begin(), ie = nav.name_end(); i != ie; ++i) {
+    showvars(*i);
+  }
+  for (auto i = nav.child_begin(), ie = nav.child_end(); i != ie; ++i) {
+    recursive_showvars(Navigate(*i).where());
+  }
 }
 
 string Runtime::current_frequency() const {

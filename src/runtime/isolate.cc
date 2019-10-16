@@ -38,6 +38,7 @@
 #include "runtime/data_plane.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
+#include "verilog/analyze/navigate.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/program/elaborate.h"
 
@@ -163,6 +164,32 @@ Statement* Isolate::build(const ParBlock* pb) {
 Statement* Isolate::build(const SeqBlock* sb) {
   auto* res = new SeqBlock();
   sb->accept_stmts(this, res->back_inserter_stmts());
+  return res;
+}
+
+Statement* Isolate::build(const DebugStatement* ds) {
+  // Get the fully qualified name of this scope
+  const auto* id = Navigate(ds).name();
+  assert(id != nullptr);
+  auto* s = Resolve().get_full_id(id);
+  assert(s != nullptr);
+
+  // Create a new debug statement
+  auto* res = ds->clone();
+  const auto action = Evaluate().get_value(ds->get_action()).to_uint();
+
+  // For all variants, if no arg was provided, attach the scope name
+  if (ds->is_null_arg()) {
+    res->replace_arg(s);
+  }
+  // If this is a call to list or showvars with an arg, prepend the scope to it.
+  else if ((action == 0) || (action == 3)) {
+    for (auto i = res->get_arg()->begin_ids(), ie = res->get_arg()->end_ids(); i != ie; ++i) {
+      s->push_back_ids((*i)->clone());
+    } 
+    res->replace_arg(s);
+  }
+
   return res;
 }
 

@@ -48,6 +48,7 @@ class Interface;
 
 class Compiler {
   public:
+    Compiler();
     virtual ~Compiler();
 
     // Configuration Interface:
@@ -85,8 +86,10 @@ class Compiler {
     // These methods are all thread safe and report errors if any in-flight
     // compilations encountered an error.
     void error(const std::string& s);
+    void fatal(const std::string& s);
     bool error();
-    std::string what();
+    std::pair<bool, std::string> what();
+    void clear();
 
     // Scheduling Interface:
     //
@@ -127,6 +130,7 @@ class Compiler {
 
     // Error State:
     std::mutex lock_;
+    bool fatal_;
     std::string what_;
 };
 

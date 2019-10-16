@@ -485,6 +485,11 @@ void TypeCheck::visit(const InitialConstruct* ic) {
 }
 
 void TypeCheck::visit(const ContinuousAssign* ca) {
+  // CHECK: Continuous assignments which target concatenations
+  if (ca->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of continuous assigns which target concatenations!", ca);
+  }
+
   net_lval_ = true;
   ca->accept_lhs(this);
   net_lval_ = false;
@@ -674,6 +679,10 @@ void TypeCheck::visit(const SeqBlock* sb) {
 void TypeCheck::visit(const BlockingAssign* ba) {
   // RECURSE: 
   Visitor::visit(ba);
+  // CHECK: Aassignments which target concatenations
+  if (ba->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of blocking assigns which target concatenations!", ba);
+  }
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(ba->get_lhs());
   if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
@@ -684,6 +693,10 @@ void TypeCheck::visit(const BlockingAssign* ba) {
 void TypeCheck::visit(const NonblockingAssign* na) {
   // RECURSE:
   Visitor::visit(na);
+  // CHECK: Aassignments which target concatenations
+  if (na->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of non-blocking assigns which target concatenations!", na);
+  }
   // CHECK: Target must be register or integer
   const auto* r = Resolve().get_resolution(na->get_lhs());
   if ((r != nullptr) && !r->get_parent()->is(Node::Tag::reg_declaration)) {
@@ -714,6 +727,11 @@ void TypeCheck::visit(const WhileStatement* ws) {
   Visitor::visit(ws);
 }
 
+void TypeCheck::visit(const DebugStatement* ds) {
+  // Don't descend beyond here
+  (void) ds;
+}
+
 void TypeCheck::visit(const GetStatement* gs) {
   gs->accept_fd(this);
   // Don't descend on format string
@@ -741,19 +759,13 @@ void TypeCheck::visit(const PutStatement* ps) {
   ps->accept_expr(this);
 }
 
-void TypeCheck::visit(const RestartStatement* rs) {
-  (void) rs;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const RetargetStatement* rs) {
-  (void) rs;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
-}
-
-void TypeCheck::visit(const SaveStatement* ss) {
-  (void) ss;
-  // Does nothing. Don't descend on arg which is guaranteed to be a string.
+void TypeCheck::visit(const VariableAssign* va) {
+  // RECURSE:
+  Visitor::visit(va);
+  // CHECK: Aassignments which target concatenations
+  if (va->size_lhs() > 1) {
+    return error("Cascade does not currently support the use of variable assigns which target concatenations!", va);
+  }
 }
 
 void TypeCheck::check_width(const RangeExpression* re) {

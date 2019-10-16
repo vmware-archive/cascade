@@ -86,6 +86,7 @@ struct Visitor {
   virtual void visit(const ParBlock* pb);
   virtual void visit(const SeqBlock* sb);
   virtual void visit(const TimingControlStatement* rcs);
+  virtual void visit(const DebugStatement* ds);
   virtual void visit(const FflushStatement* fs);
   virtual void visit(const FinishStatement* fs);
   virtual void visit(const FseekStatement* fs);

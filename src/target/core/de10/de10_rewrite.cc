@@ -35,12 +35,12 @@
 #include "target/core/de10/de10_logic.h"
 #include "target/core/de10/pass/machinify.h"
 #include "target/core/de10/pass/text_mangle.h"
-#include "target/core/de10/pass/trigger_reschedule.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 #include "verilog/build/ast_builder.h"
 #include "verilog/print/print.h"
+#include "verilog/transform/block_flatten.h"
 
 using namespace std;
 
@@ -76,17 +76,18 @@ string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t
   TextMangle tm(md, de);
   md->accept_items(&tm, res->back_inserter_items());
   Machinify mfy;
-  res->accept(&mfy);
-  TriggerReschedule tr;
-  res->accept(&tr);
+  mfy.run(res);
 
   emit_avalon_logic(res);
   emit_update_logic(res, de);
   emit_state_logic(res, de, &mfy);
   emit_trigger_logic(res, &ti);
   emit_open_loop_logic(res, de);
-  emit_var_logic(res, md, de);
+  emit_var_logic(res, md, de, &mfy);
   emit_output_logic(res, md, de);
+
+  // Final cleanup passes
+  BlockFlatten().run(res);
 
   // Holy cow! We're done!
   ss.str(string());
@@ -277,7 +278,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
   } else {
     ib << "wire __there_were_tasks = |{";
     for (auto i = mfy->begin(), ie = mfy->end(); i != ie;) {
-      ib << i->name() << ".__task_id != 0";
+      ib << "__task_id[" << i->name() << "] != 0";
       if (++i != ie) {
         ib << ",";
       }
@@ -285,7 +286,7 @@ void De10Rewrite::emit_state_logic(ModuleDeclaration* res, const De10Logic* de, 
     ib << "};" << endl;
     ib << "wire __all_final = &{";
     for (auto i = mfy->begin(), ie = mfy->end(); i != ie; ) {
-      ib << i->name() << ".__state == " << i->name() << ".__final";
+      ib << "__state[" << i->name() << "] == " << i->final_state(); 
       if (++i != ie) {
         ib << ",";
       }
@@ -361,7 +362,7 @@ void De10Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const De10Logic* 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de) {
+void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const De10Logic* de, const Machinify* mfy) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table as well
@@ -378,7 +379,12 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   }
 
   ItemBuilder ib;
+  ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << endl;
+  ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << endl;
   ib << "always @(posedge __clk) begin" << endl;
+  for (auto i = mfy->begin(), ie = mfy->end(); i != ie; ++i) {
+    ib << i->text() << endl;
+  }
   for (const auto& v : vars) {
     const auto itr = v.second;
     const auto arity = Evaluate().get_arity(itr->first);
@@ -387,7 +393,7 @@ void De10Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
 
     for (size_t i = 0, ie = itr->second.elements; i < ie; ++i) {
       for (size_t j = 0, je = itr->second.words_per_element; j < je; ++j) {
-        ib << "__var[" << idx << "] = ";
+        ib << "__var[" << idx << "] <= ";
         if (de->open_loop_enabled() && (itr->first == de->open_loop_clock())) {
           ib << "__open_loop_tick ? {31'd0,~" << itr->first->front_ids()->get_readable_sid() << "} : ";
         }
@@ -448,10 +454,10 @@ void De10Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
   }
   
   ib << de->get_table().there_are_updates_index() << ": __out = __there_are_updates;" << endl;
-  ib << de->get_table().there_were_tasks_index() << ": __out = __machine_0.__task_id;" << endl;
+  ib << de->get_table().there_were_tasks_index() << ": __out = __task_id[0];" << endl;
   ib << de->get_table().done_index() << ": __out = __done;" << endl;
   ib << de->get_table().open_loop_index() << ": __out = __open_loop;" << endl;
-  ib << de->get_table().debug_index() << ": __out = __machine_0.__state;" << endl;
+  ib << de->get_table().debug_index() << ": __out = __state[0];" << endl;
   ib << "default: __out = ((__vid < " << de->get_table().var_size() << ") ? __var[__vid] : __expr[(__vid - " << de->get_table().var_size() << ")]);" << endl;
   ib << "endcase" << endl;
   ib << "assign __wait = (__open_loop_tick || (__any_triggers || __continue));" << endl;

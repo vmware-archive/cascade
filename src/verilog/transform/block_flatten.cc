@@ -77,14 +77,19 @@ void BlockFlatten::edit(SeqBlock* sb) {
       Resolve().invalidate(s);
       delete s;
     }
-    // If this is a sequential block, absorb its elements and delete it
+    // If this is a sequential block and it doesn't have an id or declarations,
+    // absorb its elements and delete it
     else if (s->is(Node::Tag::seq_block)) {
       auto* c = static_cast<SeqBlock*>(s);
-      Resolve().invalidate(c);
-      while (!c->empty_stmts()) {
-        ss.push_back(c->remove_front_stmts());
+      if (c->is_non_null_id() || !c->empty_decls()) {
+        ss.push_back(c);
+      } else {
+        Resolve().invalidate(c);
+        while (!c->empty_stmts()) {
+          ss.push_back(c->remove_front_stmts());
+        }
+        delete c;
       }
-      delete c;
     } 
     // Otherwise, absorb this statement 
     else {

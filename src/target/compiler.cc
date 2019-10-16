@@ -41,6 +41,11 @@ using namespace std;
 
 namespace cascade {
 
+Compiler::Compiler() {
+  fatal_ = false;
+  what_ = "";
+}
+
 Compiler::~Compiler() {
   for (auto& cc : ccs_) {
     delete cc.second;
@@ -124,14 +129,26 @@ void Compiler::error(const string& s) {
   what_ = (what_ == "") ? s : what_;
 }
 
+void Compiler::fatal(const string& s) {
+  lock_guard<mutex> lg(lock_);
+  fatal_ = true;
+  what_ = s;
+}
+
 bool Compiler::error() {
   lock_guard<mutex> lg(lock_);
   return what_ != "";
 }
 
-string Compiler::what() {
+pair<bool, string> Compiler::what() {
   lock_guard<mutex> lg(lock_);
-  return what_;
+  return make_pair(fatal_, what_);
+}
+
+void Compiler::clear() {
+  lock_guard<mutex> lg(lock_);
+  fatal_ = false;
+  what_ = "";
 }
 
 bool Compiler::StubCheck::check(const ModuleDeclaration* md) {

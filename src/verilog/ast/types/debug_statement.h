@@ -28,29 +28,58 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_TRIGGER_RESCHEDULE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PASS_TRIGGER_RESCHEDULE_H
+#ifndef CASCADE_SRC_VERILOG_AST_DEBUG_STATEMENT_H
+#define CASCADE_SRC_VERILOG_AST_DEBUG_STATEMENT_H
 
-#include "verilog/ast/visitors/editor.h"
+#include "verilog/ast/types/identifier.h"
+#include "verilog/ast/types/macro.h"
+#include "verilog/ast/types/number.h"
+#include "verilog/ast/types/system_task_enable_statement.h"
 
 namespace cascade {
 
-// Pass 5: 
-// 
-// Replace event controls with native clock driven checks
-
-class TriggerReschedule : public Editor {
+class DebugStatement : public SystemTaskEnableStatement {
   public:
-    TriggerReschedule();
-    ~TriggerReschedule() override = default;
+    // Constructors:
+    explicit DebugStatement(Number* action);
+    explicit DebugStatement(Number* action, Identifier* arg);
+    ~DebugStatement() override;
+
+    // Node Interface:
+    NODE(DebugStatement)
+    DebugStatement* clone() const override;
+
+    // Get/Set:
+    PTR_GET_SET(DebugStatement, Number, action)
+    MAYBE_GET_SET(DebugStatement, Identifier, arg)
 
   private:
-    void edit(AlwaysConstruct* ac) override;
-
-    Identifier* to_guard(const Event* e) const;
+    PTR_ATTR(Number, action);
+    MAYBE_ATTR(Identifier, arg);
 };
 
-} // namespace cascade
+inline DebugStatement::DebugStatement(Number* action__) : SystemTaskEnableStatement(Node::Tag::debug_statement) {
+  PTR_SETUP(action);
+  MAYBE_DEFAULT_SETUP(arg);
+  parent_ = nullptr;
+}
+
+inline DebugStatement::DebugStatement(Number* action__, Identifier* arg__) : DebugStatement(action__) {
+  MAYBE_SETUP(arg);
+}
+
+inline DebugStatement::~DebugStatement() {
+  PTR_TEARDOWN(action);
+  MAYBE_TEARDOWN(arg);
+}
+
+inline DebugStatement* DebugStatement::clone() const {
+  auto* res =  new DebugStatement(action_->clone());
+  MAYBE_CLONE(arg);
+  return res;
+}
+
+} // namespace cascade 
 
 #endif
 

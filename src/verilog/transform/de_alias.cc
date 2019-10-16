@@ -338,4 +338,9 @@ ModuleDeclaration* DeAlias::rewrite(ModuleDeclaration* md) {
   return md;
 }
 
+Statement* DeAlias::rewrite(DebugStatement* ds) {
+  // Don't touch anything in here
+  return ds;
+}
+
 } // namespace cascade
