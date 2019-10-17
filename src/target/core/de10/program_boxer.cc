@@ -35,7 +35,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 void ProgramBoxer::push(MId mid, const string& text) {
   repo_.insert(make_pair(mid, text));
@@ -119,4 +119,4 @@ string ProgramBoxer::get() const {
   return ss.str();
 }
 
-} // namespace cascade
+} // namespace cascade::de10

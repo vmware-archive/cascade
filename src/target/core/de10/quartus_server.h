@@ -40,6 +40,8 @@ namespace cascade {
 
 class sockstream;
 
+namespace de10 {
+
 class QuartusServer : public Thread {
   public:
     // RPC Types:
@@ -81,6 +83,7 @@ class QuartusServer : public Thread {
     bool compile(const std::string& text);
 };
 
+} // namespace de10
 } // namespace cascade
 
 #endif

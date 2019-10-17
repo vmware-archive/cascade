@@ -36,7 +36,7 @@
 #include <vector>
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 // Pass 2: 
 //        
@@ -121,7 +121,7 @@ class Machinify {
     std::vector<Generate> generators_;
 };
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif
 

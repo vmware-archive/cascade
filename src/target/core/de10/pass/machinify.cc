@@ -34,7 +34,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
@@ -365,4 +365,4 @@ void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
   }
 }
 
-} // namespace cascade
+} // namespace cascade::de10

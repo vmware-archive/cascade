@@ -40,7 +40,7 @@
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 template <typename T>
 class VarTable {
@@ -366,7 +366,7 @@ inline volatile uint8_t* VarTable<T>::mangle(size_t index) const {
   return (volatile uint8_t*)((size_t)addr_ + (index << 2));
 }
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif
 

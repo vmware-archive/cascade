@@ -40,7 +40,7 @@
 #include "verilog/ast/visitors/rewriter.h"
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 class De10Logic;
 class Machinify;
@@ -77,6 +77,6 @@ class De10Rewrite {
     void emit_slice(Identifier* id, size_t w, size_t i) const;
 };
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif

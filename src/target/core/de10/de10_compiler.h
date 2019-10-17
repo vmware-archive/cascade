@@ -46,6 +46,8 @@ namespace cascade {
 
 class sockstream;
 
+namespace de10 {
+
 class De10Compiler : public CoreCompiler {
   public:
     De10Compiler();
@@ -101,6 +103,7 @@ class De10Compiler : public CoreCompiler {
     void kill_all(sockstream* sock);
 };
 
+} // namespace de10
 } // namespace cascade
 
 #endif

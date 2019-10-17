@@ -47,7 +47,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 constexpr auto HW_REGS_BASE = 0xfc000000u;
 constexpr auto HW_REGS_SPAN = 0x04000000u;
@@ -425,4 +425,4 @@ void De10Compiler::kill_all(sockstream* sock) {
   sock->get();
 }
 
-} // namespace cascade
+} // namespace cascade::de10
