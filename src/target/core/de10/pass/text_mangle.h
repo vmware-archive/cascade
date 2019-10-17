@@ -36,7 +36,7 @@
 #include "verilog/ast/visitors/builder.h"
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 class De10Logic;
 
@@ -78,6 +78,6 @@ class TextMangle : public Builder {
     Expression* get_table_range(const Identifier* r, const Identifier* i);
 };
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif

@@ -43,7 +43,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc) : Logic(interface), table_(addr) { 
   src_ = src;
@@ -487,4 +487,4 @@ void De10Logic::Sync::visit(const Identifier* id) {
   de_->table_.read_var(r);
 }
 
-} // namespace cascade
+} // namespace cascade::de10

@@ -44,7 +44,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 string De10Rewrite::run(const ModuleDeclaration* md, const De10Logic* de, size_t slot)  {
   stringstream ss;
@@ -486,4 +486,4 @@ void De10Rewrite::emit_slice(Identifier* id, size_t w, size_t i) const {
   }
 }
 
-} // namespace cascade
+} // namespace cascade::de10

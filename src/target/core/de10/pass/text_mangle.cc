@@ -38,7 +38,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 TextMangle::TextMangle(const ModuleDeclaration* md, const De10Logic* de) : Builder() {
   md_ = md;
@@ -217,4 +217,4 @@ Expression* TextMangle::get_table_range(const Identifier* r, const Identifier* i
   return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.words_per_element)));
 }
 
-} // namespace cascade
+} // namespace cascade::de10

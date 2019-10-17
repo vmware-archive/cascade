@@ -37,7 +37,7 @@
 #include "target/input.h"
 #include "target/state.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 // This file implements a GPIO engine for the Terasic DE10-Nano board.  It
 // supports GPI0-GPIO31 from the FPGA side, and it requires a PIO core be
@@ -107,7 +107,7 @@ inline void De10Gpio::update() {
   // Does nothing.
 }
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif
 

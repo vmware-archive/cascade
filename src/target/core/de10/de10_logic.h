@@ -40,8 +40,11 @@
 
 namespace cascade {
 
-class De10Compiler;
 class interfacestream;
+
+namespace de10 {
+
+class De10Compiler;
 
 class De10Logic : public Logic {
   public:
@@ -136,6 +139,7 @@ class De10Logic : public Logic {
     };
 };
 
+} // namespace de10
 } // namespace cascade
 
 #endif

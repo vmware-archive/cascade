@@ -37,6 +37,7 @@
 
 using namespace cascade;
 using namespace cascade::cl;
+using namespace cascade::de10;
 using namespace std;
 
 namespace {

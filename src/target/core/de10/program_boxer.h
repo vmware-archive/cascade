@@ -35,7 +35,7 @@
 #include <map>
 #include "runtime/ids.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 class ProgramBoxer {
   public:
@@ -46,7 +46,7 @@ class ProgramBoxer {
     std::map<MId, std::string> repo_;
 };
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif
 

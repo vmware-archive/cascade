@@ -38,7 +38,7 @@
 #include "target/input.h"
 #include "target/interface.h"
 
-namespace cascade {
+namespace cascade::de10 {
 
 class De10Pad : public Pad {
   public:
@@ -120,6 +120,6 @@ inline void De10Pad::update() {
   evaluate();
 }
 
-} // namespace cascade
+} // namespace cascade::de10
 
 #endif

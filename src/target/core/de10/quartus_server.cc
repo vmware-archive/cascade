@@ -38,7 +38,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::de10 {
 
 QuartusServer::QuartusServer() : Thread() { 
   set_cache_path("/tmp/quartus_cache/");
@@ -255,4 +255,4 @@ bool QuartusServer::compile(const std::string& text) {
   return true;
 }
 
-} // namespace cascade
+} // namespace cascade::de10
