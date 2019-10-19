@@ -95,6 +95,7 @@ class TypeCheck : public Visitor {
     void visit(const Identifier* id) override;
     void visit(const GenerateBlock* gb) override;
     void visit(const ModuleDeclaration* md) override;
+    void visit(const AlwaysConstruct* ac) override;
     void visit(const CaseGenerateConstruct* cgc) override;
     void visit(const IfGenerateConstruct* igc) override;
     void visit(const LoopGenerateConstruct* lgc) override;

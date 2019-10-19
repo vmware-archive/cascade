@@ -66,9 +66,11 @@ class AstBuilder : public std::ostream {
     void sync();
 };
 
-using NodeBuilder = AstBuilder<Node>;
 using DeclBuilder = AstBuilder<ModuleDeclaration>;
 using ItemBuilder = AstBuilder<ModuleItem>;
+using NetBuilder = AstBuilder<NetDeclaration>;
+using NodeBuilder = AstBuilder<Node>;
+using RegBuilder = AstBuilder<RegDeclaration>;
 
 template <typename T>
 inline AstBuilder<T>::AstBuilder() : std::ostream(&sb_), sb_() { }

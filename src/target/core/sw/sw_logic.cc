@@ -68,7 +68,7 @@ SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface)
   // place the silent flag in its default, disabled state
   silent_ = true;
   for (auto i = src_->begin_items(), ie = src_->end_items(); i != ie; ++i) {
-    if ((*i)->is(Node::Tag::always_construct) || (*i)->is(Node::Tag::continuous_assign)) {
+    if ((*i)->is(Node::Tag::continuous_assign)) {
       schedule_now(*i);
     }
   }
@@ -139,9 +139,10 @@ void SwLogic::set_input(const Input* i) {
     }
     const auto itr = i->find(v);
     if (itr != i->end()) {
-      eval_.assign_value(id, itr->second);
+      if (eval_.assign_value(id, itr->second)) {
+        notify(id);
+      }
     }
-    notify(id);
   }
   silent_evaluate();
 }
@@ -171,8 +172,9 @@ void SwLogic::finalize() {
             mode = 5;
           } 
           const auto fd = interface()->fopen(path, mode);
-          eval_.assign_value(rd->get_id(), Bits(32, fd));
-          notify(rd->get_id());
+          if (eval_.assign_value(rd->get_id(), Bits(32, fd))) {
+            notify(rd->get_id());
+          }
         }
       }
     }
@@ -187,8 +189,9 @@ void SwLogic::finalize() {
 
 void SwLogic::read(VId vid, const Bits* b) {
   const auto* id = inputs_[vid];
-  eval_.assign_value(id, *b);
-  notify(id);
+  if (eval_.assign_value(id, *b)) {
+    notify(id);
+  }
 }
 
 void SwLogic::evaluate() {
@@ -213,8 +216,9 @@ void SwLogic::update() {
   // This is a for loop. Updates happen simultaneously
   for (size_t i = 0, ie = updates_.size(); i < ie; ++i) {
     const auto& val = update_pool_[i];
-    eval_.assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val);
-    notify(get<0>(updates_[i]));
+    if (eval_.assign_value(get<0>(updates_[i]), get<1>(updates_[i]), get<2>(updates_[i]), get<3>(updates_[i]), val)) {
+      notify(get<0>(updates_[i]));
+    }
   }
   updates_.clear();
 
@@ -261,20 +265,19 @@ void SwLogic::notify(const Node* n) {
       for (auto* m : static_cast<const Identifier*>(n)->monitor_) {
         schedule_active(m);
       }
-      return;
+      break;
     case Node::Tag::feof_expression:
       for (auto* m : static_cast<const FeofExpression*>(n)->monitor_) {
         schedule_active(m);
       }
+      break;
+    case Node::Tag::event:
+      assert(n->get_parent()->is(Node::Tag::event_control));
+      assert(n->get_parent()->get_parent()->is(Node::Tag::timing_control_statement));
+      schedule_active(static_cast<const TimingControlStatement*>(n->get_parent()->get_parent())->get_stmt());
       return;
     default:
       break;
-  }
-  const auto* p = n->get_parent();
-  if (p->is(Node::Tag::case_item)) {
-    schedule_active(p->get_parent());
-  } else if (!p->is(Node::Tag::initial_construct)) {
-    schedule_active(p); 
   }
 }
 
@@ -288,10 +291,6 @@ void SwLogic::silent_evaluate() {
     schedule_now(e);
   }
   silent_ = false;
-}
-
-uint16_t& SwLogic::get_state(const Statement* s) {
-  return const_cast<Statement*>(s)->ctrl_;
 }
 
 interfacestream* SwLogic::get_stream(FId fd) {
@@ -324,18 +323,9 @@ void SwLogic::visit(const Event* e) {
   }
 }
 
-void SwLogic::visit(const AlwaysConstruct* ac) {
-  schedule_now(ac->get_stmt());
-}
-
-void SwLogic::visit(const InitialConstruct* ic) {
-  schedule_active(ic->get_stmt());
-}
-
 void SwLogic::visit(const ContinuousAssign* ca) {
   const auto& val = eval_.get_value(ca->get_rhs());
-  const auto delta = eval_.assign_value(ca->get_lhs(), val);
-  if (delta) {
+  if (eval_.assign_value(ca->get_lhs(), val)) {
     notify(Resolve().get_resolution(ca->get_lhs()));
   }
 }
@@ -345,9 +335,9 @@ void SwLogic::visit(const BlockingAssign* ba) {
   assert(ba->is_null_ctrl());
 
   const auto& res = eval_.get_value(ba->get_rhs());
-  eval_.assign_value(ba->get_lhs(), res);
-  notify(Resolve().get_resolution(ba->get_lhs()));
-  notify(ba);
+  if (eval_.assign_value(ba->get_lhs(), res)) {
+    notify(Resolve().get_resolution(ba->get_lhs()));
+  }
 }
 
 void SwLogic::visit(const NonblockingAssign* na) {
@@ -368,76 +358,36 @@ void SwLogic::visit(const NonblockingAssign* na) {
     updates_.push_back(make_tuple(r, get<0>(target), get<1>(target), get<2>(target)));
     update_pool_[idx].copy(res);
   }
-  notify(na);
 }
 
 void SwLogic::visit(const SeqBlock* sb) { 
-  auto& state = get_state(sb);
-  if (state < sb->size_stmts()) {
-    auto* item = sb->get_stmts(state++);
-    schedule_now(item);
-  } else {
-    state = 0;
-    notify(sb);
+  for (auto i = sb->begin_stmts(), ie = sb->end_stmts(); i != ie; ++i) {
+    schedule_now(*i);
   }
 }
 
 void SwLogic::visit(const CaseStatement* cs) {
-  auto& state = get_state(cs);
-  if (state == 0) {
-    state = 1;
-    const auto s = eval_.get_value(cs->get_cond()).to_uint();
-    for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) { 
-      for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
-        const auto c = eval_.get_value(*j).to_uint();
-        if (s == c) {
-          schedule_now((*i)->get_stmt());
-          return;
-        }
-      } 
-      if ((*i)->empty_exprs()) {
+  const auto s = eval_.get_value(cs->get_cond()).to_uint();
+  for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) { 
+    for (auto j = (*i)->begin_exprs(), je = (*i)->end_exprs(); j != je; ++j) { 
+      const auto c = eval_.get_value(*j).to_uint();
+      if (s == c) {
         schedule_now((*i)->get_stmt());
         return;
       }
+    } 
+    if ((*i)->empty_exprs()) {
+      schedule_now((*i)->get_stmt());
+      return;
     }
-    // Control should never reach here
-    assert(false);
-  } else {
-    state = 0;
-    notify(cs);
   }
 }
 
 void SwLogic::visit(const ConditionalStatement* cs) {
-  auto& state = get_state(cs);
-  if (state == 0) {
-    state = 1;
-    if (eval_.get_value(cs->get_if()).to_bool()) {
-      schedule_now(cs->get_then());
-    } else {
-      schedule_now(cs->get_else());
-    }
+  if (eval_.get_value(cs->get_if()).to_bool()) {
+    schedule_now(cs->get_then());
   } else {
-    state = 0;
-    notify(cs);
-  }
-}
-
-void SwLogic::visit(const TimingControlStatement* tcs) {
-  auto& state = get_state(tcs);
-  switch (state) {
-    case 0:
-      state = 1;
-      // Wait on control 
-      break;
-    case 1:
-      state = 2;
-      schedule_now(tcs->get_stmt());
-      break;
-    default:
-      state = 0;
-      notify(tcs);
-      break;
+    schedule_now(cs->get_else());
   }
 }
 
@@ -447,7 +397,6 @@ void SwLogic::visit(const FflushStatement* fs) {
     auto* is = get_stream(fd);
     is->flush();
   }
-  notify(fs);
 }
 
 void SwLogic::visit(const FinishStatement* fs) {
@@ -455,7 +404,6 @@ void SwLogic::visit(const FinishStatement* fs) {
     interface()->finish(eval_.get_value(fs->get_arg()).to_uint());
     there_were_tasks_ = true;
   }
-  notify(fs);
 }
 
 void SwLogic::visit(const FseekStatement* fs) {
@@ -473,7 +421,6 @@ void SwLogic::visit(const FseekStatement* fs) {
 
     update_eofs();
   }
-  notify(fs);
 }
 
 void SwLogic::visit(const DebugStatement* ds) {
@@ -483,7 +430,6 @@ void SwLogic::visit(const DebugStatement* ds) {
     interface()->debug(Evaluate().get_value(ds->get_action()).to_uint(), ss.str());
     there_were_tasks_ = true;
   }
-  notify(ds);
 }
 
 void SwLogic::visit(const GetStatement* gs) {
@@ -499,7 +445,6 @@ void SwLogic::visit(const GetStatement* gs) {
     }
     update_eofs();
   }
-  notify(gs);
 }
 
 void SwLogic::visit(const PutStatement* ps) {
@@ -509,7 +454,6 @@ void SwLogic::visit(const PutStatement* ps) {
     Printf().write(*is, &eval_, ps);
     update_eofs();
   }
-  notify(ps);
 }
 
 void SwLogic::visit(const RestartStatement* rs) {
@@ -517,7 +461,6 @@ void SwLogic::visit(const RestartStatement* rs) {
     interface()->restart(rs->get_arg()->get_readable_val());
     there_were_tasks_ = true;
   }
-  notify(rs);
 }
 
 void SwLogic::visit(const RetargetStatement* rs) {
@@ -525,7 +468,6 @@ void SwLogic::visit(const RetargetStatement* rs) {
     interface()->retarget(rs->get_arg()->get_readable_val());
     there_were_tasks_ = true;
   }
-  notify(rs);
 }
 
 void SwLogic::visit(const SaveStatement* ss) {
@@ -533,17 +475,6 @@ void SwLogic::visit(const SaveStatement* ss) {
     interface()->save(ss->get_arg()->get_readable_val());
     there_were_tasks_ = true;
   }
-  notify(ss);
-}
-
-void SwLogic::visit(const EventControl* ec) {
-  notify(ec);
-}
-
-void SwLogic::visit(const VariableAssign* va) {
-  const auto& res = eval_.get_value(va->get_rhs());
-  eval_.assign_value(va->get_lhs(), res);
-  notify(Resolve().get_resolution(va->get_lhs()));
 }
 
 void SwLogic::log(const string& op, const Node* n) {

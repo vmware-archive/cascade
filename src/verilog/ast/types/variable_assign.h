@@ -54,11 +54,7 @@ class VariableAssign : public ModuleItem {
     MANY_GET_SET(VariableAssign, Identifier, lhs)
     PTR_GET_SET(VariableAssign, Expression, rhs)
 
-    // Extended Get/Set:
-    // 
-    // TODO(eschkufz) These methods are deprecated, and will be supported only
-    // until we complete the transition to supporting concatenations on the
-    // left hand side of variable assigns.
+    // Returns front_lhs(), undefined for objects where size_lhs() != 1.
     Identifier* get_lhs();
     const Identifier* get_lhs() const;
 

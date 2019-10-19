@@ -47,15 +47,9 @@ class Statement : public Node {
     void accept(Editor* e) override = 0;
     Statement* accept(Builder* b) const override = 0;
     Statement* accept(Rewriter* r) override = 0;
-
-  private:
-    friend class SwLogic;
-    DECORATION(uint16_t, ctrl);
 };
 
-inline Statement::Statement(Node::Tag tag) : Node(tag) { 
-  ctrl_ = 0;
-}
+inline Statement::Statement(Node::Tag tag) : Node(tag) { }
 
 } // namespace cascade 
 
