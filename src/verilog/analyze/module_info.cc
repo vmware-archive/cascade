@@ -792,23 +792,30 @@ ModuleInfo::Type ModuleInfo::get_type(const Identifier* id) {
 
   const TimingControlStatement* tcs_use = nullptr;
   for (auto i = Resolve().use_begin(id), ie = Resolve().use_end(id); i != ie; ++i) {
-    switch((*i)->get_parent()->get_tag()) {
+    if (!(*i)->is(Node::Tag::identifier)) {
+      continue;
+    }
+    const auto* id = static_cast<const Identifier*>(*i);
+
+    switch(id->get_parent()->get_tag()) {
       // Regs which appear in get statements can't be wires
       case Node::Tag::get_statement:
-        if (static_cast<const GetStatement*>((*i)->get_parent())->get_var() == *i) {
+        if (static_cast<const GetStatement*>(id->get_parent())->get_var() == id) {
           return Type::REG;
         }
         break;
       // Anything which is the target of a non-blocking assignment can't be a wire
-      case Node::Tag::nonblocking_assign:
-        if (static_cast<const NonblockingAssign*>((*i)->get_parent())->get_lhs() == *i) {
+      case Node::Tag::nonblocking_assign: {
+        const auto* na = static_cast<const NonblockingAssign*>(id->get_parent());
+        if (na->find_lhs(id) != na->end_lhs()) {
           return Type::REG;
         }
         break;
+      }
       // The hard case: variables which are the targets of blocking assigns
       case Node::Tag::blocking_assign: {
-        const auto* ba = static_cast<const BlockingAssign*>((*i)->get_parent());
-        if (ba->get_lhs() != *i) {
+        const auto* ba = static_cast<const BlockingAssign*>(id->get_parent());
+        if (ba->find_lhs(id) == ba->end_lhs()) {
           break;
         }
 
@@ -842,12 +849,12 @@ ModuleInfo::Type ModuleInfo::get_type(const Identifier* id) {
         // Walk along the event control and collect its triggers. If we see an
         // edge trigger this can't be a wire.
         unordered_set<const Identifier*> trigs;
-        for (auto i = ec->begin_events(), ie = ec->end_events(); i != ie; ++i) {
-          if ((*i)->get_type() != Event::Type::EDGE) {
+        for (auto j = ec->begin_events(), je = ec->end_events(); j != je; ++j) {
+          if ((*j)->get_type() != Event::Type::EDGE) {
             return Type::REG;
           }
-          if ((*i)->get_expr()->is(Node::Tag::identifier)) {
-            trigs.insert(Resolve().get_resolution(static_cast<const Identifier*>((*i)->get_expr())));
+          if ((*j)->get_expr()->is(Node::Tag::identifier)) {
+            trigs.insert(Resolve().get_resolution(static_cast<const Identifier*>((*j)->get_expr())));
           }
         }
 

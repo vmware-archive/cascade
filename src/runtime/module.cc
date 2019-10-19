@@ -48,6 +48,7 @@
 #include "verilog/print/print.h"
 #include "verilog/program/elaborate.h"
 #include "verilog/program/inline.h"
+#include "verilog/transform/assign_unpack.h"
 #include "verilog/transform/block_flatten.h"
 #include "verilog/transform/constant_prop.h"
 #include "verilog/transform/control_merge.h"
@@ -315,6 +316,7 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
   const auto is_logic = (std != nullptr) && (std->get_readable_val() == "logic");
   if (is_logic) {
     ModuleInfo(md).invalidate();
+    AssignUnpack().run(md);
     IndexNormalize().run(md);
     LoopUnroll().run(md);
     DeAlias().run(md);
