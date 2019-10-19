@@ -429,6 +429,14 @@ void TypeCheck::visit(const GenerateBlock* gb) {
   gb->accept_items(this);
 }
 
+void TypeCheck::visit(const AlwaysConstruct* ac) {
+  if (!ac->get_stmt()->is(Node::Tag::timing_control_statement)) {
+    return error("Cascade does not currently support the use of always blocks which don't contain timing control statements", ac);
+  }
+  // RECURSE:
+  Visitor::visit(ac);
+}
+
 void TypeCheck::visit(const ModuleDeclaration* md) {
   // CHECK: implicit or explict ports that are not simple ids
   for (auto i = md->begin_ports(), ie = md->end_ports(); i != ie; ++i) {

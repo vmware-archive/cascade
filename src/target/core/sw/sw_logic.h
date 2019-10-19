@@ -101,21 +101,17 @@ class SwLogic : public Logic, public Visitor {
     void silent_evaluate();
 
     // Control Helpers:
-    uint16_t& get_state(const Statement* s);
     interfacestream* get_stream(FId fd);
     void update_eofs();
 
     // Visitor Interface:
     void visit(const Event* e) override;
-    void visit(const AlwaysConstruct* ac) override;
-    void visit(const InitialConstruct* ic) override;
     void visit(const ContinuousAssign* ca) override;
     void visit(const BlockingAssign* ba) override;
     void visit(const NonblockingAssign* na) override;
     void visit(const SeqBlock* sb) override;
     void visit(const CaseStatement* cs) override;
     void visit(const ConditionalStatement* cs) override;
-    void visit(const TimingControlStatement* tcs) override;
     void visit(const FflushStatement* fs) override;
     void visit(const FinishStatement* fs) override;
     void visit(const FseekStatement* fs) override;
@@ -125,8 +121,6 @@ class SwLogic : public Logic, public Visitor {
     void visit(const RestartStatement* rs) override;
     void visit(const RetargetStatement* rs) override;
     void visit(const SaveStatement* ss) override;
-    void visit(const EventControl* ec) override;
-    void visit(const VariableAssign* va) override;
 
     // Debug Printing:
     void log(const std::string& op, const Node* n);
