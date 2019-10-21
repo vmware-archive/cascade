@@ -395,7 +395,9 @@ void SwLogic::visit(const FflushStatement* fs) {
   if (!silent_) {
     const auto fd = eval_.get_value(fs->get_fd()).to_uint();
     auto* is = get_stream(fd);
+    is->clear();
     is->flush();
+    update_eofs();
   }
 }
 
@@ -418,7 +420,6 @@ void SwLogic::visit(const FseekStatement* fs) {
     is->clear();
     is->seekg(offset, way); 
     is->seekp(offset, way);
-
     update_eofs();
   }
 }
