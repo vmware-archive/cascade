@@ -313,6 +313,7 @@ void De10Logic::handle_tasks() {
 
       const auto fd = eval.get_value(fs->get_fd()).to_uint();
       auto* is = get_stream(fd);
+      is->clear();
       is->flush();
       update_eofs();
 
