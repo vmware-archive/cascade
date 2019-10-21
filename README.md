@@ -500,7 +500,7 @@ brief description of their behavior is shown below.
 | Virtualization        | $save(file)                 |  x        |             |                  |
 |                       | $restart(file)              |  x        |             |                  |
 |                       | $retarget(march)            |  x        |             |                  |
-| File I/O              | $fopen(path)                |  x        |             |                  |
+| File I/O              | $fopen(path, mode)          |  x        |             |                  |
 |                       | $fclose(fd)                 |           | x           |                  |
 |                       | $fdisplay(fd, fmt, args...) |  x        |             |                  |
 |                       | $feof(fd)                   |  x        |             |                  |
@@ -610,7 +610,7 @@ second argument and will read as many bytes as necessary to produce a value for
 that variable.
 
 ```verilog
-integer s = $fopen("path/to/file");
+integer s = $fopen("path/to/file", "r");
 reg[31:0] x = 0;
 
 always @(posedge clock.val) begin
@@ -639,7 +639,7 @@ reg[31:0]  x;
 wire[31:0] y;
 Compute c(x,y);
 
-integer i = $fopen("path/to/input");
+integer i = $fopen("path/to/input", "r");
 integer o = $fopen("path/to/output");
 always @(posedge clock.val) begin
   $fread(i, x);
