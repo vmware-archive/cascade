@@ -34,7 +34,6 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <fcntl.h>
-#include <resolv.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
