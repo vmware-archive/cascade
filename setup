@@ -205,23 +205,33 @@ case "${unameOut}" in
                     check_dpkg libgtest-dev MISSING
                     MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                     MISSING_LIST=${MISSING_LIST:1}
-                    if [ ${#MISSING[@]} -gt 0 ]; then 
-                        echo "You are missing the following packages: ${MISSING_LIST}"
-                        echo "Would you like us to install these packages using apt for you?"
-                        select yn in "Yes" "No"; do
-                            case $yn in
-                                Yes ) sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
-                                      cd /usr/src/gtest; \
-                                      sudo cmake CMakeLists.txt; \
-                                      sudo make; \
-                                      cd -; \
-                                      sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
-                                      sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a; \
-                                      break;;
-                                No ) echo "Please install these packages manually, then run this script again.";
-                                exit 1;;
-                            esac
-                        done
+                    if [ $SILENT -eq 1 ]; then
+                        sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
+                        cd /usr/src/gtest; \
+                        sudo cmake CMakeLists.txt; \
+                        sudo make; \
+                        cd -; \
+                        sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
+                        sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a;
+                    else
+                        if [ ${#MISSING[@]} -gt 0 ]; then 
+                            echo "You are missing the following packages: ${MISSING_LIST}"
+                            echo "Would you like us to install these packages using apt for you?"
+                            select yn in "Yes" "No"; do
+                                case $yn in
+                                    Yes ) sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
+                                        cd /usr/src/gtest; \
+                                        sudo cmake CMakeLists.txt; \
+                                        sudo make; \
+                                        cd -; \
+                                        sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
+                                        sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a; \
+                                        break;;
+                                    No ) echo "Please install these packages manually, then run this script again.";
+                                    exit 1;;
+                                esac
+                            done
+                        fi
                     fi
                 fi
                 build_cascade LOCAL_FLAGS
