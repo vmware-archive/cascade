@@ -7,7 +7,7 @@ echo "macos doesn't use chroot, no need to mount."
 else
 
 if [ $ARCH == "armhf" ]; then
-    docker run --rm --privileged multiarch/qemu-user-static:register --privileged
+    docker run --rm --privileged multiarch/qemu-user-static:register --credential
     cat /proc/sys/fs/binfmt_misc/qemu-arm
 fi
 
