@@ -35,6 +35,10 @@
 #include <string>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 namespace cascade {
 
 // This class is a thin wrapper aorund some basic *nix environment
@@ -46,12 +50,22 @@ struct System {
   static int execute(const std::string& cmd);
 };
 
+#ifdef __APPLE__
 inline std::string System::src_root() {
-  char result[1024];
-  const auto count = readlink("/proc/self/exe", result, 1024);
-  const auto path = std::string(result, (count > 0) ? count : 0);
+  char buffer[1024];
+  uint32_t count = 1024;
+  const auto res = _NSGetExecutablePath(buffer, &count);
+  const auto path = (res == -1) ? "" : std::string(buffer);
   return path.substr(0, path.rfind('/')) + "/../..";
 }
+#else
+inline std::string System::src_root() {
+  char buffer[1024];
+  const auto count = readlink("/proc/self/exe", buffer, 1024);
+  const auto path = std::string(buffer, (count > 0) ? count : 0);
+  return path.substr(0, path.rfind('/')) + "/../..";
+}
+#endif
 
 inline int System::execute(const std::string& cmd) {
   return ::system(cmd.c_str());
