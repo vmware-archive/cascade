@@ -11,7 +11,7 @@ if [ $ARCH == "armhf" ]; then
     wget https://github.com/multiarch/qemu-user-static/releases/download/v4.0.0-2/qemu-${QEMU_ARCH}-static
     chmod a+x qemu-${QEMU_ARCH}-static
     sudo cp qemu-${QEMU_ARCH}-static $HOME/$ARCH/usr/bin
-    docker run --rm --privileged multiarch/qemu-user-static:register --credential
+    docker run --rm --privileged multiarch/qemu-user-static:register --credential yes
 fi
 
 sudo cp /etc/resolv.conf $HOME/$ARCH/etc/resolv.conf
