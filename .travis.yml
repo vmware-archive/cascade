@@ -28,7 +28,7 @@ jobs:
     before_cache: .travis/unmount_env.sh
     cache: 
       directories:
-        - $HOME/.conan/data
+        - $HOME/$ARCH
     env: 
       ARCH=amd64
   - <<: *build
