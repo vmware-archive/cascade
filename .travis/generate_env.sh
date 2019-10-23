@@ -29,6 +29,7 @@ sudo chown root:root $HOME/$ARCH/usr/bin/sudo
 sudo chmod 4755 $HOME/$ARCH//usr/bin/sudo
 sudo chown root:root $HOME/$ARCH/usr/lib/sudo/sudoers.so
 sudo chmod 4755 $HOME/$ARCH/usr/lib/sudo/sudoers.so
+sudo cp $DIR/nopasswd_sudo $HOME/$ARCH/etc/sudoers
 sudo chown root:root $HOME/$ARCH/etc/sudoers
 sudo chmod 4755 $HOME/$ARCH/etc/sudoers
 sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
