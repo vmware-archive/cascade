@@ -66,6 +66,7 @@ class ConstantProp : public Rewriter {
         bool res_;
 
         void visit(const Attributes* as) override;
+        void visit(const FeofExpression* fe) override;
         void visit(const Identifier* i) override;
     };
 

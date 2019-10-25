@@ -50,6 +50,11 @@ bool Constant::is_genvar_constant(const Expression* e) {
   return res_;
 }
 
+void Constant::visit(const FeofExpression* fe) {
+  (void) fe;
+  res_ = false;
+}
+
 void Constant::visit(const Identifier* i) {
   Visitor::visit(i);
 
@@ -58,7 +63,6 @@ void Constant::visit(const Identifier* i) {
     res_ = false;
     return;
   } 
-
 
   const auto* p = r->get_parent();
   const auto is_param = p->is(Node::Tag::parameter_declaration);
