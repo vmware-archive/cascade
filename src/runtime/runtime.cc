@@ -91,7 +91,7 @@ Runtime::Runtime() : Thread() {
 
   // Allocate standard streams 
   for (size_t i = 0; i < 6; ++i) {
-    rdbuf(i, nullptr);
+    streambufs_.push_back(make_pair(new nullbuf(), true));
   }
 }
 
@@ -133,9 +133,9 @@ Runtime::~Runtime() {
   delete dp_;
   delete isolate_;
 
-  for (auto* s : streambufs_) {
-    if ((s != cin.rdbuf()) && (s != cout.rdbuf()) && (s != clog.rdbuf())) {
-      delete s;
+  for (auto& s : streambufs_) {
+    if (s.second) {
+      delete s.first;
     }
   }
 }
@@ -420,6 +420,32 @@ void Runtime::save(const string& path) {
   });
 }
 
+streambuf* Runtime::rdbuf(FId id) const {
+  const auto fid = id & 0x7fff'ffff;
+  assert(fid < streambufs_.size());
+  return streambufs_[fid].first;
+}
+
+FId Runtime::rdbuf(streambuf* sb) {
+  streambufs_.push_back(make_pair(sb, false));
+  return streambufs_.size()-1;
+}
+
+void Runtime::rdbuf(FId id, streambuf* sb) {
+  const auto fid = id & 0x7fff'ffff;
+  while (fid >= streambufs_.size()) {
+    streambufs_.push_back(make_pair(new nullbuf(), true));
+  }
+  if (streambufs_[fid].second) {
+    delete streambufs_[fid].first;
+  }
+  if (sb != nullptr) {
+    streambufs_[fid] = make_pair(sb, false);
+  } else {
+    streambufs_[fid] = make_pair(new nullbuf(), true);
+  }
+}
+
 FId Runtime::fopen(const std::string& path, uint8_t mode) {
   auto* fb = new filebuf();
   auto m = ios_base::in;
@@ -432,29 +458,8 @@ FId Runtime::fopen(const std::string& path, uint8_t mode) {
     default: break;
   }
   fb->open(path.c_str(), m);
-  streambufs_.push_back(fb);
-
+  streambufs_.push_back(make_pair(fb, true));
   return (streambufs_.size()-1);;
-}
-
-streambuf* Runtime::rdbuf(FId id) const {
-  const auto fid = id & 0x7fff'ffff;
-  assert(fid < streambufs_.size());
-  assert(streambufs_[fid] != nullptr);
-
-  return streambufs_[fid];
-}
-
-streambuf* Runtime::rdbuf(FId id, streambuf* sb) {
-  const auto fid = id & 0x7fff'ffff;
-  while (fid >= streambufs_.size()) {
-    streambufs_.push_back(new nullbuf());
-  }
-  auto* res =  streambufs_[fid];
-  if (sb != nullptr) {
-    streambufs_[fid] = sb;
-  }
-  return res;
 }
 
 int32_t Runtime::in_avail(FId id) {

@@ -35,12 +35,16 @@
 #include <sstream>
 #include <string>
 #include "common/thread.h"
+#include "runtime/ids.h"
 #include "runtime/runtime.h"
 
 namespace cascade {
 
 class Cascade : public std::iostream {
   public:
+    // Typedefs:
+    typedef FId Fd;
+
     // Constructors:
     //
     // Only simple construciton is allowed. All other methods of construction
@@ -67,6 +71,11 @@ class Cascade : public std::iostream {
     Cascade& set_stdwarn(std::streambuf* sb);
     Cascade& set_stdinfo(std::streambuf* sb);
     Cascade& set_stdlog(std::streambuf* sb);
+
+    // Stream Manipulation Methods:
+    //
+    // These methods should not be called while cascade is running
+    Fd open(std::streambuf* sb);
 
     // Concurrency Methods:
     Cascade& run();
