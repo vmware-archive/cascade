@@ -92,38 +92,43 @@ Cascade& Cascade::set_profile_interval(size_t n) {
 
 Cascade& Cascade::set_stdin(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(0, sb);
+  runtime_.rdbuf(0, sb);
   return *this;
 }
 
 Cascade& Cascade::set_stdout(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(1, sb);
+  runtime_.rdbuf(1, sb);
   return *this;
 }
 
 Cascade& Cascade::set_stderr(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(2, sb);
+  runtime_.rdbuf(2, sb);
   return *this;
 }
 
 Cascade& Cascade::set_stdwarn(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(3, sb);
+  runtime_.rdbuf(3, sb);
   return *this;
 }
 
 Cascade& Cascade::set_stdinfo(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(4, sb);
+  runtime_.rdbuf(4, sb);
   return *this;
 }
 
 Cascade& Cascade::set_stdlog(streambuf* sb) {
   assert(!is_running_);
-  delete runtime_.rdbuf(5, sb);
+  runtime_.rdbuf(5, sb);
   return *this;
+}
+
+Cascade::Fd Cascade::open(streambuf* sb) {
+  assert(!is_running_);
+  return runtime_.rdbuf(sb);
 }
 
 Cascade& Cascade::run() {

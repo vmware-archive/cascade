@@ -147,11 +147,13 @@ class Runtime : public Thread {
 
     // Stream I/O Interface:
     //
+    // Appends a new entry to the stream table and returns its fd
+    FId rdbuf(std::streambuf* sb);
+    // Replaces an entry in the stream table 
+    void rdbuf(FId id, std::streambuf* sb);
     // Returns an entry in the stream table
     std::streambuf* rdbuf(FId id) const;
-    // Replaces an entry in the stream table and returns its previous value
-    std::streambuf* rdbuf(FId id, std::streambuf* sb);
-    // Creates an entry in the stream table 
+    // Creates an entry in the stream table which is owned by the runtime.
     FId fopen(const std::string& path, uint8_t mode);
     // Streambuf operators:
     int32_t in_avail(FId id);
@@ -212,7 +214,9 @@ class Runtime : public Thread {
     uint64_t logical_time_;
 
     // Stream Table:
-    std::vector<std::streambuf*> streambufs_;
+    // Tracks streambufs and whether they are owned by the runtime (and can be
+    // destroyed on teardown)
+    std::vector<std::pair<std::streambuf*, bool>> streambufs_;
 
     // Implements the semantics of the Verilog Simulation Reference Model and
     // services interrupts between logical simulation steps.
