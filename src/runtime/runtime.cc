@@ -420,12 +420,6 @@ void Runtime::save(const string& path) {
   });
 }
 
-streambuf* Runtime::rdbuf(FId id) const {
-  const auto fid = id & 0x7fff'ffff;
-  assert(fid < streambufs_.size());
-  return streambufs_[fid].first;
-}
-
 FId Runtime::rdbuf(streambuf* sb) {
   streambufs_.push_back(make_pair(sb, false));
   return streambufs_.size()-1;
@@ -444,6 +438,12 @@ void Runtime::rdbuf(FId id, streambuf* sb) {
   } else {
     streambufs_[fid] = make_pair(new nullbuf(), true);
   }
+}
+
+streambuf* Runtime::rdbuf(FId id) const {
+  const auto fid = id & 0x7fff'ffff;
+  assert(fid < streambufs_.size());
+  return streambufs_[fid].first;
 }
 
 FId Runtime::fopen(const std::string& path, uint8_t mode) {

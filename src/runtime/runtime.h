@@ -147,12 +147,12 @@ class Runtime : public Thread {
 
     // Stream I/O Interface:
     //
-    // Returns an entry in the stream table
-    std::streambuf* rdbuf(FId id) const;
     // Appends a new entry to the stream table and returns its fd
     FId rdbuf(std::streambuf* sb);
     // Replaces an entry in the stream table 
     void rdbuf(FId id, std::streambuf* sb);
+    // Returns an entry in the stream table
+    std::streambuf* rdbuf(FId id) const;
     // Creates an entry in the stream table which is owned by the runtime.
     FId fopen(const std::string& path, uint8_t mode);
     // Streambuf operators:
