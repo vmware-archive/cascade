@@ -117,6 +117,11 @@ void ConstantProp::RuntimeConstant::visit(const Attributes* as) {
   (void) as;
 }
 
+void ConstantProp::RuntimeConstant::visit(const FeofExpression* fe) {
+  (void) fe;
+  res_ = false;
+}
+
 void ConstantProp::RuntimeConstant::visit(const Identifier* i) {
   Visitor::visit(i);
 

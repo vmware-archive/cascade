@@ -60,6 +60,7 @@ class Constant : public Visitor {
     bool genvar_ok_;
 
     // Visitor Interface:
+    void visit(const FeofExpression* fe) override;
     void visit(const Identifier* i) override;
 };
 
