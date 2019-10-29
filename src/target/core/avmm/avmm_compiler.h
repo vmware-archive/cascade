@@ -28,64 +28,73 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "cascade/cascade_slave.h"
-#include "target/compiler.h"
-#include "target/compiler/proxy_compiler.h"
-#include "target/core/de10/de10_compiler.h"
-#include "target/core/avmm/avmm_compiler.h"
-#include "target/core/sw/sw_compiler.h"
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVMM_COMPILER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_AVMM_COMPILER_H
 
-using namespace std;
+#include <condition_variable>
+#include <mutex>
+#include <stdint.h>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include "cascade/cascade.h"
+#include "target/core_compiler.h"
+#include "target/core/avmm/avmm_logic.h"
+#include "target/core/avmm/syncbuf.h"
 
 namespace cascade {
 
-CascadeSlave::CascadeSlave() {
-  set_listeners("./cascade_sock", 8800);
+class sockstream;
 
-  remote_compiler_.set("avmm", new avmm::AvmmCompiler());
-  remote_compiler_.set("de10", new de10::De10Compiler());
-  remote_compiler_.set("proxy", new ProxyCompiler());
-  remote_compiler_.set("sw", new SwCompiler());
+namespace avmm {
 
-  set_quartus_server("localhost", 9900);
-}
+class AvmmCompiler : public CoreCompiler {
+  public:
+    AvmmCompiler();
+    ~AvmmCompiler() override;
 
-CascadeSlave::~CascadeSlave() {
-  stop_now();
-}
+    void release(size_t slot);
+    void stop_compile(Engine::Id id) override;
 
-CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
-  remote_compiler_.set_path(path);
-  remote_compiler_.set_port(port);
-  return *this;
-}
+  private:
+    // Compilation States:
+    enum class State : uint8_t {
+      FREE = 0,
+      COMPILING,
+      WAITING,
+      STOPPED,
+      CURRENT
+    };
+    // Slot Information:
+    struct Slot {
+      Engine::Id id;
+      State state;
+      std::string text;
+    };
 
-CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
-  auto* dc = remote_compiler_.get("de10");
-  assert(dc != nullptr);
-  static_cast<de10::De10Compiler*>(dc)->set_host(host);
-  static_cast<de10::De10Compiler*>(dc)->set_port(port);
-  return *this;
-}
+    // State:
+    Cascade* caslib_;
+    syncbuf requests_;
+    syncbuf responses_;
 
-CascadeSlave& CascadeSlave::run() {
-  remote_compiler_.run();
-  return *this;
-}
+    // Program Management:
+    std::mutex lock_;
+    std::condition_variable cv_;
+    std::vector<Slot> slots_;
 
-CascadeSlave& CascadeSlave::request_stop() {
-  remote_compiler_.request_stop();
-  return *this;
-}
+    // Compiler Interface:
+    AvmmLogic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
-CascadeSlave& CascadeSlave::wait_for_stop() {
-  remote_compiler_.wait_for_stop();
-  return *this;
-}
+    // Compilation Helpers:
+    bool id_in_use(Engine::Id id) const;
+    int get_free_slot() const;
+    void compile();
+    void reprogram();
+    void kill_all();
+};
 
-CascadeSlave& CascadeSlave::stop_now() {
-  remote_compiler_.stop_now();
-  return *this;
-}
-
+} // namespace avmm
 } // namespace cascade
+
+#endif

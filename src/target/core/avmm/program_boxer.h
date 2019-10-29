@@ -28,64 +28,25 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "cascade/cascade_slave.h"
-#include "target/compiler.h"
-#include "target/compiler/proxy_compiler.h"
-#include "target/core/de10/de10_compiler.h"
-#include "target/core/avmm/avmm_compiler.h"
-#include "target/core/sw/sw_compiler.h"
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_PROGRAM_BOXER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_PROGRAM_BOXER_H
 
-using namespace std;
+#include <string>
+#include <map>
+#include "runtime/ids.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
-CascadeSlave::CascadeSlave() {
-  set_listeners("./cascade_sock", 8800);
+class ProgramBoxer {
+  public:
+    void push(MId id, const std::string& text);
+    std::string get() const;
 
-  remote_compiler_.set("avmm", new avmm::AvmmCompiler());
-  remote_compiler_.set("de10", new de10::De10Compiler());
-  remote_compiler_.set("proxy", new ProxyCompiler());
-  remote_compiler_.set("sw", new SwCompiler());
+  private:
+    std::map<MId, std::string> repo_;
+};
 
-  set_quartus_server("localhost", 9900);
-}
+} // namespace cascade::avmm
 
-CascadeSlave::~CascadeSlave() {
-  stop_now();
-}
+#endif
 
-CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
-  remote_compiler_.set_path(path);
-  remote_compiler_.set_port(port);
-  return *this;
-}
-
-CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
-  auto* dc = remote_compiler_.get("de10");
-  assert(dc != nullptr);
-  static_cast<de10::De10Compiler*>(dc)->set_host(host);
-  static_cast<de10::De10Compiler*>(dc)->set_port(port);
-  return *this;
-}
-
-CascadeSlave& CascadeSlave::run() {
-  remote_compiler_.run();
-  return *this;
-}
-
-CascadeSlave& CascadeSlave::request_stop() {
-  remote_compiler_.request_stop();
-  return *this;
-}
-
-CascadeSlave& CascadeSlave::wait_for_stop() {
-  remote_compiler_.wait_for_stop();
-  return *this;
-}
-
-CascadeSlave& CascadeSlave::stop_now() {
-  remote_compiler_.stop_now();
-  return *this;
-}
-
-} // namespace cascade
