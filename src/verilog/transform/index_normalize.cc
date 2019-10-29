@@ -98,7 +98,7 @@ void IndexNormalize::FixDecls::fix_arity(Identifier* id) const {
 void IndexNormalize::FixDecls::fix_dim(RangeExpression* re) const {
   assert(Constant().is_static_constant(re));
   const auto rng = Evaluate().get_range(re);
-  assert(rng.first > rng.second);
+  assert(rng.first >= rng.second);
   if (rng.second == 0) {
     return;
   }
@@ -178,7 +178,7 @@ void IndexNormalize::FixUses::edit(DebugStatement* ds) {
 void IndexNormalize::FixUses::fix_use(Identifier* id, size_t n, const RangeExpression* re) const {
   assert(Constant().is_static_constant(re));
   const auto rng = Evaluate().get_range(re);
-  assert(rng.first > rng.second);
+  assert(rng.first >= rng.second);
   if (rng.second == 0) {
     return;
   }
