@@ -9,6 +9,7 @@ integer s = $fopen("data/test/benchmark/regex/iliad.hex", "r");
 
 always @(posedge clock.val) begin
   $fread(s, char);
+  $write("%c", char);
   if ($feof(s)) begin
     if (itr == 1) begin
       $write(count);
