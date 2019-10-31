@@ -132,9 +132,9 @@ void AvmmRewrite::emit_var_table(ModuleDeclaration* res, const AvmmLogic* de) {
   ItemBuilder ib;
 
   // Emit the var table and the expression table
-  const auto var_seg_arity = max(static_cast<size_t>(16), de->get_table().var_size());
+  const auto var_seg_arity = max(static_cast<size_t>(16), de->get_table()->var_size());
   ib << "reg[31:0] __var[" << (var_seg_arity-1) << ":0];" << endl;
-  const auto expr_seg_arity = max(static_cast<size_t>(16), de->get_table().expr_size());
+  const auto expr_seg_arity = max(static_cast<size_t>(16), de->get_table()->expr_size());
   ib << "reg[31:0] __expr[" << (expr_seg_arity-1) << ":0];" << endl;
 
   res->push_back_items(ib.begin(), ib.end());
@@ -145,7 +145,7 @@ void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
 
   // Index the stateful elements in the variable table
   map<string, VarTable32::const_var_iterator> vars;
-  for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
+  for (auto v = de->get_table()->var_begin(), ve = de->get_table()->var_end(); v != ve; ++v) {
     if (info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -167,7 +167,7 @@ void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclarati
   }
 
   // Emit update masks for the var table
-  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table()->var_size());
   ib << "reg[" << (update_arity-1) << ":0] __prev_update_mask = 0;" << endl;
   ib << "reg[" << (update_arity-1) << ":0] __update_mask = 0;" << endl;
 
@@ -179,7 +179,7 @@ void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
 
   // Index both inputs and the stateful elements in the variable table
   map<string, VarTable32::const_var_iterator> vars;
-  for (auto v = de->get_table().var_begin(), ve = de->get_table().var_end(); v != ve; ++v) {
+  for (auto v = de->get_table()->var_begin(), ve = de->get_table()->var_end(); v != ve; ++v) {
     if (info.is_input(v->first) || info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -225,7 +225,7 @@ void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration
 void AvmmRewrite::emit_update_vars(ModuleDeclaration* res, const AvmmLogic* de) {
   ItemBuilder ib;
 
-  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table()->var_size());
   ib << "wire[" << (update_arity-1) << ":0] __update_queue;" << endl;
   ib << "wire __there_are_updates;" << endl;
   ib << "wire __apply_updates;" << endl;
@@ -317,11 +317,11 @@ void AvmmRewrite::emit_avalon_logic(ModuleDeclaration* res) {
 void AvmmRewrite::emit_update_logic(ModuleDeclaration* res, const AvmmLogic* de) {
   ItemBuilder ib;
 
-  const auto update_arity = max(static_cast<size_t>(32), de->get_table().var_size());
+  const auto update_arity = max(static_cast<size_t>(32), de->get_table()->var_size());
   ib << "assign __update_queue = (__prev_update_mask ^ __update_mask);" << endl;
   ib << "assign __there_are_updates = |__update_queue;" << endl;
-  ib << "assign __apply_updates = ((__read_request && (__vid == " << de->get_table().apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << endl;
-  ib << "assign __drop_updates = (__read_request && (__vid == " << de->get_table().drop_update_index() << "));" << endl;
+  ib << "assign __apply_updates = ((__read_request && (__vid == " << de->get_table()->apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << endl;
+  ib << "assign __drop_updates = (__read_request && (__vid == " << de->get_table()->drop_update_index() << "));" << endl;
   ib << "always @(posedge __clk) __prev_update_mask <= ((__apply_updates || __drop_updates) ? __update_mask : __prev_update_mask);" << endl;
   
   res->push_back_items(ib.begin(), ib.end());
@@ -352,8 +352,8 @@ void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const AvmmLogic* de, 
     ib << "};" << endl;
   }
 
-  ib << "assign __continue = ((__read_request && (__vid == " << de->get_table().resume_index() << ")) || (!__all_final && !__there_were_tasks));" << endl;
-  ib << "assign __reset = (__read_request && (__vid == " << de->get_table().reset_index() << "));" << endl;
+  ib << "assign __continue = ((__read_request && (__vid == " << de->get_table()->resume_index() << ")) || (!__all_final && !__there_were_tasks));" << endl;
+  ib << "assign __reset = (__read_request && (__vid == " << de->get_table()->reset_index() << "));" << endl;
   ib << "assign __done = (__all_final && !__there_were_tasks);" << endl;
 
   res->push_back_items(ib.begin(), ib.end());
@@ -413,7 +413,7 @@ void AvmmRewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex*
 void AvmmRewrite::emit_open_loop_logic(ModuleDeclaration* res, const AvmmLogic* de) {
   ItemBuilder ib;
 
-  ib << "always @(posedge __clk) __open_loop <= ((__read_request && (__vid == " << de->get_table().open_loop_index() << ")) ? __in : (__open_loop_tick ? (__open_loop - 1) : __open_loop));" << endl;
+  ib << "always @(posedge __clk) __open_loop <= ((__read_request && (__vid == " << de->get_table()->open_loop_index() << ")) ? __in : (__open_loop_tick ? (__open_loop - 1) : __open_loop));" << endl;
   ib << "assign __open_loop_tick = (__all_final && (!__any_triggers && (__open_loop > 0)));" << endl;
 
   res->push_back_items(ib.begin(), ib.end());
@@ -425,14 +425,14 @@ void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
   // Index both inputs and the stateful elements in the variable table as well
   // as the elements in the expr table.
   map<size_t, VarTable32::const_var_iterator> vars;
-  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
+  for (auto t = de->get_table()->var_begin(), te = de->get_table()->var_end(); t != te; ++t) {
     if (info.is_input(t->first) || info.is_stateful(t->first)) {
       vars[t->second.begin] = t;
     }
   }
   map<size_t, VarTable32::const_expr_iterator> exprs;
-  for (auto t = de->get_table().expr_begin(), te = de->get_table().expr_end(); t != te; ++t) {
-    exprs[de->get_table().var_size() + t->second.begin] = t;
+  for (auto t = de->get_table()->expr_begin(), te = de->get_table()->expr_end(); t != te; ++t) {
+    exprs[de->get_table()->var_size() + t->second.begin] = t;
   }
 
   ItemBuilder ib;
@@ -470,7 +470,7 @@ void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration
     assert(itr->second.elements == 1);
     assert(itr->second.words_per_element == 1);
     const auto idx = itr->second.begin;
-    ib << "__expr[" << idx << "] <= ((__read_request && (__vid == " << (de->get_table().var_size()+idx) << ")) ? __in : __expr[" << idx << "]);" << endl;
+    ib << "__expr[" << idx << "] <= ((__read_request && (__vid == " << (de->get_table()->var_size()+idx) << ")) ? __in : __expr[" << idx << "]);" << endl;
   }
   ib << "end" << endl;
   
@@ -482,7 +482,7 @@ void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
 
   // Index the elements in the variable table which aren't inputs or stateful.
   map<size_t, VarTable32::const_var_iterator> outputs;
-  for (auto t = de->get_table().var_begin(), te = de->get_table().var_end(); t != te; ++t) {
+  for (auto t = de->get_table()->var_begin(), te = de->get_table()->var_end(); t != te; ++t) {
     if (!info.is_input(t->first) && !info.is_stateful(t->first)) {
       outputs[t->second.begin] = t;
     }
@@ -508,12 +508,12 @@ void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclarat
     }
   }
   
-  ib << de->get_table().there_are_updates_index() << ": __out = __there_are_updates;" << endl;
-  ib << de->get_table().there_were_tasks_index() << ": __out = __task_id[0];" << endl;
-  ib << de->get_table().done_index() << ": __out = __done;" << endl;
-  ib << de->get_table().open_loop_index() << ": __out = __open_loop;" << endl;
-  ib << de->get_table().debug_index() << ": __out = __state[0];" << endl;
-  ib << "default: __out = ((__vid < " << de->get_table().var_size() << ") ? __var[__vid] : __expr[(__vid - " << de->get_table().var_size() << ")]);" << endl;
+  ib << de->get_table()->there_are_updates_index() << ": __out = __there_are_updates;" << endl;
+  ib << de->get_table()->there_were_tasks_index() << ": __out = __task_id[0];" << endl;
+  ib << de->get_table()->done_index() << ": __out = __done;" << endl;
+  ib << de->get_table()->open_loop_index() << ": __out = __open_loop;" << endl;
+  ib << de->get_table()->debug_index() << ": __out = __state[0];" << endl;
+  ib << "default: __out = ((__vid < " << de->get_table()->var_size() << ") ? __var[__vid] : __expr[(__vid - " << de->get_table()->var_size() << ")]);" << endl;
   ib << "endcase" << endl;
   ib << "assign __wait = (__open_loop_tick || (__any_triggers || __continue));" << endl;
 

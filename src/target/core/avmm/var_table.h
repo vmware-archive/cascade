@@ -32,14 +32,13 @@
 #define CASCADE_SRC_TARGET_CORE_AVMM_VAR_TABLE_H
 
 #include <cassert>
+#include <functional>
 #include <unordered_map>
-#include <iomanip>
 #include "common/bits.h"
 #include "common/vector.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
-#include "target/core/avmm/syncbuf.h"
 
 namespace cascade::avmm {
 
@@ -54,12 +53,16 @@ class VarTable {
       size_t words_per_element;
     };
 
-    // Typedefs:
+    // IO Typedefs:
+    typedef std::function<T(size_t)> Read;
+    typedef std::function<void(size_t, T)> Write;
+
+    // Iterator Typedefs:
     typedef typename std::unordered_map<const Identifier*, const Row>::const_iterator const_var_iterator;
     typedef typename std::unordered_map<const Expression*, const Row>::const_iterator const_expr_iterator;
         
     // Constructors:
-    VarTable(syncbuf& reqs, syncbuf& resps);
+    VarTable(Read read, Write write);
 
     // Inserts an element into the table.
     void insert_var(const Identifier* id);
@@ -128,18 +131,14 @@ class VarTable {
     void write_expr(const Expression* e, T val);
 
   private:
-    syncbuf& reqs_;
-    syncbuf& resps_;
+    Read read_;
+    Write write_;
+
     size_t next_index_;
     std::unordered_map<const Identifier*, const Row> vtable_;
     std::unordered_map<const Expression*, const Row> etable_;
 
     constexpr size_t bits_per_word() const;
-
-    volatile uint8_t* mangle(size_t index) const;
-
-    T var_read(size_t index) const;
-    void var_write(size_t index, T value) const;
 };
 
 using VarTable16 = VarTable<uint16_t>;
@@ -147,7 +146,9 @@ using VarTable32 = VarTable<uint32_t>;
 using VarTable64 = VarTable<uint64_t>;
 
 template <typename T>
-inline VarTable<T>::VarTable(syncbuf& reqs, syncbuf& resps) : reqs_(reqs), resps_(resps) {
+inline VarTable<T>::VarTable(Read read, Write write) {
+  read_ = read;
+  write_ = write;
   next_index_ = 0;
 }
 
@@ -284,14 +285,14 @@ template <typename T>
 inline T VarTable<T>::read_control_var(size_t index) const {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
-  return var_read(index);
+  return read_(index);
 }
 
 template <typename T>
 inline void VarTable<T>::write_control_var(size_t index, T val) {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
-  var_write(index, val);
+  write_(index, val);
 }
 
 template <typename T>
@@ -302,7 +303,7 @@ inline void VarTable<T>::read_var(const Identifier* id) const {
   auto idx = itr->second.begin;
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
-      const volatile auto word = var_read(idx);
+      const volatile auto word = read_(idx);
       Evaluate().assign_word<T>(id, i, j, word);
       ++idx;
     } 
@@ -318,7 +319,7 @@ inline void VarTable<T>::write_var(const Identifier* id, const Bits& val) {
   auto idx = itr->second.begin;
   for (size_t j = 0; j < itr->second.words_per_element; ++j) {
     const volatile auto word = val.read_word<T>(j);
-    var_write(idx, word);
+    write_(idx, word);
     ++idx;
   }
 }
@@ -333,7 +334,7 @@ inline void VarTable<T>::write_var(const Identifier* id, const Vector<Bits>& val
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
       const volatile auto word = val[i].read_word<T>(j);
-      var_write(idx, word);
+      write_(idx, word);
       ++idx;
     }
   }
@@ -346,7 +347,7 @@ inline T VarTable<T>::read_expr(const Expression* e) const {
   assert(itr->second.elements == 1);
   assert(itr->words_per_element == 1);
 
-  return var_read(var_size() + itr->second.begin);
+  return read_(var_size() + itr->second.begin);
 }
 
 template <typename T>
@@ -356,85 +357,12 @@ inline void VarTable<T>::write_expr(const Expression* e, T val) {
   assert(itr->second.elements == 1);
   assert(itr->second.words_per_element == 1);
 
-  var_write(var_size() + itr->second.begin, val);
+  write_(var_size() + itr->second.begin, val);
 }
 
 template <typename T>
 inline constexpr size_t VarTable<T>::bits_per_word() const {
   return 8*sizeof(T);
-}
-
-template <typename T>
-T VarTable<T>::var_read(size_t index) const {
-  uint8_t bytes[7];
-  uint16_t vid = index;
-  bytes[0] = 2;
-  bytes[1] = vid >> 8;
-  bytes[2] = vid;
-  reqs_.sputn((char*)bytes, 3);
-  
-  const bool dbg = false;
-  if (dbg) {
-    std::cout << std::setfill('0');
-    /*
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[0]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[1]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[2]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[3]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[4]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[5]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[6]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[7]};
-    std::cout << std::endl;*/
-    std::cout << "r " << std::hex << std::setw(4) << index << ":";
-  }
-  resps_.waitforn((char*)bytes, 4);
-  //for (int i = 0; i < 4; i += resps_.sgetn((char*)&bytes[i],4-i)) {
-  //  resps_.pubsync();
-  //}
-  uint32_t data = (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
-  
-  if (dbg) {
-    std::cout << std::hex << std::setw(8) << data << std::endl;
-    std::cout << std::setfill(' ') << std::setw(0);
-  }
-  return data;
-}
-
-template <typename T>
-void VarTable<T>::var_write(size_t index, T value) const {
-  uint8_t bytes[7];
-  uint16_t vid = index;
-  uint32_t data = value;
-  bytes[0] = 1;
-  bytes[1] = vid >> 8;
-  bytes[2] = vid;
-  bytes[3] = data >> 24;
-  bytes[4] = data >> 16;
-  bytes[5] = data >> 8;
-  bytes[6] = data;
-  reqs_.sputn((char*)bytes, 7);
-  
-  const bool dbg = false;
-  if (dbg) {
-    std::cout << std::setfill('0');
-    /*
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[0]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[1]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[2]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[3]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[4]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[5]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[6]};
-    std::cout << std::hex << std::setw(2) << uint16_t{bytes[7]};
-    std::cout << std::endl;*/
-    std::cout << "w " << std::hex << std::setw(4) << index << ":" << std::setw(8) << value << std::endl;
-    std::cout << std::setfill(' ') << std::setw(0);
-  }
-  //while (!resps_.sgetn((char*)bytes,1));
-  //for (int i = 0; i < 4; i += resps_.sgetn((char*)&bytes[i],4-i)) {
-  //  resps_.pubsync();
-  //}
 }
 
 } // namespace cascade::avmm

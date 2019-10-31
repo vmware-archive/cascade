@@ -69,7 +69,7 @@ class AvmmLogic : public Logic {
     AvmmLogic& set_callback(Callback cb);
 
     // Configuraton Properties:
-    const VarTable32& get_table() const;
+    const VarTable32* get_table() const;
 
     // Core Interface:
     State* get_state() override;
@@ -103,7 +103,7 @@ class AvmmLogic : public Logic {
 
     // Control State:
     bool there_were_tasks_;
-    VarTable32 table_;
+    VarTable32* table_;
     std::unordered_map<FId, interfacestream*> streams_;
 
     // Control Helpers:
@@ -147,10 +147,36 @@ class AvmmLogic : public Logic {
     };
 };
 
-inline AvmmLogic::AvmmLogic(Interface* interface, ModuleDeclaration* src, syncbuf& reqs, syncbuf& resps) : Logic(interface), table_(reqs, resps) { 
+inline AvmmLogic::AvmmLogic(Interface* interface, ModuleDeclaration* src, syncbuf& reqs, syncbuf& resps) : Logic(interface) { 
   src_ = src;
   cb_ = nullptr;
   tasks_.push_back(nullptr);
+
+  auto read = [&reqs, &resps](size_t index) {
+    uint8_t bytes[7];
+    uint16_t vid = index;
+    bytes[0] = 2;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    reqs.sputn((const char*)bytes, 3);
+    resps.waitforn((char*)bytes, 4);
+    uint32_t data = (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
+    return data;
+  };
+  auto write = [&reqs](size_t index, uint32_t val) {
+    uint8_t bytes[7];
+    uint16_t vid = index;
+    uint32_t data = val;
+    bytes[0] = 1;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    bytes[3] = data >> 24;
+    bytes[4] = data >> 16;
+    bytes[5] = data >> 8;
+    bytes[6] = data;
+    reqs.sputn((char*)bytes, 7);
+  };
+  table_ = new VarTable32(read, write);
 }
 
 inline AvmmLogic::~AvmmLogic() {
@@ -158,14 +184,15 @@ inline AvmmLogic::~AvmmLogic() {
     cb_();
   }
   delete src_;
+  delete table_;
   for (auto& s : streams_) {
     delete s.second;
   }
 }
 
 inline AvmmLogic& AvmmLogic::set_input(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) {
-    table_.insert_var(id);
+  if (table_->var_find(id) == table_->var_end()) {
+    table_->insert_var(id);
   }
   if (inputs_.size() <= vid) {
     inputs_.resize(vid+1, nullptr);
@@ -175,16 +202,16 @@ inline AvmmLogic& AvmmLogic::set_input(const Identifier* id, VId vid) {
 }
 
 inline AvmmLogic& AvmmLogic::set_state(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) {
-    table_.insert_var(id);
+  if (table_->var_find(id) == table_->var_end()) {
+    table_->insert_var(id);
   }   
   state_.insert(std::make_pair(vid, id));
   return *this;
 }
 
 inline AvmmLogic& AvmmLogic::set_output(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) { 
-    table_.insert_var(id);
+  if (table_->var_find(id) == table_->var_end()) { 
+    table_->insert_var(id);
   }
   outputs_.push_back(std::make_pair(id, vid));
   return *this;
@@ -201,14 +228,14 @@ inline AvmmLogic& AvmmLogic::set_callback(Callback cb) {
   return *this;
 }
 
-inline const VarTable32& AvmmLogic::get_table() const {
+inline const VarTable32* AvmmLogic::get_table() const {
   return table_;
 }
 
 inline State* AvmmLogic::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
-    table_.read_var(sv.second);
+    table_->read_var(sv.second);
     s->insert(sv.first, Evaluate().get_array_value(sv.second));
   }
   return s;
@@ -218,13 +245,13 @@ inline void AvmmLogic::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      table_.write_var(sv.second, itr->second);
+      table_->write_var(sv.second, itr->second);
     }
   }
   // Drop updates and reset state (continue once to clear any pending tasks
-  table_.write_control_var(table_.drop_update_index(), 1);
-  table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.resume_index(), 1);
+  table_->write_control_var(table_->drop_update_index(), 1);
+  table_->write_control_var(table_->reset_index(), 1);
+  table_->write_control_var(table_->resume_index(), 1);
 }
 
 inline Input* AvmmLogic::get_input() {
@@ -234,7 +261,7 @@ inline Input* AvmmLogic::get_input() {
     if (id == nullptr) {
       continue;
     }
-    table_.read_var(id);
+    table_->read_var(id);
     i->insert(v, Evaluate().get_value(id));
   }
   return i;
@@ -248,13 +275,13 @@ inline void AvmmLogic::set_input(const Input* i) {
     }
     const auto itr = i->find(v);
     if (itr != i->end()) {
-      table_.write_var(id, itr->second);
+      table_->write_var(id, itr->second);
     }
   }
   // Drop updates and reset state (continue once to clear any pending tasks
-  table_.write_control_var(table_.drop_update_index(), 1);
-  table_.write_control_var(table_.reset_index(), 1);
-  table_.write_control_var(table_.resume_index(), 1);
+  table_->write_control_var(table_->drop_update_index(), 1);
+  table_->write_control_var(table_->reset_index(), 1);
+  table_->write_control_var(table_->resume_index(), 1);
 }
 
 inline void AvmmLogic::finalize() {
@@ -264,7 +291,7 @@ inline void AvmmLogic::finalize() {
 inline void AvmmLogic::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
-  table_.write_var(inputs_[id], *b);
+  table_->write_var(inputs_[id], *b);
 }
 
 inline void AvmmLogic::evaluate() {
@@ -275,12 +302,12 @@ inline void AvmmLogic::evaluate() {
 
 inline bool AvmmLogic::there_are_updates() const {
   // Read there_are_updates flag
-  return table_.read_control_var(table_.there_are_updates_index()) != 0;
+  return table_->read_control_var(table_->there_are_updates_index()) != 0;
 }
 
 inline void AvmmLogic::update() {
   // Throw the update trigger
-  table_.write_control_var(table_.apply_update_index(), 1);
+  table_->write_control_var(table_->apply_update_index(), 1);
   // Read outputs and handle tasks
   loop_until_done();
   handle_outputs();
@@ -298,18 +325,18 @@ inline size_t AvmmLogic::open_loop(VId clk, bool val, size_t itr) {
   // Reset the tasks flag and go into open loop mode. If we exit in a done
   // state, then we performed every iteration.
   there_were_tasks_ = false;
-  table_.write_control_var(table_.open_loop_index(), itr);
-  if (table_.read_control_var(table_.done_index())) {
-    assert(table_.read_control_var(table_.open_loop_index()) == 0);
+  table_->write_control_var(table_->open_loop_index(), itr);
+  if (table_->read_control_var(table_->done_index())) {
+    assert(table_->read_control_var(table_->open_loop_index()) == 0);
     return itr;
   }
   // Otherwise, check how many iterations we made it through, reset the open
   // loop counter, and finish evaluating this iteration.
-  const size_t counter = table_.read_control_var(table_.open_loop_index());
-  table_.write_control_var(table_.open_loop_index(), 0);
-  while (!table_.read_control_var(table_.done_index())) {
+  const size_t counter = table_->read_control_var(table_->open_loop_index());
+  table_->write_control_var(table_->open_loop_index(), 0);
+  while (!table_->read_control_var(table_->done_index())) {
     handle_tasks();
-    table_.write_control_var(table_.resume_index(), 1);
+    table_->write_control_var(table_->resume_index(), 1);
   }
   // No need to handle outputs here (or above). This optimization assumes that
   // this module doesn't have any.
@@ -354,13 +381,13 @@ inline void AvmmLogic::update_eofs() {
 
   Evaluate eval;
   Sync sync(this);
-  for (auto i = table_.expr_begin(), ie = table_.expr_end(); i != ie; ++i) {
+  for (auto i = table_->expr_begin(), ie = table_->expr_end(); i != ie; ++i) {
     assert(i->first->is(Node::Tag::feof_expression));
     const auto* fe = static_cast<const FeofExpression*>(i->first);
     fe->accept_fd(&sync);
 
     auto* is = get_stream(eval.get_value(fe->get_fd()).to_uint());
-    table_.write_expr(i->first, is->eof() ? 1 : 0);
+    table_->write_expr(i->first, is->eof() ? 1 : 0);
   }
 }
 
@@ -369,15 +396,15 @@ inline void AvmmLogic::loop_until_done() {
   // thing that prevents done from being true is the occurrence of a system
   // task. If this happens, continue asserting __continue (resume_index) and
   // handling tasks until done returns true.
-  for (there_were_tasks_ = false; !table_.read_control_var(table_.done_index()); ) {
+  for (there_were_tasks_ = false; !table_->read_control_var(table_->done_index()); ) {
     handle_tasks();
-    table_.write_control_var(table_.resume_index(), 1);
+    table_->write_control_var(table_->resume_index(), 1);
   }
 }
 
 inline void AvmmLogic::handle_outputs() {
   for (const auto& o : outputs_) {
-    table_.read_var(o.first);
+    table_->read_var(o.first);
     interface()->write(o.second, &Evaluate().get_value(o.first));
   }
 }
@@ -385,7 +412,7 @@ inline void AvmmLogic::handle_outputs() {
 inline void AvmmLogic::handle_tasks() {
   // TODO(eschkufz) we'll need to support multiple task ids and iterate over all of them
 
-  volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
+  volatile auto task_id = table_->read_control_var(table_->there_were_tasks_index());
   if (task_id == 0) {
     return;
   }
@@ -449,7 +476,7 @@ inline void AvmmLogic::handle_tasks() {
       if (gs->is_non_null_var()) {
         const auto* r = Resolve().get_resolution(gs->get_var());
         assert(r != nullptr);
-        table_.write_var(r, eval.get_value(r));
+        table_->write_var(r, eval.get_value(r));
       }
       update_eofs();
 
@@ -499,8 +526,8 @@ inline AvmmLogic::Inserter::Inserter(AvmmLogic* de) : Visitor() {
 inline void AvmmLogic::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
-  if (in_args_ && (de_->table_.var_find(r) == de_->table_.var_end())) {
-    de_->table_.insert_var(r);
+  if (in_args_ && (de_->table_->var_find(r) == de_->table_->var_end())) {
+    de_->table_->insert_var(r);
   }
 }
 
@@ -509,7 +536,7 @@ inline void AvmmLogic::Inserter::visit(const FeofExpression* fe) {
   // represent its value, *and also* images of its arguments so that we can
   // inspect an feof expression and know what stream it refers to.
 
-  de_->table_.insert_expr(fe); 
+  de_->table_->insert_expr(fe); 
   in_args_ = true;
   fe->accept_fd(this);
   in_args_ = false;
@@ -585,8 +612,8 @@ inline void AvmmLogic::Sync::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  assert(de_->table_.var_find(r) != de_->table_.var_end());
-  de_->table_.read_var(r);
+  assert(de_->table_->var_find(r) != de_->table_->var_end());
+  de_->table_->read_var(r);
 }
 
 } // namespace cascade::avmm

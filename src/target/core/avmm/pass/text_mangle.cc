@@ -69,8 +69,8 @@ Expression* TextMangle::build(const FeofExpression* fe) {
   // table. The software-side of the avmm logic manages the value of this variable
   // based on invocations of other io tasks.
 
-  const auto itr = de_->get_table().expr_find(fe);
-  assert(itr != de_->get_table().expr_end());
+  const auto itr = de_->get_table()->expr_find(fe);
+  assert(itr != de_->get_table()->expr_end());
   return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
 }
 
@@ -80,8 +80,8 @@ Statement* TextMangle::build(const BlockingAssign* ba) {
   assert(r != nullptr);
 
   // If this entry doesn't appear in the vtable, we can leave it as is
-  const auto titr = de_->get_table().var_find(r);
-  if (titr == de_->get_table().var_end()) {
+  const auto titr = de_->get_table()->var_find(r);
+  if (titr == de_->get_table()->var_end()) {
     return ba->clone();
   }
   // Otherwise, replace the original assignment with an assignment to a concatenation
@@ -193,8 +193,8 @@ Statement* TextMangle::build(const SaveStatement* ss) {
 
 Expression* TextMangle::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
-  const auto titr = de_->get_table().var_find(r);
-  assert(titr != de_->get_table().var_end());
+  const auto titr = de_->get_table()->var_find(r);
+  assert(titr != de_->get_table()->var_end());
 
   // Start with an expression for where this variable begins in the variable table
   Expression* idx = new Number(Bits(32, titr->second.begin));
