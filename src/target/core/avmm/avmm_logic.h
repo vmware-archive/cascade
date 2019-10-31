@@ -87,7 +87,6 @@ class AvmmLogic : public Logic {
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
     // Optimization Properties:
-    bool open_loop_enabled() const;
     const Identifier* open_loop_clock() const;
 
   private:
@@ -343,22 +342,18 @@ inline size_t AvmmLogic::open_loop(VId clk, bool val, size_t itr) {
   return itr - counter;
 }
 
-inline bool AvmmLogic::open_loop_enabled() const {
+inline const Identifier* AvmmLogic::open_loop_clock() const {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
-    return false;
+    return nullptr;
   }
   if (Evaluate().get_width(*info.inputs().begin()) != 1) {
-    return false;
+    return nullptr;
   }
   if (!info.outputs().empty()) {
-    return false;
+    return nullptr;
   }
-  return true;
-}
-
-inline const Identifier* AvmmLogic::open_loop_clock() const {
-  return open_loop_enabled() ? *ModuleInfo(src_).inputs().begin() : nullptr;
+  return *ModuleInfo(src_).inputs().begin();
 }
 
 inline interfacestream* AvmmLogic::get_stream(FId fd) {

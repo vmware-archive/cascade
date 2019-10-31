@@ -230,7 +230,7 @@ inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* 
 
   slots_[slot].id = id;
   slots_[slot].state = State::COMPILING;
-  slots_[slot].text = AvmmRewrite().run(md, de, slot);
+  slots_[slot].text = AvmmRewrite().run(md, slot, de->get_table(), de->open_loop_clock());
 
   while (true) {
     switch (slots_[slot].state) {

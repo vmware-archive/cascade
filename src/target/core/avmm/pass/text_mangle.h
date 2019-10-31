@@ -33,12 +33,10 @@
 
 #include <stddef.h>
 #include <vector>
+#include "target/core/avmm/var_table.h"
 #include "verilog/ast/visitors/builder.h"
-#include "verilog/ast/visitors/visitor.h"
 
 namespace cascade::avmm {
-
-class AvmmLogic;
 
 // Pass 1: 
 // 
@@ -51,12 +49,12 @@ class AvmmLogic;
 //
 class TextMangle : public Builder {
   public:
-    TextMangle(const ModuleDeclaration* md, const AvmmLogic* de);
+    TextMangle(const ModuleDeclaration* md, const VarTable32* vt);
     ~TextMangle() override = default;
 
   private:
     const ModuleDeclaration* md_;
-    const AvmmLogic* de_;
+    const VarTable32* vt_;
     size_t task_index_;
 
     Attributes* build(const Attributes* as) override;

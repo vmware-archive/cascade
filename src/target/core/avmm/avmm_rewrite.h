@@ -36,6 +36,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "target/core/avmm/var_table.h"
 #include "target/core/avmm/pass/machinify.h"
 #include "target/core/avmm/pass/text_mangle.h"
 #include "verilog/analyze/module_info.h"
@@ -50,7 +51,7 @@ namespace cascade::avmm {
 
 class AvmmRewrite {
   public:
-    std::string run(const ModuleDeclaration* md, const AvmmLogic* de, size_t slot);
+    std::string run(const ModuleDeclaration* md, size_t slot, const VarTable32* vt, const Identifier* clock);
 
   private:
     // Records variables which appear in timing control statements
@@ -63,28 +64,28 @@ class AvmmRewrite {
     };
 
     void emit_avalon_vars(ModuleDeclaration* res);
-    void emit_var_table(ModuleDeclaration* res, const AvmmLogic* de);
-    void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de);
-    void emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de);
-    void emit_update_vars(ModuleDeclaration* res, const AvmmLogic* de);
+    void emit_var_table(ModuleDeclaration* res, const VarTable32* vt);
+    void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt);
+    void emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt);
+    void emit_update_vars(ModuleDeclaration* res, const VarTable32* vt);
     void emit_state_vars(ModuleDeclaration* res);
     void emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti);
     void emit_open_loop_vars(ModuleDeclaration* res);
     void emit_var_vars(ModuleDeclaration* res, const Machinify* mfy);
 
     void emit_avalon_logic(ModuleDeclaration* res);
-    void emit_update_logic(ModuleDeclaration* res, const AvmmLogic* de);
-    void emit_state_logic(ModuleDeclaration* res, const AvmmLogic* de, const Machinify* mfy);
+    void emit_update_logic(ModuleDeclaration* res, const VarTable32* vt);
+    void emit_state_logic(ModuleDeclaration* res, const VarTable32* vt, const Machinify* mfy);
     void emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti);
-    void emit_open_loop_logic(ModuleDeclaration* res, const AvmmLogic* de);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de, const Machinify* mfy);
-    void emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de);
+    void emit_open_loop_logic(ModuleDeclaration* res, const VarTable32* vt);
+    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt, const Machinify* mfy, const Identifier* open_loop_clock);
+    void emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt);
           
     void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
     void emit_slice(Identifier* id, size_t w, size_t i) const;
 };
 
-inline std::string AvmmRewrite::run(const ModuleDeclaration* md, const AvmmLogic* de, size_t slot)  {
+inline std::string AvmmRewrite::run(const ModuleDeclaration* md, size_t slot, const VarTable32* vt, const Identifier* clock) {
   std::stringstream ss;
 
   // Generate index tables before doing anything even remotely invasive
@@ -105,28 +106,28 @@ inline std::string AvmmRewrite::run(const ModuleDeclaration* md, const AvmmLogic
   auto *res = db.get();
 
   emit_avalon_vars(res);
-  emit_var_table(res, de);
-  emit_shadow_vars(res, md, de);
-  emit_view_vars(res, md, de);
-  emit_update_vars(res, de);
+  emit_var_table(res, vt);
+  emit_shadow_vars(res, md, vt);
+  emit_view_vars(res, md, vt);
+  emit_update_vars(res, vt);
   emit_state_vars(res);
   emit_trigger_vars(res, &ti);
   emit_open_loop_vars(res);
 
   // Emit original program logic
-  TextMangle tm(md, de);
+  TextMangle tm(md, vt);
   md->accept_items(&tm, res->back_inserter_items());
   Machinify mfy;
   mfy.run(res);
 
   emit_var_vars(res, &mfy);
   emit_avalon_logic(res);
-  emit_update_logic(res, de);
-  emit_state_logic(res, de, &mfy);
+  emit_update_logic(res, vt);
+  emit_state_logic(res, vt, &mfy);
   emit_trigger_logic(res, &ti);
-  emit_open_loop_logic(res, de);
-  emit_var_logic(res, md, de, &mfy);
-  emit_output_logic(res, md, de);
+  emit_open_loop_logic(res, vt);
+  emit_var_logic(res, md, vt, &mfy, clock);
+  emit_output_logic(res, md, vt);
 
   // Final cleanup passes
   BlockFlatten().run(res);
@@ -166,24 +167,24 @@ inline void AvmmRewrite::emit_avalon_vars(ModuleDeclaration* res) {
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
-inline void AvmmRewrite::emit_var_table(ModuleDeclaration* res, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_var_table(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
   // Emit the var table and the expression table
-  const auto var_seg_arity = std::max(static_cast<size_t>(16), de->get_table()->var_size());
+  const auto var_seg_arity = std::max(static_cast<size_t>(16), vt->var_size());
   ib << "reg[31:0] __var[" << (var_seg_arity-1) << ":0];" << std::endl;
-  const auto expr_seg_arity = std::max(static_cast<size_t>(16), de->get_table()->expr_size());
+  const auto expr_seg_arity = std::max(static_cast<size_t>(16), vt->expr_size());
   ib << "reg[31:0] __expr[" << (expr_seg_arity-1) << ":0];" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);
 
   // Index the stateful elements in the variable table
   std::map<std::string, VarTable32::const_var_iterator> vars;
-  for (auto v = de->get_table()->var_begin(), ve = de->get_table()->var_end(); v != ve; ++v) {
+  for (auto v = vt->var_begin(), ve = vt->var_end(); v != ve; ++v) {
     if (info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -205,19 +206,19 @@ inline void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDe
   }
 
   // Emit update masks for the var table
-  const auto update_arity = std::max(static_cast<size_t>(32), de->get_table()->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
   ib << "reg[" << (update_arity-1) << ":0] __prev_update_mask = 0;" << std::endl;
   ib << "reg[" << (update_arity-1) << ":0] __update_mask = 0;" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table
   std::map<std::string, VarTable32::const_var_iterator> vars;
-  for (auto v = de->get_table()->var_begin(), ve = de->get_table()->var_end(); v != ve; ++v) {
+  for (auto v = vt->var_begin(), ve = vt->var_end(); v != ve; ++v) {
     if (info.is_input(v->first) || info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -260,10 +261,10 @@ inline void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDecl
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_update_vars(ModuleDeclaration* res, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_update_vars(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
-  const auto update_arity = std::max(static_cast<size_t>(32), de->get_table()->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
   ib << "wire[" << (update_arity-1) << ":0] __update_queue;" << std::endl;
   ib << "wire __there_are_updates;" << std::endl;
   ib << "wire __apply_updates;" << std::endl;
@@ -352,20 +353,20 @@ inline void AvmmRewrite::emit_avalon_logic(ModuleDeclaration* res) {
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
-inline void AvmmRewrite::emit_update_logic(ModuleDeclaration* res, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_update_logic(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
-  const auto update_arity = std::max(static_cast<size_t>(32), de->get_table()->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
   ib << "assign __update_queue = (__prev_update_mask ^ __update_mask);" << std::endl;
   ib << "assign __there_are_updates = |__update_queue;" << std::endl;
-  ib << "assign __apply_updates = ((__read_request && (__vid == " << de->get_table()->apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << std::endl;
-  ib << "assign __drop_updates = (__read_request && (__vid == " << de->get_table()->drop_update_index() << "));" << std::endl;
+  ib << "assign __apply_updates = ((__read_request && (__vid == " << vt->apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << std::endl;
+  ib << "assign __drop_updates = (__read_request && (__vid == " << vt->drop_update_index() << "));" << std::endl;
   ib << "always @(posedge __clk) __prev_update_mask <= ((__apply_updates || __drop_updates) ? __update_mask : __prev_update_mask);" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const AvmmLogic* de, const Machinify* mfy) {
+inline void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const VarTable32* vt, const Machinify* mfy) {
   ItemBuilder ib;
 
   if (mfy->begin() == mfy->end()) {
@@ -390,8 +391,8 @@ inline void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const AvmmLogi
     ib << "};" << std::endl;
   }
 
-  ib << "assign __continue = ((__read_request && (__vid == " << de->get_table()->resume_index() << ")) || (!__all_final && !__there_were_tasks));" << std::endl;
-  ib << "assign __reset = (__read_request && (__vid == " << de->get_table()->reset_index() << "));" << std::endl;
+  ib << "assign __continue = ((__read_request && (__vid == " << vt->resume_index() << ")) || (!__all_final && !__there_were_tasks));" << std::endl;
+  ib << "assign __reset = (__read_request && (__vid == " << vt->reset_index() << "));" << std::endl;
   ib << "assign __done = (__all_final && !__there_were_tasks);" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
@@ -448,29 +449,29 @@ inline void AvmmRewrite::emit_trigger_logic(ModuleDeclaration* res, const Trigge
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_open_loop_logic(ModuleDeclaration* res, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_open_loop_logic(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
-  ib << "always @(posedge __clk) __open_loop <= ((__read_request && (__vid == " << de->get_table()->open_loop_index() << ")) ? __in : (__open_loop_tick ? (__open_loop - 1) : __open_loop));" << std::endl;
+  ib << "always @(posedge __clk) __open_loop <= ((__read_request && (__vid == " << vt->open_loop_index() << ")) ? __in : (__open_loop_tick ? (__open_loop - 1) : __open_loop));" << std::endl;
   ib << "assign __open_loop_tick = (__all_final && (!__any_triggers && (__open_loop > 0)));" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de, const Machinify* mfy) {
+inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt, const Machinify* mfy, const Identifier* clock) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table as well
   // as the elements in the expr table.
   std::map<size_t, VarTable32::const_var_iterator> vars;
-  for (auto t = de->get_table()->var_begin(), te = de->get_table()->var_end(); t != te; ++t) {
+  for (auto t = vt->var_begin(), te = vt->var_end(); t != te; ++t) {
     if (info.is_input(t->first) || info.is_stateful(t->first)) {
       vars[t->second.begin] = t;
     }
   }
   std::map<size_t, VarTable32::const_expr_iterator> exprs;
-  for (auto t = de->get_table()->expr_begin(), te = de->get_table()->expr_end(); t != te; ++t) {
-    exprs[de->get_table()->var_size() + t->second.begin] = t;
+  for (auto t = vt->expr_begin(), te = vt->expr_end(); t != te; ++t) {
+    exprs[vt->var_size() + t->second.begin] = t;
   }
 
   ItemBuilder ib;
@@ -487,7 +488,7 @@ inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDecl
     for (size_t i = 0, ie = itr->second.elements; i < ie; ++i) {
       for (size_t j = 0, je = itr->second.words_per_element; j < je; ++j) {
         ib << "__var[" << idx << "] <= ";
-        if (de->open_loop_enabled() && (itr->first == de->open_loop_clock())) {
+        if ((clock != nullptr) && (itr->first == clock)) {
           ib << "__open_loop_tick ? {31'd0,~" << itr->first->front_ids()->get_readable_sid() << "} : ";
         }
         ib << "(__read_request && (__vid == " << idx << ")) ? __in : ";
@@ -508,19 +509,19 @@ inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDecl
     assert(itr->second.elements == 1);
     assert(itr->second.words_per_element == 1);
     const auto idx = itr->second.begin;
-    ib << "__expr[" << idx << "] <= ((__read_request && (__vid == " << (de->get_table()->var_size()+idx) << ")) ? __in : __expr[" << idx << "]);" << std::endl;
+    ib << "__expr[" << idx << "] <= ((__read_request && (__vid == " << (vt->var_size()+idx) << ")) ? __in : __expr[" << idx << "]);" << std::endl;
   }
   ib << "end" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const AvmmLogic* de) {
+inline void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);      
 
   // Index the elements in the variable table which aren't inputs or stateful.
   std::map<size_t, VarTable32::const_var_iterator> outputs;
-  for (auto t = de->get_table()->var_begin(), te = de->get_table()->var_end(); t != te; ++t) {
+  for (auto t = vt->var_begin(), te = vt->var_end(); t != te; ++t) {
     if (!info.is_input(t->first) && !info.is_stateful(t->first)) {
       outputs[t->second.begin] = t;
     }
@@ -546,12 +547,12 @@ inline void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleD
     }
   }
   
-  ib << de->get_table()->there_are_updates_index() << ": __out = __there_are_updates;" << std::endl;
-  ib << de->get_table()->there_were_tasks_index() << ": __out = __task_id[0];" << std::endl;
-  ib << de->get_table()->done_index() << ": __out = __done;" << std::endl;
-  ib << de->get_table()->open_loop_index() << ": __out = __open_loop;" << std::endl;
-  ib << de->get_table()->debug_index() << ": __out = __state[0];" << std::endl;
-  ib << "default: __out = ((__vid < " << de->get_table()->var_size() << ") ? __var[__vid] : __expr[(__vid - " << de->get_table()->var_size() << ")]);" << std::endl;
+  ib << vt->there_are_updates_index() << ": __out = __there_are_updates;" << std::endl;
+  ib << vt->there_were_tasks_index() << ": __out = __task_id[0];" << std::endl;
+  ib << vt->done_index() << ": __out = __done;" << std::endl;
+  ib << vt->open_loop_index() << ": __out = __open_loop;" << std::endl;
+  ib << vt->debug_index() << ": __out = __state[0];" << std::endl;
+  ib << "default: __out = ((__vid < " << vt->var_size() << ") ? __var[__vid] : __expr[(__vid - " << vt->var_size() << ")]);" << std::endl;
   ib << "endcase" << std::endl;
   ib << "assign __wait = (__open_loop_tick || (__any_triggers || __continue));" << std::endl;
 
