@@ -32,7 +32,6 @@
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_SYNCBUF_H
 
 #include <streambuf>
-#include <vector>
 #include <mutex>
 #include <condition_variable>
 
@@ -50,7 +49,7 @@ class syncbuf : public std::streambuf {
     typedef std::streambuf::off_type off_type;
    
     // Constructors:
-    explicit syncbuf();
+    syncbuf();
     ~syncbuf() override;
     
     // Blocking Read:
@@ -66,27 +65,12 @@ class syncbuf : public std::streambuf {
     std::mutex mut_;
     std::condition_variable cv_;
     
-    // Locales:
-    void imbue(const std::locale& loc) override;
-
-    // Positioning:
-    syncbuf* setbuf(char_type* s, std::streamsize n) override;
-    pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
-    pos_type seekpos(pos_type pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out) override;
-    int sync() override;
-
     // Get Area:
-    std::streamsize showmanyc() override;
-    int_type underflow() override;
     int_type uflow() override;
     std::streamsize xsgetn(char_type* s, std::streamsize count) override;
 
     // Put Area:
     std::streamsize xsputn(const char_type* s, std::streamsize count) override;
-    int_type overflow(int_type c = traits_type::eof()) override;
-
-    // Undo:
-    int_type pbackfail(int_type c = traits_type::eof()) override;
 };
 
 inline syncbuf::syncbuf() {
@@ -117,47 +101,6 @@ inline void syncbuf::waitforn(char_type* s, std::streamsize count) {
     goff_ = 0;
     poff_ = 0;
   }
-}
-
-inline void syncbuf::imbue(const std::locale& loc) {
-  // Does nothing.
-  (void) loc;
-}
-
-inline syncbuf* syncbuf::setbuf(char_type* s, std::streamsize n) {
-  // Does nothing.
-  (void) s;
-  (void) n;
-  return this;
-}
-
-inline syncbuf::pos_type syncbuf::seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode which) {
-  // Does nothing.
-  (void) off;
-  (void) dir;
-  (void) which;
-  return pos_type(off_type(-1));
-}
-
-inline syncbuf::pos_type syncbuf::seekpos(pos_type pos, std::ios_base::openmode which) {
-  // Does nothing.
-  (void) pos;
-  (void) which;
-  return pos_type(off_type(-1));
-}
-
-inline int syncbuf::sync() {
-  return 0;
-}
-
-inline std::streamsize syncbuf::showmanyc() {
-  std::lock_guard<std::mutex> lg(mut_);
-  return poff_ - goff_;
-}
-
-inline syncbuf::int_type syncbuf::underflow() {
-  // Reads always remove values
-  return traits_type::eof();
 }
 
 inline syncbuf::int_type syncbuf::uflow() {
@@ -215,16 +158,6 @@ inline std::streamsize syncbuf::xsgetn(char_type* s, std::streamsize count) {
   }
   
   return true_count;
-}
-
-inline syncbuf::int_type syncbuf::overflow(int_type c) {
-  // Writes are append only
-  return traits_type::eof();
-}
-
-inline syncbuf::int_type syncbuf::pbackfail(int_type c) {
-  // Writes are append only
-  return traits_type::eof();
 }
 
 } // namespace cascade
