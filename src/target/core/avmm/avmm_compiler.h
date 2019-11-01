@@ -59,8 +59,21 @@ class AvmmCompiler : public CoreCompiler {
     void stop_compile(Engine::Id id) override;
 
   protected:
+    // Avalon Memory Mapped Compiler Interface
+    //
+    // This method should perform whatever target-specific logic is necessary
+    // to return an instance of an AvmmLogic. 
     virtual AvmmLogic<T>* build(Interface* interface, ModuleDeclaration* md) = 0;
+    // This method should perform whatever target-specific logic is necessary
+    // to stop any previous compilations and compile text to a device. This
+    // method is called in a context where it holds the global lock on this
+    // compiler. Implementations for which this may take a long time should
+    // release this lock, but reaquire it before returning.  This method should
+    // return true of success, false on failure, say if stop_compile
+    // interrupted a compilation.
     virtual bool compile(const std::string& text, std::mutex& lock) = 0;
+    // This method should perform whatever target-specific logic is necessary
+    // to stop the execution of any invocations of compile().
     virtual void stop_compile() = 0;
 
   private:
@@ -128,7 +141,8 @@ inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
     }
   }
   // If we need a new compilation lead, find a waiting slot and promote it.
-  // Note that there might not be any more waiting slots. That's fine.
+  // If we freed the active slot, we won't find anything. In this case, we
+  // can just return.
   if (need_new_owner) {
     for (auto& s : slots_) {
       if (s.state == State::WAITING) {
@@ -140,6 +154,7 @@ inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
   // Target-specific implementation of stop logic
   stop_compile();
 
+  // Notify any waiting threads that the slot table has changed.
   cv_.notify_all();
 }
 
@@ -162,55 +177,52 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
     return nullptr;
   }
 
-  // Find a new slot and generate code for this module. If either step fails,
-  // return nullptr. Otherwise, advance the sequence counter and compile.
+  // Find a free slot 
   const auto slot = get_free();
   if (slot == -1) {
-    get_compiler()->error("No remaining slots available on avmm fabric");
+    get_compiler()->error("No remaining slots available on Avmm device");
     delete md;
     return nullptr;
   }
   
-  // Target-specific implementation of build logic
-  auto* de = build(interface, md);
-
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering. The
   // final invocation of index_tasks is lexicographic by construction, as it's
   // based on a recursive descent of the AST.
+  // Target-specific implementation of build logic
+  auto* al = build(interface, md);
   std::map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
     is.insert(std::make_pair(to_vid(i), i));
   }
   for (const auto& i : is) {
-    de->set_input(i.second, i.first);
+    al->set_input(i.second, i.first);
   }
   std::map<VId, const Identifier*> ss;
   for (auto* s : info.stateful()) {
     ss.insert(std::make_pair(to_vid(s), s));
   }
   for (const auto& s : ss) {
-    de->set_state(s.second, s.first);
+    al->set_state(s.second, s.first);
   }
   std::map<VId, const Identifier*> os;
   for (auto* o : info.outputs()) {
     os.insert(std::make_pair(to_vid(o), o));
   }
   for (const auto& o : os) {
-    de->set_output(o.second, o.first);
+    al->set_output(o.second, o.first);
   }
-  de->index_tasks();
-
+  al->index_tasks();
   // Check table and index sizes. If this program uses too much state, we won't
   // be able to uniquely name its elements using our current addressing scheme.
-  if (de->get_table()->size() >= 0x1000) {
+  if (al->get_table()->size() >= 0x1000) {
     get_compiler()->error("Avmm backends do not currently support more than 4096 entries in variable table");
-    delete de;
+    delete al;
     return nullptr;
   }
 
-  // Downgrade any compilation slots to waiting slots, and stop any slots that are
-  // working on this id.
+  // Downgrade any compilation slots to waiting slots, and stop any slots that
+  // are working on this id.
   for (auto& s : slots_) {
     if (s.state == State::COMPILING) {
       s.state = State::WAITING;
@@ -219,11 +231,12 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
       s.state = State::STOPPED;
     }
   }
-
+  // This slot is now the compile lead
   slots_[slot].id = id;
   slots_[slot].state = State::COMPILING;
-  slots_[slot].text = Rewrite<T>().run(md, slot, de->get_table(), de->open_loop_clock());
-
+  slots_[slot].text = Rewrite<T>().run(md, slot, al->get_table(), al->open_loop_clock());
+  // Enter into compilation state machine. Control will exit from this loop
+  // either when compilation succeeds or is aborted.
   while (true) {
     switch (slots_[slot].state) {
       case State::COMPILING:
@@ -236,11 +249,11 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
         break;
       case State::STOPPED:
         slots_[slot].state = State::FREE;
-        delete de;
+        delete al;
         return nullptr;
       case State::CURRENT:
-        de->set_callback([this, slot]{release(slot);});
-        return de;
+        al->set_callback([this, slot]{release(slot);});
+        return al;
       default:
         // Control should never reach here
         assert(false);
@@ -271,9 +284,9 @@ inline int AvmmCompiler<T>::get_free() const {
 
 template <typename T>
 inline void AvmmCompiler<T>::release(size_t slot) {
-  // Return this slot to the pool if necessary. This method should only be
-  // invoked on successfully compiled cores, which means we don't have to worry
-  // about transfering compilation ownership or invoking a killall.
+  // Return this slot to the pool if necessary. This method is only invoked on
+  // successfully compiled cores, which means we don't have to worry about
+  // transfering compilation ownership or invoking stop_compile.
   std::lock_guard<std::mutex> lg(lock_);
   assert(slots_[slot].state == State::CURRENT);
   slots_[slot].state = State::FREE;
