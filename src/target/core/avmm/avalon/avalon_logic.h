@@ -31,12 +31,17 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
 
-#include <stdint.h>
 #include "target/core/avmm/avmm_logic.h"
 
 namespace cascade {
 
-using AvalonLogic = AvmmLogic<uint32_t>;
+class syncbuf; 
+
+class AvalonLogic : public AvmmLogic<uint32_t> {
+  public:
+    AvalonLogic(Interface* interface, ModuleDeclaration* md, syncbuf* reqs, syncbuf* resps);
+    virtual ~AvalonLogic() override = default;
+};
 
 } // namespace cascade
 

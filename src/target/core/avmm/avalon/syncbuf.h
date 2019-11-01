@@ -38,6 +38,8 @@
 
 namespace cascade {
 
+// FIFO with atomic puts and gets Peeking and put-backs are not supported
+
 class syncbuf : public std::streambuf {
   public:
     // Typedefs:
@@ -51,13 +53,15 @@ class syncbuf : public std::streambuf {
     explicit syncbuf();
     ~syncbuf() override;
     
-    //
+    // Blocking Read:
     void waitforn(char_type* s, std::streamsize count);
+
   private:
     // Shared data buffer:
     char_type* data_;
     size_t data_cap_;
     size_t goff_, poff_;
+
     // Synchronization:
     std::mutex mut_;
     std::condition_variable cv_;
@@ -86,7 +90,7 @@ class syncbuf : public std::streambuf {
 };
 
 inline syncbuf::syncbuf() {
-  data_ = (char_type*)malloc(64*sizeof(char_type));
+  data_ = new char_type[64];
   data_cap_ = 64;
   goff_ = 0;
   poff_ = 0;
@@ -95,18 +99,20 @@ inline syncbuf::syncbuf() {
 }
 
 inline syncbuf::~syncbuf() {
-  free(data_);
+  delete data_;
   //std::cout << "Final capacity: " << data_cap_ << std::endl;
 }
 
 inline void syncbuf::waitforn(char_type* s, std::streamsize count) {
   std::unique_lock<std::mutex> ul(mut_);
+  // Wait on condition variable until enough data is available
   while ((poff_-goff_) < count) cv_.wait(ul);
   
   size_t next_goff = goff_ + count;
   std::copy(&data_[goff_], &data_[next_goff], s);
   goff_ = next_goff;
   
+  // If no data is left, reset pointers to recycle space
   if (goff_ == poff_) {
     goff_ = 0;
     poff_ = 0;
@@ -150,6 +156,7 @@ inline std::streamsize syncbuf::showmanyc() {
 }
 
 inline syncbuf::int_type syncbuf::underflow() {
+  // Reads always remove values
   return traits_type::eof();
 }
 
@@ -171,11 +178,14 @@ inline syncbuf::int_type syncbuf::uflow() {
 inline std::streamsize syncbuf::xsputn(const char_type* s, std::streamsize count) {
   std::lock_guard<std::mutex> lg(mut_);
   size_t next_poff = poff_ + count;
+  
+  // If current capacity is insufficient, grow by power of 2
   if (next_poff > data_cap_) {
     while (next_poff > data_cap_) data_cap_ *= 2;
-    char_type* next_data = (char_type*)malloc(data_cap_*sizeof(char_type));
+    char_type* next_data = new char_type[data_cap_];
+    // Only copy valid entries
     std::copy(&data_[goff_], &data_[poff_], next_data);
-    free(data_);
+    delete data_;
     data_ = next_data;
     poff_ = poff_ - goff_;
     goff_ = 0;
@@ -198,6 +208,7 @@ inline std::streamsize syncbuf::xsgetn(char_type* s, std::streamsize count) {
   std::copy(&data_[goff_], &data_[next_goff], s);
   goff_ = next_goff;
   
+  // If no data is left, reset pointers to recycle space
   if (goff_ == poff_) {
     goff_ = 0;
     poff_ = 0;
@@ -207,12 +218,12 @@ inline std::streamsize syncbuf::xsgetn(char_type* s, std::streamsize count) {
 }
 
 inline syncbuf::int_type syncbuf::overflow(int_type c) {
-  // Why would you do this?
+  // Writes are append only
   return traits_type::eof();
 }
 
 inline syncbuf::int_type syncbuf::pbackfail(int_type c) {
-  // Why would you do this?
+  // Writes are append only
   return traits_type::eof();
 }
 

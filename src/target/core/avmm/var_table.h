@@ -62,7 +62,11 @@ class VarTable {
     typedef typename std::unordered_map<const Expression*, const Row>::const_iterator const_expr_iterator;
         
     // Constructors:
-    VarTable(Read read, Write write);
+    VarTable();
+
+    // Configuration Interface:
+    VarTable& set_read(Read read);
+    VarTable& set_write(Write write);
 
     // Inserts an element into the table.
     void insert_var(const Identifier* id);
@@ -146,10 +150,20 @@ using VarTable32 = VarTable<uint32_t>;
 using VarTable64 = VarTable<uint64_t>;
 
 template <typename T>
-inline VarTable<T>::VarTable(Read read, Write write) {
-  read_ = read;
-  write_ = write;
+inline VarTable<T>::VarTable() {
   next_index_ = 0;
+}
+
+template <typename T>
+inline VarTable<T>& VarTable<T>::set_read(Read read) {
+  read_ = read;
+  return *this;
+}
+
+template <typename T>
+inline VarTable<T>& VarTable<T>::set_write(Write write) {
+  write_ = write;
+  return *this;
 }
 
 template <typename T>

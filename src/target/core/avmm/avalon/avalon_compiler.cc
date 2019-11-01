@@ -28,36 +28,54 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
+#include "target/core/avmm/avalon/avalon_compiler.h"
 
-#include "target/core/avmm/avalon/avalon_logic.h"
-#include "target/core/avmm/avalon/syncbuf.h"
-#include "target/core/avmm/avmm_compiler.h"
+#include <fstream>
+#include "cascade/cascade.h"
+#include "common/system.h"
 
 namespace cascade {
 
-class Cascade;
+AvalonCompiler::AvalonCompiler() : AvmmCompiler<uint32_t>() {
+  cascade_ = nullptr;
+}
 
-class AvalonCompiler : public AvmmCompiler<uint32_t> {
-  public:
-    AvalonCompiler();
-    ~AvalonCompiler() override;
+AvalonCompiler::~AvalonCompiler() {
+  stop_compile();
+}
 
-  private:
-    // Avmm Compiler Interface:
-    AvalonLogic* build(Interface* interface, ModuleDeclaration* md) override;
-    bool compile(const std::string& text, std::mutex& lock) override;
-    void stop_compile() override;
+AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md) {
+  return new AvalonLogic(interface, md, &reqs_, &resps_);
+}
 
-    // Slave Cascade:
-    Cascade* cascade_;
+bool AvalonCompiler::compile(const std::string& text, std::mutex& lock) {
+  (void) lock;
 
-    // Communication Buffers:
-    syncbuf reqs_;
-    syncbuf resps_;
-};
+  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
+  ofs << text << std::endl;
+  ofs.close();
+  
+  stop_compile();
+  cascade_ = new Cascade();
+  cascade_->run();
+
+  const auto ifd = cascade_->open(&reqs_);
+  const auto ofd = cascade_->open(&resps_);
+
+  (*cascade_) << "`include \"data/march/minimal.v\"\n";
+  (*cascade_) << "integer ifd = " << ifd << ";\n";
+  (*cascade_) << "integer ofd = " << ofd << ";\n";
+  (*cascade_) << "`include \"src/target/core/avmm/avalon/device/avmm_wrapper.v\"\n";
+  (*cascade_) << std::endl;
+
+  return true;
+}
+
+void AvalonCompiler::stop_compile() {
+  if (cascade_ != nullptr) {
+    delete cascade_;
+    cascade_ = nullptr;
+  }
+}
 
 } // namespace cascade
-
-#endif

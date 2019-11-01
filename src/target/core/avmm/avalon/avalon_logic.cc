@@ -28,36 +28,36 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
-
 #include "target/core/avmm/avalon/avalon_logic.h"
 #include "target/core/avmm/avalon/syncbuf.h"
-#include "target/core/avmm/avmm_compiler.h"
 
 namespace cascade {
 
-class Cascade;
+AvalonLogic::AvalonLogic(Interface* interface, ModuleDeclaration* md, syncbuf* reqs, syncbuf* resps) : AvmmLogic<uint32_t>(interface, md) {
+  get_table()->set_read([reqs, resps](size_t index) {
+    uint8_t bytes[7];
+    uint16_t vid = index;
+    bytes[0] = 2;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 3);
+    resps->waitforn(reinterpret_cast<char*>(bytes), 4);
+    return (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
+  });
 
-class AvalonCompiler : public AvmmCompiler<uint32_t> {
-  public:
-    AvalonCompiler();
-    ~AvalonCompiler() override;
-
-  private:
-    // Avmm Compiler Interface:
-    AvalonLogic* build(Interface* interface, ModuleDeclaration* md) override;
-    bool compile(const std::string& text, std::mutex& lock) override;
-    void stop_compile() override;
-
-    // Slave Cascade:
-    Cascade* cascade_;
-
-    // Communication Buffers:
-    syncbuf reqs_;
-    syncbuf resps_;
-};
+  get_table()->set_write([reqs](size_t index, uint32_t val) {
+    uint8_t bytes[7];
+    uint16_t vid = index;
+    uint32_t data = val;
+    bytes[0] = 1;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    bytes[3] = data >> 24;
+    bytes[4] = data >> 16;
+    bytes[5] = data >> 8;
+    bytes[6] = data;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 7);
+  });
+}
 
 } // namespace cascade
-
-#endif
