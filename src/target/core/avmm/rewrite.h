@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVMM_REWRITE_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_AVMM_REWRITE_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_REWRITE_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_REWRITE_H
 
 #include <map>
 #include <set>
@@ -37,8 +37,8 @@
 #include <string>
 #include <vector>
 #include "target/core/avmm/var_table.h"
-#include "target/core/avmm/pass/machinify.h"
-#include "target/core/avmm/pass/text_mangle.h"
+#include "target/core/avmm/machinify.h"
+#include "target/core/avmm/text_mangle.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/visitors/visitor.h"
@@ -49,7 +49,7 @@
 
 namespace cascade::avmm {
 
-class AvmmRewrite {
+class Rewrite {
   public:
     std::string run(const ModuleDeclaration* md, size_t slot, const VarTable32* vt, const Identifier* clock);
 
@@ -85,7 +85,7 @@ class AvmmRewrite {
     void emit_slice(Identifier* id, size_t w, size_t i) const;
 };
 
-inline std::string AvmmRewrite::run(const ModuleDeclaration* md, size_t slot, const VarTable32* vt, const Identifier* clock) {
+inline std::string Rewrite::run(const ModuleDeclaration* md, size_t slot, const VarTable32* vt, const Identifier* clock) {
   std::stringstream ss;
 
   // Generate index tables before doing anything even remotely invasive
@@ -139,9 +139,9 @@ inline std::string AvmmRewrite::run(const ModuleDeclaration* md, size_t slot, co
   return ss.str();
 }
 
-inline AvmmRewrite::TriggerIndex::TriggerIndex() : Visitor() { }
+inline Rewrite::TriggerIndex::TriggerIndex() : Visitor() { }
 
-inline void AvmmRewrite::TriggerIndex::visit(const Event* e) {
+inline void Rewrite::TriggerIndex::visit(const Event* e) {
   assert(e->get_expr()->is(Node::Tag::identifier));
   const auto* i = static_cast<const Identifier*>(e->get_expr());
   const auto* r = Resolve().get_resolution(i);
@@ -160,14 +160,14 @@ inline void AvmmRewrite::TriggerIndex::visit(const Event* e) {
   }
 }
 
-inline void AvmmRewrite::emit_avalon_vars(ModuleDeclaration* res) {
+inline void Rewrite::emit_avalon_vars(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "reg __read_prev = 0;" << std::endl;
   ib << "wire __read_request;" << std::endl; 
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
-inline void AvmmRewrite::emit_var_table(ModuleDeclaration* res, const VarTable32* vt) {
+inline void Rewrite::emit_var_table(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
   // Emit the var table and the expression table
@@ -179,7 +179,7 @@ inline void AvmmRewrite::emit_var_table(ModuleDeclaration* res, const VarTable32
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
+inline void Rewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);
 
   // Index the stateful elements in the variable table
@@ -213,7 +213,7 @@ inline void AvmmRewrite::emit_shadow_vars(ModuleDeclaration* res, const ModuleDe
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
+inline void Rewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table
@@ -261,7 +261,7 @@ inline void AvmmRewrite::emit_view_vars(ModuleDeclaration* res, const ModuleDecl
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_update_vars(ModuleDeclaration* res, const VarTable32* vt) {
+inline void Rewrite::emit_update_vars(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
   const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
@@ -273,7 +273,7 @@ inline void AvmmRewrite::emit_update_vars(ModuleDeclaration* res, const VarTable
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_state_vars(ModuleDeclaration* res) {
+inline void Rewrite::emit_state_vars(ModuleDeclaration* res) {
   ItemBuilder ib;
 
   ib << "wire __there_were_tasks;" << std::endl;
@@ -285,7 +285,7 @@ inline void AvmmRewrite::emit_state_vars(ModuleDeclaration* res) {
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti) {
+inline void Rewrite::emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti) {
   ItemBuilder ib;
 
   // Index triggers
@@ -329,7 +329,7 @@ inline void AvmmRewrite::emit_trigger_vars(ModuleDeclaration* res, const Trigger
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_open_loop_vars(ModuleDeclaration* res) {
+inline void Rewrite::emit_open_loop_vars(ModuleDeclaration* res) {
   ItemBuilder ib;
 
   ib << "reg[31:0] __open_loop = 0;" << std::endl;
@@ -338,7 +338,7 @@ inline void AvmmRewrite::emit_open_loop_vars(ModuleDeclaration* res) {
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_var_vars(ModuleDeclaration* res, const Machinify* mfy) {
+inline void Rewrite::emit_var_vars(ModuleDeclaration* res, const Machinify* mfy) {
   ItemBuilder ib;
   ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
@@ -346,14 +346,14 @@ inline void AvmmRewrite::emit_var_vars(ModuleDeclaration* res, const Machinify* 
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_avalon_logic(ModuleDeclaration* res) {
+inline void Rewrite::emit_avalon_logic(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "always @(posedge __clk) __read_prev <= __read;" << std::endl;
   ib << "assign __read_request = (!__read_prev && __read);" << std::endl;
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
-inline void AvmmRewrite::emit_update_logic(ModuleDeclaration* res, const VarTable32* vt) {
+inline void Rewrite::emit_update_logic(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
   const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
@@ -366,7 +366,7 @@ inline void AvmmRewrite::emit_update_logic(ModuleDeclaration* res, const VarTabl
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const VarTable32* vt, const Machinify* mfy) {
+inline void Rewrite::emit_state_logic(ModuleDeclaration* res, const VarTable32* vt, const Machinify* mfy) {
   ItemBuilder ib;
 
   if (mfy->begin() == mfy->end()) {
@@ -398,7 +398,7 @@ inline void AvmmRewrite::emit_state_logic(ModuleDeclaration* res, const VarTable
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
+inline void Rewrite::emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti) {
   ItemBuilder ib;
 
   // Index trigger variables
@@ -449,7 +449,7 @@ inline void AvmmRewrite::emit_trigger_logic(ModuleDeclaration* res, const Trigge
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_open_loop_logic(ModuleDeclaration* res, const VarTable32* vt) {
+inline void Rewrite::emit_open_loop_logic(ModuleDeclaration* res, const VarTable32* vt) {
   ItemBuilder ib;
 
   ib << "always @(posedge __clk) __open_loop <= ((__read_request && (__vid == " << vt->open_loop_index() << ")) ? __in : (__open_loop_tick ? (__open_loop - 1) : __open_loop));" << std::endl;
@@ -458,7 +458,7 @@ inline void AvmmRewrite::emit_open_loop_logic(ModuleDeclaration* res, const VarT
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt, const Machinify* mfy, const Identifier* clock) {
+inline void Rewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt, const Machinify* mfy, const Identifier* clock) {
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table as well
@@ -516,7 +516,7 @@ inline void AvmmRewrite::emit_var_logic(ModuleDeclaration* res, const ModuleDecl
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
+inline void Rewrite::emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable32* vt) {
   ModuleInfo info(md);      
 
   // Index the elements in the variable table which aren't inputs or stateful.
@@ -559,7 +559,7 @@ inline void AvmmRewrite::emit_output_logic(ModuleDeclaration* res, const ModuleD
   res->push_back_items(ib.begin(), ib.end());
 }
 
-inline void AvmmRewrite::emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const {
+inline void Rewrite::emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const {
   for (auto a : arity) {
     n /= a;
     const auto i = idx / n;
@@ -568,7 +568,7 @@ inline void AvmmRewrite::emit_subscript(Identifier* id, size_t idx, size_t n, co
   }
 }
 
-inline void AvmmRewrite::emit_slice(Identifier* id, size_t w, size_t i) const {
+inline void Rewrite::emit_slice(Identifier* id, size_t w, size_t i) const {
   const auto upper = std::min(32*(i+1),w);
   const auto lower = 32*i;
   if (upper == 1) {

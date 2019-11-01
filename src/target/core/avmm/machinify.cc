@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/core/avmm/pass/machinify.h"
+#include "target/core/avmm/machinify.h"
 
 #include "verilog/ast/ast.h"
 

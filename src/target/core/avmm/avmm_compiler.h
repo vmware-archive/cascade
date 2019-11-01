@@ -34,14 +34,15 @@
 #include <condition_variable>
 #include <map>
 #include <mutex>
+#include <sstream>
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include "common/indstream.h"
 #include "target/compiler.h"
 #include "target/core_compiler.h"
 #include "target/core/avmm/avmm_logic.h"
-#include "target/core/avmm/avmm_rewrite.h"
-#include "target/core/avmm/program_boxer.h"
+#include "target/core/avmm/rewrite.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/ast.h"
@@ -90,12 +91,15 @@ class AvmmCompiler : public CoreCompiler {
     // Compiler Interface:
     AvmmLogic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
-    // Compilation Helpers:
+    // Slot Management Helpers:
     bool id_in_use(Engine::Id id) const;
     int get_free_slot() const;
     void compile();
     void reprogram();
     void kill_all();
+
+    // Codegen Helpers:
+    std::string get_text();
 };
 
 inline AvmmCompiler::AvmmCompiler() : CoreCompiler() {
@@ -230,7 +234,7 @@ inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* 
 
   slots_[slot].id = id;
   slots_[slot].state = State::COMPILING;
-  slots_[slot].text = AvmmRewrite().run(md, slot, de->get_table(), de->open_loop_clock());
+  slots_[slot].text = Rewrite().run(md, slot, de->get_table(), de->open_loop_clock());
 
   while (true) {
     switch (slots_[slot].state) {
@@ -276,13 +280,7 @@ inline int AvmmCompiler::get_free_slot() const {
 }
 
 inline void AvmmCompiler::compile() {
-  ProgramBoxer pb;
-  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
-    if (slots_[i].state != State::FREE) {
-      pb.push(i, slots_[i].text);
-    }
-  }
-  const auto text = pb.get();
+  const auto text = get_text();
   std::ofstream ofs(System::src_root() + "/src/target/core/avmm/fpga/program_logic.v", std::ofstream::out);
   ofs << text << std::endl;
   ofs.flush();
@@ -312,6 +310,92 @@ inline void AvmmCompiler::kill_all() {
   if (caslib_ != nullptr) {
     delete caslib_;
   }
+}
+
+inline std::string AvmmCompiler::get_text() {
+  std::stringstream ss;
+  indstream os(ss);
+
+  // Generate code for modules
+  std::map<MId, std::string> text;
+  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
+    if (slots_[i].state != State::FREE) {
+      text.insert(std::make_pair(i, slots_[i].text));
+    }
+  }
+
+  // Module Declarations
+  for (const auto& s : text) {
+    os << s.second << std::endl;
+    os << std::endl;
+  }
+
+  // Top-level Module
+  os << "module program_logic(" << std::endl;
+  os.tab();
+  os << "input wire clk," << std::endl;
+  os << "input wire reset," << std::endl;
+  os << std::endl;
+  os << "input wire[15:0]  s0_address," << std::endl;
+  os << "input wire        s0_read," << std::endl;
+  os << "input wire        s0_write," << std::endl;
+  os << std::endl;
+  os << "output reg [31:0] s0_readdata," << std::endl;
+  os << "input  wire[31:0] s0_writedata," << std::endl;
+  os << std::endl;
+  os << "output reg        s0_waitrequest" << std::endl;
+  os.untab();
+  os << ");" << std::endl;
+  os.tab();
+
+  os << "// Unpack address into module id and variable id" << std::endl;
+  os << "wire [1:0] __mid = s0_address[13:12];" << std::endl;
+  os << "wire[11:0] __vid = s0_address[11: 0];" << std::endl;
+
+  os << "// Module Instantiations:" << std::endl;
+  for (const auto& s : text) {
+    os << "wire[31:0] m" << s.first << "_out;" << std::endl;
+    os << "wire       m" << s.first << "_wait;" << std::endl;
+    os << "M" << s.first << " m" << s.first << "(" << std::endl;
+    os.tab();
+    os << ".__clk(clk)," << std::endl;
+    os << ".__read((__mid == " << s.first << ") & s0_write)," << std::endl;
+    os << ".__vid(__vid)," << std::endl;
+    os << ".__in(s0_writedata)," << std::endl;
+    os << ".__out(m" << s.first << "_out)," << std::endl;
+    os << ".__wait(m" << s.first << "_wait)" << std::endl;
+    os.untab();
+    os << ");" << std::endl;
+  }
+
+  os << "// Output Demuxing:" << std::endl;
+  os << "reg[31:0] rd;" << std::endl;
+  os << "reg wr;" << std::endl;
+  os << "always @(*) begin" << std::endl;
+  os.tab();
+  os << "case (__mid)" << std::endl;
+  os.tab();
+  for (const auto& s : text) {
+    os << s.first << ": begin rd = m" << s.first << "_out; wr = m" << s.first << "_wait; end" << std::endl;
+  }
+  os << "default: begin rd = 0; wr = 0; end" << std::endl;
+  os.untab();
+  os << "endcase" << std::endl;
+  os.untab();
+  os << "end" << std::endl;
+
+  os << "// Output Logic:" << std::endl;
+  os << "always @(posedge clk) begin" << std::endl;
+  os.tab();
+  os << "s0_waitrequest <= (s0_read | s0_write) ? wr : 1'b1;" << std::endl;
+  os << "s0_readdata <= rd;" << std::endl;
+  os.untab();
+  os << "end" << std::endl;
+
+  os.untab();
+  os << "endmodule";
+
+  return ss.str();
 }
 
 } // namespace cascade::avmm
