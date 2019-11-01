@@ -153,10 +153,10 @@ void Nfa::to_verilog(ostream& os) const {
   os << "reg[7:0] char;" << endl;
   os << endl;
   os << "integer itr = 1;" << endl;
-  os << "integer s = $fopen(\"data/test/benchmark/regex/iliad.hex\", \"r\");" << endl;
+  os << "integer s = $fopen(\"data/test/benchmark/regex/iliad.txt\", \"r\");" << endl;
   os << endl;
   os << "always @(posedge clock.val) begin" << endl;
-  os << "  $fread(s, char);" << endl;
+  os << "  $fscanf(s, \"%c\", char);" << endl;
   os << "  if ($feof(s)) begin" << endl;
   os << "    if (itr == 1) begin" << endl;
   os << "      $write(count);" << endl;
