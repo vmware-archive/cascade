@@ -221,30 +221,30 @@ bool QuartusServer::compile(const std::string& text) {
   }
 
   // Otherwise, compile the code and add a new entry to the cache
-  ofstream ofs(System::src_root() + "/src/target/core/de10/fpga/ip/program_logic.v");
+  ofstream ofs(System::src_root() + "/src/target/core/avmm/de10/device/ip/program_logic.v");
   ofs << text << endl;
   ofs.flush();
-  if (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/de10/fpga/soc_system.qsys --synthesis=VERILOG") != 0) {
+  if (System::execute(quartus_path_ + "/sopc_builder/bin/qsys-generate " + System::src_root() + "/src/target/core/avmm/de10/device/soc_system.qsys --synthesis=VERILOG") != 0) {
     return false;
   } 
-  if (System::execute(quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+  if (System::execute(quartus_path_ + "/bin/quartus_map " + System::src_root() + "/src/target/core/avmm/de10/device/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   } 
-  if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+  if (System::execute(quartus_path_ + "/bin/quartus_fit " + System::src_root() + "/src/target/core/avmm/de10/device/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   } 
 
   // If we've made it this far, we're bound for success. Kill all can't stop us.
-  if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.qpf") != 0) {
+  if (System::execute(quartus_path_ + "/bin/quartus_asm " + System::src_root() + "/src/target/core/avmm/de10/device/DE10_NANO_SoC_GHRD.qpf") != 0) {
     return false;
   }
-  if (System::execute(quartus_path_ + "/bin/quartus_cpf -c " + System::src_root() + "/src/target/core/de10/fpga/sof2rbf.cof") != 0) {
+  if (System::execute(quartus_path_ + "/bin/quartus_cpf -c " + System::src_root() + "/src/target/core/avmm/de10/device/sof2rbf.cof") != 0) {
     return false;
   }
   stringstream ss;
   ss << "bitstream_" << cache_.size() << ".rbf";
   const auto file = ss.str();
-  System::execute("cp " + System::src_root() + "/src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.rbf " + cache_path_ + "/" + file);
+  System::execute("cp " + System::src_root() + "/src/target/core/avmm/de10/device/output_files/DE10_NANO_SoC_GHRD.rbf " + cache_path_ + "/" + file);
 
   ofstream ofs2(cache_path_ + "/index.txt", ios::app);
   ofs2 << text << '\0' << file << '\0';
