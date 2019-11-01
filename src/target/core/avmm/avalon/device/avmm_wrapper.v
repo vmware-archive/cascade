@@ -1,7 +1,7 @@
-`ifndef __AVALON_WRAPPER_V
-`define __AVALON_WRAPPER_V
+`ifndef __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON_WRAPPER_V
+`define __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON_WRAPPER_V
 
-`include "src/target/core/avmm/fpga/program_logic.v"
+`include "src/target/core/avmm/avalon/device/program_logic.v"
 
 reg read = 0;
 reg write = 0;

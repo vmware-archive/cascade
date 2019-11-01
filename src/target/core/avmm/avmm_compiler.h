@@ -50,7 +50,7 @@
 #include <fstream>
 #include "common/system.h"
 #include "cascade/cascade.h"
-#include "target/core/avmm/syncbuf.h"
+#include "target/core/avmm/avalon/syncbuf.h"
 
 namespace cascade::avmm {
 
@@ -281,7 +281,7 @@ inline int AvmmCompiler::get_free_slot() const {
 
 inline void AvmmCompiler::compile() {
   const auto text = get_text();
-  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/fpga/program_logic.v", std::ofstream::out);
+  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v", std::ofstream::out);
   ofs << text << std::endl;
   ofs.flush();
   ofs.close();
@@ -293,7 +293,7 @@ inline void AvmmCompiler::compile() {
   (*caslib_) << "`include \"data/march/minimal.v\"\n";
   (*caslib_) << "integer ifd = " << ifd << ";\n";
   (*caslib_) << "integer ofd = " << ofd << ";\n";
-  (*caslib_) << "`include \"src/target/core/avmm/fpga/avmm_wrapper.v\"\n";
+  (*caslib_) << "`include \"src/target/core/avmm/avalon/device/avmm_wrapper.v\"\n";
   (*caslib_) << std::endl;
 }
 

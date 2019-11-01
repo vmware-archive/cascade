@@ -48,7 +48,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/visitors/visitor.h"
 
-#include "target/core/avmm/syncbuf.h"
+#include "target/core/avmm/avalon/syncbuf.h"
 
 namespace cascade::avmm {
 
