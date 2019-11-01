@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 
+#include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/avalon/avalon_logic.h"
 #include "target/core/avmm/avalon/syncbuf.h"
 #include "target/core/avmm/avmm_compiler.h"
@@ -46,7 +47,7 @@ class AvalonCompiler : public AvmmCompiler<uint32_t> {
 
   private:
     // Avmm Compiler Interface:
-    AvalonLogic* build(Interface* interface, ModuleDeclaration* md) override;
+    AvalonLogic* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
     bool compile(const std::string& text, std::mutex& lock) override;
     void stop_compile() override;
 

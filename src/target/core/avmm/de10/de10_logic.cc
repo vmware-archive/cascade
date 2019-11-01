@@ -28,25 +28,20 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
+#include "target/core/avmm/de10/de10_logic.h"
+#include "target/core/avmm/de10/io.h"
 
-#include <string>
-#include <map>
-#include "runtime/ids.h"
+namespace cascade {
 
-namespace cascade::de10 {
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr) : AvmmLogic<uint32_t>(interface, md) { 
+  get_table()->set_read([addr](size_t index) {
+    auto* maddr = reinterpret_cast<volatile uint8_t*>((size_t)addr + (index << 2));
+    return DE10_READ(maddr);
+  });
+  get_table()->set_write([addr](size_t index, uint32_t val) {
+    auto* maddr = reinterpret_cast<volatile uint8_t*>((size_t)addr + (index << 2));
+    DE10_WRITE(maddr, val);
+  });
+}
 
-class ProgramBoxer {
-  public:
-    void push(MId id, const std::string& text);
-    std::string get() const;
-
-  private:
-    std::map<MId, std::string> repo_;
-};
-
-} // namespace cascade::de10
-
-#endif
-
+} // namespace cascade

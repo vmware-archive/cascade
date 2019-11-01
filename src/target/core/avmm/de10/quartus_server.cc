@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/core/de10/quartus_server.h"
+#include "target/core/avmm/de10/quartus_server.h"
 
 #include <fstream>
 #include <sstream>
@@ -38,7 +38,7 @@
 
 using namespace std;
 
-namespace cascade::de10 {
+namespace cascade {
 
 QuartusServer::QuartusServer() : Thread() { 
   set_cache_path("/tmp/quartus_cache/");
@@ -255,4 +255,4 @@ bool QuartusServer::compile(const std::string& text) {
   return true;
 }
 
-} // namespace cascade::de10
+} // namespace cascade

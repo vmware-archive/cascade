@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
 
 #include <unordered_map>
 #include <string>
@@ -39,8 +39,6 @@
 namespace cascade {
 
 class sockstream;
-
-namespace de10 {
 
 class QuartusServer : public Thread {
   public:
@@ -83,7 +81,6 @@ class QuartusServer : public Thread {
     bool compile(const std::string& text);
 };
 
-} // namespace de10
 } // namespace cascade
 
 #endif

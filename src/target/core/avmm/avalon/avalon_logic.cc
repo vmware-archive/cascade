@@ -33,7 +33,8 @@
 
 namespace cascade {
 
-AvalonLogic::AvalonLogic(Interface* interface, ModuleDeclaration* md, syncbuf* reqs, syncbuf* resps) : AvmmLogic<uint32_t>(interface, md) {
+AvalonLogic::AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps) : AvmmLogic<uint32_t>(interface, md) {
+  // TODO(eschkufz) Don't we want to do something with slot. Shouldn't we be mangling the address here?
   get_table()->set_read([reqs, resps](size_t index) {
     uint8_t bytes[7];
     uint16_t vid = index;
@@ -44,7 +45,6 @@ AvalonLogic::AvalonLogic(Interface* interface, ModuleDeclaration* md, syncbuf* r
     resps->waitforn(reinterpret_cast<char*>(bytes), 4);
     return (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
   });
-
   get_table()->set_write([reqs](size_t index, uint32_t val) {
     uint8_t bytes[7];
     uint16_t vid = index;

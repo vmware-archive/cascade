@@ -63,7 +63,7 @@ class AvmmCompiler : public CoreCompiler {
     //
     // This method should perform whatever target-specific logic is necessary
     // to return an instance of an AvmmLogic. 
-    virtual AvmmLogic<T>* build(Interface* interface, ModuleDeclaration* md) = 0;
+    virtual AvmmLogic<T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) = 0;
     // This method should perform whatever target-specific logic is necessary
     // to stop any previous compilations and compile text to a device. This
     // method is called in a context where it holds the global lock on this
@@ -187,8 +187,7 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   // lexicographically to ensure a deterministic variable table ordering. The
   // final invocation of index_tasks is lexicographic by construction, as it's
   // based on a recursive descent of the AST.
-  // Target-specific implementation of build logic
-  auto* al = build(interface, md);
+  auto* al = build(interface, md, slot);
   std::map<VId, const Identifier*> is;
   for (auto* i : info.inputs()) {
     is.insert(std::make_pair(to_vid(i), i));

@@ -33,11 +33,10 @@
 #include <signal.h>
 #include <string>
 #include "cl/cl.h"
-#include "target/core/de10/quartus_server.h"
+#include "target/core/avmm/de10/quartus_server.h"
 
 using namespace cascade;
 using namespace cascade::cl;
-using namespace cascade::de10;
 using namespace std;
 
 namespace {

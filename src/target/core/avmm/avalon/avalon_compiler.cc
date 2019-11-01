@@ -46,8 +46,8 @@ AvalonCompiler::~AvalonCompiler() {
   }
 }
 
-AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md) {
-  return new AvalonLogic(interface, md, &reqs_, &resps_);
+AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  return new AvalonLogic(interface, md, slot, &reqs_, &resps_);
 }
 
 bool AvalonCompiler::compile(const std::string& text, std::mutex& lock) {

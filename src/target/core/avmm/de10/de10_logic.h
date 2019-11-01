@@ -28,19 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_LOGIC_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_LOGIC_H
 
 #include "target/core/avmm/avmm_logic.h"
 
 namespace cascade {
 
-class syncbuf; 
-
-class AvalonLogic : public AvmmLogic<uint32_t> {
+class De10Logic : public AvmmLogic<uint32_t> {
   public:
-    AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps);
-    virtual ~AvalonLogic() override = default;
+    // Constructors:
+    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr);
+    ~De10Logic() override = default;
 };
 
 } // namespace cascade
