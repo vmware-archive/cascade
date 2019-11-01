@@ -101,7 +101,6 @@ class AvmmCompiler : public CoreCompiler {
     AvmmLogic<T>* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Slot Management Helpers:
-    bool in_use(Engine::Id id) const;
     int get_free() const;
     void release(size_t slot);
     void update();
@@ -117,22 +116,19 @@ inline AvmmCompiler<T>::AvmmCompiler() : CoreCompiler() {
 
 template <typename T>
 inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
-  // Nothing to do if this id isn't in use
   std::lock_guard<std::mutex> lg(lock_);
-  if (!in_use(id)) {
-    return;
-  }
 
-  // Free any slot with this id which is in the compiling or waiting state.
-  auto need_new_owner = false;
+  // Free any slot with this id which is in the compiling or waiting state. 
+  auto stopped = false;
+  auto need_new_lead = false;
   for (auto& s : slots_) {
     if (s.id == id) {
       switch (s.state) {
         case State::COMPILING:
-          need_new_owner = true;
-          s.state = State::STOPPED;
+          need_new_lead = true;
           // fallthrough
         case State::WAITING:
+          stopped = true;
           s.state = State::STOPPED;
           break;
         default:
@@ -140,10 +136,12 @@ inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
       } 
     }
   }
+  // If nothing was stopped, we can return immediately.
+  if (!stopped) {
+    return;
+  }
   // If we need a new compilation lead, find a waiting slot and promote it.
-  // If we freed the active slot, we won't find anything. In this case, we
-  // can just return.
-  if (need_new_owner) {
+  if (need_new_lead) {
     for (auto& s : slots_) {
       if (s.state == State::WAITING) {
         s.state = State::COMPILING;
@@ -260,16 +258,6 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
         break;
     }
   }
-}
-
-template <typename T>
-inline bool AvmmCompiler<T>::in_use(Engine::Id id) const {
-  for (const auto& s : slots_) {
-    if ((s.id == id) && (s.state != State::FREE)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 template <typename T>

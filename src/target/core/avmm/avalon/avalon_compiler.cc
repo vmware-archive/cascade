@@ -41,7 +41,9 @@ AvalonCompiler::AvalonCompiler() : AvmmCompiler<uint32_t>() {
 }
 
 AvalonCompiler::~AvalonCompiler() {
-  stop_compile();
+  if (cascade_ != nullptr) {
+    delete cascade_;
+  }
 }
 
 AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md) {
@@ -50,32 +52,32 @@ AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md) 
 
 bool AvalonCompiler::compile(const std::string& text, std::mutex& lock) {
   (void) lock;
-
-  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
-  ofs << text << std::endl;
-  ofs.close();
+  get_compiler()->schedule_state_safe_interrupt([this, &text]{
+    std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
+    ofs << text << std::endl;
+    ofs.close();
   
-  stop_compile();
-  cascade_ = new Cascade();
-  cascade_->run();
+    if (cascade_ != nullptr) {
+      delete cascade_;
+    }
+    cascade_ = new Cascade();
+    cascade_->run();
 
-  const auto ifd = cascade_->open(&reqs_);
-  const auto ofd = cascade_->open(&resps_);
+    const auto ifd = cascade_->open(&reqs_);
+    const auto ofd = cascade_->open(&resps_);
 
-  (*cascade_) << "`include \"data/march/minimal.v\"\n";
-  (*cascade_) << "integer ifd = " << ifd << ";\n";
-  (*cascade_) << "integer ofd = " << ofd << ";\n";
-  (*cascade_) << "`include \"src/target/core/avmm/avalon/device/avmm_wrapper.v\"\n";
-  (*cascade_) << std::endl;
+    *cascade_ << "`include \"data/march/minimal.v\"\n";
+    *cascade_ << "integer ifd = " << ifd << ";\n";
+    *cascade_ << "integer ofd = " << ofd << ";\n";
+    *cascade_ << "`include \"src/target/core/avmm/avalon/device/avmm_wrapper.v\"\n";
+    *cascade_ << std::endl;
+  });
 
   return true;
 }
 
 void AvalonCompiler::stop_compile() {
-  if (cascade_ != nullptr) {
-    delete cascade_;
-    cascade_ = nullptr;
-  }
+  // Does nothing. 
 }
 
 } // namespace cascade
