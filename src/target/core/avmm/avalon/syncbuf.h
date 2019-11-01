@@ -89,10 +89,13 @@ inline syncbuf::~syncbuf() {
 
 inline void syncbuf::waitforn(char_type* s, std::streamsize count) {
   std::unique_lock<std::mutex> ul(mut_);
+
   // Wait on condition variable until enough data is available
-  while ((poff_-goff_) < count) cv_.wait(ul);
+  while ((poff_-goff_) < count) {
+    cv_.wait(ul);
+  }
   
-  size_t next_goff = goff_ + count;
+  const auto next_goff = goff_ + count;
   std::copy(&data_[goff_], &data_[next_goff], s);
   goff_ = next_goff;
   
@@ -108,7 +111,7 @@ inline syncbuf::int_type syncbuf::uflow() {
   if (goff_ == poff_) {
     return traits_type::eof();
   } else {
-    auto ret_val = traits_type::to_int_type(data_[goff_]);
+    const auto ret_val = traits_type::to_int_type(data_[goff_]);
     ++goff_;
     if (goff_ == poff_) {
       goff_ = 0;
@@ -124,8 +127,10 @@ inline std::streamsize syncbuf::xsputn(const char_type* s, std::streamsize count
   
   // If current capacity is insufficient, grow by power of 2
   if (next_poff > data_cap_) {
-    while (next_poff > data_cap_) data_cap_ *= 2;
-    char_type* next_data = new char_type[data_cap_];
+    while (next_poff > data_cap_) {
+      data_cap_ *= 2;
+    }
+    auto next_data = new char_type[data_cap_];
     // Only copy valid entries
     std::copy(&data_[goff_], &data_[poff_], next_data);
     delete data_;
@@ -144,10 +149,13 @@ inline std::streamsize syncbuf::xsputn(const char_type* s, std::streamsize count
 
 inline std::streamsize syncbuf::xsgetn(char_type* s, std::streamsize count) {
   std::lock_guard<std::mutex> lg(mut_);
-  size_t true_count = std::min((size_t)count, (poff_-goff_));
-  if (true_count == 0) return 0;
+
+  const auto true_count = std::min((size_t)count, (poff_-goff_));
+  if (true_count == 0) {
+    return 0;
+  }
   
-  size_t next_goff = goff_ + true_count;
+  const auto next_goff = goff_ + true_count;
   std::copy(&data_[goff_], &data_[next_goff], s);
   goff_ = next_goff;
   
