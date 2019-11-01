@@ -47,11 +47,6 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/ast.h"
 
-#include <fstream>
-#include "common/system.h"
-#include "cascade/cascade.h"
-#include "target/core/avmm/avalon/syncbuf.h"
-
 namespace cascade {
 
 template <typename T>
@@ -60,8 +55,13 @@ class AvmmCompiler : public CoreCompiler {
     AvmmCompiler();
     ~AvmmCompiler() override = default;
 
-    void release(size_t slot);
+    // Core Compiler Interface:
     void stop_compile(Engine::Id id) override;
+
+  protected:
+    virtual AvmmLogic<T>* build(Interface* interface, ModuleDeclaration* md) = 0;
+    virtual bool compile(const std::string& text, std::mutex& lock) = 0;
+    virtual void stop_compile() = 0;
 
   private:
     // Compilation States:
@@ -79,25 +79,19 @@ class AvmmCompiler : public CoreCompiler {
       std::string text;
     };
 
-    // State:
-    Cascade* caslib_;
-    syncbuf requests_;
-    syncbuf responses_;
-
     // Program Management:
     std::mutex lock_;
     std::condition_variable cv_;
     std::vector<Slot> slots_;
 
-    // Compiler Interface:
+    // Core Compiler Interface:
     AvmmLogic<T>* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Slot Management Helpers:
-    bool id_in_use(Engine::Id id) const;
-    int get_free_slot() const;
-    void compile();
-    void reprogram();
-    void kill_all();
+    bool in_use(Engine::Id id) const;
+    int get_free() const;
+    void release(size_t slot);
+    void update();
 
     // Codegen Helpers:
     std::string get_text();
@@ -106,26 +100,13 @@ class AvmmCompiler : public CoreCompiler {
 template <typename T>
 inline AvmmCompiler<T>::AvmmCompiler() : CoreCompiler() {
   slots_.resize(4, {0, State::FREE, ""});
-  
-  caslib_ = nullptr;
-}
-
-template <typename T>
-inline void AvmmCompiler<T>::release(size_t slot) {
-  // Return this slot to the pool if necessary. This method should only be
-  // invoked on successfully compiled cores, which means we don't have to worry
-  // about transfering compilation ownership or invoking a killall.
-  std::lock_guard<std::mutex> lg(lock_);
-  assert(slots_[slot].state == State::CURRENT);
-  slots_[slot].state = State::FREE;
-  cv_.notify_all();
 }
 
 template <typename T>
 inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
   // Nothing to do if this id isn't in use
   std::lock_guard<std::mutex> lg(lock_);
-  if (!id_in_use(id)) {
+  if (!in_use(id)) {
     return;
   }
 
@@ -156,6 +137,8 @@ inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
       }
     }
   }
+  // Target-specific implementation of stop logic
+  stop_compile();
 
   cv_.notify_all();
 }
@@ -168,10 +151,10 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   // Check for unsupported language features
   auto unsupported = false;
   if (info.uses_mixed_triggers()) {
-    get_compiler()->error("The Avmm backend does not currently support code with mixed triggers!");
+    get_compiler()->error("Avmm backends do not currently support code with mixed triggers!");
     unsupported = true;
   } else if (!info.implied_latches().empty()) {
-    get_compiler()->error("The Avmm backend does not currently support the use of implied latches!");
+    get_compiler()->error("Avmm backends do not currently support the use of implied latches!");
     unsupported = true;
   }
   if (unsupported) {
@@ -181,15 +164,15 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
 
   // Find a new slot and generate code for this module. If either step fails,
   // return nullptr. Otherwise, advance the sequence counter and compile.
-  const auto slot = get_free_slot();
+  const auto slot = get_free();
   if (slot == -1) {
     get_compiler()->error("No remaining slots available on avmm fabric");
     delete md;
     return nullptr;
   }
   
-  // Create a new core with address identity based on module id
-  auto* de = new AvmmLogic<T>(interface, md, requests_, responses_);
+  // Target-specific implementation of build logic
+  auto* de = build(interface, md);
 
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering. The
@@ -221,7 +204,7 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   // Check table and index sizes. If this program uses too much state, we won't
   // be able to uniquely name its elements using our current addressing scheme.
   if (de->get_table()->size() >= 0x1000) {
-    get_compiler()->error("Unable to compile a module with more than 4096 entries in variable table");
+    get_compiler()->error("Avmm backends do not currently support more than 4096 entries in variable table");
     delete de;
     return nullptr;
   }
@@ -243,11 +226,11 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
 
   while (true) {
     switch (slots_[slot].state) {
-      case State::COMPILING: {
-        compile();
-        reprogram();
+      case State::COMPILING:
+        if (compile(get_text(), lock_)) {
+          update();
+        }
         break;
-      }
       case State::WAITING:
         cv_.wait(lg);
         break;
@@ -267,7 +250,7 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
 }
 
 template <typename T>
-inline bool AvmmCompiler<T>::id_in_use(Engine::Id id) const {
+inline bool AvmmCompiler<T>::in_use(Engine::Id id) const {
   for (const auto& s : slots_) {
     if ((s.id == id) && (s.state != State::FREE)) {
       return true;
@@ -277,7 +260,7 @@ inline bool AvmmCompiler<T>::id_in_use(Engine::Id id) const {
 }
 
 template <typename T>
-inline int AvmmCompiler<T>::get_free_slot() const {
+inline int AvmmCompiler<T>::get_free() const {
   for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
     if (slots_[i].state == State::FREE) {
       return i;
@@ -287,39 +270,24 @@ inline int AvmmCompiler<T>::get_free_slot() const {
 }
 
 template <typename T>
-inline void AvmmCompiler<T>::compile() {
-  const auto text = get_text();
-  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v", std::ofstream::out);
-  ofs << text << std::endl;
-  ofs.flush();
-  ofs.close();
-  
-  caslib_ = new Cascade();
-  int ifd = caslib_->open(&requests_);
-  int ofd = caslib_->open(&responses_);
-  caslib_->run();
-  (*caslib_) << "`include \"data/march/minimal.v\"\n";
-  (*caslib_) << "integer ifd = " << ifd << ";\n";
-  (*caslib_) << "integer ofd = " << ofd << ";\n";
-  (*caslib_) << "`include \"src/target/core/avmm/avalon/device/avmm_wrapper.v\"\n";
-  (*caslib_) << std::endl;
+inline void AvmmCompiler<T>::release(size_t slot) {
+  // Return this slot to the pool if necessary. This method should only be
+  // invoked on successfully compiled cores, which means we don't have to worry
+  // about transfering compilation ownership or invoking a killall.
+  std::lock_guard<std::mutex> lg(lock_);
+  assert(slots_[slot].state == State::CURRENT);
+  slots_[slot].state = State::FREE;
+  cv_.notify_all();
 }
 
 template <typename T>
-inline void AvmmCompiler<T>::reprogram() {
+inline void AvmmCompiler<T>::update() {
   for (auto& s : slots_) {
     if ((s.state == State::COMPILING) || (s.state == State::WAITING)) {
       s.state = State::CURRENT;
     }     
   }
   cv_.notify_all();
-}
-
-template <typename T>
-inline void AvmmCompiler<T>::kill_all() {
-  if (caslib_ != nullptr) {
-    delete caslib_;
-  }
 }
 
 template <typename T>
