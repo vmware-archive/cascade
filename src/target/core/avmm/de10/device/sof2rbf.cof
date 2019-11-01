@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="US-ASCII" standalone="yes"?>
 <cof>
 	<eprom_name>EPCE16</eprom_name>
-  <output_filename>src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.rbf</output_filename>
+  <output_filename>src/target/core/avmm/de10/device/output_files/DE10_NANO_SoC_GHRD.rbf</output_filename>
 	<n_pages>1</n_pages>
 	<width>1</width>
 	<mode>0</mode>
@@ -9,7 +9,7 @@
 		<user_name>Page_0</user_name>
 		<page_flags>1</page_flags>
 		<bit0>
-      <sof_filename>src/target/core/de10/fpga/output_files/DE10_NANO_SoC_GHRD.sof<compress_bitstream>1</compress_bitstream></sof_filename> 
+      <sof_filename>src/target/core/avmm/de10/device/output_files/DE10_NANO_SoC_GHRD.sof<compress_bitstream>1</compress_bitstream></sof_filename> 
 		</bit0>
 	</sof_data>
 	<version>10</version>
