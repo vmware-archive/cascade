@@ -32,7 +32,7 @@
 #include "target/compiler.h"
 #include "target/compiler/proxy_compiler.h"
 #include "target/core/de10/de10_compiler.h"
-#include "target/core/avmm/avmm_compiler.h"
+#include "target/core/avmm/avalon/avalon_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace std;
@@ -42,7 +42,7 @@ namespace cascade {
 CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
 
-  remote_compiler_.set("avalon", new avmm::AvmmCompiler());
+  remote_compiler_.set("avalon", new AvalonCompiler());
   remote_compiler_.set("de10", new de10::De10Compiler());
   remote_compiler_.set("proxy", new ProxyCompiler());
   remote_compiler_.set("sw", new SwCompiler());

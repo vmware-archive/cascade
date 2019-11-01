@@ -38,7 +38,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/builder.h"
 
-namespace cascade::avmm {
+namespace cascade {
 
 // Pass 1: 
 // 
@@ -49,14 +49,15 @@ namespace cascade::avmm {
 // 4. System tasks are transformed into state udpate operations
 // 5. Non-blocking assignments are transformed into state update operations
 
+template <typename T>
 class TextMangle : public Builder {
   public:
-    TextMangle(const ModuleDeclaration* md, const VarTable32* vt);
+    TextMangle(const ModuleDeclaration* md, const VarTable<T>* vt);
     ~TextMangle() override = default;
 
   private:
     const ModuleDeclaration* md_;
-    const VarTable32* vt_;
+    const VarTable<T>* vt_;
     size_t task_index_;
 
     Attributes* build(const Attributes* as) override;
@@ -78,22 +79,26 @@ class TextMangle : public Builder {
     Expression* get_table_range(const Identifier* r, const Identifier* i);
 };
 
-inline TextMangle::TextMangle(const ModuleDeclaration* md, const VarTable32* vt) : Builder() {
+template <typename T>
+inline TextMangle<T>::TextMangle(const ModuleDeclaration* md, const VarTable<T>* vt) : Builder() {
   md_ = md;
   vt_ = vt;
   task_index_ = 1;
 }
 
-inline Attributes* TextMangle::build(const Attributes* as) {
+template <typename T>
+inline Attributes* TextMangle<T>::build(const Attributes* as) {
   (void) as;
   return new Attributes();
 }
 
-inline ModuleItem* TextMangle::build(const RegDeclaration* rd) {
+template <typename T>
+inline ModuleItem* TextMangle<T>::build(const RegDeclaration* rd) {
   return ModuleInfo(md_).is_stateful(rd->get_id()) ? nullptr : rd->clone();
 }
 
-inline ModuleItem* TextMangle::build(const PortDeclaration* pd) {
+template <typename T>
+inline ModuleItem* TextMangle<T>::build(const PortDeclaration* pd) {
   ModuleInfo info(md_);
   if (info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id())) {
     return nullptr;
@@ -102,7 +107,8 @@ inline ModuleItem* TextMangle::build(const PortDeclaration* pd) {
   }
 }
 
-inline Expression* TextMangle::build(const FeofExpression* fe) {
+template <typename T>
+inline Expression* TextMangle<T>::build(const FeofExpression* fe) {
   // Feof expressions are replaced by references to a location in the variable
   // table. The software-side of the avmm logic manages the value of this variable
   // based on invocations of other io tasks.
@@ -112,7 +118,8 @@ inline Expression* TextMangle::build(const FeofExpression* fe) {
   return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
 }
 
-inline Statement* TextMangle::build(const BlockingAssign* ba) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const BlockingAssign* ba) {
   // Look up the target of this assignment 
   const auto* r = Resolve().get_resolution(ba->get_lhs());
   assert(r != nullptr);
@@ -130,7 +137,8 @@ inline Statement* TextMangle::build(const BlockingAssign* ba) {
   return new BlockingAssign(lhs.begin(), lhs.end(), ba->get_rhs()->clone());
 }
 
-inline Statement* TextMangle::build(const NonblockingAssign* na) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const NonblockingAssign* na) {
   auto* res = new SeqBlock();
 
   // Look up the target of this assignment 
@@ -166,70 +174,80 @@ inline Statement* TextMangle::build(const NonblockingAssign* na) {
   return res;
 }
 
-inline Statement* TextMangle::build(const DebugStatement* ds) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const DebugStatement* ds) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const FflushStatement* fs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const FflushStatement* fs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const FinishStatement* fs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const FinishStatement* fs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const FseekStatement* fs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const FseekStatement* fs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const GetStatement* gs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const GetStatement* gs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const PutStatement* ps) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const PutStatement* ps) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const RestartStatement* rs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const RestartStatement* rs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const RetargetStatement* rs) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const RetargetStatement* rs) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Statement* TextMangle::build(const SaveStatement* ss) {
+template <typename T>
+inline Statement* TextMangle<T>::build(const SaveStatement* ss) {
   return new NonblockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
 }
 
-inline Expression* TextMangle::get_table_range(const Identifier* r, const Identifier* i) {
+template <typename T>
+inline Expression* TextMangle<T>::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
   const auto titr = vt_->var_find(r);
   assert(titr != vt_->var_end());
@@ -255,6 +273,6 @@ inline Expression* TextMangle::get_table_range(const Identifier* r, const Identi
   return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.words_per_element)));
 }
 
-} // namespace cascade::avmm
+} // namespace cascade
 
 #endif

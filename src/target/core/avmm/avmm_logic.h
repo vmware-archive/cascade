@@ -50,8 +50,9 @@
 
 #include "target/core/avmm/avalon/syncbuf.h"
 
-namespace cascade::avmm {
+namespace cascade {
 
+template <typename T>
 class AvmmLogic : public Logic {
   public:
     // Typedefs:
@@ -69,7 +70,7 @@ class AvmmLogic : public Logic {
     AvmmLogic& set_callback(Callback cb);
 
     // Configuraton Properties:
-    const VarTable32* get_table() const;
+    const VarTable<T>* get_table() const;
 
     // Core Interface:
     State* get_state() override;
@@ -102,7 +103,7 @@ class AvmmLogic : public Logic {
 
     // Control State:
     bool there_were_tasks_;
-    VarTable32* table_;
+    VarTable<T>* table_;
     std::unordered_map<FId, interfacestream*> streams_;
 
     // Control Helpers:
@@ -146,7 +147,8 @@ class AvmmLogic : public Logic {
     };
 };
 
-inline AvmmLogic::AvmmLogic(Interface* interface, ModuleDeclaration* src, syncbuf& reqs, syncbuf& resps) : Logic(interface) { 
+template <typename T>
+inline AvmmLogic<T>::AvmmLogic(Interface* interface, ModuleDeclaration* src, syncbuf& reqs, syncbuf& resps) : Logic(interface) { 
   src_ = src;
   cb_ = nullptr;
   tasks_.push_back(nullptr);
@@ -175,10 +177,11 @@ inline AvmmLogic::AvmmLogic(Interface* interface, ModuleDeclaration* src, syncbu
     bytes[6] = data;
     reqs.sputn((char*)bytes, 7);
   };
-  table_ = new VarTable32(read, write);
+  table_ = new VarTable<T>(read, write);
 }
 
-inline AvmmLogic::~AvmmLogic() {
+template <typename T>
+inline AvmmLogic<T>::~AvmmLogic() {
   if (cb_ != nullptr) {
     cb_();
   }
@@ -189,7 +192,8 @@ inline AvmmLogic::~AvmmLogic() {
   }
 }
 
-inline AvmmLogic& AvmmLogic::set_input(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
   if (table_->var_find(id) == table_->var_end()) {
     table_->insert_var(id);
   }
@@ -200,7 +204,8 @@ inline AvmmLogic& AvmmLogic::set_input(const Identifier* id, VId vid) {
   return *this;
 }
 
-inline AvmmLogic& AvmmLogic::set_state(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
   if (table_->var_find(id) == table_->var_end()) {
     table_->insert_var(id);
   }   
@@ -208,7 +213,8 @@ inline AvmmLogic& AvmmLogic::set_state(const Identifier* id, VId vid) {
   return *this;
 }
 
-inline AvmmLogic& AvmmLogic::set_output(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_output(const Identifier* id, VId vid) {
   if (table_->var_find(id) == table_->var_end()) { 
     table_->insert_var(id);
   }
@@ -216,22 +222,26 @@ inline AvmmLogic& AvmmLogic::set_output(const Identifier* id, VId vid) {
   return *this;
 }
 
-inline AvmmLogic& AvmmLogic::index_tasks() {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::index_tasks() {
   Inserter i(this);
   src_->accept(&i);
   return *this;
 }
 
-inline AvmmLogic& AvmmLogic::set_callback(Callback cb) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_callback(Callback cb) {
   cb_ = cb;
   return *this;
 }
 
-inline const VarTable32* AvmmLogic::get_table() const {
+template <typename T>
+inline const VarTable<T>* AvmmLogic<T>::get_table() const {
   return table_;
 }
 
-inline State* AvmmLogic::get_state() {
+template <typename T>
+inline State* AvmmLogic<T>::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
     table_->read_var(sv.second);
@@ -240,7 +250,8 @@ inline State* AvmmLogic::get_state() {
   return s;
 }
 
-inline void AvmmLogic::set_state(const State* s) {
+template <typename T>
+inline void AvmmLogic<T>::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
@@ -253,7 +264,8 @@ inline void AvmmLogic::set_state(const State* s) {
   table_->write_control_var(table_->resume_index(), 1);
 }
 
-inline Input* AvmmLogic::get_input() {
+template <typename T>
+inline Input* AvmmLogic<T>::get_input() {
   auto* i = new Input();
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
@@ -266,7 +278,8 @@ inline Input* AvmmLogic::get_input() {
   return i;
 }
 
-inline void AvmmLogic::set_input(const Input* i) {
+template <typename T>
+inline void AvmmLogic<T>::set_input(const Input* i) {
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
     if (id == nullptr) {
@@ -283,28 +296,33 @@ inline void AvmmLogic::set_input(const Input* i) {
   table_->write_control_var(table_->resume_index(), 1);
 }
 
-inline void AvmmLogic::finalize() {
+template <typename T>
+inline void AvmmLogic<T>::finalize() {
   // Does nothing.
 }
 
-inline void AvmmLogic::read(VId id, const Bits* b) {
+template <typename T>
+inline void AvmmLogic<T>::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
   table_->write_var(inputs_[id], *b);
 }
 
-inline void AvmmLogic::evaluate() {
+template <typename T>
+inline void AvmmLogic<T>::evaluate() {
   // Read outputs and handle tasks
   loop_until_done();
   handle_outputs();
 }
 
-inline bool AvmmLogic::there_are_updates() const {
+template <typename T>
+inline bool AvmmLogic<T>::there_are_updates() const {
   // Read there_are_updates flag
   return table_->read_control_var(table_->there_are_updates_index()) != 0;
 }
 
-inline void AvmmLogic::update() {
+template <typename T>
+inline void AvmmLogic<T>::update() {
   // Throw the update trigger
   table_->write_control_var(table_->apply_update_index(), 1);
   // Read outputs and handle tasks
@@ -312,11 +330,13 @@ inline void AvmmLogic::update() {
   handle_outputs();
 }
 
-inline bool AvmmLogic::there_were_tasks() const {
+template <typename T>
+inline bool AvmmLogic<T>::there_were_tasks() const {
   return there_were_tasks_;
 }
 
-inline size_t AvmmLogic::open_loop(VId clk, bool val, size_t itr) {
+template <typename T>
+inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
@@ -342,7 +362,8 @@ inline size_t AvmmLogic::open_loop(VId clk, bool val, size_t itr) {
   return itr - counter;
 }
 
-inline const Identifier* AvmmLogic::open_loop_clock() const {
+template <typename T>
+inline const Identifier* AvmmLogic<T>::open_loop_clock() const {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
     return nullptr;
@@ -356,7 +377,8 @@ inline const Identifier* AvmmLogic::open_loop_clock() const {
   return *ModuleInfo(src_).inputs().begin();
 }
 
-inline interfacestream* AvmmLogic::get_stream(FId fd) {
+template <typename T>
+inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
   const auto itr = streams_.find(fd);
   if (itr != streams_.end()) {
     return itr->second;
@@ -366,7 +388,8 @@ inline interfacestream* AvmmLogic::get_stream(FId fd) {
   return is;
 }
 
-inline void AvmmLogic::update_eofs() {
+template <typename T>
+inline void AvmmLogic<T>::update_eofs() {
   // TODO(eschkufz): The correctness of this method relies on two invariants:
   // 
   // 1. The only expressions in the expression segment of the variable table
@@ -386,7 +409,8 @@ inline void AvmmLogic::update_eofs() {
   }
 }
 
-inline void AvmmLogic::loop_until_done() {
+template <typename T>
+inline void AvmmLogic<T>::loop_until_done() {
   // This method is invokved from evaluate, update, and open_loop.  The only
   // thing that prevents done from being true is the occurrence of a system
   // task. If this happens, continue asserting __continue (resume_index) and
@@ -397,14 +421,16 @@ inline void AvmmLogic::loop_until_done() {
   }
 }
 
-inline void AvmmLogic::handle_outputs() {
+template <typename T>
+inline void AvmmLogic<T>::handle_outputs() {
   for (const auto& o : outputs_) {
     table_->read_var(o.first);
     interface()->write(o.second, &Evaluate().get_value(o.first));
   }
 }
 
-inline void AvmmLogic::handle_tasks() {
+template <typename T>
+inline void AvmmLogic<T>::handle_tasks() {
   // TODO(eschkufz) we'll need to support multiple task ids and iterate over all of them
 
   volatile auto task_id = table_->read_control_var(table_->there_were_tasks_index());
@@ -513,12 +539,14 @@ inline void AvmmLogic::handle_tasks() {
   }
 }
 
-inline AvmmLogic::Inserter::Inserter(AvmmLogic* de) : Visitor() {
+template <typename T>
+inline AvmmLogic<T>::Inserter::Inserter(AvmmLogic* de) : Visitor() {
   de_ = de;
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const Identifier* id) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   if (in_args_ && (de_->table_->var_find(r) == de_->table_->var_end())) {
@@ -526,7 +554,8 @@ inline void AvmmLogic::Inserter::visit(const Identifier* id) {
   }
 }
 
-inline void AvmmLogic::Inserter::visit(const FeofExpression* fe) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FeofExpression* fe) {
   // We need *both* an image of this expression in the variable table to
   // represent its value, *and also* images of its arguments so that we can
   // inspect an feof expression and know what stream it refers to.
@@ -537,40 +566,46 @@ inline void AvmmLogic::Inserter::visit(const FeofExpression* fe) {
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const DebugStatement* ds) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const DebugStatement* ds) {
   de_->tasks_.push_back(ds);
   // Don't descend, there aren't any expressions below here
 }
 
-inline void AvmmLogic::Inserter::visit(const FflushStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FflushStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const FinishStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FinishStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_arg(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const FseekStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FseekStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const GetStatement* gs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const GetStatement* gs) {
   de_->tasks_.push_back(gs);
   in_args_ = true;
   gs->accept_fd(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const PutStatement* ps) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
   de_->tasks_.push_back(ps);
   in_args_ = true;
   ps->accept_fd(this);
@@ -578,32 +613,37 @@ inline void AvmmLogic::Inserter::visit(const PutStatement* ps) {
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const RestartStatement* rs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const RestartStatement* rs) {
   de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const RetargetStatement* rs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const RetargetStatement* rs) {
   de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-inline void AvmmLogic::Inserter::visit(const SaveStatement* ss) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const SaveStatement* ss) {
   de_->tasks_.push_back(ss);
   in_args_ = true;
   ss->accept_arg(this);
   in_args_ = false;
 }
 
-inline AvmmLogic::Sync::Sync(AvmmLogic* de) : Visitor() {
+template <typename T>
+inline AvmmLogic<T>::Sync::Sync(AvmmLogic* de) : Visitor() {
   de_ = de;
 }
 
-inline void AvmmLogic::Sync::visit(const Identifier* id) {
+template <typename T>
+inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
@@ -611,6 +651,6 @@ inline void AvmmLogic::Sync::visit(const Identifier* id) {
   de_->table_->read_var(r);
 }
 
-} // namespace cascade::avmm
+} // namespace cascade
 
 #endif

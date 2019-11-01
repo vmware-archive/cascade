@@ -52,8 +52,9 @@
 #include "cascade/cascade.h"
 #include "target/core/avmm/avalon/syncbuf.h"
 
-namespace cascade::avmm {
+namespace cascade {
 
+template <typename T>
 class AvmmCompiler : public CoreCompiler {
   public:
     AvmmCompiler();
@@ -89,7 +90,7 @@ class AvmmCompiler : public CoreCompiler {
     std::vector<Slot> slots_;
 
     // Compiler Interface:
-    AvmmLogic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    AvmmLogic<T>* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Slot Management Helpers:
     bool id_in_use(Engine::Id id) const;
@@ -102,13 +103,15 @@ class AvmmCompiler : public CoreCompiler {
     std::string get_text();
 };
 
-inline AvmmCompiler::AvmmCompiler() : CoreCompiler() {
+template <typename T>
+inline AvmmCompiler<T>::AvmmCompiler() : CoreCompiler() {
   slots_.resize(4, {0, State::FREE, ""});
   
   caslib_ = nullptr;
 }
 
-inline void AvmmCompiler::release(size_t slot) {
+template <typename T>
+inline void AvmmCompiler<T>::release(size_t slot) {
   // Return this slot to the pool if necessary. This method should only be
   // invoked on successfully compiled cores, which means we don't have to worry
   // about transfering compilation ownership or invoking a killall.
@@ -118,7 +121,8 @@ inline void AvmmCompiler::release(size_t slot) {
   cv_.notify_all();
 }
 
-inline void AvmmCompiler::stop_compile(Engine::Id id) {
+template <typename T>
+inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
   // Nothing to do if this id isn't in use
   std::lock_guard<std::mutex> lg(lock_);
   if (!id_in_use(id)) {
@@ -156,7 +160,8 @@ inline void AvmmCompiler::stop_compile(Engine::Id id) {
   cv_.notify_all();
 }
 
-inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+template <typename T>
+inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   std::unique_lock<std::mutex> lg(lock_);
   ModuleInfo info(md);
 
@@ -184,7 +189,7 @@ inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* 
   }
   
   // Create a new core with address identity based on module id
-  auto* de = new AvmmLogic(interface, md, requests_, responses_);
+  auto* de = new AvmmLogic<T>(interface, md, requests_, responses_);
 
   // Register inputs, state, and outputs. Invoke these methods
   // lexicographically to ensure a deterministic variable table ordering. The
@@ -234,7 +239,7 @@ inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* 
 
   slots_[slot].id = id;
   slots_[slot].state = State::COMPILING;
-  slots_[slot].text = Rewrite().run(md, slot, de->get_table(), de->open_loop_clock());
+  slots_[slot].text = Rewrite<T>().run(md, slot, de->get_table(), de->open_loop_clock());
 
   while (true) {
     switch (slots_[slot].state) {
@@ -261,7 +266,8 @@ inline AvmmLogic* AvmmCompiler::compile_logic(Engine::Id id, ModuleDeclaration* 
   }
 }
 
-inline bool AvmmCompiler::id_in_use(Engine::Id id) const {
+template <typename T>
+inline bool AvmmCompiler<T>::id_in_use(Engine::Id id) const {
   for (const auto& s : slots_) {
     if ((s.id == id) && (s.state != State::FREE)) {
       return true;
@@ -270,7 +276,8 @@ inline bool AvmmCompiler::id_in_use(Engine::Id id) const {
   return false;
 }
 
-inline int AvmmCompiler::get_free_slot() const {
+template <typename T>
+inline int AvmmCompiler<T>::get_free_slot() const {
   for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
     if (slots_[i].state == State::FREE) {
       return i;
@@ -279,7 +286,8 @@ inline int AvmmCompiler::get_free_slot() const {
   return -1;
 }
 
-inline void AvmmCompiler::compile() {
+template <typename T>
+inline void AvmmCompiler<T>::compile() {
   const auto text = get_text();
   std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v", std::ofstream::out);
   ofs << text << std::endl;
@@ -297,7 +305,8 @@ inline void AvmmCompiler::compile() {
   (*caslib_) << std::endl;
 }
 
-inline void AvmmCompiler::reprogram() {
+template <typename T>
+inline void AvmmCompiler<T>::reprogram() {
   for (auto& s : slots_) {
     if ((s.state == State::COMPILING) || (s.state == State::WAITING)) {
       s.state = State::CURRENT;
@@ -306,13 +315,15 @@ inline void AvmmCompiler::reprogram() {
   cv_.notify_all();
 }
 
-inline void AvmmCompiler::kill_all() {
+template <typename T>
+inline void AvmmCompiler<T>::kill_all() {
   if (caslib_ != nullptr) {
     delete caslib_;
   }
 }
 
-inline std::string AvmmCompiler::get_text() {
+template <typename T>
+inline std::string AvmmCompiler<T>::get_text() {
   std::stringstream ss;
   indstream os(ss);
 
@@ -398,6 +409,6 @@ inline std::string AvmmCompiler::get_text() {
   return ss.str();
 }
 
-} // namespace cascade::avmm
+} // namespace cascade
 
 #endif

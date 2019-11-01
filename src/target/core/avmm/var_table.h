@@ -40,7 +40,7 @@
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 
-namespace cascade::avmm {
+namespace cascade {
 
 template <typename T>
 class VarTable {
@@ -365,6 +365,6 @@ inline constexpr size_t VarTable<T>::bits_per_word() const {
   return 8*sizeof(T);
 }
 
-} // namespace cascade::avmm
+} // namespace cascade
 
 #endif
