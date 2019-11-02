@@ -61,11 +61,11 @@ bool AvalonCompiler::compile(const std::string& text, std::mutex& lock) {
       delete cascade_;
     }
     cascade_ = new Cascade();
-    cascade_->run();
 
     const auto ifd = cascade_->open(&reqs_);
     const auto ofd = cascade_->open(&resps_);
 
+    cascade_->run();
     *cascade_ << "`include \"data/march/minimal.v\"\n";
     *cascade_ << "integer ifd = " << ifd << ";\n";
     *cascade_ << "integer ofd = " << ofd << ";\n";
