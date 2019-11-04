@@ -97,9 +97,10 @@ inline std::string Rewrite<T>::run(const ModuleDeclaration* md, size_t slot, con
   // Emit a new declaration, with module name based on slot id. This
   // declaration will use the Avalon Memory-mapped slave interface.
   DeclBuilder db;
-  db << "module M" << static_cast<int>(slot) << "(__clk, __read, __vid, __in, __out, __wait);" << std::endl;
+  db << "module M" << static_cast<int>(slot) << "(__clk, __read, __write, __vid, __in, __out, __wait);" << std::endl;
   db << "input wire __clk;" << std::endl;
   db << "input wire __read;" << std::endl;
+  db << "input wire __write;" << std::endl;
   db << "input wire[13:0] __vid;" << std::endl;
   db << "input wire[31:0] __in;" << std::endl;
   db << "output reg[31:0] __out;" << std::endl;
@@ -169,6 +170,8 @@ inline void Rewrite<T>::emit_avalon_vars(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "reg __read_prev = 0;" << std::endl;
   ib << "wire __read_request;" << std::endl; 
+  ib << "reg __write_prev = 0;" << std::endl;
+  ib << "wire __write_request;" << std::endl; 
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
@@ -364,6 +367,8 @@ inline void Rewrite<T>::emit_avalon_logic(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "always @(posedge __clk) __read_prev <= __read;" << std::endl;
   ib << "assign __read_request = (!__read_prev && __read);" << std::endl;
+  ib << "always @(posedge __clk) __write_prev <= __write;" << std::endl;
+  ib << "assign __write_request = (!__write_prev && __write);" << std::endl;
   res->push_back_items(ib.begin(), ib.end()); 
 }
 
@@ -574,7 +579,7 @@ inline void Rewrite<T>::emit_output_logic(ModuleDeclaration* res, const ModuleDe
   ib << vt->debug_index() << ": __out = __state[0];" << std::endl;
   ib << "default: __out = ((__vid < " << vt->var_size() << ") ? __var[__vid] : __expr[(__vid - " << vt->var_size() << ")]);" << std::endl;
   ib << "endcase" << std::endl;
-  ib << "assign __wait = (__open_loop_tick || (__any_triggers || __continue));" << std::endl;
+  ib << "assign __wait = __read_request || __write_request || __open_loop_tick || __any_triggers || __continue;" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }

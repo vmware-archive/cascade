@@ -319,10 +319,10 @@ inline std::string AvmmCompiler<T>::get_text() {
   os << "input wire        s0_read," << std::endl;
   os << "input wire        s0_write," << std::endl;
   os << std::endl;
-  os << "output reg [31:0] s0_readdata," << std::endl;
+  os << "output wire[31:0] s0_readdata," << std::endl;
   os << "input  wire[31:0] s0_writedata," << std::endl;
   os << std::endl;
-  os << "output reg        s0_waitrequest" << std::endl;
+  os << "output wire       s0_waitrequest" << std::endl;
   os.untab();
   os << ");" << std::endl;
   os.tab();
@@ -339,6 +339,7 @@ inline std::string AvmmCompiler<T>::get_text() {
     os.tab();
     os << ".__clk(clk)," << std::endl;
     os << ".__read((__mid == " << s.first << ") & s0_write)," << std::endl;
+    os << ".__write((__mid == " << s.first << ") & s0_read)," << std::endl;
     os << ".__vid(__vid)," << std::endl;
     os << ".__in(s0_writedata)," << std::endl;
     os << ".__out(m" << s.first << "_out)," << std::endl;
@@ -364,12 +365,8 @@ inline std::string AvmmCompiler<T>::get_text() {
   os << "end" << std::endl;
 
   os << "// Output Logic:" << std::endl;
-  os << "always @(posedge clk) begin" << std::endl;
-  os.tab();
-  os << "s0_waitrequest <= (s0_read | s0_write) ? wr : 1'b1;" << std::endl;
-  os << "s0_readdata <= rd;" << std::endl;
-  os.untab();
-  os << "end" << std::endl;
+  os << "assign s0_waitrequest = (s0_read | s0_write) ? wr : 1'b1;" << std::endl;
+  os << "assign s0_readdata = rd;" << std::endl;
 
   os.untab();
   os << "endmodule";

@@ -5,8 +5,8 @@
 
 reg read = 0;
 reg write = 0;
-reg[15:0] addr = 0;
-reg[31:0] data_in = 0;
+reg[7:0] addr[1:0];
+reg[7:0] data_in[3:0];
 wire[31:0] data_out;
 wire waitreq;
 reg[7:0] temp = 0;
@@ -14,15 +14,27 @@ reg[7:0] temp = 0;
 program_logic pl (
 	.clk(clock.val),
 	.reset(0),
-	.s0_address(addr),
+	.s0_address({addr[1],addr[0]}),
 	.s0_read(read),
 	.s0_write(write),
 	.s0_readdata(data_out),
-	.s0_writedata(data_in),
+	.s0_writedata({data_in[3],data_in[2],data_in[1],data_in[0]}),
 	.s0_waitrequest(waitreq)
 );
 
 always @(posedge clock.val) begin
+  /* TODO(eschkufz) DELETE THIS
+  if (read) begin
+    $display("READ: %h %h --- %d", {addr[1],addr[0]}, data_out, waitreq);
+  end
+  else if (write) begin
+    $display("WRIT: %h %h --- %d", {addr[1],addr[0]}, {data_in[3],data_in[2],data_in[1],data_in[0]}, waitreq);
+  end
+  else begin
+    $display("---");
+  end
+  */
+
 	if ((read || write) && (!waitreq)) begin
 		if (read) 
       $fwrite(ofd, "%c%c%c%c", data_out[31:24], data_out[23:16], data_out[15:8], data_out[7:0]);
@@ -31,12 +43,12 @@ always @(posedge clock.val) begin
 	end
 	if (!(read || write)) begin
 		$fflush(ifd);
-		$fscanf(ifd, "%c%c%c", temp[7:0], addr[15:8], addr[7:0]);
+		$fscanf(ifd, "%c%c%c", temp, addr[1], addr[0]);
 		if ($feof(ifd)) begin 
       // Does nothing
 		end else begin
 			if (temp[0]) 
-        $fscanf(ifd, "%c%c%c%c", data_in[31:24], data_in[23:16], data_in[15:8], data_in[7:0]);
+        $fscanf(ifd, "%c%c%c%c", data_in[3], data_in[2], data_in[1], data_in[0]);
 			read <= temp[1];
 			write <= temp[0];
 		end
