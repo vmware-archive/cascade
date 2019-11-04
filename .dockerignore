@@ -1,0 +1,6 @@
+build
+.git
+doc
+*.img
+boards
+de10_support

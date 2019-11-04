@@ -52,7 +52,9 @@ Index
 
 Dependencies
 =====
-Cascade should build successfully on OSX and most Linux distributions. 
+The easiest way to get started with Cascade is with Docker.
+With Docker, you'll only need an installation of [Docker](https://hub.docker.com/search/?type=edition&offering=community) to build and run Cascade.
+
 
 Building Cascade
 =====
@@ -61,17 +63,20 @@ Building Cascade
 *NIX $ git clone https://github.com/vmware/cascade cascade
 ```
 
-2. Run the setup script
+2. Build the Docker images
 
 ```bash
 *NIX $ cd cascade
-*NIX $ ./setup
+*NIX $ docker/build_images.sh
 ```
 
-The setup script should guide you through installing dependencies, as
-well as configuring, building and testing Cascade.
+The image builder should build two images: ```cascade-builder```, which contains the dependencies for building cascade,
+and ```cascade``, which builds and installs cascade. 
 
-Once installed, cascade should now be accessible by just typing ```cascade```.
+Once installed, cascade should now be accessible by running the cascade image:
+```bash
+*NIX $ docker run -it cascade:latest
+```
 
 Using Cascade
 =====
@@ -80,7 +85,7 @@ Using Cascade
 
 Start Cascade by typing
 ```
-*NIX $ cascade
+*NIX $ docker run -it cascade:latest
 ```
 This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed
 here is appended to the source of the (initially empty) top-level (root) module
@@ -270,7 +275,7 @@ Environments
 By default, Cascade is started in a minimal environment. You can invoke this
 behavior explicitly using the ```--march``` flag.
 ```
-*NIX $ ./bin/cascade --march minimal
+*NIX $ docker run -it cascade:latest cascade --march minimal
 ```
 This environment declares the following module and instantiates it into the
 top-level module for you:
@@ -320,7 +325,7 @@ and run in software. However most hardware programs involve the use of I/O
 peripherals. Before we get into real hardware, first try running Cascade's
 virtual software FPGA.
 ```
-*NIX $ ./bin/sw_fpga
+*NIX $ docker run -it cascade:latest sw_fpga
 ```
 Cascade's virtual FPGA provides an ncurses GUI with four buttons, one reset,
 and eight leds. You can toggle the buttons using the ```1 2 3 4``` keys, toggle
@@ -328,7 +333,7 @@ the reset using the ```r``` key, and shut down the virtual FPGA by typing
 ```q```. In order to write code which uses these peripherals, restart Cascade
 using the ```--march sw``` flag on the same machine as the virtual FPGA.
 ```
-*NIX $ ./bin/cascade --march sw
+*NIX $ docker run -it cascade:latest cascade --march sw
 ```
 Cascade will automatically detect the virtual FPGA and expose its peripherals
 as modules which are implicitly declared and instantiated in the top-level
