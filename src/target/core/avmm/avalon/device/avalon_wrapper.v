@@ -23,18 +23,6 @@ program_logic pl (
 );
 
 always @(posedge clock.val) begin
-  /* TODO(eschkufz) DELETE THIS
-  if (read) begin
-    $display("READ: %h %h --- %d", {addr[1],addr[0]}, data_out, waitreq);
-  end
-  else if (write) begin
-    $display("WRIT: %h %h --- %d", {addr[1],addr[0]}, {data_in[3],data_in[2],data_in[1],data_in[0]}, waitreq);
-  end
-  else begin
-    $display("---");
-  end
-  */
-
 	if ((read || write) && (!waitreq)) begin
 		if (read) 
       $fwrite(ofd, "%c%c%c%c", data_out[31:24], data_out[23:16], data_out[15:8], data_out[7:0]);
