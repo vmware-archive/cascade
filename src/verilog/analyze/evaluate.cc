@@ -226,6 +226,9 @@ tuple<size_t,int,int> Evaluate::dereference(const Identifier* r, const Identifie
   // The index we're looking for
   size_t idx = 0;
   // Multiplier for multi-dimensional arrays
+  if (r->bit_val_.empty()) {
+    init(const_cast<Identifier*>(r));
+  }
   size_t mul = r->bit_val_.size();
 
   // Walk along subscripts 

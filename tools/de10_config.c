@@ -30,8 +30,8 @@
 #include <sys/mman.h> // mmap
 
 // The Altera SoC Abstraction Layer (SoCAL) API Reference Manual
-#include "target/core/de10/fpga/include/socal.h"
-#include "target/core/de10/fpga/include/hps.h"
+#include "target/core/avmm/de10/device/include/socal.h"
+#include "target/core/avmm/de10/device/include/hps.h"
 
 // Useful macros
 #define BIT(x,n) (((x) >> (n)) & 1)

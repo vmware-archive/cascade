@@ -31,7 +31,8 @@
 #include "cascade/cascade_slave.h"
 #include "target/compiler.h"
 #include "target/compiler/proxy_compiler.h"
-#include "target/core/de10/de10_compiler.h"
+#include "target/core/avmm/avalon/avalon_compiler.h"
+#include "target/core/avmm/de10/de10_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace std;
@@ -41,7 +42,8 @@ namespace cascade {
 CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
 
-  remote_compiler_.set("de10", new de10::De10Compiler());
+  remote_compiler_.set("avalon", new AvalonCompiler());
+  remote_compiler_.set("de10", new De10Compiler());
   remote_compiler_.set("proxy", new ProxyCompiler());
   remote_compiler_.set("sw", new SwCompiler());
 
@@ -61,8 +63,8 @@ CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
 CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
   auto* dc = remote_compiler_.get("de10");
   assert(dc != nullptr);
-  static_cast<de10::De10Compiler*>(dc)->set_host(host);
-  static_cast<de10::De10Compiler*>(dc)->set_port(port);
+  static_cast<De10Compiler*>(dc)->set_host(host);
+  static_cast<De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 

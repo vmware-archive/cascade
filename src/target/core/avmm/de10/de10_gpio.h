@@ -28,30 +28,30 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_PAD_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_PAD_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_GPIO_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_GPIO_H
 
-#include <cassert>
 #include "common/bits.h"
 #include "target/core.h"
-#include "target/core/de10/io.h"
+#include "target/core/avmm/de10/io.h"
 #include "target/input.h"
-#include "target/interface.h"
+#include "target/state.h"
 
-namespace cascade::de10 {
+namespace cascade {
 
-class De10Pad : public Pad {
+// This file implements a GPIO engine for the Terasic DE10-Nano board.  It
+// supports GPI0-GPIO31 from the FPGA side, and it requires a PIO core be
+// available at 0x5000, which is where it is mapped tn the DE10_NANO GHRD.
+ 
+class De10Gpio : public Gpio {
   public:
-    De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr); 
-    ~De10Pad() override = default;
+    De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr); 
+    ~De10Gpio() override = default;
 
     State* get_state() override;
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
-
-    bool overrides_done_step() const override;
-    void done_step() override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;
@@ -59,67 +59,55 @@ class De10Pad : public Pad {
     void update() override;
 
   private:
-    VId out_;
-    size_t size_;
-    volatile uint8_t* pad_addr_;
-    bool there_are_updates_;
+    VId in_;
+    volatile uint8_t* gpio_addr_;
 };
 
-inline De10Pad::De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr) : Pad(interface) {
-  out_ = out;
-  size_ = size;
-  pad_addr_ = pad_addr;
-  there_are_updates_ = true;
+inline De10Gpio::De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr) : Gpio(interface) {
+  in_ = in;
+  gpio_addr_ = gpio_addr;
 }
 
-inline State* De10Pad::get_state() {
+inline State* De10Gpio::get_state() {
   return new State();
 } 
 
-inline void De10Pad::set_state(const State* s) {
+inline void De10Gpio::set_state(const State* s) {
   // Stateless; does nothing
   (void) s;
 }
 
-inline Input* De10Pad::get_input() {
-  // Outputs only; does nothing
-  return new Input();
+inline Input* De10Gpio::get_input() {
+  auto* i = new Input();
+  i->insert(in_, Bits(32, DE10_READ(gpio_addr_)));
+  return i;
 } 
 
-inline void De10Pad::set_input(const Input* i) {
-  // Outputs only; does nothing
-  (void) i;
+inline void De10Gpio::set_input(const Input* i) {
+  const auto itr = i->find(in_);
+  if (itr != i->end()) {
+    DE10_WRITE(gpio_addr_, itr->second.to_uint());
+  }
 }
 
-inline bool De10Pad::overrides_done_step() const {
-  return true;
-}
-
-inline void De10Pad::done_step() {
-  there_are_updates_ = true;
-}
-
-inline void De10Pad::read(VId id, const Bits* b) {
-  // Invoking this method doesn't make sense
+inline void De10Gpio::read(VId id, const Bits* b) {
   (void) id;
-  (void) b;
-  assert(false);
+  DE10_WRITE(gpio_addr_, b->to_uint());
 }
 
-inline void De10Pad::evaluate() {
-  Bits bits(size_, DE10_READ(pad_addr_));
-  interface()->write(out_, &bits);
+inline void De10Gpio::evaluate() {
+  // Does nothing.
 }
 
-inline bool De10Pad::there_are_updates() const {
-  return there_are_updates_;
+inline bool De10Gpio::there_are_updates() const {
+  return false;
 }
 
-inline void De10Pad::update() { 
-  there_are_updates_ = false;
-  evaluate();
+inline void De10Gpio::update() { 
+  // Does nothing.
 }
 
-} // namespace cascade::de10
+} // namespace cascade
 
 #endif
+

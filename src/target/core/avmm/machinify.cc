@@ -28,13 +28,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/core/de10/pass/machinify.h"
+#include "target/core/avmm/machinify.h"
 
 #include "verilog/ast/ast.h"
 
 using namespace std;
 
-namespace cascade::de10 {
+namespace cascade {
 
 Machinify::Generate::Generate(size_t idx) : Visitor() { 
   idx_ = idx;
@@ -365,4 +365,4 @@ void Machinify::TaskCheck::visit(const NonblockingAssign* na) {
   }
 }
 
-} // namespace cascade::de10
+} // namespace cascade

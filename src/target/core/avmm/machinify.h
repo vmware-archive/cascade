@@ -28,15 +28,15 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PASS_MACHINIFY_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PASS_MACHINIFY_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_MACHINIFY_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_MACHINIFY_H
 
 #include <stddef.h>
 #include <utility>
 #include <vector>
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade::de10 {
+namespace cascade {
 
 // Pass 2: 
 //        
@@ -121,7 +121,7 @@ class Machinify {
     std::vector<Generate> generators_;
 };
 
-} // namespace cascade::de10
+} // namespace cascade
 
 #endif
 

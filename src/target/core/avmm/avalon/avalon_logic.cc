@@ -28,25 +28,35 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_PROGRAM_BOXER_H
+#include "target/core/avmm/avalon/avalon_logic.h"
+#include "target/core/avmm/avalon/syncbuf.h"
 
-#include <string>
-#include <map>
-#include "runtime/ids.h"
+namespace cascade {
 
-namespace cascade::de10 {
+AvalonLogic::AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps) : AvmmLogic<uint32_t>(interface, md) {
+  get_table()->set_read([slot, reqs, resps](size_t index) {
+    uint8_t bytes[7];
+    const uint16_t vid = index | (slot << 12);
+    bytes[0] = 2;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 3);
+    resps->waitforn(reinterpret_cast<char*>(bytes), 4);
+    return (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
+  });
+  get_table()->set_write([slot, reqs](size_t index, uint32_t val) {
+    uint8_t bytes[7];
+    const uint16_t vid = index | (slot << 12);
+    const uint32_t data = val;
+    bytes[0] = 1;
+    bytes[1] = vid >> 8;
+    bytes[2] = vid;
+    bytes[3] = data >> 24;
+    bytes[4] = data >> 16;
+    bytes[5] = data >> 8;
+    bytes[6] = data;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 7);
+  });
+}
 
-class ProgramBoxer {
-  public:
-    void push(MId id, const std::string& text);
-    std::string get() const;
-
-  private:
-    std::map<MId, std::string> repo_;
-};
-
-} // namespace cascade::de10
-
-#endif
-
+} // namespace cascade

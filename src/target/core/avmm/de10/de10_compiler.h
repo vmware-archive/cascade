@@ -28,27 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_COMPILER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_COMPILER_H
 
-#include <condition_variable>
-#include <mutex>
-#include <stdint.h>
-#include <string>
-#include <vector>
-#include "target/core_compiler.h"
-#include "target/core/de10/de10_gpio.h"
-#include "target/core/de10/de10_led.h"
-#include "target/core/de10/de10_logic.h"
-#include "target/core/de10/de10_pad.h"
+#include "target/core/avmm/avmm_compiler.h"
+#include "target/core/avmm/de10/de10_gpio.h"
+#include "target/core/avmm/de10/de10_led.h"
+#include "target/core/avmm/de10/de10_logic.h"
+#include "target/core/avmm/de10/de10_pad.h"
 
 namespace cascade {
 
-class sockstream;
-
-namespace de10 {
-
-class De10Compiler : public CoreCompiler {
+class De10Compiler : public AvmmCompiler<uint32_t> {
   public:
     De10Compiler();
     ~De10Compiler() override;
@@ -56,25 +47,7 @@ class De10Compiler : public CoreCompiler {
     De10Compiler& set_host(const std::string& host);
     De10Compiler& set_port(uint32_t port);
 
-    void release(size_t slot);
-    void stop_compile(Engine::Id id) override;
-
   private:
-    // Compilation States:
-    enum class State : uint8_t {
-      FREE = 0,
-      COMPILING,
-      WAITING,
-      STOPPED,
-      CURRENT
-    };
-    // Slot Information:
-    struct Slot {
-      Engine::Id id;
-      State state;
-      std::string text;
-    };
-
     // Configuration State:
     std::string host_;
     uint32_t port_;
@@ -83,27 +56,22 @@ class De10Compiler : public CoreCompiler {
     int fd_;
     volatile uint8_t* virtual_base_;
 
-    // Program Management:
-    std::mutex lock_;
-    std::condition_variable cv_;
-    std::vector<Slot> slots_;
+    // Avmm Compiler Interface:
+    De10Logic* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
+    bool compile(const std::string& text, std::mutex& lock) override;
+    void stop_compile() override;
 
     // Compiler Interface:
     De10Gpio* compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
     De10Led* compile_led(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
-    De10Logic* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
     De10Pad* compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Compilation Helpers:
-    bool id_in_use(Engine::Id id) const;
-    int get_free_slot() const;
-    void compile(sockstream* sock);
+    void compile(sockstream* sock, const std::string& text);
     bool block_on_compile(sockstream* sock);
     void reprogram(sockstream* sock);
-    void kill_all(sockstream* sock);
 };
 
-} // namespace de10
 } // namespace cascade
 
 #endif

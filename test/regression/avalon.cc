@@ -28,62 +28,23 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
-#define CASCADE_SRC_TARGET_CORE_DE10_QUARTUS_SERVER_H
+#include "gtest/gtest.h"
+#include "harness.h"
 
-#include <unordered_map>
-#include <string>
-#include "common/thread.h"
-#include "common/thread_pool.h"
+using namespace cascade;
 
-namespace cascade {
-
-class sockstream;
-
-namespace de10 {
-
-class QuartusServer : public Thread {
-  public:
-    // RPC Types:
-    enum class Rpc : uint8_t {
-      ERROR = 0,
-      OKAY,
-      KILL_ALL,
-      COMPILE,
-      REPROGRAM
-    };
-
-    QuartusServer();
-    ~QuartusServer() override = default;
-
-    QuartusServer& set_cache_path(const std::string& path);
-    QuartusServer& set_quartus_path(const std::string& path);
-    QuartusServer& set_port(uint32_t port);
-
-    bool error() const;
-
-  private:
-    // Condiguration State:
-    std::string cache_path_;
-    std::string quartus_path_;
-    uint32_t port_;
-
-    // Comoilation State:
-    ThreadPool pool_;
-    std::unordered_map<std::string, std::string> cache_;
-    bool busy_;
-
-    // Thread Interface:
-    void run_logic() override;
-
-    // Helper Methods:
-    void init_pool();
-    void init_cache();
-    void kill_all();
-    bool compile(const std::string& text);
-};
-
-} // namespace de10
-} // namespace cascade
-
-#endif
+TEST(avalon, array) {
+  run_code("avalon_jit", "data/test/benchmark/array/run_4.v", "65537\n");
+}
+TEST(avalon, bitcoin) {
+  run_code("avalon_jit", "data/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+}
+TEST(avalon, mips32) {
+  run_code("avalon_jit", "data/test/benchmark/mips32/run_bubble_32.v", "1");
+}
+TEST(avalon, nw) {
+  run_code("avalon_jit", "data/test/benchmark/nw/run_4.v", "-1126");
+}
+TEST(avalon, regex) {
+  run_code("avalon_jit", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+}

@@ -5,10 +5,10 @@ reg[31:0] ie = 0;
 reg[7:0] char;
 
 integer itr = 1;
-integer s = $fopen("data/test/benchmark/regex/iliad.hex", "r");
+integer s = $fopen("data/test/benchmark/regex/iliad.txt", "r");
 
 always @(posedge clock.val) begin
-  $fread(s, char);
+  $fscanf(s, "%c", char);
   if ($feof(s)) begin
     if (itr == 8) begin
       $write(count);

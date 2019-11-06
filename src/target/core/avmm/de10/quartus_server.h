@@ -28,64 +28,59 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cstring>
-#include <iostream>
-#include <signal.h>
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
+
+#include <unordered_map>
 #include <string>
-#include "cl/cl.h"
-#include "target/core/avmm/de10/quartus_server.h"
+#include "common/thread.h"
+#include "common/thread_pool.h"
 
-using namespace cascade;
-using namespace cascade::cl;
-using namespace std;
+namespace cascade {
 
-namespace {
+class sockstream;
 
-__attribute__((unused)) auto& g = Group::create("Quartus Server Options");
-auto& cache = StrArg<string>::create("--cache")
-  .usage("<path/to/cache>")
-  .description("Path to directory to use as compilation cache")
-  .initial("/tmp/quartus_cache");
-auto& path = StrArg<string>::create("--path")
-  .usage("<path/to/quarus>")
-  .description("Path to quartus installation directory")
-  .initial("~/intelFPGA_lite/17.1/quartus");
-auto& port = StrArg<uint32_t>::create("--port")
-  .usage("<int>")
-  .description("Port to run quartus server on")
-  .initial(9900);
+class QuartusServer : public Thread {
+  public:
+    // RPC Types:
+    enum class Rpc : uint8_t {
+      ERROR = 0,
+      OKAY,
+      KILL_ALL,
+      COMPILE,
+      REPROGRAM
+    };
 
-QuartusServer* qs = nullptr;
+    QuartusServer();
+    ~QuartusServer() override = default;
 
-void handler(int sig) {
-  (void) sig;
-  qs->request_stop();
-}
+    QuartusServer& set_cache_path(const std::string& path);
+    QuartusServer& set_quartus_path(const std::string& path);
+    QuartusServer& set_port(uint32_t port);
 
-} // namespace
+    bool error() const;
 
-int main(int argc, char** argv) {
-  // Parse command line:
-  Simple::read(argc, argv);
+  private:
+    // Condiguration State:
+    std::string cache_path_;
+    std::string quartus_path_;
+    uint32_t port_;
 
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_handler = ::handler;
-  sigaction(SIGINT, &action, nullptr);
+    // Comoilation State:
+    ThreadPool pool_;
+    std::unordered_map<std::string, std::string> cache_;
+    bool busy_;
 
-  ::qs = new QuartusServer();
-  ::qs->set_cache_path(::cache.value());
-  ::qs->set_quartus_path(::path.value());
-  ::qs->set_port(::port.value());
+    // Thread Interface:
+    void run_logic() override;
 
-  if (::qs->error()) {
-    cout << "Unable to locate core quartus components!" << endl;
-  } else {
-    ::qs->run();
-    ::qs->wait_for_stop();
-  }
-  delete ::qs;
+    // Helper Methods:
+    void init_pool();
+    void init_cache();
+    void kill_all();
+    bool compile(const std::string& text);
+};
 
-  cout << "Goodbye!" << endl;
-  return 0;
-}
+} // namespace cascade
+
+#endif
