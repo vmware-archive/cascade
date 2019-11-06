@@ -298,12 +298,16 @@ case "${unameOut}" in
                 fi
                 export CPP="g++ -E"
                 if [ ! -d "/usr/include" ]; then
-                    echo -e "Your /usr/include directly does not seem to be configured correctly."
-                    OS_VERSION=$(sw_vers -productVersion | sed "s:.[[:digit:]]*.$::g")
-                    HEADERS_INSTALL_PATH="/Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_${OS_VERSION}.pkg"
-                    echo "Try installing the package manually by running:"
-                    echo -e "${WHITE}open ${HEADERS_INSTALL_PATH}${NC}"
-                    exit 1
+                    if [ $SILENT -eq 1 ]; then
+                        echo -e "Your /usr/include directly does not seem to be configured correctly (CI ignored)."
+                    else
+                        echo -e "Your /usr/include directly does not seem to be configured correctly."
+                        OS_VERSION=$(sw_vers -productVersion | sed "s:.[[:digit:]]*.$::g")
+                        HEADERS_INSTALL_PATH="/Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_${OS_VERSION}.pkg"
+                        echo "Try installing the package manually by running:"
+                        echo -e "${WHITE}open ${HEADERS_INSTALL_PATH}${NC}"
+                        exit 1
+                    fi
                 fi
                 LOCAL_FLAGS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
                 build_cascade "$LOCAL_FLAGS"
