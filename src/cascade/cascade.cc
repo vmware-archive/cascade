@@ -33,7 +33,8 @@
 #include "runtime/runtime.h"
 #include "target/compiler.h"
 #include "target/compiler/proxy_compiler.h"
-#include "target/core/de10/de10_compiler.h"
+#include "target/core/avmm/avalon/avalon_compiler.h"
+#include "target/core/avmm/de10/de10_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace std;
@@ -46,7 +47,8 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   set_enable_inlining(true);
   set_open_loop_target(1);
 
-  runtime_.get_compiler()->set("de10", new de10::De10Compiler());
+  runtime_.get_compiler()->set("avalon", new AvalonCompiler());
+  runtime_.get_compiler()->set("de10", new De10Compiler());
   runtime_.get_compiler()->set("proxy", new ProxyCompiler());
   runtime_.get_compiler()->set("sw", new SwCompiler());
 
@@ -79,8 +81,8 @@ Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
   assert(!is_running_);
   auto* dc = runtime_.get_compiler()->get("de10");
   assert(dc != nullptr);
-  static_cast<de10::De10Compiler*>(dc)->set_host(host);
-  static_cast<de10::De10Compiler*>(dc)->set_port(port);
+  static_cast<De10Compiler*>(dc)->set_host(host);
+  static_cast<De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 

@@ -28,64 +28,60 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cstring>
-#include <iostream>
-#include <signal.h>
-#include <string>
-#include "cl/cl.h"
-#include "target/core/avmm/de10/quartus_server.h"
+#include "target/core/avmm/avalon/avalon_compiler.h"
 
-using namespace cascade;
-using namespace cascade::cl;
+#include <fstream>
+#include "cascade/cascade.h"
+#include "common/system.h"
+
 using namespace std;
 
-namespace {
+namespace cascade {
 
-__attribute__((unused)) auto& g = Group::create("Quartus Server Options");
-auto& cache = StrArg<string>::create("--cache")
-  .usage("<path/to/cache>")
-  .description("Path to directory to use as compilation cache")
-  .initial("/tmp/quartus_cache");
-auto& path = StrArg<string>::create("--path")
-  .usage("<path/to/quarus>")
-  .description("Path to quartus installation directory")
-  .initial("~/intelFPGA_lite/17.1/quartus");
-auto& port = StrArg<uint32_t>::create("--port")
-  .usage("<int>")
-  .description("Port to run quartus server on")
-  .initial(9900);
-
-QuartusServer* qs = nullptr;
-
-void handler(int sig) {
-  (void) sig;
-  qs->request_stop();
+AvalonCompiler::AvalonCompiler() : AvmmCompiler<uint32_t>() {
+  cascade_ = nullptr;
 }
 
-} // namespace
-
-int main(int argc, char** argv) {
-  // Parse command line:
-  Simple::read(argc, argv);
-
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_handler = ::handler;
-  sigaction(SIGINT, &action, nullptr);
-
-  ::qs = new QuartusServer();
-  ::qs->set_cache_path(::cache.value());
-  ::qs->set_quartus_path(::path.value());
-  ::qs->set_port(::port.value());
-
-  if (::qs->error()) {
-    cout << "Unable to locate core quartus components!" << endl;
-  } else {
-    ::qs->run();
-    ::qs->wait_for_stop();
+AvalonCompiler::~AvalonCompiler() {
+  if (cascade_ != nullptr) {
+    delete cascade_;
   }
-  delete ::qs;
-
-  cout << "Goodbye!" << endl;
-  return 0;
 }
+
+AvalonLogic* AvalonCompiler::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  return new AvalonLogic(interface, md, slot, &reqs_, &resps_);
+}
+
+bool AvalonCompiler::compile(const string& text, mutex& lock) {
+  (void) lock;
+  get_compiler()->schedule_state_safe_interrupt([this, &text]{
+    ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
+    ofs << text << endl;
+    ofs.close();
+  
+    if (cascade_ != nullptr) {
+      delete cascade_;
+    }
+    cascade_ = new Cascade();
+    cascade_->set_stdout(cout.rdbuf());
+    cascade_->set_stderr(cout.rdbuf());
+
+    const auto ifd = cascade_->open(&reqs_);
+    const auto ofd = cascade_->open(&resps_);
+
+    cascade_->run();
+    *cascade_ << "`include \"data/march/minimal.v\"\n";
+    *cascade_ << "integer ifd = " << ifd << ";\n";
+    *cascade_ << "integer ofd = " << ofd << ";\n";
+    *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon_wrapper.v\"\n";
+    *cascade_ << endl;
+  });
+
+  return true;
+}
+
+void AvalonCompiler::stop_compile() {
+  // Does nothing. 
+}
+
+} // namespace cascade

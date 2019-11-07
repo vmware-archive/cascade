@@ -28,19 +28,19 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_VAR_TABLE_H
-#define CASCADE_SRC_TARGET_CORE_DE10_VAR_TABLE_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_VAR_TABLE_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_VAR_TABLE_H
 
 #include <cassert>
+#include <functional>
 #include <unordered_map>
 #include "common/bits.h"
 #include "common/vector.h"
-#include "target/core/de10/io.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 
-namespace cascade::de10 {
+namespace cascade {
 
 template <typename T>
 class VarTable {
@@ -53,12 +53,20 @@ class VarTable {
       size_t words_per_element;
     };
 
-    // Typedefs:
+    // IO Typedefs:
+    typedef std::function<T(size_t)> Read;
+    typedef std::function<void(size_t, T)> Write;
+
+    // Iterator Typedefs:
     typedef typename std::unordered_map<const Identifier*, const Row>::const_iterator const_var_iterator;
     typedef typename std::unordered_map<const Expression*, const Row>::const_iterator const_expr_iterator;
         
     // Constructors:
-    VarTable(volatile uint8_t* addr);
+    VarTable();
+
+    // Configuration Interface:
+    VarTable& set_read(Read read);
+    VarTable& set_write(Write write);
 
     // Inserts an element into the table.
     void insert_var(const Identifier* id);
@@ -127,14 +135,14 @@ class VarTable {
     void write_expr(const Expression* e, T val);
 
   private:
-    volatile uint8_t* addr_;
+    Read read_;
+    Write write_;
+
     size_t next_index_;
     std::unordered_map<const Identifier*, const Row> vtable_;
     std::unordered_map<const Expression*, const Row> etable_;
 
     constexpr size_t bits_per_word() const;
-
-    volatile uint8_t* mangle(size_t index) const;
 };
 
 using VarTable16 = VarTable<uint16_t>;
@@ -142,9 +150,20 @@ using VarTable32 = VarTable<uint32_t>;
 using VarTable64 = VarTable<uint64_t>;
 
 template <typename T>
-inline VarTable<T>::VarTable(volatile uint8_t* addr) {
-  addr_ = addr;
+inline VarTable<T>::VarTable() {
   next_index_ = 0;
+}
+
+template <typename T>
+inline VarTable<T>& VarTable<T>::set_read(Read read) {
+  read_ = read;
+  return *this;
+}
+
+template <typename T>
+inline VarTable<T>& VarTable<T>::set_write(Write write) {
+  write_ = write;
+  return *this;
 }
 
 template <typename T>
@@ -280,14 +299,14 @@ template <typename T>
 inline T VarTable<T>::read_control_var(size_t index) const {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
-  return DE10_READ(mangle(index));
+  return read_(index);
 }
 
 template <typename T>
 inline void VarTable<T>::write_control_var(size_t index, T val) {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
-  DE10_WRITE(mangle(index), val);
+  write_(index, val);
 }
 
 template <typename T>
@@ -298,7 +317,7 @@ inline void VarTable<T>::read_var(const Identifier* id) const {
   auto idx = itr->second.begin;
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
-      const volatile auto word = DE10_READ(mangle(idx));
+      const volatile auto word = read_(idx);
       Evaluate().assign_word<T>(id, i, j, word);
       ++idx;
     } 
@@ -314,7 +333,7 @@ inline void VarTable<T>::write_var(const Identifier* id, const Bits& val) {
   auto idx = itr->second.begin;
   for (size_t j = 0; j < itr->second.words_per_element; ++j) {
     const volatile auto word = val.read_word<T>(j);
-    DE10_WRITE(mangle(idx), word);
+    write_(idx, word);
     ++idx;
   }
 }
@@ -329,7 +348,7 @@ inline void VarTable<T>::write_var(const Identifier* id, const Vector<Bits>& val
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
       const volatile auto word = val[i].read_word<T>(j);
-      DE10_WRITE(mangle(idx), word);
+      write_(idx, word);
       ++idx;
     }
   }
@@ -342,7 +361,7 @@ inline T VarTable<T>::read_expr(const Expression* e) const {
   assert(itr->second.elements == 1);
   assert(itr->words_per_element == 1);
 
-  return DE10_READ(mangle(var_size() + itr->second.begin));
+  return read_(var_size() + itr->second.begin);
 }
 
 template <typename T>
@@ -352,7 +371,7 @@ inline void VarTable<T>::write_expr(const Expression* e, T val) {
   assert(itr->second.elements == 1);
   assert(itr->second.words_per_element == 1);
 
-  DE10_WRITE(mangle(var_size() + itr->second.begin), val);
+  write_(var_size() + itr->second.begin, val);
 }
 
 template <typename T>
@@ -360,13 +379,6 @@ inline constexpr size_t VarTable<T>::bits_per_word() const {
   return 8*sizeof(T);
 }
 
-template <typename T>
-inline volatile uint8_t* VarTable<T>::mangle(size_t index) const {
-  // This is a plus, not a logical or! We can't guarantee that addr is aligned!
-  return (volatile uint8_t*)((size_t)addr_ + (index << 2));
-}
-
-} // namespace cascade::de10
+} // namespace cascade
 
 #endif
-

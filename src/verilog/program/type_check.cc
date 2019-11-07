@@ -782,7 +782,7 @@ void TypeCheck::check_width(const RangeExpression* re) {
   }
 
   const auto rng = Evaluate().get_range(re);
-  if (rng.first <= rng.second) {
+  if (rng.first < rng.second) {
     error("Cascade does not currently support little-endian vector declarations", re);
   }
 }
@@ -803,7 +803,7 @@ void TypeCheck::check_array(Identifier::const_iterator_dim begin, Identifier::co
     }
    
     const auto rng = Evaluate().get_range(*i);
-    if (rng.first <= rng.second) {
+    if (rng.first < rng.second) {
       return error("Cascade does not currently support little-endian array declarations", (*i)->get_parent()->get_parent());
     } 
   }

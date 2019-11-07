@@ -54,7 +54,7 @@ BENCHMARK(BM_Array)->Unit(benchmark::kMillisecond);
 
 static void BM_Bitcoin(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/bitcoin/run_20.v", "001ce5c0 001ce5c5\n");
+    run_benchmark("data/test/benchmark/bitcoin/run_25.v", "0109a2bd 0109a2c2\n");
   }
 }
 BENCHMARK(BM_Bitcoin)->Unit(benchmark::kMillisecond);

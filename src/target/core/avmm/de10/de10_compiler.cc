@@ -28,26 +28,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/core/de10/de10_compiler.h"
+#include "target/core/avmm/de10/de10_compiler.h"
 
 #include <fcntl.h>
 #include <fstream>
 #include <sys/mman.h>
-#include <map>
-#include <unistd.h>
 #include "common/sockstream.h"
 #include "common/system.h"
-#include "target/compiler.h"
-#include "target/core/de10/de10_rewrite.h"
-#include "target/core/de10/program_boxer.h"
-#include "target/core/de10/quartus_server.h"
-#include "verilog/analyze/evaluate.h"
-#include "verilog/analyze/module_info.h"
-#include "verilog/ast/ast.h"
+#include "target/core/avmm/de10/quartus_server.h"
 
 using namespace std;
 
-namespace cascade::de10 {
+namespace cascade {
 
 constexpr auto HW_REGS_BASE = 0xfc000000u;
 constexpr auto HW_REGS_SPAN = 0x04000000u;
@@ -58,15 +50,13 @@ constexpr auto PAD_PIO_BASE = 0x00004000u;
 constexpr auto GPIO_PIO_BASE = 0x00005000u;
 constexpr auto LOG_PIO_BASE = 0x00040000u;
 
-De10Compiler::De10Compiler() : CoreCompiler() { 
+De10Compiler::De10Compiler() : AvmmCompiler<uint32_t>() { 
   fd_ = open("/dev/mem", (O_RDWR | O_SYNC));
   if (fd_ == -1) {
     virtual_base_ = reinterpret_cast<volatile uint8_t*>(MAP_FAILED);
   } else {
     virtual_base_ = reinterpret_cast<volatile uint8_t*>(mmap(nullptr, HW_REGS_SPAN, (PROT_READ|PROT_WRITE), MAP_SHARED, fd_, HW_REGS_BASE));
   }
-
-  slots_.resize(4, {0, State::FREE, ""});
 
   set_host("localhost"); 
   set_port(9900);
@@ -92,55 +82,35 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
   return *this;
 }
 
-void De10Compiler::release(size_t slot) {
-  // Return this slot to the pool if necessary. This method should only be
-  // invoked on successfully compiled cores, which means we don't have to worry
-  // about transfering compilation ownership or invoking a killall.
-  lock_guard<mutex> lg(lock_);
-  assert(slots_[slot].state == State::CURRENT);
-  slots_[slot].state = State::FREE;
-  cv_.notify_all();
+De10Logic* De10Compiler::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (slot << 14);
+  return new De10Logic(interface, md, addr);
 }
 
-void De10Compiler::stop_compile(Engine::Id id) {
-  // Nothing to do if this id isn't in use
-  lock_guard<mutex> lg(lock_);
-  if (!id_in_use(id)) {
-    return;
-  }
-
-  // Free any slot with this id which is in the compiling or waiting state.
-  auto need_new_owner = false;
-  for (auto& s : slots_) {
-    if (s.id == id) {
-      switch (s.state) {
-        case State::COMPILING:
-          need_new_owner = true;
-          s.state = State::STOPPED;
-          // fallthrough
-        case State::WAITING:
-          s.state = State::STOPPED;
-          break;
-        default:
-          break;
-      } 
-    }
-  }
-  // If we need a new compilation lead, find a waiting slot and promote it.
-  // Note that there might not be any more waiting slots. That's fine.
-  if (need_new_owner) {
-    for (auto& s : slots_) {
-      if (s.state == State::WAITING) {
-        s.state = State::COMPILING;
-        break;
-      }
-    }
-  }
-
+bool De10Compiler::compile(const string& text, mutex& lock) {
   sockstream sock(host_.c_str(), port_);
   assert(!sock.error());
-  kill_all(&sock);
-  cv_.notify_all();
+
+  compile(&sock, text);
+  lock.unlock();
+  const auto res = block_on_compile(&sock);
+  lock.lock();
+
+  if (res) {
+    reprogram(&sock);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void De10Compiler::stop_compile() {
+  sockstream sock(host_.c_str(), port_);
+  assert(!sock.error());
+
+  sock.put(static_cast<uint8_t>(QuartusServer::Rpc::KILL_ALL));
+  sock.flush();
+  sock.get();
 }
 
 De10Gpio* De10Compiler::compile_gpio(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
@@ -195,124 +165,6 @@ De10Led* De10Compiler::compile_led(Engine::Id id, ModuleDeclaration* md, Interfa
   }
 }
 
-De10Logic* De10Compiler::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
-  unique_lock<mutex> lg(lock_);
-  ModuleInfo info(md);
-
-  // Check for unsupported language features
-  auto unsupported = false;
-  if (info.uses_mixed_triggers()) {
-    get_compiler()->error("The De10 backend does not currently support code with mixed triggers!");
-    unsupported = true;
-  } else if (!info.implied_latches().empty()) {
-    get_compiler()->error("The De10 backend does not currently support the use of implied latches!");
-    unsupported = true;
-  }
-  if (unsupported) {
-    delete md;
-    return nullptr;
-  }
-
-  // Find a new slot and generate code for this module. If either step fails,
-  // return nullptr. Otherwise, advance the sequence counter and compile.
-  const auto slot = get_free_slot();
-  if (slot == -1) {
-    get_compiler()->error("No remaining slots available on de10 fabric");
-    delete md;
-    return nullptr;
-  }
-
-  // Create a new core with address identity based on module id
-  volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (slot << 14);
-  auto* de = new De10Logic(interface, md, addr, this);
-
-  // Register inputs, state, and outputs. Invoke these methods
-  // lexicographically to ensure a deterministic variable table ordering. The
-  // final invocation of index_tasks is lexicographic by construction, as it's
-  // based on a recursive descent of the AST.
-  map<VId, const Identifier*> is;
-  for (auto* i : info.inputs()) {
-    is.insert(make_pair(to_vid(i), i));
-  }
-  for (const auto& i : is) {
-    de->set_input(i.second, i.first);
-  }
-  map<VId, const Identifier*> ss;
-  for (auto* s : info.stateful()) {
-    ss.insert(make_pair(to_vid(s), s));
-  }
-  for (const auto& s : ss) {
-    de->set_state(s.second, s.first);
-  }
-  map<VId, const Identifier*> os;
-  for (auto* o : info.outputs()) {
-    os.insert(make_pair(to_vid(o), o));
-  }
-  for (const auto& o : os) {
-    de->set_output(o.second, o.first);
-  }
-  de->index_tasks();
-
-  // Check table and index sizes. If this program uses too much state, we won't
-  // be able to uniquely name its elements using our current addressing scheme.
-  if (de->get_table().size() >= 0x1000) {
-    get_compiler()->error("Unable to compile a module with more than 4096 entries in variable table");
-    delete de;
-    return nullptr;
-  }
-
-  // Downgrade any compilation slots to waiting slots, and stop any slots that are
-  // working on this id.
-  for (auto& s : slots_) {
-    if (s.state == State::COMPILING) {
-      s.state = State::WAITING;
-    }
-    if ((s.id == id) && (s.state == State::WAITING)) {
-      s.state = State::STOPPED;
-    }
-  }
-
-  slots_[slot].id = id;
-  slots_[slot].state = State::COMPILING;
-  slots_[slot].text = De10Rewrite().run(md, de, slot);
-
-  while (true) {
-    switch (slots_[slot].state) {
-      case State::COMPILING: {
-        sockstream sock(host_.c_str(), port_);
-        if (sock.error()) {
-          slots_[slot].state = State::FREE;
-          get_compiler()->error("Unable to connect to quartus compilation server");
-          delete de;
-          return nullptr;
-        }
-        compile(&sock);
-        lg.unlock();
-        const auto res = block_on_compile(&sock);
-        lg.lock();
-        if (res) {
-          reprogram(&sock);
-        }
-        break;
-      }
-      case State::WAITING:
-        cv_.wait(lg);
-        break;
-      case State::STOPPED:
-        slots_[slot].state = State::FREE;
-        delete de;
-        return nullptr;
-      case State::CURRENT:
-        de->set_slot(slot);
-        return de;
-      default:
-        // Control should never reach here
-        assert(false);
-        break;
-    }
-  }
-}
-
 De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   (void) id;
 
@@ -336,40 +188,15 @@ De10Pad* De10Compiler::compile_pad(Engine::Id id, ModuleDeclaration* md, Interfa
   return new De10Pad(interface, oid, w, pad_addr);
 }
 
-bool De10Compiler::id_in_use(Engine::Id id) const {
-  for (const auto& s : slots_) {
-    if ((s.id == id) && (s.state != State::FREE)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-int De10Compiler::get_free_slot() const {
-  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
-    if (slots_[i].state == State::FREE) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-void De10Compiler::compile(sockstream* sock) {
+void De10Compiler::compile(sockstream* sock, const string& text) {
   // Send a compile request. We'll block here until there are no more compile threads
   // running.
   sock->put(static_cast<uint8_t>(QuartusServer::Rpc::COMPILE));
   sock->flush();
   sock->get();
 
-  // Send code to the quartus server, we won't hear back from this socket until 
+  // Send code to the quartus server, we won't hear back from this socket until
   // compilation is finished or it was aborted.
-  ProgramBoxer pb;
-  for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
-    if (slots_[i].state != State::FREE) {
-      pb.push(i, slots_[i].text);
-    }
-  }
-  const auto text = pb.get();
   sock->write(text.c_str(), text.length());
   sock->put('\0');
   sock->flush();
@@ -395,7 +222,7 @@ void De10Compiler::reprogram(sockstream* sock) {
 
     // Form a path to the temporary location we'll be storing the rbf file
     // and the de10 config fool
-    const auto rbf_path = System::src_root() + "/src/target/core/de10/fpga/DE10_NANO_SoC_GHRD.rbf";
+    const auto rbf_path = System::src_root() + "/src/target/core/avmm/de10/device/DE10_NANO_SoC_GHRD.rbf";
     const auto de10_config = System::src_root() + "/build/tools/de10_config";
 
     // Copy the rbf file to this location
@@ -409,20 +236,7 @@ void De10Compiler::reprogram(sockstream* sock) {
     // Send a byte to acknowledge that we're done
     sock->put(0);
     sock->flush();
-
-    for (auto& s : slots_) {
-      if ((s.state == State::COMPILING) || (s.state == State::WAITING)) {
-        s.state = State::CURRENT;
-      }     
-    }
-    cv_.notify_all();
   });
 }
 
-void De10Compiler::kill_all(sockstream* sock) {
-  sock->put(static_cast<uint8_t>(QuartusServer::Rpc::KILL_ALL));
-  sock->flush();
-  sock->get();
-}
-
-} // namespace cascade::de10
+} // namespace cascade

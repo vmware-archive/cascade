@@ -28,30 +28,30 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_LED_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_LED_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_PAD_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_PAD_H
 
+#include <cassert>
 #include "common/bits.h"
 #include "target/core.h"
-#include "target/core/de10/io.h"
+#include "target/core/avmm/de10/io.h"
 #include "target/input.h"
-#include "target/state.h"
+#include "target/interface.h"
 
-namespace cascade::de10 {
+namespace cascade {
 
-// This file implements an LED engine for the Terasic DE10-Nano board.  It
-// supports LED0-LED7 from the FPGA side, and it requires a PIO core be
-// available at 0x3000, which is where it is mapped tn the DE10_NANO GHRD.
- 
-class De10Led : public Led {
+class De10Pad : public Pad {
   public:
-    De10Led(Interface* interface, VId in, volatile uint8_t* led_addr); 
-    ~De10Led() override = default;
+    De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr); 
+    ~De10Pad() override = default;
 
     State* get_state() override;
     void set_state(const State* s) override;
     Input* get_input() override;
     void set_input(const Input* i) override;
+
+    bool overrides_done_step() const override;
+    void done_step() override;
 
     void read(VId id, const Bits* b) override;
     void evaluate() override;
@@ -59,54 +59,67 @@ class De10Led : public Led {
     void update() override;
 
   private:
-    VId in_;
-    volatile uint8_t* led_addr_;
+    VId out_;
+    size_t size_;
+    volatile uint8_t* pad_addr_;
+    bool there_are_updates_;
 };
 
-inline De10Led::De10Led(Interface* interface, VId in, volatile uint8_t* led_addr) : Led(interface) {
-  in_ = in;
-  led_addr_ = led_addr;
+inline De10Pad::De10Pad(Interface* interface, VId out, size_t size, volatile uint8_t* pad_addr) : Pad(interface) {
+  out_ = out;
+  size_ = size;
+  pad_addr_ = pad_addr;
+  there_are_updates_ = true;
 }
 
-inline State* De10Led::get_state() {
+inline State* De10Pad::get_state() {
   return new State();
 } 
 
-inline void De10Led::set_state(const State* s) {
+inline void De10Pad::set_state(const State* s) {
   // Stateless; does nothing
   (void) s;
 }
 
-inline Input* De10Led::get_input() {
-  auto* i = new Input();
-  i->insert(in_, Bits(32, DE10_READ(led_addr_)));
-  return i;
+inline Input* De10Pad::get_input() {
+  // Outputs only; does nothing
+  return new Input();
 } 
 
-inline void De10Led::set_input(const Input* i) {
-  const auto itr = i->find(in_);
-  if (itr != i->end()) {
-    DE10_WRITE(led_addr_, itr->second.to_uint());
-  }
+inline void De10Pad::set_input(const Input* i) {
+  // Outputs only; does nothing
+  (void) i;
 }
 
-inline void De10Led::read(VId id, const Bits* b) {
+inline bool De10Pad::overrides_done_step() const {
+  return true;
+}
+
+inline void De10Pad::done_step() {
+  there_are_updates_ = true;
+}
+
+inline void De10Pad::read(VId id, const Bits* b) {
+  // Invoking this method doesn't make sense
   (void) id;
-  DE10_WRITE(led_addr_, b->to_uint());
+  (void) b;
+  assert(false);
 }
 
-inline void De10Led::evaluate() {
-  // Does nothing.
+inline void De10Pad::evaluate() {
+  Bits bits(size_, DE10_READ(pad_addr_));
+  interface()->write(out_, &bits);
 }
 
-inline bool De10Led::there_are_updates() const {
-  return false;
+inline bool De10Pad::there_are_updates() const {
+  return there_are_updates_;
 }
 
-inline void De10Led::update() { 
-  // Does nothing.
+inline void De10Pad::update() { 
+  there_are_updates_ = false;
+  evaluate();
 }
 
-} // namespace cascade::de10
+} // namespace cascade
 
 #endif

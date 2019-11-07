@@ -28,25 +28,25 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_DE10_DE10_GPIO_H
-#define CASCADE_SRC_TARGET_CORE_DE10_DE10_GPIO_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_LED_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_DE10_LED_H
 
 #include "common/bits.h"
 #include "target/core.h"
-#include "target/core/de10/io.h"
+#include "target/core/avmm/de10/io.h"
 #include "target/input.h"
 #include "target/state.h"
 
-namespace cascade::de10 {
+namespace cascade {
 
-// This file implements a GPIO engine for the Terasic DE10-Nano board.  It
-// supports GPI0-GPIO31 from the FPGA side, and it requires a PIO core be
-// available at 0x5000, which is where it is mapped tn the DE10_NANO GHRD.
+// This file implements an LED engine for the Terasic DE10-Nano board.  It
+// supports LED0-LED7 from the FPGA side, and it requires a PIO core be
+// available at 0x3000, which is where it is mapped tn the DE10_NANO GHRD.
  
-class De10Gpio : public Gpio {
+class De10Led : public Led {
   public:
-    De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr); 
-    ~De10Gpio() override = default;
+    De10Led(Interface* interface, VId in, volatile uint8_t* led_addr); 
+    ~De10Led() override = default;
 
     State* get_state() override;
     void set_state(const State* s) override;
@@ -60,54 +60,53 @@ class De10Gpio : public Gpio {
 
   private:
     VId in_;
-    volatile uint8_t* gpio_addr_;
+    volatile uint8_t* led_addr_;
 };
 
-inline De10Gpio::De10Gpio(Interface* interface, VId in, volatile uint8_t* gpio_addr) : Gpio(interface) {
+inline De10Led::De10Led(Interface* interface, VId in, volatile uint8_t* led_addr) : Led(interface) {
   in_ = in;
-  gpio_addr_ = gpio_addr;
+  led_addr_ = led_addr;
 }
 
-inline State* De10Gpio::get_state() {
+inline State* De10Led::get_state() {
   return new State();
 } 
 
-inline void De10Gpio::set_state(const State* s) {
+inline void De10Led::set_state(const State* s) {
   // Stateless; does nothing
   (void) s;
 }
 
-inline Input* De10Gpio::get_input() {
+inline Input* De10Led::get_input() {
   auto* i = new Input();
-  i->insert(in_, Bits(32, DE10_READ(gpio_addr_)));
+  i->insert(in_, Bits(32, DE10_READ(led_addr_)));
   return i;
 } 
 
-inline void De10Gpio::set_input(const Input* i) {
+inline void De10Led::set_input(const Input* i) {
   const auto itr = i->find(in_);
   if (itr != i->end()) {
-    DE10_WRITE(gpio_addr_, itr->second.to_uint());
+    DE10_WRITE(led_addr_, itr->second.to_uint());
   }
 }
 
-inline void De10Gpio::read(VId id, const Bits* b) {
+inline void De10Led::read(VId id, const Bits* b) {
   (void) id;
-  DE10_WRITE(gpio_addr_, b->to_uint());
+  DE10_WRITE(led_addr_, b->to_uint());
 }
 
-inline void De10Gpio::evaluate() {
+inline void De10Led::evaluate() {
   // Does nothing.
 }
 
-inline bool De10Gpio::there_are_updates() const {
+inline bool De10Led::there_are_updates() const {
   return false;
 }
 
-inline void De10Gpio::update() { 
+inline void De10Led::update() { 
   // Does nothing.
 }
 
-} // namespace cascade::de10
+} // namespace cascade
 
 #endif
-

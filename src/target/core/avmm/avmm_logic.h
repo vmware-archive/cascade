@@ -28,33 +28,135 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "target/core/de10/de10_logic.h"
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVMM_LOGIC_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_AVMM_LOGIC_H
 
 #include <cassert>
+#include <functional>
+#include <unordered_map>
+#include <vector>
+#include "common/bits.h"
+#include "target/core.h"
+#include "target/core/avmm/var_table.h"
 #include "target/core/common/interfacestream.h"
 #include "target/core/common/printf.h"
 #include "target/core/common/scanf.h"
-#include "target/core/de10/de10_compiler.h"
 #include "target/input.h"
 #include "target/state.h"
 #include "verilog/ast/ast.h"
 #include "verilog/analyze/evaluate.h"
 #include "verilog/analyze/module_info.h"
+#include "verilog/ast/visitors/visitor.h"
 
-using namespace std;
+namespace cascade {
 
-namespace cascade::de10 {
+template <typename T>
+class AvmmLogic : public Logic {
+  public:
+    // Typedefs:
+    typedef std::function<void()> Callback;
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* src, volatile uint8_t* addr, De10Compiler* dc) : Logic(interface), table_(addr) { 
+    // Constructors:
+    AvmmLogic(Interface* interface, ModuleDeclaration* md);
+    ~AvmmLogic() override;
+
+    // Configuration Methods:
+    AvmmLogic& set_input(const Identifier* id, VId vid);
+    AvmmLogic& set_state(const Identifier* id, VId vid);
+    AvmmLogic& set_output(const Identifier* id, VId vid);
+    AvmmLogic& index_tasks();
+    AvmmLogic& set_callback(Callback cb);
+
+    // Configuraton Properties:
+    VarTable<T>* get_table();
+    const VarTable<T>* get_table() const;
+
+    // Core Interface:
+    State* get_state() override;
+    void set_state(const State* s) override;
+    Input* get_input() override;
+    void set_input(const Input* i) override;
+    void finalize() override;
+
+    void read(VId id, const Bits* b) override;
+    void evaluate() override;
+    bool there_are_updates() const override;
+    void update() override;
+    bool there_were_tasks() const override;
+
+    size_t open_loop(VId clk, bool val, size_t itr) override;
+
+    // Optimization Properties:
+    const Identifier* open_loop_clock() const;
+
+  private:
+    // Compiler State:
+    Callback cb_;
+
+    // Source Management:
+    ModuleDeclaration* src_;
+    std::vector<const Identifier*> inputs_;
+    std::unordered_map<VId, const Identifier*> state_;
+    std::vector<std::pair<const Identifier*, VId>> outputs_;
+    std::vector<const SystemTaskEnableStatement*> tasks_;
+
+    // Control State:
+    bool there_were_tasks_;
+    VarTable<T> table_;
+    std::unordered_map<FId, interfacestream*> streams_;
+
+    // Control Helpers:
+    interfacestream* get_stream(FId fd);
+    void update_eofs();
+    void loop_until_done();
+    void handle_outputs();
+    void handle_tasks();
+
+    // Indexes system tasks and inserts the identifiers which appear in those
+    // tasks into the variable table.
+    class Inserter : public Visitor {
+      public:
+        explicit Inserter(AvmmLogic* de);
+        ~Inserter() override = default;
+      private:
+        AvmmLogic* de_;
+        bool in_args_;
+        void visit(const Identifier* id) override;
+        void visit(const FeofExpression* fe) override;
+        void visit(const DebugStatement* ds) override;
+        void visit(const FflushStatement* fs) override;
+        void visit(const FinishStatement* fs) override;
+        void visit(const FseekStatement* fs) override;
+        void visit(const GetStatement* gs) override;
+        void visit(const PutStatement* ps) override;
+        void visit(const RestartStatement* rs) override;
+        void visit(const RetargetStatement* rs) override;
+        void visit(const SaveStatement* ss) override;
+    };
+
+    // Synchronizes the locations in the variable table which correspond to the
+    // identifiers which appear in an AST subtree. 
+    class Sync : public Visitor {
+      public:
+        explicit Sync(AvmmLogic* de);
+        ~Sync() override = default;
+      private:
+        AvmmLogic* de_;
+        void visit(const Identifier* id) override;
+    };
+};
+
+template <typename T>
+inline AvmmLogic<T>::AvmmLogic(Interface* interface, ModuleDeclaration* src) : Logic(interface) { 
   src_ = src;
-  dc_ = dc;
-  slot_ = -1;
+  cb_ = nullptr;
   tasks_.push_back(nullptr);
 }
 
-De10Logic::~De10Logic() {
-  if (slot_ != -1) {
-    dc_->release(slot_);
+template <typename T>
+inline AvmmLogic<T>::~AvmmLogic() {
+  if (cb_ != nullptr) {
+    cb_();
   }
   delete src_;
   for (auto& s : streams_) {
@@ -62,7 +164,8 @@ De10Logic::~De10Logic() {
   }
 }
 
-De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
   if (table_.var_find(id) == table_.var_end()) {
     table_.insert_var(id);
   }
@@ -73,38 +176,49 @@ De10Logic& De10Logic::set_input(const Identifier* id, VId vid) {
   return *this;
 }
 
-De10Logic& De10Logic::set_state(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
   if (table_.var_find(id) == table_.var_end()) {
     table_.insert_var(id);
   }   
-  state_.insert(make_pair(vid, id));
+  state_.insert(std::make_pair(vid, id));
   return *this;
 }
 
-De10Logic& De10Logic::set_output(const Identifier* id, VId vid) {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_output(const Identifier* id, VId vid) {
   if (table_.var_find(id) == table_.var_end()) { 
     table_.insert_var(id);
   }
-  outputs_.push_back(make_pair(id, vid));
+  outputs_.push_back(std::make_pair(id, vid));
   return *this;
 }
 
-De10Logic& De10Logic::index_tasks() {
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::index_tasks() {
   Inserter i(this);
   src_->accept(&i);
   return *this;
 }
 
-De10Logic& De10Logic::set_slot(int slot) {
-  slot_ = slot;
+template <typename T>
+inline AvmmLogic<T>& AvmmLogic<T>::set_callback(Callback cb) {
+  cb_ = cb;
   return *this;
 }
 
-const VarTable32& De10Logic::get_table() const {
-  return table_;
+template <typename T>
+inline VarTable<T>* AvmmLogic<T>::get_table() {
+  return &table_;
 }
 
-State* De10Logic::get_state() {
+template <typename T>
+inline const VarTable<T>* AvmmLogic<T>::get_table() const {
+  return &table_;
+}
+
+template <typename T>
+inline State* AvmmLogic<T>::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
     table_.read_var(sv.second);
@@ -113,7 +227,8 @@ State* De10Logic::get_state() {
   return s;
 }
 
-void De10Logic::set_state(const State* s) {
+template <typename T>
+inline void AvmmLogic<T>::set_state(const State* s) {
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
@@ -126,7 +241,8 @@ void De10Logic::set_state(const State* s) {
   table_.write_control_var(table_.resume_index(), 1);
 }
 
-Input* De10Logic::get_input() {
+template <typename T>
+inline Input* AvmmLogic<T>::get_input() {
   auto* i = new Input();
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
@@ -139,7 +255,8 @@ Input* De10Logic::get_input() {
   return i;
 }
 
-void De10Logic::set_input(const Input* i) {
+template <typename T>
+inline void AvmmLogic<T>::set_input(const Input* i) {
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
     if (id == nullptr) {
@@ -156,28 +273,33 @@ void De10Logic::set_input(const Input* i) {
   table_.write_control_var(table_.resume_index(), 1);
 }
 
-void De10Logic::finalize() {
+template <typename T>
+inline void AvmmLogic<T>::finalize() {
   // Does nothing.
 }
 
-void De10Logic::read(VId id, const Bits* b) {
+template <typename T>
+inline void AvmmLogic<T>::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
   table_.write_var(inputs_[id], *b);
 }
 
-void De10Logic::evaluate() {
+template <typename T>
+inline void AvmmLogic<T>::evaluate() {
   // Read outputs and handle tasks
   loop_until_done();
   handle_outputs();
 }
 
-bool De10Logic::there_are_updates() const {
+template <typename T>
+inline bool AvmmLogic<T>::there_are_updates() const {
   // Read there_are_updates flag
   return table_.read_control_var(table_.there_are_updates_index()) != 0;
 }
 
-void De10Logic::update() {
+template <typename T>
+inline void AvmmLogic<T>::update() {
   // Throw the update trigger
   table_.write_control_var(table_.apply_update_index(), 1);
   // Read outputs and handle tasks
@@ -185,11 +307,13 @@ void De10Logic::update() {
   handle_outputs();
 }
 
-bool De10Logic::there_were_tasks() const {
+template <typename T>
+inline bool AvmmLogic<T>::there_were_tasks() const {
   return there_were_tasks_;
 }
 
-size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
+template <typename T>
+inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
@@ -215,25 +339,23 @@ size_t De10Logic::open_loop(VId clk, bool val, size_t itr) {
   return itr - counter;
 }
 
-bool De10Logic::open_loop_enabled() const {
+template <typename T>
+inline const Identifier* AvmmLogic<T>::open_loop_clock() const {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
-    return false;
+    return nullptr;
   }
   if (Evaluate().get_width(*info.inputs().begin()) != 1) {
-    return false;
+    return nullptr;
   }
   if (!info.outputs().empty()) {
-    return false;
+    return nullptr;
   }
-  return true;
+  return *ModuleInfo(src_).inputs().begin();
 }
 
-const Identifier* De10Logic::open_loop_clock() const {
-  return open_loop_enabled() ? *ModuleInfo(src_).inputs().begin() : nullptr;
-}
-
-interfacestream* De10Logic::get_stream(FId fd) {
+template <typename T>
+inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
   const auto itr = streams_.find(fd);
   if (itr != streams_.end()) {
     return itr->second;
@@ -243,7 +365,8 @@ interfacestream* De10Logic::get_stream(FId fd) {
   return is;
 }
 
-void De10Logic::update_eofs() {
+template <typename T>
+inline void AvmmLogic<T>::update_eofs() {
   // TODO(eschkufz): The correctness of this method relies on two invariants:
   // 
   // 1. The only expressions in the expression segment of the variable table
@@ -263,7 +386,8 @@ void De10Logic::update_eofs() {
   }
 }
 
-void De10Logic::loop_until_done() {
+template <typename T>
+inline void AvmmLogic<T>::loop_until_done() {
   // This method is invokved from evaluate, update, and open_loop.  The only
   // thing that prevents done from being true is the occurrence of a system
   // task. If this happens, continue asserting __continue (resume_index) and
@@ -274,16 +398,16 @@ void De10Logic::loop_until_done() {
   }
 }
 
-void De10Logic::handle_outputs() {
+template <typename T>
+inline void AvmmLogic<T>::handle_outputs() {
   for (const auto& o : outputs_) {
     table_.read_var(o.first);
     interface()->write(o.second, &Evaluate().get_value(o.first));
   }
 }
 
-void De10Logic::handle_tasks() {
-  // TODO(eschkufz) we'll need to support multiple task ids and iterate over all of them
-
+template <typename T>
+inline void AvmmLogic<T>::handle_tasks() {
   volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
   if (task_id == 0) {
     return;
@@ -295,7 +419,7 @@ void De10Logic::handle_tasks() {
   switch (task->get_tag()) {
     case Node::Tag::debug_statement: {
       const auto* ds = static_cast<const DebugStatement*>(task);
-      stringstream ss;
+      std::stringstream ss;
       ss << ds->get_arg();
       interface()->debug(Evaluate().get_value(ds->get_action()).to_uint(), ss.str());
       break;
@@ -328,7 +452,7 @@ void De10Logic::handle_tasks() {
 
       const auto offset = eval.get_value(fs->get_offset()).to_uint();
       const auto op = eval.get_value(fs->get_op()).to_uint();
-      const auto way = (op == 0) ? ios_base::beg : (op == 1) ? ios_base::cur : ios_base::end;
+      const auto way = (op == 0) ? std::ios_base::beg : (op == 1) ? std::ios_base::cur : std::ios_base::end;
 
       is->clear();
       is->seekg(offset, way); 
@@ -390,12 +514,14 @@ void De10Logic::handle_tasks() {
   }
 }
 
-De10Logic::Inserter::Inserter(De10Logic* de) : Visitor() {
+template <typename T>
+inline AvmmLogic<T>::Inserter::Inserter(AvmmLogic* de) : Visitor() {
   de_ = de;
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const Identifier* id) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   if (in_args_ && (de_->table_.var_find(r) == de_->table_.var_end())) {
@@ -403,7 +529,8 @@ void De10Logic::Inserter::visit(const Identifier* id) {
   }
 }
 
-void De10Logic::Inserter::visit(const FeofExpression* fe) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FeofExpression* fe) {
   // We need *both* an image of this expression in the variable table to
   // represent its value, *and also* images of its arguments so that we can
   // inspect an feof expression and know what stream it refers to.
@@ -414,40 +541,46 @@ void De10Logic::Inserter::visit(const FeofExpression* fe) {
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const DebugStatement* ds) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const DebugStatement* ds) {
   de_->tasks_.push_back(ds);
   // Don't descend, there aren't any expressions below here
 }
 
-void De10Logic::Inserter::visit(const FflushStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FflushStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const FinishStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FinishStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_arg(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const FseekStatement* fs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const FseekStatement* fs) {
   de_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const GetStatement* gs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const GetStatement* gs) {
   de_->tasks_.push_back(gs);
   in_args_ = true;
   gs->accept_fd(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const PutStatement* ps) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
   de_->tasks_.push_back(ps);
   in_args_ = true;
   ps->accept_fd(this);
@@ -455,32 +588,37 @@ void De10Logic::Inserter::visit(const PutStatement* ps) {
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const RestartStatement* rs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const RestartStatement* rs) {
   de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const RetargetStatement* rs) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const RetargetStatement* rs) {
   de_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-void De10Logic::Inserter::visit(const SaveStatement* ss) {
+template <typename T>
+inline void AvmmLogic<T>::Inserter::visit(const SaveStatement* ss) {
   de_->tasks_.push_back(ss);
   in_args_ = true;
   ss->accept_arg(this);
   in_args_ = false;
 }
 
-De10Logic::Sync::Sync(De10Logic* de) : Visitor() {
+template <typename T>
+inline AvmmLogic<T>::Sync::Sync(AvmmLogic* de) : Visitor() {
   de_ = de;
 }
 
-void De10Logic::Sync::visit(const Identifier* id) {
+template <typename T>
+inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
@@ -488,4 +626,6 @@ void De10Logic::Sync::visit(const Identifier* id) {
   de_->table_.read_var(r);
 }
 
-} // namespace cascade::de10
+} // namespace cascade
+
+#endif

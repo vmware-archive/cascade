@@ -28,64 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <cstring>
-#include <iostream>
-#include <signal.h>
-#include <string>
-#include "cl/cl.h"
-#include "target/core/avmm/de10/quartus_server.h"
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_IO_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_IO_H
 
-using namespace cascade;
-using namespace cascade::cl;
-using namespace std;
+#define DE10_READ(x)    (*((volatile uint32_t*)(x)))
+#define DE10_WRITE(x,y) (*((volatile uint32_t*)(x)) = (y))
 
-namespace {
-
-__attribute__((unused)) auto& g = Group::create("Quartus Server Options");
-auto& cache = StrArg<string>::create("--cache")
-  .usage("<path/to/cache>")
-  .description("Path to directory to use as compilation cache")
-  .initial("/tmp/quartus_cache");
-auto& path = StrArg<string>::create("--path")
-  .usage("<path/to/quarus>")
-  .description("Path to quartus installation directory")
-  .initial("~/intelFPGA_lite/17.1/quartus");
-auto& port = StrArg<uint32_t>::create("--port")
-  .usage("<int>")
-  .description("Port to run quartus server on")
-  .initial(9900);
-
-QuartusServer* qs = nullptr;
-
-void handler(int sig) {
-  (void) sig;
-  qs->request_stop();
-}
-
-} // namespace
-
-int main(int argc, char** argv) {
-  // Parse command line:
-  Simple::read(argc, argv);
-
-  struct sigaction action;
-  memset(&action, 0, sizeof(action));
-  action.sa_handler = ::handler;
-  sigaction(SIGINT, &action, nullptr);
-
-  ::qs = new QuartusServer();
-  ::qs->set_cache_path(::cache.value());
-  ::qs->set_quartus_path(::path.value());
-  ::qs->set_port(::port.value());
-
-  if (::qs->error()) {
-    cout << "Unable to locate core quartus components!" << endl;
-  } else {
-    ::qs->run();
-    ::qs->wait_for_stop();
-  }
-  delete ::qs;
-
-  cout << "Goodbye!" << endl;
-  return 0;
-}
+#endif
