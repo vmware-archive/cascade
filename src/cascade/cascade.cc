@@ -35,6 +35,7 @@
 #include "target/compiler/proxy_compiler.h"
 #include "target/core/avmm/avalon/avalon_compiler.h"
 #include "target/core/avmm/de10/de10_compiler.h"
+#include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 
 using namespace std;
@@ -51,6 +52,7 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   runtime_.get_compiler()->set("de10", new De10Compiler());
   runtime_.get_compiler()->set("proxy", new ProxyCompiler());
   runtime_.get_compiler()->set("sw", new SwCompiler());
+  runtime_.get_compiler()->set("verilator", new VerilatorCompiler());
 
   set_quartus_server("localhost", 9900);
 }
