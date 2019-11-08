@@ -46,5 +46,5 @@ TEST(avalon, nw) {
   run_code("avalon_jit", "data/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(avalon, regex) {
-  run_code("avalon_jit", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_code("avalon_jit", "data/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
 }
