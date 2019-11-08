@@ -318,25 +318,22 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   (void) clk;
   (void) val;
 
-  // Reset the tasks flag and go into open loop mode. If we exit in a done
-  // state, then we performed every iteration.
-  there_were_tasks_ = false;
+  // Go into open loop mode and check how many iterations we made it through.
   table_.write_control_var(table_.open_loop_index(), itr);
-  if (table_.read_control_var(table_.done_index())) {
-    assert(table_.read_control_var(table_.open_loop_index()) == 0);
-    return itr;
+  const size_t count = itr - table_.read_control_var(table_.open_loop_index());
+  
+  // If we came up short, reset the open loop counter and finish out this tick
+  if (count < itr) {
+    table_.write_control_var(table_.open_loop_index(), 0);
+    there_were_tasks_ = false;
+    do {
+      handle_tasks();
+      table_.write_control_var(table_.resume_index(), 1);
+    } while (!table_.read_control_var(table_.done_index()));
   }
-  // Otherwise, check how many iterations we made it through, reset the open
-  // loop counter, and finish evaluating this iteration.
-  const size_t counter = table_.read_control_var(table_.open_loop_index());
-  table_.write_control_var(table_.open_loop_index(), 0);
-  while (!table_.read_control_var(table_.done_index())) {
-    handle_tasks();
-    table_.write_control_var(table_.resume_index(), 1);
-  }
-  // No need to handle outputs here (or above). This optimization assumes that
-  // this module doesn't have any.
-  return itr - counter;
+
+  // Return the number of iterations we ran for
+  return count;
 }
 
 template <typename T>
