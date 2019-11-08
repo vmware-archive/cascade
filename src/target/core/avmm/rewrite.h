@@ -293,7 +293,6 @@ inline void Rewrite<T>::emit_state_vars(ModuleDeclaration* res) {
   ib << "wire __all_final;" << std::endl;
   ib << "wire __continue;" << std::endl;
   ib << "wire __reset;" << std::endl;
-  ib << "wire __done;" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
@@ -415,7 +414,6 @@ inline void Rewrite<T>::emit_state_logic(ModuleDeclaration* res, const VarTable<
 
   ib << "assign __continue = ((__read_request && (__vid == " << vt->resume_index() << ")) || (!__all_final && !__there_were_tasks));" << std::endl;
   ib << "assign __reset = (__read_request && (__vid == " << vt->reset_index() << "));" << std::endl;
-  ib << "assign __done = (__all_final && !__there_were_tasks);" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
@@ -575,7 +573,6 @@ inline void Rewrite<T>::emit_output_logic(ModuleDeclaration* res, const ModuleDe
   
   ib << vt->there_are_updates_index() << ": __out = __there_are_updates;" << std::endl;
   ib << vt->there_were_tasks_index() << ": __out = __task_id[0];" << std::endl;
-  ib << vt->done_index() << ": __out = __done;" << std::endl;
   ib << vt->open_loop_index() << ": __out = __open_loop;" << std::endl;
   ib << vt->debug_index() << ": __out = __state[0];" << std::endl;
   ib << "default: __out = ((__vid < " << vt->var_size() << ") ? __var[__vid] : __expr[(__vid - " << vt->var_size() << ")]);" << std::endl;

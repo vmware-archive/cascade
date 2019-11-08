@@ -110,7 +110,7 @@ class AvmmLogic : public Logic {
     void update_eofs();
     void loop_until_done();
     void handle_outputs();
-    void handle_tasks();
+    bool handle_tasks();
 
     // Indexes system tasks and inserts the identifiers which appear in those
     // tasks into the variable table.
@@ -325,11 +325,7 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   // If we came up short, reset the open loop counter and finish out this tick
   if (count < itr) {
     table_.write_control_var(table_.open_loop_index(), 0);
-    there_were_tasks_ = false;
-    do {
-      handle_tasks();
-      table_.write_control_var(table_.resume_index(), 1);
-    } while (!table_.read_control_var(table_.done_index()));
+    loop_until_done();
   }
 
   // Return the number of iterations we ran for
@@ -389,8 +385,8 @@ inline void AvmmLogic<T>::loop_until_done() {
   // thing that prevents done from being true is the occurrence of a system
   // task. If this happens, continue asserting __continue (resume_index) and
   // handling tasks until done returns true.
-  for (there_were_tasks_ = false; !table_.read_control_var(table_.done_index()); ) {
-    handle_tasks();
+  there_were_tasks_ = false;
+  while (handle_tasks()) {
     table_.write_control_var(table_.resume_index(), 1);
   }
 }
@@ -404,10 +400,10 @@ inline void AvmmLogic<T>::handle_outputs() {
 }
 
 template <typename T>
-inline void AvmmLogic<T>::handle_tasks() {
+inline bool AvmmLogic<T>::handle_tasks() {
   volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
   if (task_id == 0) {
-    return;
+    return false;
   }
   const auto* task = tasks_[task_id];
 
@@ -509,6 +505,7 @@ inline void AvmmLogic<T>::handle_tasks() {
       assert(false);
       break;
   }
+  return true;
 }
 
 template <typename T>

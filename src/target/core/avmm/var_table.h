@@ -110,8 +110,6 @@ class VarTable {
     size_t resume_index() const;
     // Returns the address of the reset control variable.
     size_t reset_index() const;
-    // Returns the address of the done control variable.
-    size_t done_index() const;
     // Returns the address of the open_loop control variable.
     size_t open_loop_index() const;
     // Reserved for debugging
@@ -281,18 +279,13 @@ inline size_t VarTable<T>::reset_index() const {
 }
 
 template <typename T>
-inline size_t VarTable<T>::done_index() const {
+inline size_t VarTable<T>::open_loop_index() const {
   return next_index_ + 6;
 }
 
 template <typename T>
-inline size_t VarTable<T>::open_loop_index() const {
-  return next_index_ + 7;
-}
-
-template <typename T>
 inline size_t VarTable<T>::debug_index() const {
-  return next_index_ + 8;
+  return next_index_ + 7;
 }
 
 template <typename T>
