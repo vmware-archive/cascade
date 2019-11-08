@@ -176,7 +176,7 @@ inline Statement* TextMangle<T>::build(const NonblockingAssign* na) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const DebugStatement* ds) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -184,7 +184,7 @@ inline Statement* TextMangle<T>::build(const DebugStatement* ds) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const FflushStatement* fs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -192,7 +192,7 @@ inline Statement* TextMangle<T>::build(const FflushStatement* fs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const FinishStatement* fs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -200,7 +200,7 @@ inline Statement* TextMangle<T>::build(const FinishStatement* fs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const FseekStatement* fs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -208,7 +208,7 @@ inline Statement* TextMangle<T>::build(const FseekStatement* fs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const GetStatement* gs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -216,7 +216,7 @@ inline Statement* TextMangle<T>::build(const GetStatement* gs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const PutStatement* ps) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -224,7 +224,7 @@ inline Statement* TextMangle<T>::build(const PutStatement* ps) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const RestartStatement* rs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -232,7 +232,7 @@ inline Statement* TextMangle<T>::build(const RestartStatement* rs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const RetargetStatement* rs) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );
@@ -240,7 +240,7 @@ inline Statement* TextMangle<T>::build(const RetargetStatement* rs) {
 
 template <typename T>
 inline Statement* TextMangle<T>::build(const SaveStatement* ss) {
-  return new NonblockingAssign(
+  return new BlockingAssign(
     new Identifier("__task_id"), 
     new Number(Bits(32, task_index_++))
   );

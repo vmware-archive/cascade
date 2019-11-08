@@ -358,6 +358,7 @@ inline void Rewrite<T>::emit_var_vars(ModuleDeclaration* res, const Machinify* m
   ItemBuilder ib;
   ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
+  ib << "reg __kick[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }
