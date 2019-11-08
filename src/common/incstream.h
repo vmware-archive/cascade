@@ -67,8 +67,8 @@ inline incstream::incstream(const std::string& dirs) : std::ifstream() {
 
 inline std::string incstream::find(const std::string& path) const {
   if (path[0] == '/') {
-    std::ifstream ifs(file);
-    return ifs.is_open();
+    std::ifstream ifs(path);
+    return ifs.is_open() ? path : "";
   }
   for (const auto& d : dirs_) {
     const auto file = d + "/" + path;
