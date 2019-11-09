@@ -87,7 +87,7 @@ class AvmmLogic : public Logic {
     size_t open_loop(VId clk, bool val, size_t itr) override;
 
     // Optimization Properties:
-    const Identifier* open_loop_clock() const;
+    const Identifier* open_loop_clock();
 
   private:
     // Compiler State:
@@ -144,10 +144,14 @@ class AvmmLogic : public Logic {
         AvmmLogic* de_;
         void visit(const Identifier* id) override;
     };
+
+    // Evaluation Helpers:
+    Evaluate eval_;
+    Sync sync_;
 };
 
 template <typename T>
-inline AvmmLogic<T>::AvmmLogic(Interface* interface, ModuleDeclaration* src) : Logic(interface) { 
+inline AvmmLogic<T>::AvmmLogic(Interface* interface, ModuleDeclaration* src) : Logic(interface), sync_(this) { 
   src_ = src;
   cb_ = nullptr;
   tasks_.push_back(nullptr);
@@ -222,7 +226,7 @@ inline State* AvmmLogic<T>::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
     table_.read_var(sv.second);
-    s->insert(sv.first, Evaluate().get_array_value(sv.second));
+    s->insert(sv.first, eval_.get_array_value(sv.second));
   }
   return s;
 }
@@ -250,7 +254,7 @@ inline Input* AvmmLogic<T>::get_input() {
       continue;
     }
     table_.read_var(id);
-    i->insert(v, Evaluate().get_value(id));
+    i->insert(v, eval_.get_value(id));
   }
   return i;
 }
@@ -333,12 +337,12 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
 }
 
 template <typename T>
-inline const Identifier* AvmmLogic<T>::open_loop_clock() const {
+inline const Identifier* AvmmLogic<T>::open_loop_clock() {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
     return nullptr;
   }
-  if (Evaluate().get_width(*info.inputs().begin()) != 1) {
+  if (eval_.get_width(*info.inputs().begin()) != 1) {
     return nullptr;
   }
   if (!info.outputs().empty()) {
@@ -367,14 +371,12 @@ inline void AvmmLogic<T>::update_eofs() {
   // 2. feofs only refer to streams by static constants. This is a property of
   //    the program and we don't currently verify it.
 
-  Evaluate eval;
-  Sync sync(this);
   for (auto i = table_.expr_begin(), ie = table_.expr_end(); i != ie; ++i) {
     assert(i->first->is(Node::Tag::feof_expression));
     const auto* fe = static_cast<const FeofExpression*>(i->first);
-    fe->accept_fd(&sync);
+    fe->accept_fd(&sync_);
 
-    auto* is = get_stream(eval.get_value(fe->get_fd()).to_uint());
+    auto* is = get_stream(eval_.get_value(fe->get_fd()).to_uint());
     table_.write_expr(i->first, is->eof() ? 1 : 0);
   }
 }
@@ -395,7 +397,7 @@ template <typename T>
 inline void AvmmLogic<T>::handle_outputs() {
   for (const auto& o : outputs_) {
     table_.read_var(o.first);
-    interface()->write(o.second, &Evaluate().get_value(o.first));
+    interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
 
@@ -407,28 +409,26 @@ inline bool AvmmLogic<T>::handle_tasks() {
   }
   const auto* task = tasks_[task_id];
 
-  Evaluate eval;
-  Sync sync(this);
   switch (task->get_tag()) {
     case Node::Tag::debug_statement: {
       const auto* ds = static_cast<const DebugStatement*>(task);
       std::stringstream ss;
       ss << ds->get_arg();
-      interface()->debug(Evaluate().get_value(ds->get_action()).to_uint(), ss.str());
+      interface()->debug(eval_.get_value(ds->get_action()).to_uint(), ss.str());
       break;
     }
     case Node::Tag::finish_statement: {
       const auto* fs = static_cast<const FinishStatement*>(task);
-      fs->accept_arg(&sync);
-      interface()->finish(eval.get_value(fs->get_arg()).to_uint());
+      fs->accept_arg(&sync_);
+      interface()->finish(eval_.get_value(fs->get_arg()).to_uint());
       there_were_tasks_ = true;
       break;
     }
     case Node::Tag::fflush_statement: {
       const auto* fs = static_cast<const FflushStatement*>(task);
-      fs->accept_fd(&sync);
+      fs->accept_fd(&sync_);
 
-      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      const auto fd = eval_.get_value(fs->get_fd()).to_uint();
       auto* is = get_stream(fd);
       is->clear();
       is->flush();
@@ -438,13 +438,13 @@ inline bool AvmmLogic<T>::handle_tasks() {
     }
     case Node::Tag::fseek_statement: {
       const auto* fs = static_cast<const FseekStatement*>(task);
-      fs->accept_fd(&sync);
+      fs->accept_fd(&sync_);
 
-      const auto fd = eval.get_value(fs->get_fd()).to_uint();
+      const auto fd = eval_.get_value(fs->get_fd()).to_uint();
       auto* is = get_stream(fd);
 
-      const auto offset = eval.get_value(fs->get_offset()).to_uint();
-      const auto op = eval.get_value(fs->get_op()).to_uint();
+      const auto offset = eval_.get_value(fs->get_offset()).to_uint();
+      const auto op = eval_.get_value(fs->get_op()).to_uint();
       const auto way = (op == 0) ? std::ios_base::beg : (op == 1) ? std::ios_base::cur : std::ios_base::end;
 
       is->clear();
@@ -456,16 +456,16 @@ inline bool AvmmLogic<T>::handle_tasks() {
     }
     case Node::Tag::get_statement: {
       const auto* gs = static_cast<const GetStatement*>(task);
-      gs->accept_fd(&sync);
+      gs->accept_fd(&sync_);
 
-      const auto fd = eval.get_value(gs->get_fd()).to_uint();
+      const auto fd = eval_.get_value(gs->get_fd()).to_uint();
       auto* is = get_stream(fd);
-      Scanf().read(*is, &eval, gs);
+      Scanf().read(*is, &eval_, gs);
 
       if (gs->is_non_null_var()) {
         const auto* r = Resolve().get_resolution(gs->get_var());
         assert(r != nullptr);
-        table_.write_var(r, eval.get_value(r));
+        table_.write_var(r, eval_.get_value(r));
       }
       update_eofs();
 
@@ -473,12 +473,12 @@ inline bool AvmmLogic<T>::handle_tasks() {
     }  
     case Node::Tag::put_statement: {
       const auto* ps = static_cast<const PutStatement*>(task);
-      ps->accept_fd(&sync);
-      ps->accept_expr(&sync);
+      ps->accept_fd(&sync_);
+      ps->accept_expr(&sync_);
 
-      const auto fd = eval.get_value(ps->get_fd()).to_uint();
+      const auto fd = eval_.get_value(ps->get_fd()).to_uint();
       auto* is = get_stream(fd);
-      Printf().write(*is, &eval, ps);
+      Printf().write(*is, &eval_, ps);
       update_eofs();
 
       break;
