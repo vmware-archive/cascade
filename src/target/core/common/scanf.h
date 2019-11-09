@@ -42,11 +42,18 @@ namespace cascade {
 class Scanf {
   public:
     void read(std::istream& is, Evaluate* eval, const GetStatement* gs);
+    void read_without_update(std::istream& is, Evaluate* eval, const GetStatement* gs);
+    const Bits& get() const;
   private:
     Bits val_;
 };
 
 inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs) {
+  read_without_update(is, eval, gs);
+  eval->assign_value(gs->get_var(), val_);
+}
+
+inline void Scanf::read_without_update(std::istream& is, Evaluate* eval, const GetStatement* gs) {
   const auto format = gs->get_fmt()->get_readable_val();
   if (format[0] != '%') {
     for (auto c : format) {
@@ -113,7 +120,10 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
       assert(false);
       break;
   }
-  eval->assign_value(gs->get_var(), val_);
+}
+
+inline const Bits& Scanf::get() const {
+  return val_;
 }
 
 } // namespace cascade

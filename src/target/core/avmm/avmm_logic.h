@@ -431,12 +431,12 @@ inline bool AvmmLogic<T>::handle_tasks() {
 
       const auto fd = eval_.get_value(gs->get_fd()).to_uint();
       auto* is = get_stream(fd);
-      scanf_.read(*is, &eval_, gs);
+      scanf_.read_without_update(*is, &eval_, gs);
 
       if (gs->is_non_null_var()) {
         const auto* r = Resolve().get_resolution(gs->get_var());
         assert(r != nullptr);
-        table_.write_var(r, eval_.get_value(r));
+        table_.write_var(r, scanf_.get());
       }
       table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
 
