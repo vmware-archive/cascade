@@ -107,8 +107,6 @@ class AvmmLogic : public Logic {
 
     // Control Helpers:
     interfacestream* get_stream(FId fd);
-    void loop_until_done();
-    void handle_outputs();
     bool handle_tasks();
 
     // Indexes system tasks and inserts the identifiers which appear in those
@@ -290,9 +288,14 @@ inline void AvmmLogic<T>::read(VId id, const Bits* b) {
 
 template <typename T>
 inline void AvmmLogic<T>::evaluate() {
-  // Read outputs and handle tasks
-  loop_until_done();
-  handle_outputs();
+  there_were_tasks_ = false;
+  while (handle_tasks()) {
+    table_.write_control_var(table_.resume_index(), 1);
+  }
+  for (const auto& o : outputs_) {
+    table_.read_var(o.first);
+    interface()->write(o.second, &eval_.get_value(o.first));
+  }
 }
 
 template <typename T>
@@ -303,11 +306,8 @@ inline bool AvmmLogic<T>::there_are_updates() const {
 
 template <typename T>
 inline void AvmmLogic<T>::update() {
-  // Throw the update trigger
   table_.write_control_var(table_.apply_update_index(), 1);
-  // Read outputs and handle tasks
-  loop_until_done();
-  handle_outputs();
+  evaluate();
 }
 
 template <typename T>
@@ -321,18 +321,27 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   (void) clk;
   (void) val;
 
-  // Go into open loop mode and check how many iterations we made it through.
+  there_were_tasks_ = false;
+
+  // Setting the open loop variable allows the continue flag to span clock
+  // ticks.  Loop here either until control returns without having hit a task
+  // (indicating that we've finished) or it trips a task that requires
+  // immediate attention.
   table_.write_control_var(table_.open_loop_index(), itr);
-  const size_t count = itr - table_.read_control_var(table_.open_loop_index());
-  
-  // If we came up short, reset the open loop counter and finish out this tick
-  if (count < itr) {
-    table_.write_control_var(table_.open_loop_index(), 0);
-    loop_until_done();
+  while (handle_tasks() && !there_were_tasks_) {
+    table_.write_control_var(table_.resume_index(), 1);
   }
 
-  // Return the number of iterations we ran for
-  return count;
+  // If we hit a task that requires immediate attention, clear the open loop
+  // counter and return the number of iterations that we ran for. Otherwise, we
+  // finished our quota.
+  if (there_were_tasks_) {
+    const auto res = table_.read_control_var(table_.open_loop_index());
+    table_.write_control_var(table_.open_loop_index(), 0);
+    return res;
+  } else {
+    return itr;
+  }
 }
 
 template <typename T>
@@ -359,22 +368,6 @@ inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
   auto* is = new interfacestream(interface(), fd);
   streams_[fd] = is;
   return is;
-}
-
-template <typename T>
-inline void AvmmLogic<T>::loop_until_done() {
-  there_were_tasks_ = false;
-  while (handle_tasks()) {
-    table_.write_control_var(table_.resume_index(), 1);
-  }
-}
-
-template <typename T>
-inline void AvmmLogic<T>::handle_outputs() {
-  for (const auto& o : outputs_) {
-    table_.read_var(o.first);
-    interface()->write(o.second, &eval_.get_value(o.first));
-  }
 }
 
 template <typename T>
