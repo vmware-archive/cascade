@@ -107,7 +107,6 @@ class AvmmLogic : public Logic {
 
     // Control Helpers:
     interfacestream* get_stream(FId fd);
-    void update_eofs();
     void loop_until_done();
     void handle_outputs();
     bool handle_tasks();
@@ -170,8 +169,8 @@ inline AvmmLogic<T>::~AvmmLogic() {
 
 template <typename T>
 inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) {
-    table_.insert_var(id);
+  if (table_.find(id) == table_.end()) {
+    table_.insert(id);
   }
   if (inputs_.size() <= vid) {
     inputs_.resize(vid+1, nullptr);
@@ -182,8 +181,8 @@ inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
 
 template <typename T>
 inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) {
-    table_.insert_var(id);
+  if (table_.find(id) == table_.end()) {
+    table_.insert(id);
   }   
   state_.insert(std::make_pair(vid, id));
   return *this;
@@ -191,8 +190,8 @@ inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
 
 template <typename T>
 inline AvmmLogic<T>& AvmmLogic<T>::set_output(const Identifier* id, VId vid) {
-  if (table_.var_find(id) == table_.var_end()) { 
-    table_.insert_var(id);
+  if (table_.find(id) == table_.end()) { 
+    table_.insert(id);
   }
   outputs_.push_back(std::make_pair(id, vid));
   return *this;
@@ -363,30 +362,7 @@ inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
 }
 
 template <typename T>
-inline void AvmmLogic<T>::update_eofs() {
-  // TODO(eschkufz): The correctness of this method relies on two invariants:
-  // 
-  // 1. The only expressions in the expression segment of the variable table
-  //    are feofs (this is a property of our code and tru by current construction)
-  // 2. feofs only refer to streams by static constants. This is a property of
-  //    the program and we don't currently verify it.
-
-  for (auto i = table_.expr_begin(), ie = table_.expr_end(); i != ie; ++i) {
-    assert(i->first->is(Node::Tag::feof_expression));
-    const auto* fe = static_cast<const FeofExpression*>(i->first);
-    fe->accept_fd(&sync_);
-
-    auto* is = get_stream(eval_.get_value(fe->get_fd()).to_uint());
-    table_.write_expr(i->first, is->eof() ? 1 : 0);
-  }
-}
-
-template <typename T>
 inline void AvmmLogic<T>::loop_until_done() {
-  // This method is invokved from evaluate, update, and open_loop.  The only
-  // thing that prevents done from being true is the occurrence of a system
-  // task. If this happens, continue asserting __continue (resume_index) and
-  // handling tasks until done returns true.
   there_were_tasks_ = false;
   while (handle_tasks()) {
     table_.write_control_var(table_.resume_index(), 1);
@@ -432,7 +408,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
       auto* is = get_stream(fd);
       is->clear();
       is->flush();
-      update_eofs();
+      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
 
       break;
     }
@@ -450,7 +426,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
       is->clear();
       is->seekg(offset, way); 
       is->seekp(offset, way); 
-      update_eofs();
+      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
 
       break;
     }
@@ -467,7 +443,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
         assert(r != nullptr);
         table_.write_var(r, eval_.get_value(r));
       }
-      update_eofs();
+      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
 
       break;
     }  
@@ -479,7 +455,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
       const auto fd = eval_.get_value(ps->get_fd()).to_uint();
       auto* is = get_stream(fd);
       Printf().write(*is, &eval_, ps);
-      update_eofs();
+      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
 
       break;
     }
@@ -518,18 +494,14 @@ template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
-  if (in_args_ && (de_->table_.var_find(r) == de_->table_.var_end())) {
-    de_->table_.insert_var(r);
+  if (in_args_ && (de_->table_.find(r) == de_->table_.end())) {
+    de_->table_.insert(r);
   }
 }
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const FeofExpression* fe) {
-  // We need *both* an image of this expression in the variable table to
-  // represent its value, *and also* images of its arguments so that we can
-  // inspect an feof expression and know what stream it refers to.
-
-  de_->table_.insert_expr(fe); 
+  // Don't insert this into the task index
   in_args_ = true;
   fe->accept_fd(this);
   in_args_ = false;
@@ -616,7 +588,7 @@ inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  assert(de_->table_.var_find(r) != de_->table_.var_end());
+  assert(de_->table_.find(r) != de_->table_.end());
   de_->table_.read_var(r);
 }
 

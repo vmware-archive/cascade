@@ -109,13 +109,7 @@ inline ModuleItem* TextMangle<T>::build(const PortDeclaration* pd) {
 
 template <typename T>
 inline Expression* TextMangle<T>::build(const FeofExpression* fe) {
-  // Feof expressions are replaced by references to a location in the variable
-  // table. The software-side of the avmm logic manages the value of this variable
-  // based on invocations of other io tasks.
-
-  const auto itr = vt_->expr_find(fe);
-  assert(itr != vt_->expr_end());
-  return new Identifier(new Id("__expr"), new Number(Bits(32, itr->second.begin)));
+  return new Identifier(new Id("__feof"), fe->clone_fd());
 }
 
 template <typename T>
@@ -125,8 +119,8 @@ inline Statement* TextMangle<T>::build(const BlockingAssign* ba) {
   assert(r != nullptr);
 
   // If this entry doesn't appear in the vtable, we can leave it as is
-  const auto titr = vt_->var_find(r);
-  if (titr == vt_->var_end()) {
+  const auto titr = vt_->find(r);
+  if (titr == vt_->end()) {
     return ba->clone();
   }
   // Otherwise, replace the original assignment with an assignment to a concatenation
@@ -249,8 +243,8 @@ inline Statement* TextMangle<T>::build(const SaveStatement* ss) {
 template <typename T>
 inline Expression* TextMangle<T>::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
-  const auto titr = vt_->var_find(r);
-  assert(titr != vt_->var_end());
+  const auto titr = vt_->find(r);
+  assert(titr != vt_->end());
 
   // Start with an expression for where this variable begins in the variable table
   Expression* idx = new Number(Bits(32, titr->second.begin));

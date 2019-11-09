@@ -64,6 +64,7 @@ class Rewrite {
       void visit(const Event* e) override;
     };
 
+    void emit_state_machine_vars(ModuleDeclaration* res, const Machinify* mfy);
     void emit_avalon_vars(ModuleDeclaration* res);
     void emit_var_table(ModuleDeclaration* res, const VarTable<T>* vt);
     void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<T>* vt);
@@ -72,7 +73,6 @@ class Rewrite {
     void emit_state_vars(ModuleDeclaration* res);
     void emit_trigger_vars(ModuleDeclaration* res, const TriggerIndex* ti);
     void emit_open_loop_vars(ModuleDeclaration* res);
-    void emit_var_vars(ModuleDeclaration* res, const Machinify* mfy);
 
     void emit_avalon_logic(ModuleDeclaration* res);
     void emit_update_logic(ModuleDeclaration* res, const VarTable<T>* vt);
@@ -123,7 +123,7 @@ inline std::string Rewrite<T>::run(const ModuleDeclaration* md, size_t slot, con
   Machinify mfy;
   mfy.run(res);
 
-  emit_var_vars(res, &mfy);
+  emit_state_machine_vars(res, &mfy);
   emit_avalon_logic(res);
   emit_update_logic(res, vt);
   emit_state_logic(res, vt, &mfy);
@@ -166,6 +166,16 @@ inline void Rewrite<T>::TriggerIndex::visit(const Event* e) {
 }
 
 template <typename T>
+inline void Rewrite<T>::emit_state_machine_vars(ModuleDeclaration* res, const Machinify* mfy) {
+  ItemBuilder ib;
+  ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
+  ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
+  ib << "reg __kick[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
+  
+  res->push_back_items(ib.begin(), ib.end());
+}
+
+template <typename T>
 inline void Rewrite<T>::emit_avalon_vars(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "reg __read_prev = 0;" << std::endl;
@@ -179,11 +189,11 @@ template <typename T>
 inline void Rewrite<T>::emit_var_table(ModuleDeclaration* res, const VarTable<T>* vt) {
   ItemBuilder ib;
 
-  // Emit the var table and the expression table
-  const auto var_seg_arity = std::max(static_cast<size_t>(16), vt->var_size());
-  ib << "reg[31:0] __var[" << (var_seg_arity-1) << ":0];" << std::endl;
-  const auto expr_seg_arity = std::max(static_cast<size_t>(16), vt->expr_size());
-  ib << "reg[31:0] __expr[" << (expr_seg_arity-1) << ":0];" << std::endl;
+  // Emit the var table 
+  const auto var_arity = std::max(static_cast<size_t>(16), vt->size());
+  ib << "reg[31:0] __var[" << (var_arity-1) << ":0];" << std::endl;
+  // Emit the feof table
+  ib << "reg __feof[127:0];" << std::endl;
 
   res->push_back_items(ib.begin(), ib.end());
 }
@@ -193,8 +203,8 @@ inline void Rewrite<T>::emit_shadow_vars(ModuleDeclaration* res, const ModuleDec
   ModuleInfo info(md);
 
   // Index the stateful elements in the variable table
-  std::map<std::string, typename VarTable<T>::const_var_iterator> vars;
-  for (auto v = vt->var_begin(), ve = vt->var_end(); v != ve; ++v) {
+  std::map<std::string, typename VarTable<T>::const_iterator> vars;
+  for (auto v = vt->begin(), ve = vt->end(); v != ve; ++v) {
     if (info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -216,7 +226,7 @@ inline void Rewrite<T>::emit_shadow_vars(ModuleDeclaration* res, const ModuleDec
   }
 
   // Emit update masks for the var table
-  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->size());
   ib << "reg[" << (update_arity-1) << ":0] __prev_update_mask = 0;" << std::endl;
   ib << "reg[" << (update_arity-1) << ":0] __update_mask = 0;" << std::endl;
 
@@ -228,8 +238,8 @@ inline void Rewrite<T>::emit_view_vars(ModuleDeclaration* res, const ModuleDecla
   ModuleInfo info(md);
 
   // Index both inputs and the stateful elements in the variable table
-  std::map<std::string, typename VarTable<T>::const_var_iterator> vars;
-  for (auto v = vt->var_begin(), ve = vt->var_end(); v != ve; ++v) {
+  std::map<std::string, typename VarTable<T>::const_iterator> vars;
+  for (auto v = vt->begin(), ve = vt->end(); v != ve; ++v) {
     if (info.is_input(v->first) || info.is_stateful(v->first)) {
       vars.insert(make_pair(v->first->front_ids()->get_readable_sid(), v));
     }
@@ -276,7 +286,7 @@ template <typename T>
 inline void Rewrite<T>::emit_update_vars(ModuleDeclaration* res, const VarTable<T>* vt) {
   ItemBuilder ib;
 
-  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->size());
   ib << "wire[" << (update_arity-1) << ":0] __update_queue;" << std::endl;
   ib << "wire __there_are_updates;" << std::endl;
   ib << "wire __apply_updates;" << std::endl;
@@ -353,16 +363,6 @@ inline void Rewrite<T>::emit_open_loop_vars(ModuleDeclaration* res) {
 }
 
 template <typename T>
-inline void Rewrite<T>::emit_var_vars(ModuleDeclaration* res, const Machinify* mfy) {
-  ItemBuilder ib;
-  ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
-  ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
-  ib << "reg __kick[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
-  
-  res->push_back_items(ib.begin(), ib.end());
-}
-
-template <typename T>
 inline void Rewrite<T>::emit_avalon_logic(ModuleDeclaration* res) {
   ItemBuilder ib;
   ib << "always @(posedge __clk) __read_prev <= __read;" << std::endl;
@@ -376,7 +376,7 @@ template <typename T>
 inline void Rewrite<T>::emit_update_logic(ModuleDeclaration* res, const VarTable<T>* vt) {
   ItemBuilder ib;
 
-  const auto update_arity = std::max(static_cast<size_t>(32), vt->var_size());
+  const auto update_arity = std::max(static_cast<size_t>(32), vt->size());
   ib << "assign __update_queue = (__prev_update_mask ^ __update_mask);" << std::endl;
   ib << "assign __there_are_updates = |__update_queue;" << std::endl;
   ib << "assign __apply_updates = ((__read_request && (__vid == " << vt->apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << std::endl;
@@ -484,17 +484,12 @@ template <typename T>
 inline void Rewrite<T>::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<T>* vt, const Machinify* mfy, const Identifier* clock) {
   ModuleInfo info(md);
 
-  // Index both inputs and the stateful elements in the variable table as well
-  // as the elements in the expr table.
-  std::map<size_t, typename VarTable<T>::const_var_iterator> vars;
-  for (auto t = vt->var_begin(), te = vt->var_end(); t != te; ++t) {
+  // Index both inputs and stateful elements in the variable table 
+  std::map<size_t, typename VarTable<T>::const_iterator> vars;
+  for (auto t = vt->begin(), te = vt->end(); t != te; ++t) {
     if (info.is_input(t->first) || info.is_stateful(t->first)) {
       vars[t->second.begin] = t;
     }
-  }
-  std::map<size_t, typename VarTable<T>::const_expr_iterator> exprs;
-  for (auto t = vt->expr_begin(), te = vt->expr_end(); t != te; ++t) {
-    exprs[vt->var_size() + t->second.begin] = t;
   }
 
   ItemBuilder ib;
@@ -527,13 +522,11 @@ inline void Rewrite<T>::emit_var_logic(ModuleDeclaration* res, const ModuleDecla
       }
     }
   }
-  for (const auto& e : exprs) {
-    const auto itr = e.second;
-    assert(itr->second.elements == 1);
-    assert(itr->second.words_per_element == 1);
-    const auto idx = itr->second.begin;
-    ib << "__expr[" << idx << "] <= ((__read_request && (__vid == " << (vt->var_size()+idx) << ")) ? __in : __expr[" << idx << "]);" << std::endl;
-  }
+  ib << "end" << std::endl;
+
+  ib << "always @(posedge __clk) begin" << std::endl;
+  ib << "if (__read_request && (__vid == " << vt->feof_index() << "))" << std::endl;
+  ib << "__feof[__in >> 1] <= __in[0];" << std::endl;
   ib << "end" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
@@ -544,8 +537,8 @@ inline void Rewrite<T>::emit_output_logic(ModuleDeclaration* res, const ModuleDe
   ModuleInfo info(md);      
 
   // Index the elements in the variable table which aren't inputs or stateful.
-  std::map<size_t, typename VarTable<T>::const_var_iterator> outputs;
-  for (auto t = vt->var_begin(), te = vt->var_end(); t != te; ++t) {
+  std::map<size_t, typename VarTable<T>::const_iterator> outputs;
+  for (auto t = vt->begin(), te = vt->end(); t != te; ++t) {
     if (!info.is_input(t->first) && !info.is_stateful(t->first)) {
       outputs[t->second.begin] = t;
     }
@@ -575,7 +568,7 @@ inline void Rewrite<T>::emit_output_logic(ModuleDeclaration* res, const ModuleDe
   ib << vt->there_were_tasks_index() << ": __out = __task_id[0];" << std::endl;
   ib << vt->open_loop_index() << ": __out = __open_loop;" << std::endl;
   ib << vt->debug_index() << ": __out = __state[0];" << std::endl;
-  ib << "default: __out = ((__vid < " << vt->var_size() << ") ? __var[__vid] : __expr[(__vid - " << vt->var_size() << ")]);" << std::endl;
+  ib << "default: __out = __var[__vid];" << std::endl;
   ib << "endcase" << std::endl;
   ib << "assign __wait = __read_request || __write_request || __open_loop_tick || __any_triggers || __continue;" << std::endl;
 
