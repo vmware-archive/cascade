@@ -438,7 +438,9 @@ inline bool AvmmLogic<T>::handle_tasks() {
         assert(r != nullptr);
         table_.write_var(r, scanf_.get());
       }
-      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
+      if (is->eof()) {
+        table_.write_control_var(table_.feof_index(), (fd << 1) | 1);
+      }
 
       break;
     }  
@@ -450,7 +452,9 @@ inline bool AvmmLogic<T>::handle_tasks() {
       const auto fd = eval_.get_value(ps->get_fd()).to_uint();
       auto* is = get_stream(fd);
       printf_.write(*is, &eval_, ps);
-      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
+      if (is->eof()) {
+        table_.write_control_var(table_.feof_index(), (fd << 1) | 1);
+      }
 
       break;
     }
