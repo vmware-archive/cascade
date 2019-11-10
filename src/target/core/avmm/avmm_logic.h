@@ -584,7 +584,7 @@ inline AvmmLogic<T>::Sync::Sync(AvmmLogic* de) : Visitor() {
 
 template <typename T>
 inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
-  Visitor::visit(id);
+  id->accept_dim(this);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
   assert(de_->table_.find(r) != de_->table_.end());
