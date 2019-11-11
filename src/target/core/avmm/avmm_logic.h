@@ -104,6 +104,10 @@ class AvmmLogic : public Logic {
     bool there_were_tasks_;
     VarTable<T> table_;
     std::unordered_map<FId, interfacestream*> streams_;
+    std::vector<std::pair<FId, interfacestream*>> stream_cache_;
+
+    // Stream Caching Helpers:
+    bool is_constant(const Expression* e) const;
 
     // Control Helpers:
     interfacestream* get_stream(FId fd);
@@ -113,10 +117,10 @@ class AvmmLogic : public Logic {
     // tasks into the variable table.
     class Inserter : public Visitor {
       public:
-        explicit Inserter(AvmmLogic* de);
+        explicit Inserter(AvmmLogic* av);
         ~Inserter() override = default;
       private:
-        AvmmLogic* de_;
+        AvmmLogic* av_;
         bool in_args_;
         void visit(const Identifier* id) override;
         void visit(const FeofExpression* fe) override;
@@ -135,10 +139,10 @@ class AvmmLogic : public Logic {
     // identifiers which appear in an AST subtree. 
     class Sync : public Visitor {
       public:
-        explicit Sync(AvmmLogic* de);
+        explicit Sync(AvmmLogic* av);
         ~Sync() override = default;
       private:
-        AvmmLogic* de_;
+        AvmmLogic* av_;
         void visit(const Identifier* id) override;
     };
 
@@ -278,7 +282,33 @@ inline void AvmmLogic<T>::set_input(const Input* i) {
 
 template <typename T>
 inline void AvmmLogic<T>::finalize() {
-  // Does nothing.
+  // Iterate over tasks. Now that we have the program state in place, we can
+  // cache pointers to streams to make system task handling faster. Remember,
+  // the task index starts from 1.
+  stream_cache_.resize(tasks_.size(), std::make_pair(0, nullptr));
+  for (size_t i = 1, ie = tasks_.size(); i < ie; ++i) {
+    const auto* t = tasks_[i];
+    const Expression* fd = nullptr;
+    switch (t->get_tag()) {
+      case Node::Tag::get_statement:
+        fd = static_cast<const GetStatement*>(t)->get_fd();
+        break;
+      case Node::Tag::fflush_statement:
+        fd = static_cast<const FflushStatement*>(t)->get_fd();
+        break;
+      case Node::Tag::put_statement: 
+        fd = static_cast<const PutStatement*>(t)->get_fd();
+        break;
+      case Node::Tag::fseek_statement: 
+        fd = static_cast<const FseekStatement*>(t)->get_fd();
+        break;
+      default:
+        continue;
+    }
+    fd->accept(&sync_);
+    const auto fd_val = eval_.get_value(fd).to_uint();
+    stream_cache_[i] = make_pair(fd_val, get_stream(fd_val));
+  }
 }
 
 template <typename T>
@@ -362,6 +392,63 @@ inline const Identifier* AvmmLogic<T>::open_loop_clock() {
 }
 
 template <typename T>
+inline bool AvmmLogic<T>::is_constant(const Expression* e) const {
+  // Numbers are constants
+  if (e->is(Node::Tag::number)) {
+    return true;
+  }
+  // Anything other than an identifier might not be
+  if (!e->is(Node::Tag::identifier)) {
+    return false; 
+  }
+
+  // Resolve this id 
+  const auto* id = static_cast<const Identifier*>(e);
+  const auto* r = Resolve().get_resolution(id);
+  assert(r != nullptr);
+  // Anything other than a reg declaration might not be a constant
+  const auto* p = r->get_parent();
+  if (!p->is(Node::Tag::reg_declaration)) {
+    return false;
+  }
+
+  // Anything other than a number or fopen val might not be constant
+  const auto* d = static_cast<const RegDeclaration*>(p);
+  const auto fo = d->get_val()->is(Node::Tag::fopen_expression);
+  const auto n = d->get_val()->is(Node::Tag::number);
+  if (!fo && !n) {
+    return false;
+  }
+
+  // If this fd ever appears on the lhs of an assignment, it might not be a constant
+  for (auto i = Resolve().use_begin(r), ie = Resolve().use_end(r); i != ie; ++i) {
+    const auto* p = (*i)->get_parent();
+    switch (p->get_tag()) {
+      case Node::Tag::blocking_assign:
+        if (static_cast<const BlockingAssign*>(p)->get_lhs() == *i) {
+          return false;
+        }
+        break;
+      case Node::Tag::nonblocking_assign:
+        if (static_cast<const NonblockingAssign*>(p)->get_lhs() == *i) {
+          return false;
+        }
+        break;
+      case Node::Tag::variable_assign:
+        if (static_cast<const VariableAssign*>(p)->get_lhs() == *i) {
+          return false;
+        }
+        break;
+      default:
+        assert(false);
+    }
+  }
+
+  // This is definitely a constant
+  return true;
+}
+
+template <typename T>
 inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
   const auto itr = streams_.find(fd);
   if (itr != streams_.end()) {
@@ -397,63 +484,72 @@ inline bool AvmmLogic<T>::handle_tasks() {
     }
     case Node::Tag::fflush_statement: {
       const auto* fs = static_cast<const FflushStatement*>(task);
-      fs->accept_fd(&sync_);
-
-      const auto fd = eval_.get_value(fs->get_fd()).to_uint();
-      auto* is = get_stream(fd);
-      is->clear();
-      is->flush();
-      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
+      auto is = stream_cache_[task_id];
+      if (is.second == nullptr) {
+        fs->accept_fd(&sync_);
+        is.first = eval_.get_value(fs->get_fd()).to_uint();
+        is.second = get_stream(is.first);
+      }
+      is.second->clear();
+      is.second->flush();
+      table_.write_control_var(table_.feof_index(), (is.first << 1) | is.second->eof());
 
       break;
     }
     case Node::Tag::fseek_statement: {
       const auto* fs = static_cast<const FseekStatement*>(task);
-      fs->accept_fd(&sync_);
-
-      const auto fd = eval_.get_value(fs->get_fd()).to_uint();
-      auto* is = get_stream(fd);
+      auto is = stream_cache_[task_id];
+      if (is.second == nullptr) {
+        fs->accept_fd(&sync_);
+        is.first = eval_.get_value(fs->get_fd()).to_uint();
+        is.second = get_stream(is.first);
+      }
 
       const auto offset = eval_.get_value(fs->get_offset()).to_uint();
       const auto op = eval_.get_value(fs->get_op()).to_uint();
       const auto way = (op == 0) ? std::ios_base::beg : (op == 1) ? std::ios_base::cur : std::ios_base::end;
 
-      is->clear();
-      is->seekg(offset, way); 
-      is->seekp(offset, way); 
-      table_.write_control_var(table_.feof_index(), (fd << 1) | is->eof());
+      is.second->clear();
+      is.second->seekg(offset, way); 
+      is.second->seekp(offset, way); 
+      table_.write_control_var(table_.feof_index(), (is.first << 1) | is.second->eof());
 
       break;
     }
     case Node::Tag::get_statement: {
       const auto* gs = static_cast<const GetStatement*>(task);
-      gs->accept_fd(&sync_);
+      auto is = stream_cache_[task_id];
+      if (is.second == nullptr) {
+        gs->accept_fd(&sync_);
+        is.first = eval_.get_value(gs->get_fd()).to_uint();
+        is.second = get_stream(is.first);
+      }
 
-      const auto fd = eval_.get_value(gs->get_fd()).to_uint();
-      auto* is = get_stream(fd);
-      scanf_.read_without_update(*is, &eval_, gs);
-
+      scanf_.read_without_update(*is.second, &eval_, gs);
       if (gs->is_non_null_var()) {
         const auto* r = Resolve().get_resolution(gs->get_var());
         assert(r != nullptr);
         table_.write_var(r, scanf_.get());
       }
-      if (is->eof()) {
-        table_.write_control_var(table_.feof_index(), (fd << 1) | 1);
+      if (is.second->eof()) {
+        table_.write_control_var(table_.feof_index(), (is.first << 1) | 1);
       }
 
       break;
     }  
     case Node::Tag::put_statement: {
       const auto* ps = static_cast<const PutStatement*>(task);
-      ps->accept_fd(&sync_);
-      ps->accept_expr(&sync_);
+      auto is = stream_cache_[task_id];
+      if (is.second == nullptr) {
+        ps->accept_fd(&sync_);
+        is.first = eval_.get_value(ps->get_fd()).to_uint();
+        is.second = get_stream(is.first);
+      }
 
-      const auto fd = eval_.get_value(ps->get_fd()).to_uint();
-      auto* is = get_stream(fd);
-      printf_.write(*is, &eval_, ps);
-      if (is->eof()) {
-        table_.write_control_var(table_.feof_index(), (fd << 1) | 1);
+      ps->accept_expr(&sync_);
+      printf_.write(*is.second, &eval_, ps);
+      if (is.second->eof()) {
+        table_.write_control_var(table_.feof_index(), (is.first << 1) | 1);
       }
 
       break;
@@ -484,8 +580,8 @@ inline bool AvmmLogic<T>::handle_tasks() {
 }
 
 template <typename T>
-inline AvmmLogic<T>::Inserter::Inserter(AvmmLogic* de) : Visitor() {
-  de_ = de;
+inline AvmmLogic<T>::Inserter::Inserter(AvmmLogic* av) : Visitor() {
+  av_ = av;
   in_args_ = false;
 }
 
@@ -493,8 +589,8 @@ template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
-  if (in_args_ && (de_->table_.find(r) == de_->table_.end())) {
-    de_->table_.insert(r);
+  if (in_args_ && (av_->table_.find(r) == av_->table_.end())) {
+    av_->table_.insert(r);
   }
 }
 
@@ -508,13 +604,13 @@ inline void AvmmLogic<T>::Inserter::visit(const FeofExpression* fe) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const DebugStatement* ds) {
-  de_->tasks_.push_back(ds);
+  av_->tasks_.push_back(ds);
   // Don't descend, there aren't any expressions below here
 }
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const FflushStatement* fs) {
-  de_->tasks_.push_back(fs);
+  av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
@@ -522,7 +618,7 @@ inline void AvmmLogic<T>::Inserter::visit(const FflushStatement* fs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const FinishStatement* fs) {
-  de_->tasks_.push_back(fs);
+  av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_arg(this);
   in_args_ = false;
@@ -530,7 +626,7 @@ inline void AvmmLogic<T>::Inserter::visit(const FinishStatement* fs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const FseekStatement* fs) {
-  de_->tasks_.push_back(fs);
+  av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
@@ -538,7 +634,7 @@ inline void AvmmLogic<T>::Inserter::visit(const FseekStatement* fs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const GetStatement* gs) {
-  de_->tasks_.push_back(gs);
+  av_->tasks_.push_back(gs);
   in_args_ = true;
   gs->accept_fd(this);
   in_args_ = false;
@@ -546,7 +642,7 @@ inline void AvmmLogic<T>::Inserter::visit(const GetStatement* gs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
-  de_->tasks_.push_back(ps);
+  av_->tasks_.push_back(ps);
   in_args_ = true;
   ps->accept_fd(this);
   ps->accept_expr(this);
@@ -555,7 +651,7 @@ inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const RestartStatement* rs) {
-  de_->tasks_.push_back(rs);
+  av_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
@@ -563,7 +659,7 @@ inline void AvmmLogic<T>::Inserter::visit(const RestartStatement* rs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const RetargetStatement* rs) {
-  de_->tasks_.push_back(rs);
+  av_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
@@ -571,15 +667,15 @@ inline void AvmmLogic<T>::Inserter::visit(const RetargetStatement* rs) {
 
 template <typename T>
 inline void AvmmLogic<T>::Inserter::visit(const SaveStatement* ss) {
-  de_->tasks_.push_back(ss);
+  av_->tasks_.push_back(ss);
   in_args_ = true;
   ss->accept_arg(this);
   in_args_ = false;
 }
 
 template <typename T>
-inline AvmmLogic<T>::Sync::Sync(AvmmLogic* de) : Visitor() {
-  de_ = de;
+inline AvmmLogic<T>::Sync::Sync(AvmmLogic* av) : Visitor() {
+  av_ = av;
 }
 
 template <typename T>
@@ -587,8 +683,8 @@ inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
   id->accept_dim(this);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
-  assert(de_->table_.find(r) != de_->table_.end());
-  de_->table_.read_var(r);
+  assert(av_->table_.find(r) != av_->table_.end());
+  av_->table_.read_var(r);
 }
 
 } // namespace cascade
