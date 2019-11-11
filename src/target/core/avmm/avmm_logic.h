@@ -365,11 +365,14 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   }
 
   // If we hit a task that requires immediate attention, clear the open loop
-  // counter and return the number of iterations that we ran for. Otherwise, we
-  // finished our quota.
+  // counter, finish out this clock, and return the number of iterations that
+  // we ran for. Otherwise, we finished our quota.
   if (there_were_tasks_) {
     const auto res = table_.read_control_var(table_.open_loop_index());
     table_.write_control_var(table_.open_loop_index(), 0);
+    while (handle_tasks()) {
+      table_.write_control_var(table_.resume_index(), 1);
+    }
     return res;
   } else {
     return itr;
