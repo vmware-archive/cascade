@@ -94,6 +94,9 @@ TEST(type_check, pass_issue_23c) {
 TEST(type_check, pass_issue_54a) {
   run_typecheck("minimal", "data/test/regression/type_check/pass/issue_54a.v", false);
 }
+TEST(type_check, pass_issue_193) {
+  run_typecheck("minimal", "data/test/regression/type_check/pass/issue_193.v", false);
+}
 TEST(type_check, pass_resolution_1) {
   run_typecheck("minimal", "data/test/regression/type_check/pass/resolution_1.v", false);
 }
