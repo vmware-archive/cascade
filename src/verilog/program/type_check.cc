@@ -810,11 +810,15 @@ void TypeCheck::check_array(Identifier::const_iterator_dim begin, Identifier::co
 }
 
 Identifier::const_iterator_dim TypeCheck::check_deref(const Identifier* r, const Identifier* i) {
+  if (i->empty_dim() && i->get_parent()->is(Node::Tag::event)) {
+    return i->end_dim();
+  } 
+
   const int diff = i->size_dim() - r->size_dim();
 
   // We need to have at least as many subscripts on i as r is declared with
   if (diff < 0) {
-    error("Found an array dereference with more subscripts than appear in the declaration for this variable", i);
+    error("Found an array dereference with fewer subscripts than appear in the declaration for this variable", i);
     return i->end_dim();
   }
   // If we have the same number, the last subscript on i can't be a range
