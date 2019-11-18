@@ -144,14 +144,14 @@ module ima_adpcm_dec (
   // quantizer index adaptation lookup table 
   always @ (inPCM) begin 
     case (inPCM[2:0]) 
-      3'd0:  stepDelta <= 5'd31;    // = -1 
-      3'd1:  stepDelta <= 5'd31;    // = -1 
-      3'd2:  stepDelta <= 5'd31;    // = -1 
-      3'd3:  stepDelta <= 5'd31;    // = -1 
-      3'd4:  stepDelta <= 5'd2;    // = +2
-      3'd5:  stepDelta <= 5'd4;    // = +4
-      3'd6:  stepDelta <= 5'd6;    // = +6
-      3'd7:  stepDelta <= 5'd8;    // = +8
+      3'd0:  stepDelta = 5'd31;    // = -1 
+      3'd1:  stepDelta = 5'd31;    // = -1 
+      3'd2:  stepDelta = 5'd31;    // = -1 
+      3'd3:  stepDelta = 5'd31;    // = -1 
+      3'd4:  stepDelta = 5'd2;    // = +2
+      3'd5:  stepDelta = 5'd4;    // = +4
+      3'd6:  stepDelta = 5'd6;    // = +6
+      3'd7:  stepDelta = 5'd8;    // = +8
     endcase 
   end 
   // calculate the new index value before saturation 

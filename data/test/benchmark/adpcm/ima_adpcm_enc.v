@@ -212,9 +212,9 @@ module ima_adpcm_enc (
   //always @ (prePCM or predictorSamp or dequantSamp) begin
   always @(*) begin
     if (prePCM[3])
-      prePredSamp <= {predictorSamp[18], predictorSamp} - {1'b0, dequantSamp};
+      prePredSamp = {predictorSamp[18], predictorSamp} - {1'b0, dequantSamp};
     else 
-      prePredSamp <= {predictorSamp[18], predictorSamp} + {1'b0, dequantSamp};
+      prePredSamp = {predictorSamp[18], predictorSamp} + {1'b0, dequantSamp};
   end  
 
   // output interface 
@@ -232,14 +232,14 @@ module ima_adpcm_enc (
   // quantizer index adaptation lookup table 
   always @ (prePCM) begin 
     case (prePCM[2:0]) 
-      3'd0:  stepDelta <= 5'd31;    // = -1 
-      3'd1:  stepDelta <= 5'd31;    // = -1 
-      3'd2:  stepDelta <= 5'd31;    // = -1 
-      3'd3:  stepDelta <= 5'd31;    // = -1 
-      3'd4:  stepDelta <= 5'd2;
-      3'd5:  stepDelta <= 5'd4;
-      3'd6:  stepDelta <= 5'd6;
-      3'd7:  stepDelta <= 5'd8;
+      3'd0:  stepDelta = 5'd31;    // = -1 
+      3'd1:  stepDelta = 5'd31;    // = -1 
+      3'd2:  stepDelta = 5'd31;    // = -1 
+      3'd3:  stepDelta = 5'd31;    // = -1 
+      3'd4:  stepDelta = 5'd2;
+      3'd5:  stepDelta = 5'd4;
+      3'd6:  stepDelta = 5'd6;
+      3'd7:  stepDelta = 5'd8;
     endcase 
   end 
   // calculate the new index value before saturation 

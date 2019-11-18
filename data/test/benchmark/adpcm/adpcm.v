@@ -163,7 +163,10 @@ module test(clk);
     mCtr <= mCtr + 1;
 
     //$display("%d / %d", testCount, TESTS_TO_RUN);
-    if (testCount >= TESTS_TO_RUN) $finish(1);
+    if (testCount >= TESTS_TO_RUN) begin
+      $display(0);
+      $finish;
+    end
 
     case (mainState)
       MAIN0: begin
@@ -454,9 +457,10 @@ module test(clk);
         if (encPcm != encExpVal) begin
           // announce error detection and exit simulation
           if (eCtr == 0) begin
-            $display(" Error!");
-            $display("Error found in encoder output index %d.", encCount + 1);
-            $display("   (expected value 'h%h, got value 'h%h). encIdx: %d, inIdx: %d, decIdx: %d", encExpVal, encPcm, encIdx, inIdx, decIdx);            
+            //$display(" Error!");
+            //$display("Error found in encoder output index %d.", encCount + 1);
+            //$display("   (expected value 'h%h, got value 'h%h). encIdx: %d, inIdx: %d, decIdx: %d", encExpVal, encPcm, encIdx, inIdx, decIdx);            
+            $display(1);
           end
 
           // wait for a few clock cycles before ending simulation
@@ -671,9 +675,10 @@ module test(clk);
         if (decSamp != decExpVal) begin
           if (dCtr == 0) begin
             // announce error detection and exit simulation
-            $display(" Error!");
-            $display("Error found in decoder output index %d.", decCount+1);
-            $display("   (expected value 'h%h, got value 'h%h)", decExpVal, decSamp);
+            //$display(" Error!");
+            //$display("Error found in decoder output index %d.", decCount+1);
+            //$display("   (expected value 'h%h, got value 'h%h)", decExpVal, decSamp);
+            $display(2);
           end
 
           // wait for a few clock cycles before ending simulation
