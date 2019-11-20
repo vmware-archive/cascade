@@ -39,11 +39,22 @@
 
 namespace cascade {
 
-struct Scanf {
-  void read(std::istream& is, Evaluate* eval, const GetStatement* gs);
+class Scanf {
+  public:
+    void read(std::istream& is, Evaluate* eval, const GetStatement* gs);
+    bool read_without_update(std::istream& is, Evaluate* eval, const GetStatement* gs);
+    const Bits& get() const;
+  private:
+    Bits val_;
 };
 
 inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs) {
+  if (read_without_update(is, eval, gs)) {
+    eval->assign_value(gs->get_var(), val_);
+  }
+}
+
+inline bool Scanf::read_without_update(std::istream& is, Evaluate* eval, const GetStatement* gs) {
   const auto format = gs->get_fmt()->get_readable_val();
   if (format[0] != '%') {
     for (auto c : format) {
@@ -55,30 +66,29 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
         break;
       }
     }
-    return;
+    return false;
   }
 
   assert(gs->is_non_null_var());
-  Bits val;
   switch (format[1]) {
     case '_': 
       if (eval->get_type(gs->get_var()) == Bits::Type::REAL) {
-        val.read(is, 1);
+        val_.read(is, 1);
       } else {
-        val.read(is, 10);
+        val_.read(is, 10);
       }
       break;
     case 'b':
     case 'B':
-      val.read(is, 2);
+      val_.read(is, 2);
       break;
     case 'c':
     case 'C': 
-      val = Bits(static_cast<char>(is.get()));
+      val_.read(is.get());
       break;
     case 'd':
     case 'D': 
-      val.read(is, 10);
+      val_.read(is, 10);
       break;
     case 'e':
     case 'E':
@@ -86,32 +96,36 @@ inline void Scanf::read(std::istream& is, Evaluate* eval, const GetStatement* gs
     case 'F':
     case 'g':
     case 'G': 
-      val.read(is, 1);
+      val_.read(is, 1);
       break;
     case 'h':
     case 'H': 
-      val.read(is, 16);
+      val_.read(is, 16);
       break;
     case 'o':
     case 'O': 
-      val.read(is, 8);
+      val_.read(is, 8);
       break;
     case 's':
     case 'S': {
       std::string s;
       is >> s;
-      val = Bits(s);
+      val_ = Bits(s);
       break;
     }
     case 'u':
     case 'U': 
-      val.read(is, 16);
+      val_.read(is, 16);
       break;
     default: 
       assert(false);
       break;
   }
-  eval->assign_value(gs->get_var(), val);
+  return true;
+}
+
+inline const Bits& Scanf::get() const {
+  return val_;
 }
 
 } // namespace cascade

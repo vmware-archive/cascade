@@ -85,6 +85,9 @@ class BitsBase : public Serializable {
     template <typename B>
     void write_word(size_t n, B b);
 
+    // Value I/O:
+    void read(char c);
+
     // Type Introspection:
     size_t size() const;
     Type get_type() const;
@@ -458,6 +461,14 @@ inline void BitsBase<T, BT, ST>::write_word(size_t n, B b) {
   val_[idx] &= mask;
   val_[idx] |= (static_cast<T>(b) << (8*sizeof(B)*off));
   trim();
+}
+
+template <typename T, typename BT, typename ST>
+inline void BitsBase<T, BT, ST>::read(char c) {
+  val_.resize(1);
+  val_[0] = static_cast<T>(c);
+  size_ = 8;
+  type_ = Type::UNSIGNED;
 }
 
 template <typename T, typename BT, typename ST>

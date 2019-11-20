@@ -66,10 +66,11 @@ class Machinify {
       private:
         friend class Machinify;
 
-        CaseStatement* machine_;
+        SeqBlock* machine_;
         ConditionalStatement* text_;
         std::vector<size_t> task_states_;
         size_t idx_;
+        std::pair<size_t, SeqBlock*> current_;
 
         void run(const EventControl* ec, const Statement* s);
         void visit(const BlockingAssign* ba) override;
@@ -78,9 +79,6 @@ class Machinify {
         void visit(const CaseStatement* cs) override;
         void visit(const ConditionalStatement* cs) override;
 
-        // Returns the index of the current state and a pointer to the
-        // corresponding case item.
-        std::pair<size_t, SeqBlock*> current() const;
         // Copies a statement into the current state
         void append(const Statement* s);
         // Copies a statement into a sequential block
@@ -115,7 +113,7 @@ class Machinify {
         bool run(const Node* n);
       private:
         bool res_;
-        void visit(const NonblockingAssign* na) override;
+        void visit(const BlockingAssign* ba) override;
     };
 
     std::vector<Generate> generators_;
