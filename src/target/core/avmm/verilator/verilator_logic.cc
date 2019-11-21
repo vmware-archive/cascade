@@ -28,17 +28,19 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/avmm/verilator/verilator_logic.h"
 
 namespace cascade {
 
-VerilatorLogic::VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<uint32_t>(interface, md) {
-  get_table()->set_read([slot](size_t index) {
-    // TODO...
-    return 0;
+VerilatorLogic::VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot, VerilatorCompiler* vc) : AvmmLogic<uint32_t>(interface, md) {
+  get_table()->set_read([slot, vc](size_t index) {
+    const auto addr = index | (slot << 12);
+    return vc->read(addr);
   });
-  get_table()->set_write([slot](size_t index, uint32_t val) {
-    // TODO...
+  get_table()->set_write([slot, vc](size_t index, uint32_t val) {
+    const auto addr = index | (slot << 12);
+    vc->write(addr, val);
   });
 }
 

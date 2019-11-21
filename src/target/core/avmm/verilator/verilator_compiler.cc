@@ -30,27 +30,61 @@
 
 #include "target/core/avmm/verilator/verilator_compiler.h"
 
+#include <dlfcn.h>
+#include <fstream>
+#include "common/system.h"
+
 using namespace std;
 
 namespace cascade {
 
 VerilatorCompiler::VerilatorCompiler() : AvmmCompiler<uint32_t>() {
-  // TODO...
+  handle_ = nullptr;
 }
 
 VerilatorCompiler::~VerilatorCompiler() {
-  // TODO...
+  if (handle_ != nullptr) {
+    stop_();
+    verilator_.join();
+    dlclose(handle_);
+  }
+}
+
+uint32_t VerilatorCompiler::read(uint16_t addr) const {
+  return read_(addr);
+}
+
+void VerilatorCompiler::write(uint16_t addr, uint32_t val) const {
+  write_(addr, val);
 }
 
 VerilatorLogic* VerilatorCompiler::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
-  // TODO...
-  return new VerilatorLogic(interface, md, slot);
+  return new VerilatorLogic(interface, md, slot, this);
 }
 
 bool VerilatorCompiler::compile(const string& text, mutex& lock) {
   (void) lock;
   get_compiler()->schedule_state_safe_interrupt([this, &text]{
-    // TODO...
+    ofstream ofs(System::src_root() + "/src/target/core/avmm/verilator/device/program_logic.v");
+    ofs << text << endl;
+    ofs.close();
+  
+    if (handle_ != nullptr) {
+      stop_();
+      verilator_.join();
+      dlclose(handle_);
+    }
+    
+    System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device");
+    handle_ = dlopen((System::src_root() + "/src/target/core/avmm/verilator/device/obj_dir/libverilator.so").c_str(), RTLD_LAZY);
+    stop_ = (void (*)()) dlsym(handle_, "verilator_stop");
+    read_ = (uint32_t (*)(uint16_t)) dlsym(handle_, "verilator_read");
+    write_ = (void (*)(uint16_t, uint32_t)) dlsym(handle_, "verilator_write");
+
+    auto init = (void (*)()) dlsym(handle_, "verilator_init");
+    init();
+    auto start = (void (*)()) dlsym(handle_, "verilator_start");
+    verilator_ = thread(start);
   });
   return true;
 }

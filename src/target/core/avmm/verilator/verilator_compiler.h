@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 
+#include <thread>
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/verilator/verilator_logic.h"
 #include "target/core/avmm/avmm_compiler.h"
@@ -42,11 +43,23 @@ class VerilatorCompiler : public AvmmCompiler<uint32_t> {
     VerilatorCompiler();
     ~VerilatorCompiler() override;
 
+    uint32_t read(uint16_t addr) const;
+    void write(uint16_t addr, uint32_t val) const;
+
   private:
     // Avmm Compiler Interface:
     VerilatorLogic* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
     bool compile(const std::string& text, std::mutex& lock) override;
     void stop_compile() override;
+
+    // Verilator Control Thread:
+    std::thread verilator_;
+
+    // Shared Library Handles:
+    void* handle_;
+    void (*stop_)();
+    uint32_t (*read_)(uint16_t);
+    void (*write_)(uint16_t, uint32_t);
 };
 
 } // namespace cascade
