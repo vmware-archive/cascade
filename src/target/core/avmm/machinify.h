@@ -56,7 +56,7 @@ class Machinify {
         Generate(size_t idx);
         ~Generate() override = default;
 
-        const ConditionalStatement* text() const;
+        const SeqBlock* text() const;
         size_t name() const;
 
         size_t final_state() const;
@@ -67,7 +67,6 @@ class Machinify {
         friend class Machinify;
 
         SeqBlock* machine_;
-        ConditionalStatement* text_;
         std::vector<size_t> task_states_;
         size_t idx_;
         std::pair<size_t, SeqBlock*> current_;

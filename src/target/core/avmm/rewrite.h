@@ -170,7 +170,6 @@ inline void Rewrite<T>::emit_state_machine_vars(ModuleDeclaration* res, const Ma
   ItemBuilder ib;
   ib << "reg[31:0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   ib << "reg[31:0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
-  ib << "reg __kick[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }
@@ -290,7 +289,6 @@ inline void Rewrite<T>::emit_update_vars(ModuleDeclaration* res, const VarTable<
   ib << "wire[" << (update_arity-1) << ":0] __update_queue;" << std::endl;
   ib << "wire __there_are_updates;" << std::endl;
   ib << "wire __apply_updates;" << std::endl;
-  ib << "wire __drop_updates;" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }
@@ -380,8 +378,7 @@ inline void Rewrite<T>::emit_update_logic(ModuleDeclaration* res, const VarTable
   ib << "assign __update_queue = (__prev_update_mask ^ __update_mask);" << std::endl;
   ib << "assign __there_are_updates = |__update_queue;" << std::endl;
   ib << "assign __apply_updates = ((__read_request && (__vid == " << vt->apply_update_index() << ")) || (__there_are_updates && __open_loop_tick));" << std::endl;
-  ib << "assign __drop_updates = (__read_request && (__vid == " << vt->drop_update_index() << "));" << std::endl;
-  ib << "always @(posedge __clk) __prev_update_mask <= ((__apply_updates || __drop_updates) ? __update_mask : __prev_update_mask);" << std::endl;
+  ib << "always @(posedge __clk) __prev_update_mask <= ((__apply_updates || __reset) ? __update_mask : __prev_update_mask);" << std::endl;
   
   res->push_back_items(ib.begin(), ib.end());
 }

@@ -40,8 +40,8 @@ Machinify::Generate::Generate(size_t idx) : Visitor() {
   idx_ = idx;
 }
 
-const ConditionalStatement* Machinify::Generate::text() const {
-  return text_;
+const SeqBlock* Machinify::Generate::text() const {
+  return machine_;
 }
 
 size_t Machinify::Generate::name() const {
@@ -72,15 +72,10 @@ void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   // that one. Otherwise, we'll create one last transition to an empty state.
   auto c = current_;
   if (!c.second->empty_stmts()) {
-    if (task_states_.empty() || (task_states_.back() != c.first)) {
-      c.second->push_back_stmts(new BlockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
-    }
     transition(c.second, c.first+1);
     next_state();
     c = current_;
   }
-  c.second->push_back_stmts(new BlockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
-  c.second->push_back_stmts(new BlockingAssign(new Identifier(new Id("__state"), new Number(Bits(32, idx_))), new Number(Bits(32, final_state()))));
 
   // Tie everything together into a conditional statement
   auto i = ec->begin_events();
@@ -88,19 +83,26 @@ void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   for (auto ie = ec->end_events(); i != ie; ++i) {
     guard = new BinaryExpression(to_guard(*i), BinaryExpression::Op::PPIPE, guard);
   }
-  machine_->push_front_stmts(new BlockingAssign(new Identifier(new Id("__kick"), new Number(Bits(32, idx_))), new Number(Bits(32, 1))));
-  text_ = new ConditionalStatement(
-    new Identifier("__continue"), 
-    machine_,
-    new SeqBlock(new BlockingAssign(
-      new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
-      new ConditionalExpression(
-        new Identifier("__reset"),
-        new Number(Bits(32, final_state())),
-        new ConditionalExpression(guard, new Number(Bits(false)), new Identifier(new Id("__state"), new Number(Bits(32, idx_))))
-      )
-    ))
-  );
+  machine_->push_front_stmts(new ConditionalStatement(
+    new Identifier("__continue"),
+    new BlockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))),
+    new SeqBlock()));
+  machine_->push_back_stmts(new BlockingAssign(
+    new Identifier(new Id("__state"), new Number(Bits(32, idx_))),
+    new ConditionalExpression(
+      new Identifier("__reset"),
+      new Number(Bits(32, final_state())),
+      new ConditionalExpression(guard, new Number(Bits(false)), new Identifier(new Id("__state"), new Number(Bits(32, idx_))))
+    )
+  ));
+  machine_->push_back_stmts(new BlockingAssign(
+    new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))),
+    new ConditionalExpression(
+      new Identifier("__reset"),
+      new Number(Bits(32, -1)),
+      new Identifier(new Id("__task_id"), new Number(Bits(32, idx_)))
+    )
+  ));
 }
 
 void Machinify::Generate::visit(const BlockingAssign* ba) {
@@ -275,23 +277,14 @@ void Machinify::Generate::transition(SeqBlock* sb, size_t n) {
 }
 
 void Machinify::Generate::next_state() {
-  if (!machine_->empty_stmts()) {
-    if (task_states_.empty() || (task_states_.back() != current_.first)) {
-      append(new BlockingAssign(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), new Number(Bits(32, 0))));
-    }
-  }
   auto state = machine_->empty_stmts() ? 0 : (current_.first + 1);
   auto* cs = new ConditionalStatement(
     new BinaryExpression(
       new BinaryExpression(new Identifier(new Id("__state"), new Number(Bits(32, idx_))), BinaryExpression::Op::EEQ, new Number(Bits(32, state))),
       BinaryExpression::Op::AAMP,
-      new BinaryExpression(
-        new Identifier(new Id("__kick"), new Number(Bits(32, idx_))), 
-        BinaryExpression::Op::PPIPE,
-        new BinaryExpression(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), BinaryExpression::Op::EEQ, new Number(Bits(32, 0)))
-      )
+      new BinaryExpression(new Identifier(new Id("__task_id"), new Number(Bits(32, idx_))), BinaryExpression::Op::EEQ, new Number(Bits(32, 0)))
     ),
-    new SeqBlock(new BlockingAssign(new Identifier(new Id("__kick"), new Number(Bits(32, idx_))), new Number(Bits(32, 0)))),
+    new SeqBlock(),
     new SeqBlock()
   );
   machine_->push_back_stmts(cs);
@@ -315,7 +308,7 @@ Identifier* Machinify::Generate::to_guard(const Event* e) const {
 
 Machinify::~Machinify() {
   for (auto gen : generators_) {
-    delete gen.text_;
+    delete gen.machine_;
   }
 }
 

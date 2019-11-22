@@ -236,14 +236,13 @@ inline State* AvmmLogic<T>::get_state() {
 
 template <typename T>
 inline void AvmmLogic<T>::set_state(const State* s) {
+  table_.write_control_var(table_.reset_index(), 1);
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
       table_.write_var(sv.second, itr->second);
     }
   }
-  // Drop updates and reset state (continue once to clear any pending tasks
-  table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
   table_.write_control_var(table_.resume_index(), 1);
 }
@@ -264,6 +263,7 @@ inline Input* AvmmLogic<T>::get_input() {
 
 template <typename T>
 inline void AvmmLogic<T>::set_input(const Input* i) {
+  table_.write_control_var(table_.reset_index(), 1);
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
     if (id == nullptr) {
@@ -274,8 +274,6 @@ inline void AvmmLogic<T>::set_input(const Input* i) {
       table_.write_var(id, itr->second);
     }
   }
-  // Drop updates and reset state (continue once to clear any pending tasks
-  table_.write_control_var(table_.drop_update_index(), 1);
   table_.write_control_var(table_.reset_index(), 1);
   table_.write_control_var(table_.resume_index(), 1);
 }
@@ -468,6 +466,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
   if (task_id == 0) {
     return false;
   }
+  assert(task_id != -1);
   const auto* task = tasks_[task_id];
 
   switch (task->get_tag()) {

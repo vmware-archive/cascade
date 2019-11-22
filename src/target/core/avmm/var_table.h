@@ -85,8 +85,6 @@ class VarTable {
     size_t there_are_updates_index() const;
     // Returns the address of the apply_update control variable.
     size_t apply_update_index() const;
-    // Returns the address of the drop_update control variable.
-    size_t drop_update_index() const;
     // Returns the address of the task control variable.
     size_t there_were_tasks_index() const;
     // Returns the address of the resume control variable.
@@ -200,38 +198,33 @@ inline size_t VarTable<T>::apply_update_index() const {
 }
 
 template <typename T>
-inline size_t VarTable<T>::drop_update_index() const {
+inline size_t VarTable<T>::there_were_tasks_index() const {
   return next_index_ + 2;
 }
 
 template <typename T>
-inline size_t VarTable<T>::there_were_tasks_index() const {
+inline size_t VarTable<T>::resume_index() const {
   return next_index_ + 3;
 }
 
 template <typename T>
-inline size_t VarTable<T>::resume_index() const {
+inline size_t VarTable<T>::reset_index() const {
   return next_index_ + 4;
 }
 
 template <typename T>
-inline size_t VarTable<T>::reset_index() const {
+inline size_t VarTable<T>::open_loop_index() const {
   return next_index_ + 5;
 }
 
 template <typename T>
-inline size_t VarTable<T>::open_loop_index() const {
+inline size_t VarTable<T>::feof_index() const {
   return next_index_ + 6;
 }
 
 template <typename T>
-inline size_t VarTable<T>::feof_index() const {
-  return next_index_ + 7;
-}
-
-template <typename T>
 inline size_t VarTable<T>::debug_index() const {
-  return next_index_ + 8;
+  return next_index_ + 7;
 }
 
 template <typename T>
