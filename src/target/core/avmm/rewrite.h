@@ -496,29 +496,41 @@ inline void Rewrite<T>::emit_var_logic(ModuleDeclaration* res, const ModuleDecla
   }
   for (const auto& v : vars) {
     const auto itr = v.second;
+    if ((clock != nullptr) && (itr->first == clock)) {
+      const auto idx = itr->second.begin;
+      ib << "if (__open_loop_tick)" << std::endl;
+      ib << "__var[" << idx << "] <= {31'd0,~" << itr->first->front_ids()->get_readable_sid() << "};" << std::endl;
+      break;
+    }
+  }
+  ib << "if (__apply_updates && |__update_queue) begin" << std::endl;
+  for (const auto& v : vars) {
+    const auto itr = v.second;
     const auto arity = Evaluate().get_arity(itr->first);
     const auto w = itr->second.bits_per_element;
     auto idx = itr->second.begin;
-
+    if ((clock != nullptr) && (itr->first == clock)) {
+      continue;
+    }
+    if (!info.is_stateful(itr->first)) {
+      continue;
+    }
     for (size_t i = 0, ie = itr->second.elements; i < ie; ++i) {
       for (size_t j = 0, je = itr->second.words_per_element; j < je; ++j) {
         ib << "__var[" << idx << "] <= ";
-        if ((clock != nullptr) && (itr->first == clock)) {
-          ib << "__open_loop_tick ? {31'd0,~" << itr->first->front_ids()->get_readable_sid() << "} : ";
-        }
-        ib << "(__read_request && (__vid == " << idx << ")) ? __in : ";
-        if (info.is_stateful(itr->first)) {
-          auto* id = new Identifier(itr->first->front_ids()->get_readable_sid() + "_next");
-          emit_subscript(id, i, ie, arity);
-          emit_slice(id, w, j);
-          ib << "(__apply_updates && __update_queue[" << idx << "]) ? " << id << " : ";
-          delete id;
-        }
+        auto* id = new Identifier(itr->first->front_ids()->get_readable_sid() + "_next");
+        emit_subscript(id, i, ie, arity);
+        emit_slice(id, w, j);
+        ib << "(__update_queue[" << idx << "]) ? " << id << " : ";
+        delete id;
         ib << "__var[" << idx << "];" << std::endl;
         ++idx;
       }
     }
   }
+  ib << "end" << std::endl;
+  ib << "if (__read_request && (__vid < " << vt->there_are_updates_index() << "))" << std::endl;
+  ib << "__var[__vid] <= __in;" << std::endl;
   ib << "end" << std::endl;
 
   ib << "always @(posedge __clk) begin" << std::endl;
