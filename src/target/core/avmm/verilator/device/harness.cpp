@@ -21,13 +21,11 @@ Request req_;
 
 extern "C" void verilator_init() {
   pl_ = new Vprogram_logic();
+  req_ = READY;
 }
 
 extern "C" void verilator_start() {
-  running_ = true;
-  req_ = READY;
-
-  while (running_) {
+  for (running_ = true; running_; ) {
     switch (req_) {
       case READY:
         break;
@@ -53,7 +51,6 @@ extern "C" void verilator_start() {
     pl_->eval();
     pl_->clk = !pl_->clk;
   }
-
   pl_->final();
   delete pl_;
 }
