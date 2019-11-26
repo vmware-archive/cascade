@@ -51,23 +51,17 @@ class Machinify {
     // State Machine Construction Helpers:
     class Generate : public Visitor {
       public:
-        typedef typename std::vector<size_t>::const_iterator task_iterator;
-
         Generate(size_t idx);
         ~Generate() override = default;
 
         const SeqBlock* text() const;
         size_t name() const;
-
         size_t final_state() const;
-        task_iterator task_begin() const;
-        task_iterator task_end() const;
 
       private:
         friend class Machinify;
 
         SeqBlock* machine_;
-        std::vector<size_t> task_states_;
         size_t idx_;
         std::pair<size_t, SeqBlock*> current_;
 

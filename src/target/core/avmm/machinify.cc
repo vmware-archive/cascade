@@ -52,14 +52,6 @@ size_t Machinify::Generate::final_state() const {
   return current_.first;
 }
 
-Machinify::Generate::task_iterator Machinify::Generate::task_begin() const {
-  return task_states_.begin();
-}
-
-Machinify::Generate::task_iterator Machinify::Generate::task_end() const {
-  return task_states_.end();
-}
-
 void Machinify::Generate::run(const EventControl* ec, const Statement* s) {
   // Create a state machine with a single state
   machine_ = new SeqBlock();
@@ -118,7 +110,6 @@ void Machinify::Generate::visit(const BlockingAssign* ba) {
     c->get_lhs()->push_front_dim(new Number(Bits(32, idx_)));
     append(c);
     delete c;
-    task_states_.push_back(current_.first);
   }
 
   // NOTE: We have the invariant that our code doesn't have any nested seq
