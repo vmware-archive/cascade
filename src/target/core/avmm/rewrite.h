@@ -65,7 +65,7 @@ class Rewrite {
       void visit(const Event* e) override;
     };
 
-    void emit_state_machine_vars(ModuleDeclaration* res, const Machinify* mfy);
+    void emit_state_machine_vars(ModuleDeclaration* res, const Machinify<T>* mfy);
     void emit_avalon_vars(ModuleDeclaration* res);
     void emit_var_table(ModuleDeclaration* res, const VarTable<V,A,T>* vt);
     void emit_shadow_vars(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt);
@@ -77,10 +77,10 @@ class Rewrite {
 
     void emit_avalon_logic(ModuleDeclaration* res);
     void emit_update_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt);
-    void emit_state_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt, const Machinify* mfy);
+    void emit_state_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt, const Machinify<T>* mfy);
     void emit_trigger_logic(ModuleDeclaration* res, const TriggerIndex* ti);
     void emit_open_loop_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt);
-    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt, const Machinify* mfy, const Identifier* open_loop_clock);
+    void emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt, const Machinify<T>* mfy, const Identifier* open_loop_clock);
     void emit_output_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt);
           
     void emit_subscript(Identifier* id, size_t idx, size_t n, const std::vector<size_t>& arity) const;
@@ -121,7 +121,7 @@ inline std::string Rewrite<M,V,A,T>::run(const ModuleDeclaration* md, size_t slo
   // Emit original program logic
   TextMangle<V,A,T> tm(md, vt);
   md->accept_items(&tm, res->back_inserter_items());
-  Machinify mfy;
+  Machinify<T> mfy;
   mfy.run(res);
 
   emit_state_machine_vars(res, &mfy);
@@ -167,7 +167,7 @@ inline void Rewrite<M,V,A,T>::TriggerIndex::visit(const Event* e) {
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void Rewrite<M,V,A,T>::emit_state_machine_vars(ModuleDeclaration* res, const Machinify* mfy) {
+inline void Rewrite<M,V,A,T>::emit_state_machine_vars(ModuleDeclaration* res, const Machinify<T>* mfy) {
   ItemBuilder ib;
   ib << "reg[" << (std::numeric_limits<T>::digits-1) << ":0] __task_id[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
   ib << "reg[" << (std::numeric_limits<T>::digits-1) << ":0] __state[" << (mfy->end()-mfy->begin()-1) << ":0];" << std::endl;
@@ -384,7 +384,7 @@ inline void Rewrite<M,V,A,T>::emit_update_logic(ModuleDeclaration* res, const Va
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void Rewrite<M,V,A,T>::emit_state_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt, const Machinify* mfy) {
+inline void Rewrite<M,V,A,T>::emit_state_logic(ModuleDeclaration* res, const VarTable<V,A,T>* vt, const Machinify<T>* mfy) {
   ItemBuilder ib;
 
   if (mfy->begin() == mfy->end()) {
@@ -478,7 +478,7 @@ inline void Rewrite<M,V,A,T>::emit_open_loop_logic(ModuleDeclaration* res, const
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void Rewrite<M,V,A,T>::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt, const Machinify* mfy, const Identifier* clock) {
+inline void Rewrite<M,V,A,T>::emit_var_logic(ModuleDeclaration* res, const ModuleDeclaration* md, const VarTable<V,A,T>* vt, const Machinify<T>* mfy, const Identifier* clock) {
   ModuleInfo info(md);
 
   // Index both inputs and stateful elements in the variable table 
