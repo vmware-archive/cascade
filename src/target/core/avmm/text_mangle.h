@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_TEXT_MANGLE_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_TEXT_MANGLE_H
 
+#include <limits>
 #include <stddef.h>
 #include <vector>
 #include "target/core/avmm/var_table.h"
@@ -49,15 +50,15 @@ namespace cascade {
 // 4. System tasks are transformed into state udpate operations
 // 5. Non-blocking assignments are transformed into state update operations
 
-template <typename T>
+template <size_t V, typename A, typename T>
 class TextMangle : public Builder {
   public:
-    TextMangle(const ModuleDeclaration* md, const VarTable<T>* vt);
+    TextMangle(const ModuleDeclaration* md, const VarTable<V,A,T>* vt);
     ~TextMangle() override = default;
 
   private:
     const ModuleDeclaration* md_;
-    const VarTable<T>* vt_;
+    const VarTable<V,A,T>* vt_;
     size_t task_index_;
 
     Attributes* build(const Attributes* as) override;
@@ -79,26 +80,26 @@ class TextMangle : public Builder {
     Expression* get_table_range(const Identifier* r, const Identifier* i);
 };
 
-template <typename T>
-inline TextMangle<T>::TextMangle(const ModuleDeclaration* md, const VarTable<T>* vt) : Builder() {
+template <size_t V, typename A, typename T>
+inline TextMangle<V,A,T>::TextMangle(const ModuleDeclaration* md, const VarTable<V,A,T>* vt) : Builder() {
   md_ = md;
   vt_ = vt;
   task_index_ = 1;
 }
 
-template <typename T>
-inline Attributes* TextMangle<T>::build(const Attributes* as) {
+template <size_t V, typename A, typename T>
+inline Attributes* TextMangle<V,A,T>::build(const Attributes* as) {
   (void) as;
   return new Attributes();
 }
 
-template <typename T>
-inline ModuleItem* TextMangle<T>::build(const RegDeclaration* rd) {
+template <size_t V, typename A, typename T>
+inline ModuleItem* TextMangle<V,A,T>::build(const RegDeclaration* rd) {
   return ModuleInfo(md_).is_stateful(rd->get_id()) ? nullptr : rd->clone();
 }
 
-template <typename T>
-inline ModuleItem* TextMangle<T>::build(const PortDeclaration* pd) {
+template <size_t V, typename A, typename T>
+inline ModuleItem* TextMangle<V,A,T>::build(const PortDeclaration* pd) {
   ModuleInfo info(md_);
   if (info.is_stateful(pd->get_decl()->get_id()) || info.is_input(pd->get_decl()->get_id())) {
     return nullptr;
@@ -107,13 +108,13 @@ inline ModuleItem* TextMangle<T>::build(const PortDeclaration* pd) {
   }
 }
 
-template <typename T>
-inline Expression* TextMangle<T>::build(const FeofExpression* fe) {
+template <size_t V, typename A, typename T>
+inline Expression* TextMangle<V,A,T>::build(const FeofExpression* fe) {
   return new Identifier(new Id("__feof"), fe->clone_fd());
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const BlockingAssign* ba) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const BlockingAssign* ba) {
   // Look up the target of this assignment 
   const auto* r = Resolve().get_resolution(ba->get_lhs());
   assert(r != nullptr);
@@ -126,13 +127,13 @@ inline Statement* TextMangle<T>::build(const BlockingAssign* ba) {
   // Otherwise, replace the original assignment with an assignment to a concatenation
   std::vector<Identifier*> lhs;
   for (size_t i = 0, ie = titr->second.words_per_element; i < ie; ++i) {
-    lhs.push_back(new Identifier(new Id("__var"), new Number(Bits(32, titr->second.begin+ie-i-1))));
+    lhs.push_back(new Identifier(new Id("__var"), new Number(Bits(std::numeric_limits<T>::digits, titr->second.begin+ie-i-1))));
   }
   return new BlockingAssign(lhs.begin(), lhs.end(), ba->get_rhs()->clone());
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const NonblockingAssign* na) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const NonblockingAssign* na) {
   auto* res = new SeqBlock();
 
   // Look up the target of this assignment 
@@ -168,86 +169,86 @@ inline Statement* TextMangle<T>::build(const NonblockingAssign* na) {
   return res;
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const DebugStatement* ds) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const DebugStatement* ds) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const FflushStatement* fs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const FflushStatement* fs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const FinishStatement* fs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const FinishStatement* fs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const FseekStatement* fs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const FseekStatement* fs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const GetStatement* gs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const GetStatement* gs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const PutStatement* ps) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const PutStatement* ps) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const RestartStatement* rs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const RestartStatement* rs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const RetargetStatement* rs) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const RetargetStatement* rs) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Statement* TextMangle<T>::build(const SaveStatement* ss) {
+template <size_t V, typename A, typename T>
+inline Statement* TextMangle<V,A,T>::build(const SaveStatement* ss) {
   return new BlockingAssign(
     new Identifier("__task_id"), 
-    new Number(Bits(32, task_index_++))
+    new Number(Bits(std::numeric_limits<T>::digits, task_index_++))
   );
 }
 
-template <typename T>
-inline Expression* TextMangle<T>::get_table_range(const Identifier* r, const Identifier* i) {
+template <size_t V, typename A, typename T>
+inline Expression* TextMangle<V,A,T>::get_table_range(const Identifier* r, const Identifier* i) {
   // Look up r in the variable table
   const auto titr = vt_->find(r);
   assert(titr != vt_->end());
 
   // Start with an expression for where this variable begins in the variable table
-  Expression* idx = new Number(Bits(32, titr->second.begin));
+  Expression* idx = new Number(Bits(std::numeric_limits<T>::digits, titr->second.begin));
 
   // Now iterate over the arity of r and compute a symbolic expression 
   auto mul = titr->second.elements;
@@ -260,11 +261,11 @@ inline Expression* TextMangle<T>::get_table_range(const Identifier* r, const Ide
       new BinaryExpression(
         (*iitr++)->clone(),
         BinaryExpression::Op::TIMES,
-        new Number(Bits(32, mul*titr->second.words_per_element))
+        new Number(Bits(std::numeric_limits<T>::digits, mul*titr->second.words_per_element))
       )
     );
   }
-  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(32, titr->second.words_per_element)));
+  return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(std::numeric_limits<T>::digits, titr->second.words_per_element)));
 }
 
 } // namespace cascade

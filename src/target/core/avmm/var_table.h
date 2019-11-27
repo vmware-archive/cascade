@@ -42,7 +42,7 @@
 
 namespace cascade {
 
-template <typename T>
+template <size_t V, typename A, typename T>
 class VarTable {
   public:
     // Row Type:
@@ -54,8 +54,8 @@ class VarTable {
     };
 
     // IO Typedefs:
-    typedef std::function<T(size_t)> Read;
-    typedef std::function<void(size_t, T)> Write;
+    typedef std::function<T(A)> Read;
+    typedef std::function<void(A, T)> Write;
 
     // Iterator Typedefs:
     typedef typename std::unordered_map<const Identifier*, const Row>::const_iterator const_iterator;
@@ -104,11 +104,11 @@ class VarTable {
     void write_control_var(size_t index, T val);
 
     // Reads the value of a variable
-    void read_var(const Identifier* id) const; 
+    void read_var(size_t slot, const Identifier* id) const; 
     // Writes the value of a scalar variable
-    void write_var(const Identifier* id, const Bits& val);
+    void write_var(size_t slot, const Identifier* id, const Bits& val);
     // Writes the value of an array variable
-    void write_var(const Identifier* id, const Vector<Bits>& val);
+    void write_var(size_t slot, const Identifier* id, const Vector<Bits>& val);
 
   private:
     Read read_;
@@ -116,33 +116,27 @@ class VarTable {
 
     size_t next_index_;
     std::unordered_map<const Identifier*, const Row> vtable_;
-
-    constexpr size_t bits_per_word() const;
 };
 
-using VarTable16 = VarTable<uint16_t>;
-using VarTable32 = VarTable<uint32_t>;
-using VarTable64 = VarTable<uint64_t>;
-
-template <typename T>
-inline VarTable<T>::VarTable() {
+template <size_t V, typename A, typename T>
+inline VarTable<V,A,T>::VarTable() {
   next_index_ = 0;
 }
 
-template <typename T>
-inline VarTable<T>& VarTable<T>::set_read(Read read) {
+template <size_t V, typename A, typename T>
+inline VarTable<V,A,T>& VarTable<V,A,T>::set_read(Read read) {
   read_ = read;
   return *this;
 }
 
-template <typename T>
-inline VarTable<T>& VarTable<T>::set_write(Write write) {
+template <size_t V, typename A, typename T>
+inline VarTable<V,A,T>& VarTable<V,A,T>::set_write(Write write) {
   write_ = write;
   return *this;
 }
 
-template <typename T>
-inline void VarTable<T>::insert(const Identifier* id) {
+template <size_t V, typename A, typename T>
+inline void VarTable<V,A,T>::insert(const Identifier* id) {
   assert(find(id) == end());
 
   Row row;
@@ -154,110 +148,110 @@ inline void VarTable<T>::insert(const Identifier* id) {
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
   row.bits_per_element = std::max(Evaluate().get_width(r), Evaluate().get_width(id));
-  row.words_per_element = (row.bits_per_element + bits_per_word() - 1) / bits_per_word();
+  row.words_per_element = (row.bits_per_element + std::numeric_limits<T>::digits - 1) / std::numeric_limits<T>::digits;
 
   vtable_.insert(std::make_pair(id, row));
   next_index_ += (row.elements * row.words_per_element);
 }
 
-template <typename T>
-inline size_t VarTable<T>::size() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::size() const {
   return debug_index() + 1;
 }
 
-template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::find(const Identifier* id) const {
+template <size_t V, typename A, typename T>
+inline typename VarTable<V,A,T>::const_iterator VarTable<V,A,T>::find(const Identifier* id) const {
   return vtable_.find(id);
 }
 
-template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::begin() const {
+template <size_t V, typename A, typename T>
+inline typename VarTable<V,A,T>::const_iterator VarTable<V,A,T>::begin() const {
   return vtable_.begin();
 }
 
-template <typename T>
-inline typename VarTable<T>::const_iterator VarTable<T>::end() const {
+template <size_t V, typename A, typename T>
+inline typename VarTable<V,A,T>::const_iterator VarTable<V,A,T>::end() const {
   return vtable_.end();
 }
 
-template <typename T>
-inline size_t VarTable<T>::index(const Identifier* id) const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::index(const Identifier* id) const {
   const auto itr = vtable_.find(id);
   assert(itr != vtable_.end());
   return itr->second.index_;
 }
 
-template <typename T>
-inline size_t VarTable<T>::there_are_updates_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::there_are_updates_index() const {
   return next_index_;
 }
 
-template <typename T>
-inline size_t VarTable<T>::apply_update_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::apply_update_index() const {
   return next_index_ + 1;
 }
 
-template <typename T>
-inline size_t VarTable<T>::there_were_tasks_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::there_were_tasks_index() const {
   return next_index_ + 2;
 }
 
-template <typename T>
-inline size_t VarTable<T>::resume_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::resume_index() const {
   return next_index_ + 3;
 }
 
-template <typename T>
-inline size_t VarTable<T>::reset_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::reset_index() const {
   return next_index_ + 4;
 }
 
-template <typename T>
-inline size_t VarTable<T>::open_loop_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::open_loop_index() const {
   return next_index_ + 5;
 }
 
-template <typename T>
-inline size_t VarTable<T>::feof_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::feof_index() const {
   return next_index_ + 6;
 }
 
-template <typename T>
-inline size_t VarTable<T>::debug_index() const {
+template <size_t V, typename A, typename T>
+inline size_t VarTable<V,A,T>::debug_index() const {
   return next_index_ + 7;
 }
 
-template <typename T>
-inline T VarTable<T>::read_control_var(size_t index) const {
+template <size_t V, typename A, typename T>
+inline T VarTable<V,A,T>::read_control_var(size_t index) const {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
   return read_(index);
 }
 
-template <typename T>
-inline void VarTable<T>::write_control_var(size_t index, T val) {
+template <size_t V, typename A, typename T>
+inline void VarTable<V,A,T>::write_control_var(size_t index, T val) {
   assert(index >= there_are_updates_index());
   assert(index <= debug_index());
   write_(index, val);
 }
 
-template <typename T>
-inline void VarTable<T>::read_var(const Identifier* id) const {
+template <size_t V, typename A, typename T>
+inline void VarTable<V,A,T>::read_var(size_t slot, const Identifier* id) const {
   const auto itr = vtable_.find(id);
   assert(itr != vtable_.end());
 
   auto idx = itr->second.begin;
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
-      const volatile auto word = read_(idx);
+      const volatile auto word = read_((slot << V) | idx);
       Evaluate().assign_word<T>(id, i, j, word);
       ++idx;
     } 
   }
 }
 
-template <typename T>
-inline void VarTable<T>::write_var(const Identifier* id, const Bits& val) {
+template <size_t V, typename A, typename T>
+inline void VarTable<V,A,T>::write_var(size_t slot, const Identifier* id, const Bits& val) {
   const auto itr = vtable_.find(id);
   assert(itr != vtable_.end());
   assert(itr->second.elements == 1);
@@ -265,13 +259,13 @@ inline void VarTable<T>::write_var(const Identifier* id, const Bits& val) {
   auto idx = itr->second.begin;
   for (size_t j = 0; j < itr->second.words_per_element; ++j) {
     const volatile auto word = val.read_word<T>(j);
-    write_(idx, word);
+    write_((slot << V) | idx, word);
     ++idx;
   }
 }
 
-template <typename T>
-inline void VarTable<T>::write_var(const Identifier* id, const Vector<Bits>& val) {
+template <size_t V, typename A, typename T>
+inline void VarTable<V,A,T>::write_var(size_t slot, const Identifier* id, const Vector<Bits>& val) {
   const auto itr = vtable_.find(id);
   assert(itr != vtable_.end());
   assert(val.size() == itr->second.elements);
@@ -280,15 +274,10 @@ inline void VarTable<T>::write_var(const Identifier* id, const Vector<Bits>& val
   for (size_t i = 0; i < itr->second.elements; ++i) {
     for (size_t j = 0; j < itr->second.words_per_element; ++j) {
       const volatile auto word = val[i].read_word<T>(j);
-      write_(idx, word);
+      write_((slot << V) | idx, word);
       ++idx;
     }
   }
-}
-
-template <typename T>
-inline constexpr size_t VarTable<T>::bits_per_word() const {
-  return 8*sizeof(T);
 }
 
 } // namespace cascade

@@ -40,7 +40,7 @@ namespace cascade {
 
 class Cascade;
 
-class AvalonCompiler : public AvmmCompiler<uint32_t> {
+class AvalonCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
   public:
     AvalonCompiler();
     ~AvalonCompiler() override;

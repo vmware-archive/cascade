@@ -50,7 +50,7 @@ constexpr auto PAD_PIO_BASE = 0x00004000u;
 constexpr auto GPIO_PIO_BASE = 0x00005000u;
 constexpr auto LOG_PIO_BASE = 0x00040000u;
 
-De10Compiler::De10Compiler() : AvmmCompiler<uint32_t>() { 
+De10Compiler::De10Compiler() : AvmmCompiler<2,12,uint16_t,uint32_t>() { 
   fd_ = open("/dev/mem", (O_RDWR | O_SYNC));
   if (fd_ == -1) {
     virtual_base_ = reinterpret_cast<volatile uint8_t*>(MAP_FAILED);
@@ -84,7 +84,7 @@ De10Compiler& De10Compiler::set_port(uint32_t port) {
 
 De10Logic* De10Compiler::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
   volatile uint8_t* addr = virtual_base_+((ALT_LWFPGALVS_OFST + LOG_PIO_BASE) & HW_REGS_MASK) + (slot << 14);
-  return new De10Logic(interface, md, addr);
+  return new De10Logic(interface, md, slot, addr);
 }
 
 bool De10Compiler::compile(const string& text, mutex& lock) {

@@ -31,7 +31,9 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVMM_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVMM_COMPILER_H
 
+#include <cmath>
 #include <condition_variable>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <sstream>
@@ -49,7 +51,7 @@
 
 namespace cascade {
 
-template <typename T>
+template <size_t M, size_t V, typename A, typename T>
 class AvmmCompiler : public CoreCompiler {
   public:
     AvmmCompiler();
@@ -63,7 +65,7 @@ class AvmmCompiler : public CoreCompiler {
     //
     // This method should perform whatever target-specific logic is necessary
     // to return an instance of an AvmmLogic. 
-    virtual AvmmLogic<T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) = 0;
+    virtual AvmmLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) = 0;
     // This method should perform whatever target-specific logic is necessary
     // to stop any previous compilations and compile text to a device. This
     // method is called in a context where it holds the global lock on this
@@ -98,7 +100,7 @@ class AvmmCompiler : public CoreCompiler {
     std::vector<Slot> slots_;
 
     // Core Compiler Interface:
-    AvmmLogic<T>* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
+    AvmmLogic<V,A,T>* compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) override;
 
     // Slot Management Helpers:
     int get_free() const;
@@ -109,13 +111,14 @@ class AvmmCompiler : public CoreCompiler {
     std::string get_text();
 };
 
-template <typename T>
-inline AvmmCompiler<T>::AvmmCompiler() : CoreCompiler() {
-  slots_.resize(4, {0, State::FREE, ""});
+template <size_t M, size_t V, typename A, typename T>
+inline AvmmCompiler<M,V,A,T>::AvmmCompiler() : CoreCompiler() {
+  const auto num_slots = T(1) << M;
+  slots_.resize(num_slots, {0, State::FREE, ""});
 }
 
-template <typename T>
-inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
+template <size_t M, size_t V, typename A, typename T>
+inline void AvmmCompiler<M,V,A,T>::stop_compile(Engine::Id id) {
   std::lock_guard<std::mutex> lg(lock_);
 
   // Free any slot with this id which is in the compiling or waiting state. 
@@ -156,18 +159,18 @@ inline void AvmmCompiler<T>::stop_compile(Engine::Id id) {
   cv_.notify_all();
 }
 
-template <typename T>
-inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
+template <size_t M, size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>* AvmmCompiler<M,V,A,T>::compile_logic(Engine::Id id, ModuleDeclaration* md, Interface* interface) {
   std::unique_lock<std::mutex> lg(lock_);
   ModuleInfo info(md);
 
   // Check for unsupported language features
   auto unsupported = false;
   if (info.uses_mixed_triggers()) {
-    get_compiler()->error("Avmm backends do not currently support code with mixed triggers!");
+    get_compiler()->error("Avmm backend does not currently support code with mixed triggers!");
     unsupported = true;
   } else if (!info.implied_latches().empty()) {
-    get_compiler()->error("Avmm backends do not currently support the use of implied latches!");
+    get_compiler()->error("Avmm backend does not currently support the use of implied latches!");
     unsupported = true;
   }
   if (unsupported) {
@@ -212,8 +215,12 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   al->index_tasks();
   // Check table and index sizes. If this program uses too much state, we won't
   // be able to uniquely name its elements using our current addressing scheme.
-  if (al->get_table()->size() >= 0x1000) {
-    get_compiler()->error("Avmm backends do not currently support more than 4096 entries in variable table");
+
+  const auto max_vars = T(1) << V;
+  if (al->get_table()->size() >= max_vars) {
+    std::stringstream ss;
+    ss << "Avmm backend does not currently support more than " << max_vars << " entries in variable table";
+    get_compiler()->error(ss.str());
     delete al;
     return nullptr;
   }
@@ -231,7 +238,7 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   // This slot is now the compile lead
   slots_[slot].id = id;
   slots_[slot].state = State::COMPILING;
-  slots_[slot].text = Rewrite<T>().run(md, slot, al->get_table(), al->open_loop_clock());
+  slots_[slot].text = Rewrite<M,V,A,T>().run(md, slot, al->get_table(), al->open_loop_clock());
   // Enter into compilation state machine. Control will exit from this loop
   // either when compilation succeeds or is aborted.
   while (true) {
@@ -259,8 +266,8 @@ inline AvmmLogic<T>* AvmmCompiler<T>::compile_logic(Engine::Id id, ModuleDeclara
   }
 }
 
-template <typename T>
-inline int AvmmCompiler<T>::get_free() const {
+template <size_t M, size_t V, typename A, typename T>
+inline int AvmmCompiler<M,V,A,T>::get_free() const {
   for (size_t i = 0, ie = slots_.size(); i < ie; ++i) {
     if (slots_[i].state == State::FREE) {
       return i;
@@ -269,8 +276,8 @@ inline int AvmmCompiler<T>::get_free() const {
   return -1;
 }
 
-template <typename T>
-inline void AvmmCompiler<T>::release(size_t slot) {
+template <size_t M, size_t V, typename A, typename T>
+inline void AvmmCompiler<M,V,A,T>::release(size_t slot) {
   // Return this slot to the pool if necessary. This method is only invoked on
   // successfully compiled cores, which means we don't have to worry about
   // transfering compilation ownership or invoking stop_compile.
@@ -280,8 +287,8 @@ inline void AvmmCompiler<T>::release(size_t slot) {
   cv_.notify_all();
 }
 
-template <typename T>
-inline void AvmmCompiler<T>::update() {
+template <size_t M, size_t V, typename A, typename T>
+inline void AvmmCompiler<M,V,A,T>::update() {
   for (auto& s : slots_) {
     if ((s.state == State::COMPILING) || (s.state == State::WAITING)) {
       s.state = State::CURRENT;
@@ -290,8 +297,8 @@ inline void AvmmCompiler<T>::update() {
   cv_.notify_all();
 }
 
-template <typename T>
-inline std::string AvmmCompiler<T>::get_text() {
+template <size_t M, size_t V, typename A, typename T>
+inline std::string AvmmCompiler<M,V,A,T>::get_text() {
   std::stringstream ss;
   indstream os(ss);
 
@@ -315,26 +322,26 @@ inline std::string AvmmCompiler<T>::get_text() {
   os << "input wire clk," << std::endl;
   os << "input wire reset," << std::endl;
   os << std::endl;
-  os << "input wire[15:0]  s0_address," << std::endl;
-  os << "input wire        s0_read," << std::endl;
-  os << "input wire        s0_write," << std::endl;
+  os << "input wire[" << (std::numeric_limits<A>::digits-1) << ":0]  s0_address," << std::endl;
+  os << "input wire s0_read," << std::endl;
+  os << "input wire s0_write," << std::endl;
   os << std::endl;
-  os << "output wire[31:0] s0_readdata," << std::endl;
-  os << "input  wire[31:0] s0_writedata," << std::endl;
+  os << "output wire[" << (std::numeric_limits<T>::digits-1) << ":0] s0_readdata," << std::endl;
+  os << "input  wire[" << (std::numeric_limits<T>::digits-1) << ":0] s0_writedata," << std::endl;
   os << std::endl;
-  os << "output wire       s0_waitrequest" << std::endl;
+  os << "output wire s0_waitrequest" << std::endl;
   os.untab();
   os << ");" << std::endl;
   os.tab();
 
   os << "// Unpack address into module id and variable id" << std::endl;
-  os << "wire [1:0] __mid = s0_address[13:12];" << std::endl;
-  os << "wire[11:0] __vid = s0_address[11: 0];" << std::endl;
+  os << "wire[" << (M-1) << ":0] __mid = s0_address[" << (V+M-1) << ":" << V << "];" << std::endl;
+  os << "wire[" << (V-1) << ":0] __vid = s0_address[" << (V-1) << ":0];" << std::endl;
 
   os << "// Module Instantiations:" << std::endl;
   for (const auto& s : text) {
-    os << "wire[31:0] m" << s.first << "_out;" << std::endl;
-    os << "wire       m" << s.first << "_wait;" << std::endl;
+    os << "wire[" << (std::numeric_limits<T>::digits-1) << ":0] m" << s.first << "_out;" << std::endl;
+    os << "wire m" << s.first << "_wait;" << std::endl;
     os << "M" << s.first << " m" << s.first << "(" << std::endl;
     os.tab();
     os << ".__clk(clk)," << std::endl;
@@ -349,7 +356,7 @@ inline std::string AvmmCompiler<T>::get_text() {
   }
 
   os << "// Output Demuxing:" << std::endl;
-  os << "reg[31:0] rd;" << std::endl;
+  os << "reg[" << (std::numeric_limits<T>::digits-1) << ":0] rd;" << std::endl;
   os << "reg wr;" << std::endl;
   os << "always @(*) begin" << std::endl;
   os.tab();

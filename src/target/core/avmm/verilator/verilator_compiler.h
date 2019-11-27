@@ -38,7 +38,7 @@
 
 namespace cascade {
 
-class VerilatorCompiler : public AvmmCompiler<uint32_t> {
+class VerilatorCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
   public:
     VerilatorCompiler();
     ~VerilatorCompiler() override;

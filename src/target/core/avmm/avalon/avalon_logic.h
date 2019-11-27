@@ -37,7 +37,7 @@ namespace cascade {
 
 class syncbuf; 
 
-class AvalonLogic : public AvmmLogic<uint32_t> {
+class AvalonLogic : public AvmmLogic<12,uint16_t,uint32_t> {
   public:
     AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps);
     virtual ~AvalonLogic() override = default;

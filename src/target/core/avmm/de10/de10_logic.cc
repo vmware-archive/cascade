@@ -33,13 +33,13 @@
 
 namespace cascade {
 
-De10Logic::De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr) : AvmmLogic<uint32_t>(interface, md) { 
-  get_table()->set_read([addr](size_t index) {
-    auto* maddr = reinterpret_cast<volatile uint8_t*>((size_t)addr + (index << 2));
+De10Logic::De10Logic(Interface* interface, ModuleDeclaration* md, size_t slot, volatile uint8_t* addr) : AvmmLogic<12,uint16_t,uint32_t>(interface, md, slot) { 
+  get_table()->set_read([addr](uint16_t index) {
+    auto* maddr = reinterpret_cast<volatile uint8_t*>(addr + (index << 2));
     return DE10_READ(maddr);
   });
-  get_table()->set_write([addr](size_t index, uint32_t val) {
-    auto* maddr = reinterpret_cast<volatile uint8_t*>((size_t)addr + (index << 2));
+  get_table()->set_write([addr](uint16_t index, uint32_t val) {
+    auto* maddr = reinterpret_cast<volatile uint8_t*>(addr + (index << 2));
     DE10_WRITE(maddr, val);
   });
 }

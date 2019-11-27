@@ -33,14 +33,12 @@
 
 namespace cascade {
 
-VerilatorLogic::VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot, VerilatorCompiler* vc) : AvmmLogic<uint32_t>(interface, md) {
-  get_table()->set_read([slot, vc](size_t index) {
-    const auto addr = index | (slot << 12);
-    return vc->read(addr);
+VerilatorLogic::VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot, VerilatorCompiler* vc) : AvmmLogic<12,uint16_t,uint32_t>(interface, md, slot) {
+  get_table()->set_read([vc](uint16_t index) {
+    return vc->read(index);
   });
-  get_table()->set_write([slot, vc](size_t index, uint32_t val) {
-    const auto addr = index | (slot << 12);
-    vc->write(addr, val);
+  get_table()->set_write([vc](uint16_t index, uint32_t val) {
+    vc->write(index, val);
   });
 }
 

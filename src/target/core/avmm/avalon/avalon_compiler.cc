@@ -38,7 +38,7 @@ using namespace std;
 
 namespace cascade {
 
-AvalonCompiler::AvalonCompiler() : AvmmCompiler<uint32_t>() {
+AvalonCompiler::AvalonCompiler() : AvmmCompiler<2,12,uint16_t,uint32_t>() {
   cascade_ = nullptr;
 }
 

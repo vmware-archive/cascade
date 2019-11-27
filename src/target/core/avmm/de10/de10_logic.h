@@ -35,10 +35,10 @@
 
 namespace cascade {
 
-class De10Logic : public AvmmLogic<uint32_t> {
+class De10Logic : public AvmmLogic<12,uint16_t,uint32_t> {
   public:
     // Constructors:
-    De10Logic(Interface* interface, ModuleDeclaration* md, volatile uint8_t* addr);
+    De10Logic(Interface* interface, ModuleDeclaration* md, size_t slot, volatile uint8_t* addr);
     ~De10Logic() override = default;
 };
 

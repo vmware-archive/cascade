@@ -50,14 +50,14 @@
 
 namespace cascade {
 
-template <typename T>
+template <size_t V, typename A, typename T>
 class AvmmLogic : public Logic {
   public:
     // Typedefs:
     typedef std::function<void()> Callback;
 
     // Constructors:
-    AvmmLogic(Interface* interface, ModuleDeclaration* md);
+    AvmmLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
     ~AvmmLogic() override;
 
     // Configuration Methods:
@@ -68,8 +68,8 @@ class AvmmLogic : public Logic {
     AvmmLogic& set_callback(Callback cb);
 
     // Configuraton Properties:
-    VarTable<T>* get_table();
-    const VarTable<T>* get_table() const;
+    VarTable<V,A,T>* get_table();
+    const VarTable<V,A,T>* get_table() const;
 
     // Core Interface:
     State* get_state() override;
@@ -92,6 +92,7 @@ class AvmmLogic : public Logic {
   private:
     // Compiler State:
     Callback cb_;
+    size_t slot_;
 
     // Source Management:
     ModuleDeclaration* src_;
@@ -102,7 +103,7 @@ class AvmmLogic : public Logic {
 
     // Control State:
     bool there_were_tasks_;
-    VarTable<T> table_;
+    VarTable<V,A,T> table_;
     std::unordered_map<FId, interfacestream*> streams_;
     std::vector<std::pair<FId, interfacestream*>> stream_cache_;
 
@@ -153,15 +154,16 @@ class AvmmLogic : public Logic {
     Printf printf_;
 };
 
-template <typename T>
-inline AvmmLogic<T>::AvmmLogic(Interface* interface, ModuleDeclaration* src) : Logic(interface), sync_(this) { 
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>::AvmmLogic(Interface* interface, ModuleDeclaration* src, size_t slot) : Logic(interface), sync_(this) { 
   src_ = src;
   cb_ = nullptr;
+  slot_ = slot;
   tasks_.push_back(nullptr);
 }
 
-template <typename T>
-inline AvmmLogic<T>::~AvmmLogic() {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>::~AvmmLogic() {
   if (cb_ != nullptr) {
     cb_();
   }
@@ -171,8 +173,8 @@ inline AvmmLogic<T>::~AvmmLogic() {
   }
 }
 
-template <typename T>
-inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>& AvmmLogic<V,A,T>::set_input(const Identifier* id, VId vid) {
   if (table_.find(id) == table_.end()) {
     table_.insert(id);
   }
@@ -183,8 +185,8 @@ inline AvmmLogic<T>& AvmmLogic<T>::set_input(const Identifier* id, VId vid) {
   return *this;
 }
 
-template <typename T>
-inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>& AvmmLogic<V,A,T>::set_state(const Identifier* id, VId vid) {
   if (table_.find(id) == table_.end()) {
     table_.insert(id);
   }   
@@ -192,8 +194,8 @@ inline AvmmLogic<T>& AvmmLogic<T>::set_state(const Identifier* id, VId vid) {
   return *this;
 }
 
-template <typename T>
-inline AvmmLogic<T>& AvmmLogic<T>::set_output(const Identifier* id, VId vid) {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>& AvmmLogic<V,A,T>::set_output(const Identifier* id, VId vid) {
   if (table_.find(id) == table_.end()) { 
     table_.insert(id);
   }
@@ -201,68 +203,68 @@ inline AvmmLogic<T>& AvmmLogic<T>::set_output(const Identifier* id, VId vid) {
   return *this;
 }
 
-template <typename T>
-inline AvmmLogic<T>& AvmmLogic<T>::index_tasks() {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>& AvmmLogic<V,A,T>::index_tasks() {
   Inserter i(this);
   src_->accept(&i);
   return *this;
 }
 
-template <typename T>
-inline AvmmLogic<T>& AvmmLogic<T>::set_callback(Callback cb) {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>& AvmmLogic<V,A,T>::set_callback(Callback cb) {
   cb_ = cb;
   return *this;
 }
 
-template <typename T>
-inline VarTable<T>* AvmmLogic<T>::get_table() {
+template <size_t V, typename A, typename T>
+inline VarTable<V,A,T>* AvmmLogic<V,A,T>::get_table() {
   return &table_;
 }
 
-template <typename T>
-inline const VarTable<T>* AvmmLogic<T>::get_table() const {
+template <size_t V, typename A, typename T>
+inline const VarTable<V,A,T>* AvmmLogic<V,A,T>::get_table() const {
   return &table_;
 }
 
-template <typename T>
-inline State* AvmmLogic<T>::get_state() {
+template <size_t V, typename A, typename T>
+inline State* AvmmLogic<V,A,T>::get_state() {
   auto* s = new State();
   for (const auto& sv : state_) {
-    table_.read_var(sv.second);
+    table_.read_var(slot_, sv.second);
     s->insert(sv.first, eval_.get_array_value(sv.second));
   }
   return s;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::set_state(const State* s) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::set_state(const State* s) {
   table_.write_control_var(table_.reset_index(), 1);
   for (const auto& sv : state_) {
     const auto itr = s->find(sv.first);
     if (itr != s->end()) {
-      table_.write_var(sv.second, itr->second);
+      table_.write_var(slot_, sv.second, itr->second);
     }
   }
   table_.write_control_var(table_.reset_index(), 1);
   table_.write_control_var(table_.resume_index(), 1);
 }
 
-template <typename T>
-inline Input* AvmmLogic<T>::get_input() {
+template <size_t V, typename A, typename T>
+inline Input* AvmmLogic<V,A,T>::get_input() {
   auto* i = new Input();
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
     if (id == nullptr) {
       continue;
     }
-    table_.read_var(id);
+    table_.read_var(slot_, id);
     i->insert(v, eval_.get_value(id));
   }
   return i;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::set_input(const Input* i) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::set_input(const Input* i) {
   table_.write_control_var(table_.reset_index(), 1);
   for (size_t v = 0, ve = inputs_.size(); v < ve; ++v) {
     const auto* id = inputs_[v];
@@ -271,15 +273,15 @@ inline void AvmmLogic<T>::set_input(const Input* i) {
     }
     const auto itr = i->find(v);
     if (itr != i->end()) {
-      table_.write_var(id, itr->second);
+      table_.write_var(slot_, id, itr->second);
     }
   }
   table_.write_control_var(table_.reset_index(), 1);
   table_.write_control_var(table_.resume_index(), 1);
 }
 
-template <typename T>
-inline void AvmmLogic<T>::finalize() {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::finalize() {
   // Iterate over tasks. Now that we have the program state in place, we can
   // cache pointers to streams to make system task handling faster. Remember,
   // the task index starts from 1.
@@ -309,44 +311,43 @@ inline void AvmmLogic<T>::finalize() {
   }
 }
 
-template <typename T>
-inline void AvmmLogic<T>::read(VId id, const Bits* b) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::read(VId id, const Bits* b) {
   assert(id < inputs_.size());
   assert(inputs_[id] != nullptr);
-  table_.write_var(inputs_[id], *b);
+  table_.write_var(slot_, inputs_[id], *b);
 }
 
-template <typename T>
-inline void AvmmLogic<T>::evaluate() {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::evaluate() {
   there_were_tasks_ = false;
   while (handle_tasks()) {
     table_.write_control_var(table_.resume_index(), 1);
   }
   for (const auto& o : outputs_) {
-    table_.read_var(o.first);
+    table_.read_var(slot_, o.first);
     interface()->write(o.second, &eval_.get_value(o.first));
   }
 }
 
-template <typename T>
-inline bool AvmmLogic<T>::there_are_updates() const {
-  // Read there_are_updates flag
+template <size_t V, typename A, typename T>
+inline bool AvmmLogic<V,A,T>::there_are_updates() const {
   return table_.read_control_var(table_.there_are_updates_index()) != 0;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::update() {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::update() {
   table_.write_control_var(table_.apply_update_index(), 1);
   evaluate();
 }
 
-template <typename T>
-inline bool AvmmLogic<T>::there_were_tasks() const {
+template <size_t V, typename A, typename T>
+inline bool AvmmLogic<V,A,T>::there_were_tasks() const {
   return there_were_tasks_;
 }
 
-template <typename T>
-inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
+template <size_t V, typename A, typename T>
+inline size_t AvmmLogic<V,A,T>::open_loop(VId clk, bool val, size_t itr) {
   // The fpga already knows the value of clk. We can ignore it.
   (void) clk;
   (void) val;
@@ -377,8 +378,8 @@ inline size_t AvmmLogic<T>::open_loop(VId clk, bool val, size_t itr) {
   }
 }
 
-template <typename T>
-inline const Identifier* AvmmLogic<T>::open_loop_clock() {
+template <size_t V, typename A, typename T>
+inline const Identifier* AvmmLogic<V,A,T>::open_loop_clock() {
   ModuleInfo info(src_);
   if (info.inputs().size() != 1) {
     return nullptr;
@@ -392,8 +393,8 @@ inline const Identifier* AvmmLogic<T>::open_loop_clock() {
   return *ModuleInfo(src_).inputs().begin();
 }
 
-template <typename T>
-inline bool AvmmLogic<T>::is_constant(const Expression* e) const {
+template <size_t V, typename A, typename T>
+inline bool AvmmLogic<V,A,T>::is_constant(const Expression* e) const {
   // Numbers are constants
   if (e->is(Node::Tag::number)) {
     return true;
@@ -449,8 +450,8 @@ inline bool AvmmLogic<T>::is_constant(const Expression* e) const {
   return true;
 }
 
-template <typename T>
-inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
+template <size_t V, typename A, typename T>
+inline interfacestream* AvmmLogic<V,A,T>::get_stream(FId fd) {
   const auto itr = streams_.find(fd);
   if (itr != streams_.end()) {
     return itr->second;
@@ -460,13 +461,13 @@ inline interfacestream* AvmmLogic<T>::get_stream(FId fd) {
   return is;
 }
 
-template <typename T>
-inline bool AvmmLogic<T>::handle_tasks() {
+template <size_t V, typename A, typename T>
+inline bool AvmmLogic<V,A,T>::handle_tasks() {
   volatile auto task_id = table_.read_control_var(table_.there_were_tasks_index());
   if (task_id == 0) {
     return false;
   }
-  assert(task_id != -1);
+  assert(task_id != T(-1));
   const auto* task = tasks_[task_id];
 
   switch (task->get_tag()) {
@@ -531,7 +532,7 @@ inline bool AvmmLogic<T>::handle_tasks() {
       if (gs->is_non_null_var()) {
         const auto* r = Resolve().get_resolution(gs->get_var());
         assert(r != nullptr);
-        table_.write_var(r, scanf_.get());
+        table_.write_var(slot_, r, scanf_.get());
       }
       if (is.second->eof()) {
         table_.write_control_var(table_.feof_index(), (is.first << 1) | 1);
@@ -581,14 +582,14 @@ inline bool AvmmLogic<T>::handle_tasks() {
   return true;
 }
 
-template <typename T>
-inline AvmmLogic<T>::Inserter::Inserter(AvmmLogic* av) : Visitor() {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>::Inserter::Inserter(AvmmLogic* av) : Visitor() {
   av_ = av;
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const Identifier* id) {
   Visitor::visit(id);
   const auto* r = Resolve().get_resolution(id);
   if (in_args_ && (av_->table_.find(r) == av_->table_.end())) {
@@ -596,54 +597,54 @@ inline void AvmmLogic<T>::Inserter::visit(const Identifier* id) {
   }
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const FeofExpression* fe) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const FeofExpression* fe) {
   // Don't insert this into the task index
   in_args_ = true;
   fe->accept_fd(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const DebugStatement* ds) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const DebugStatement* ds) {
   av_->tasks_.push_back(ds);
   // Don't descend, there aren't any expressions below here
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const FflushStatement* fs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const FflushStatement* fs) {
   av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const FinishStatement* fs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const FinishStatement* fs) {
   av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_arg(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const FseekStatement* fs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const FseekStatement* fs) {
   av_->tasks_.push_back(fs);
   in_args_ = true;
   fs->accept_fd(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const GetStatement* gs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const GetStatement* gs) {
   av_->tasks_.push_back(gs);
   in_args_ = true;
   gs->accept_fd(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const PutStatement* ps) {
   av_->tasks_.push_back(ps);
   in_args_ = true;
   ps->accept_fd(this);
@@ -651,42 +652,42 @@ inline void AvmmLogic<T>::Inserter::visit(const PutStatement* ps) {
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const RestartStatement* rs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const RestartStatement* rs) {
   av_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const RetargetStatement* rs) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const RetargetStatement* rs) {
   av_->tasks_.push_back(rs);
   in_args_ = true;
   rs->accept_arg(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Inserter::visit(const SaveStatement* ss) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Inserter::visit(const SaveStatement* ss) {
   av_->tasks_.push_back(ss);
   in_args_ = true;
   ss->accept_arg(this);
   in_args_ = false;
 }
 
-template <typename T>
-inline AvmmLogic<T>::Sync::Sync(AvmmLogic* av) : Visitor() {
+template <size_t V, typename A, typename T>
+inline AvmmLogic<V,A,T>::Sync::Sync(AvmmLogic* av) : Visitor() {
   av_ = av;
 }
 
-template <typename T>
-inline void AvmmLogic<T>::Sync::visit(const Identifier* id) {
+template <size_t V, typename A, typename T>
+inline void AvmmLogic<V,A,T>::Sync::visit(const Identifier* id) {
   id->accept_dim(this);
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
   assert(av_->table_.find(r) != av_->table_.end());
-  av_->table_.read_var(r);
+  av_->table_.read_var(av_->slot_, r);
 }
 
 } // namespace cascade

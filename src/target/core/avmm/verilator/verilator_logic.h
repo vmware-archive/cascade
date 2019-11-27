@@ -37,7 +37,7 @@ namespace cascade {
 
 class VerilatorCompiler;
 
-class VerilatorLogic : public AvmmLogic<uint32_t> {
+class VerilatorLogic : public AvmmLogic<12,uint16_t,uint32_t> {
   public:
     VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot, VerilatorCompiler* vc);
     virtual ~VerilatorLogic() override = default;

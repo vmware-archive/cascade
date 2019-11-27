@@ -38,7 +38,7 @@ using namespace std;
 
 namespace cascade {
 
-VerilatorCompiler::VerilatorCompiler() : AvmmCompiler<uint32_t>() {
+VerilatorCompiler::VerilatorCompiler() : AvmmCompiler<2,12,uint16_t,uint32_t>() {
   handle_ = nullptr;
 }
 
