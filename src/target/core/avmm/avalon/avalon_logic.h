@@ -31,17 +31,43 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_LOGIC_H
 
+#include "target/core/avmm/avalon/avalon_logic.h"
+#include "target/core/avmm/avalon/syncbuf.h"
 #include "target/core/avmm/avmm_logic.h"
 
 namespace cascade {
 
-class syncbuf; 
-
-class AvalonLogic : public AvmmLogic<12,uint16_t,uint32_t> {
+template <size_t V, typename A, typename T>
+class AvalonLogic : public AvmmLogic<V,A,T> {
   public:
     AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps);
     virtual ~AvalonLogic() override = default;
 };
+
+template <size_t V, typename A, typename T>
+inline AvalonLogic<V,A,T>::AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps) : AvmmLogic<V,A,T>(interface, md, slot) {
+  AvmmLogic<V,A,T>::get_table()->set_read([slot, reqs, resps](A index) {
+    uint8_t bytes[7];
+    bytes[0] = 2;
+    bytes[1] = index >> 8;
+    bytes[2] = index;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 3);
+    resps->waitforn(reinterpret_cast<char*>(bytes), 4);
+    return (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
+  });
+  AvmmLogic<V,A,T>::get_table()->set_write([slot, reqs](A index, T val) {
+    uint8_t bytes[7];
+    const uint32_t data = val;
+    bytes[0] = 1;
+    bytes[1] = index >> 8;
+    bytes[2] = index;
+    bytes[3] = data >> 24;
+    bytes[4] = data >> 16;
+    bytes[5] = data >> 8;
+    bytes[6] = data;
+    reqs->sputn(reinterpret_cast<const char*>(bytes), 7);
+  });
+}
 
 } // namespace cascade
 

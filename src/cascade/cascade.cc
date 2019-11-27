@@ -48,7 +48,8 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   set_enable_inlining(true);
   set_open_loop_target(1);
 
-  runtime_.get_compiler()->set("avalon", new AvalonCompiler());
+  runtime_.get_compiler()->set("avalon32", new Avalon32Compiler());
+  runtime_.get_compiler()->set("avalon64", new Avalon64Compiler());
   runtime_.get_compiler()->set("de10", new De10Compiler());
   runtime_.get_compiler()->set("proxy", new ProxyCompiler());
   runtime_.get_compiler()->set("sw", new SwCompiler());

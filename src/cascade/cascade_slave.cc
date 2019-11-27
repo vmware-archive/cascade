@@ -43,7 +43,8 @@ namespace cascade {
 CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
 
-  remote_compiler_.set("avalon", new AvalonCompiler());
+  remote_compiler_.set("avalon32", new Avalon32Compiler());
+  remote_compiler_.set("avalon64", new Avalon64Compiler());
   remote_compiler_.set("de10", new De10Compiler());
   remote_compiler_.set("proxy", new ProxyCompiler());
   remote_compiler_.set("sw", new SwCompiler());

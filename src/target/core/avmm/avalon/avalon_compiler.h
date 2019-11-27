@@ -31,6 +31,9 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 
+#include <fstream>
+#include "cascade/cascade.h"
+#include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/avalon/avalon_logic.h"
 #include "target/core/avmm/avalon/syncbuf.h"
@@ -38,16 +41,15 @@
 
 namespace cascade {
 
-class Cascade;
-
-class AvalonCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
+template <size_t M, size_t V, typename A, typename T>
+class AvalonCompiler : public AvmmCompiler<M,V,A,T> {
   public:
     AvalonCompiler();
     ~AvalonCompiler() override;
 
   private:
     // Avmm Compiler Interface:
-    AvalonLogic* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
+    AvalonLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
     bool compile(const std::string& text, std::mutex& lock) override;
     void stop_compile() override;
 
@@ -58,6 +60,60 @@ class AvalonCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
     syncbuf reqs_;
     syncbuf resps_;
 };
+
+using Avalon32Compiler = AvalonCompiler<2,12,uint16_t,uint32_t>;
+using Avalon64Compiler = AvalonCompiler<8,20,uint32_t,uint64_t>;
+
+template <size_t M, size_t V, typename A, typename T>
+inline AvalonCompiler<M,V,A,T>::AvalonCompiler() : AvmmCompiler<M,V,A,T>() {
+  cascade_ = nullptr;
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline AvalonCompiler<M,V,A,T>::~AvalonCompiler() {
+  if (cascade_ != nullptr) {
+    delete cascade_;
+  }
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline AvalonLogic<V,A,T>* AvalonCompiler<M,V,A,T>::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  return new AvalonLogic<V,A,T>(interface, md, slot, &reqs_, &resps_);
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
+  (void) lock;
+  AvalonCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
+    std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
+    ofs << text << std::endl;
+    ofs.close();
+  
+    if (cascade_ != nullptr) {
+      delete cascade_;
+    }
+    cascade_ = new Cascade();
+    cascade_->set_stdout(std::cout.rdbuf());
+    cascade_->set_stderr(std::cout.rdbuf());
+
+    const auto ifd = cascade_->open(&reqs_);
+    const auto ofd = cascade_->open(&resps_);
+
+    cascade_->run();
+    *cascade_ << "`include \"data/march/minimal.v\"\n";
+    *cascade_ << "integer ifd = " << ifd << ";\n";
+    *cascade_ << "integer ofd = " << ofd << ";\n";
+    *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon_wrapper.v\"\n";
+    *cascade_ << std::endl;
+  });
+
+  return true;
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline void AvalonCompiler<M,V,A,T>::stop_compile() {
+  // Does nothing. 
+}
 
 } // namespace cascade
 
