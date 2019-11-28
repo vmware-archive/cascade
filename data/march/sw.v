@@ -1,5 +1,5 @@
-`ifndef __CASCADE_DATA_MARCH_SW64_V
-`define __CASCADE_DATA_MARCH_SW64_V
+`ifndef __CASCADE_DATA_MARCH_SW_V
+`define __CASCADE_DATA_MARCH_SW_V
 
 `include "data/stdlib/stdlib.v"
 
