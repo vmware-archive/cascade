@@ -393,7 +393,7 @@ void Module::compile_and_replace(size_t ignore) {
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. 
-  if (jit && (e_fast != nullptr)) {
+  if (jit && !engine_->is_stub() && (e_fast != nullptr)) {
     rt_->schedule_asynchronous(Runtime::Asynchronous([this, this_version, md2, fid]{
       stringstream ss;
       ss << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
