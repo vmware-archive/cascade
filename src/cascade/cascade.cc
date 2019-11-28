@@ -53,7 +53,8 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   runtime_.get_compiler()->set("de10", new De10Compiler());
   runtime_.get_compiler()->set("proxy", new ProxyCompiler());
   runtime_.get_compiler()->set("sw", new SwCompiler());
-  runtime_.get_compiler()->set("verilator", new VerilatorCompiler());
+  runtime_.get_compiler()->set("verilator32", new Verilator32Compiler());
+  runtime_.get_compiler()->set("verilator64", new Verilator64Compiler());
 
   set_quartus_server("localhost", 9900);
 }

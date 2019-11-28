@@ -31,24 +31,26 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 
+#include <dlfcn.h>
+#include <fstream>
 #include <thread>
+#include <type_traits>
+#include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/verilator/verilator_logic.h"
 #include "target/core/avmm/avmm_compiler.h"
 
 namespace cascade {
 
-class VerilatorCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
+template <size_t M, size_t V, typename A, typename T>
+class VerilatorCompiler : public AvmmCompiler<M,V,A,T> {
   public:
     VerilatorCompiler();
     ~VerilatorCompiler() override;
 
-    uint32_t read(uint16_t addr) const;
-    void write(uint16_t addr, uint32_t val) const;
-
   private:
     // Avmm Compiler Interface:
-    VerilatorLogic* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
+    VerilatorLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
     bool compile(const std::string& text, std::mutex& lock) override;
     void stop_compile() override;
 
@@ -58,9 +60,75 @@ class VerilatorCompiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
     // Shared Library Handles:
     void* handle_;
     void (*stop_)();
-    uint32_t (*read_)(uint16_t);
-    void (*write_)(uint16_t, uint32_t);
+
+    // Logic Core Handle:
+    VerilatorLogic<V,A,T>* logic_;
 };
+
+using Verilator32Compiler = VerilatorCompiler<2,12,uint16_t,uint32_t>;
+using Verilator64Compiler = VerilatorCompiler<8,20,uint32_t,uint64_t>;
+
+template <size_t M, size_t V, typename A, typename T>
+inline VerilatorCompiler<M,V,A,T>::VerilatorCompiler() : AvmmCompiler<M,V,A,T>() {
+  handle_ = nullptr;
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline VerilatorCompiler<M,V,A,T>::~VerilatorCompiler() {
+  if (handle_ != nullptr) {
+    stop_();
+    verilator_.join();
+    dlclose(handle_);
+  }
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline VerilatorLogic<V,A,T>* VerilatorCompiler<M,V,A,T>::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  logic_ = new VerilatorLogic<V,A,T>(interface, md, slot);
+  return logic_;
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
+  (void) lock;
+
+  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/verilator/device/program_logic.v");
+  ofs << text << std::endl;
+  ofs.close();
+
+  if constexpr(std::is_same<T, uint32_t>::value) {
+    System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib32");
+  } else if constexpr(std::is_same<T, uint64_t>::value) {
+    System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib64");
+  } 
+
+  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
+    if (handle_ != nullptr) {
+      stop_();
+      verilator_.join();
+      dlclose(handle_);
+    }
+    
+    handle_ = dlopen((System::src_root() + "/src/target/core/avmm/verilator/device/obj_dir/libverilator.so").c_str(), RTLD_LAZY);
+    stop_ = (void (*)()) dlsym(handle_, "verilator_stop");
+    
+    auto read = (T (*)(A)) dlsym(handle_, "verilator_read");
+    auto write = (void (*)(A, T)) dlsym(handle_, "verilator_write");
+    logic_->set_io(read, write);
+    
+    auto init = (void (*)()) dlsym(handle_, "verilator_init");
+    init();
+    auto start = (void (*)()) dlsym(handle_, "verilator_start");
+    verilator_ = std::thread(start);
+  });
+
+  return true;
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline void VerilatorCompiler<M,V,A,T>::stop_compile() {
+  // Does nothing. 
+}
 
 } // namespace cascade
 

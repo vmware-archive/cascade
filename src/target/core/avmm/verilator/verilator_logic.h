@@ -32,16 +32,32 @@
 #define CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_LOGIC_H
 
 #include "target/core/avmm/avmm_logic.h"
+#include "target/core/avmm/verilator/verilator_compiler.h"
+#include "target/core/avmm/verilator/verilator_logic.h"
 
 namespace cascade {
 
-class VerilatorCompiler;
-
-class VerilatorLogic : public AvmmLogic<12,uint16_t,uint32_t> {
+template <size_t V, typename A, typename T>
+class VerilatorLogic : public AvmmLogic<V,A,T> {
   public:
-    VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot, VerilatorCompiler* vc);
+    VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
     virtual ~VerilatorLogic() override = default;
+
+    void set_io(T(*read)(A), void(*write)(A,T)); 
 };
+
+template <size_t V, typename A, typename T>
+inline VerilatorLogic<V,A,T>::VerilatorLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<V,A,T>(interface, md, slot) { }
+
+template <size_t V, typename A, typename T>
+inline void VerilatorLogic<V,A,T>::set_io(T(*read)(A), void(write)(A,T)) {
+  AvmmLogic<V,A,T>::get_table()->set_read([read](A index) {
+    return read(index);
+  });
+  AvmmLogic<V,A,T>::get_table()->set_write([write](A index, T val) {
+    write(index, val);
+  });
+}
 
 } // namespace cascade
 

@@ -48,7 +48,8 @@ CascadeSlave::CascadeSlave() {
   remote_compiler_.set("de10", new De10Compiler());
   remote_compiler_.set("proxy", new ProxyCompiler());
   remote_compiler_.set("sw", new SwCompiler());
-  remote_compiler_.set("verilator", new VerilatorCompiler());
+  remote_compiler_.set("verilator32", new Verilator32Compiler());
+  remote_compiler_.set("verilator64", new Verilator64Compiler());
 
   set_quartus_server("localhost", 9900);
 }
