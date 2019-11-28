@@ -46,27 +46,39 @@ class AvalonLogic : public AvmmLogic<V,A,T> {
 
 template <size_t V, typename A, typename T>
 inline AvalonLogic<V,A,T>::AvalonLogic(Interface* interface, ModuleDeclaration* md, size_t slot, syncbuf* reqs, syncbuf* resps) : AvmmLogic<V,A,T>(interface, md, slot) {
-  AvmmLogic<V,A,T>::get_table()->set_read([slot, reqs, resps](A index) {
-    uint8_t bytes[7];
-    bytes[0] = 2;
-    bytes[1] = index >> 8;
-    bytes[2] = index;
-    reqs->sputn(reinterpret_cast<const char*>(bytes), 3);
-    resps->waitforn(reinterpret_cast<char*>(bytes), 4);
-    return (bytes[3]) | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
-  });
-  AvmmLogic<V,A,T>::get_table()->set_write([slot, reqs](A index, T val) {
-    uint8_t bytes[7];
-    const uint32_t data = val;
-    bytes[0] = 1;
-    bytes[1] = index >> 8;
-    bytes[2] = index;
-    bytes[3] = data >> 24;
-    bytes[4] = data >> 16;
-    bytes[5] = data >> 8;
-    bytes[6] = data;
-    reqs->sputn(reinterpret_cast<const char*>(bytes), 7);
-  });
+  if constexpr (std::is_same<T, uint32_t>::value) {
+    AvmmLogic<V,A,T>::get_table()->set_read([slot, reqs, resps](A index) {
+      uint8_t bytes[8];
+      bytes[0] = 2;
+      *reinterpret_cast<A*>(&bytes[1]) = index;
+      reqs->sputn(reinterpret_cast<const char*>(bytes), 3);
+      resps->waitforn(reinterpret_cast<char*>(bytes), 4);
+      return *reinterpret_cast<T*>(bytes);
+    });
+    AvmmLogic<V,A,T>::get_table()->set_write([slot, reqs](A index, T val) {
+      uint8_t bytes[8];
+      bytes[0] = 1;
+      *reinterpret_cast<A*>(&bytes[1]) = index;
+      *reinterpret_cast<T*>(&bytes[3]) = val;;
+      reqs->sputn(reinterpret_cast<const char*>(bytes), 7);
+    });
+  } else if constexpr (std::is_same<T, uint64_t>::value) {
+    AvmmLogic<V,A,T>::get_table()->set_read([slot, reqs, resps](A index) {
+      uint8_t bytes[16];
+      bytes[0] = 2;
+      *reinterpret_cast<A*>(&bytes[1]) = index;
+      reqs->sputn(reinterpret_cast<const char*>(bytes), 5);
+      resps->waitforn(reinterpret_cast<char*>(bytes), 8);
+      return *reinterpret_cast<T*>(bytes);
+    });
+    AvmmLogic<V,A,T>::get_table()->set_write([slot, reqs](A index, T val) {
+      uint8_t bytes[16];
+      bytes[0] = 1;
+      *reinterpret_cast<A*>(&bytes[1]) = index;
+      *reinterpret_cast<T*>(&bytes[5]) = val;;
+      reqs->sputn(reinterpret_cast<const char*>(bytes), 13);
+    });
+  }
 }
 
 } // namespace cascade

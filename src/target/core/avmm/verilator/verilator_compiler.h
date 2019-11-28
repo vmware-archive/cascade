@@ -96,9 +96,9 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
   ofs << text << std::endl;
   ofs.close();
 
-  if constexpr(std::is_same<T, uint32_t>::value) {
+  if constexpr (std::is_same<T, uint32_t>::value) {
     System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib32");
-  } else if constexpr(std::is_same<T, uint64_t>::value) {
+  } else if constexpr (std::is_same<T, uint64_t>::value) {
     System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib64");
   } 
 

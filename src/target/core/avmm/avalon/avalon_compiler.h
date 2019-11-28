@@ -32,6 +32,7 @@
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 
 #include <fstream>
+#include <type_traits>
 #include "cascade/cascade.h"
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
@@ -103,7 +104,11 @@ inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex
     *cascade_ << "`include \"data/march/minimal.v\"\n";
     *cascade_ << "integer ifd = " << ifd << ";\n";
     *cascade_ << "integer ofd = " << ofd << ";\n";
-    *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon_wrapper.v\"\n";
+    if constexpr (std::is_same<T, uint32_t>::value) {
+      *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon32_wrapper.v\"\n";
+    } else if constexpr (std::is_same<T, uint64_t>::value) {
+      *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon64_wrapper.v\"\n";
+    }
     *cascade_ << std::endl;
   });
 

@@ -1,5 +1,5 @@
-`ifndef __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON_WRAPPER_V
-`define __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON_WRAPPER_V
+`ifndef __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON32_WRAPPER_V
+`define __SRC_TARGET_CORE_AVMM_AVALON_DEVICE_AVALON32_WRAPPER_V
 
 `include "src/target/core/avmm/avalon/device/program_logic.v"
 
@@ -25,18 +25,18 @@ program_logic pl (
 always @(posedge clock.val) begin
 	if ((read || write) && (!waitreq)) begin
 		if (read) 
-      $fwrite(ofd, "%c%c%c%c", data_out[31:24], data_out[23:16], data_out[15:8], data_out[7:0]);
+      $fwrite(ofd, "%c%c%c%c", data_out[7:0], data_out[15:8], data_out[23:16], data_out[31:24]);
 		read <= 0;
 		write <= 0;
 	end
 	if (!(read || write)) begin
 		$fflush(ifd);
-		$fscanf(ifd, "%c%c%c", temp, addr[1], addr[0]);
+		$fscanf(ifd, "%c%c%c", temp, addr[0], addr[1]);
 		if ($feof(ifd)) begin 
       // Does nothing
 		end else begin
 			if (temp[0]) 
-        $fscanf(ifd, "%c%c%c%c", data_in[3], data_in[2], data_in[1], data_in[0]);
+        $fscanf(ifd, "%c%c%c%c", data_in[0], data_in[1], data_in[2], data_in[3]);
 			read <= temp[1];
 			write <= temp[0];
 		end
