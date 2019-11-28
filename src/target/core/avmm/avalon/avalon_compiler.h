@@ -101,7 +101,7 @@ inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex
     const auto ofd = cascade_->open(&resps_);
 
     cascade_->run();
-    *cascade_ << "`include \"data/march/minimal.v\"\n";
+    *cascade_ << "`include \"data/march/regression/minimal.v\"\n";
     *cascade_ << "integer ifd = " << ifd << ";\n";
     *cascade_ << "integer ofd = " << ofd << ";\n";
     if constexpr (std::is_same<T, uint32_t>::value) {

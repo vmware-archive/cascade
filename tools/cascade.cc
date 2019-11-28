@@ -44,9 +44,9 @@ namespace {
 
 __attribute__((unused)) auto& g1 = Group::create("Cascade Runtime Options");
 auto& march = StrArg<string>::create("--march")
-  .usage("minimal|sw|sw_jit|de10|de10_jit|avalon_jit|verilator_jit")
+  .usage("sw|de10")
   .description("Target architecture")
-  .initial("minimal");
+  .initial("sw");
 auto& inc_dirs = StrArg<string>::create("-I")
   .usage("<path1>:<path2>:...:<pathn>")
   .description("Paths to search for files on")

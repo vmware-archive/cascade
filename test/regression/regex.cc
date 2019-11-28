@@ -34,8 +34,8 @@
 using namespace cascade;
 
 TEST(regex, run_word_1) {
-  run_code("minimal", "data/test/benchmark/regex/word.v", "423");
+  run_code("regression/minimal", "data/test/benchmark/regex/word.v", "423");
 }
 TEST(regex, run_disjunct_1) {
-  run_code("minimal", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_code("regression/minimal", "data/test/benchmark/regex/run_disjunct_1.v", "424");
 }
