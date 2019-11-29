@@ -96,12 +96,16 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
   ofs << text << std::endl;
   ofs.close();
 
+  int res = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib32");
+    res = System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib32 >/dev/null 2>&1");
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib64");
+    res = System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib64 >/dev/null 2>&1");
   } 
-
+  if (res != 0) {
+    return false;
+  }
+    
   AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
     if (handle_ != nullptr) {
       stop_();
@@ -121,13 +125,12 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
     auto start = (void (*)()) dlsym(handle_, "verilator_start");
     verilator_ = std::thread(start);
   });
-
   return true;
 }
 
 template <size_t M, size_t V, typename A, typename T>
 inline void VerilatorCompiler<M,V,A,T>::stop_compile() {
-  // Does nothing. 
+  System::execute(R"(kill -9 `ps -ax | grep "[v]erilator/device lib" | awk '{print $1}'`)");
 }
 
 } // namespace cascade
