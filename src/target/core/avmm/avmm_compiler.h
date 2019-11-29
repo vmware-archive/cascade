@@ -71,7 +71,7 @@ class AvmmCompiler : public CoreCompiler {
     // method is called in a context where it holds the global lock on this
     // compiler. Implementations for which this may take a long time should
     // release this lock, but reaquire it before returning.  This method should
-    // return true of success, false on failure, say if stop_compile
+    // return true on success, and false on failure, say if stop_compile
     // interrupted a compilation.
     virtual bool compile(const std::string& text, std::mutex& lock) = 0;
     // This method should perform whatever target-specific logic is necessary

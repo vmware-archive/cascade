@@ -90,6 +90,8 @@ inline VerilatorLogic<V,A,T>* VerilatorCompiler<M,V,A,T>::build(Interface* inter
 
 template <size_t M, size_t V, typename A, typename T>
 inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
+  stop_compile();
+
   std::ofstream ofs(System::src_root() + "/src/target/core/avmm/verilator/device/program_logic.v");
   ofs << text << std::endl;
   ofs.close();
