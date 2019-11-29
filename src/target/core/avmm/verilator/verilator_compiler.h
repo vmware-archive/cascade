@@ -90,23 +90,23 @@ inline VerilatorLogic<V,A,T>* VerilatorCompiler<M,V,A,T>::build(Interface* inter
 
 template <size_t M, size_t V, typename A, typename T>
 inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
-  (void) lock;
-
   std::ofstream ofs(System::src_root() + "/src/target/core/avmm/verilator/device/program_logic.v");
   ofs << text << std::endl;
   ofs.close();
 
+  lock.unlock();
   int res = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    res = System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib32 >/dev/null 2>&1");
+    res = System::execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh >/dev/null 2>&1");
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    res = System::execute("make -s -C " + System::src_root() + "/src/target/core/avmm/verilator/device lib64 >/dev/null 2>&1");
+    res = System::execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh >/dev/null 2>&1");
   } 
+  lock.lock();
   if (res != 0) {
     return false;
   }
     
-  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
+  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this]{
     if (handle_ != nullptr) {
       stop_();
       verilator_.join();
@@ -130,7 +130,11 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
 
 template <size_t M, size_t V, typename A, typename T>
 inline void VerilatorCompiler<M,V,A,T>::stop_compile() {
-  System::execute(R"(kill -9 `ps -ax | grep "[v]erilator/device lib" | awk '{print $1}'`)");
+  if constexpr (std::is_same<T, uint32_t>::value) {
+    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_32 | awk '{print $1}' | head -n1` >/dev/null 2>&1)");
+  } else if constexpr (std::is_same<T, uint64_t>::value) {
+    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_64 | awk '{print $1}' | head -n1` >/dev/null 2>&1)");
+  } 
 }
 
 } // namespace cascade

@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_COMMON_SYSTEM_H
 #define CASCADE_SRC_COMMON_SYSTEM_H
 
+#include <cassert>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
@@ -68,7 +69,20 @@ inline std::string System::src_root() {
 #endif
 
 inline int System::execute(const std::string& cmd) {
-  return ::system(cmd.c_str());
+  const auto pid = fork();
+  if (pid == 0) {
+    execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+  } else {
+    int status;
+    do {
+      const auto w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
+      if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+      }
+    } while (!WIFEXITED(status));
+  }
+  assert(false);
+  return -1;
 }
 
 } // namespace cascade
