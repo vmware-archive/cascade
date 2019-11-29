@@ -32,6 +32,7 @@
 #define CASCADE_SRC_COMMON_SYSTEM_H
 
 #include <cassert>
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
@@ -49,6 +50,7 @@ namespace cascade {
 struct System {
   static std::string src_root();
   static int execute(const std::string& cmd);
+  static int no_block_execute(const std::string& cmd, bool verbose = false);
 };
 
 #ifdef __APPLE__
@@ -69,20 +71,30 @@ inline std::string System::src_root() {
 #endif
 
 inline int System::execute(const std::string& cmd) {
+  return std::system(cmd.c_str());
+}
+
+inline int System::no_block_execute(const std::string& cmd, bool verbose) {
   const auto pid = fork();
   if (pid == 0) {
-    execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+    if (!verbose) {
+      fclose(stdout);
+      fclose(stderr); 
+    }
+    return execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
   } else {
-    int status;
-    do {
+    while (true) {
+      int status;
       const auto w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
       if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
+      } else if (WIFSIGNALED(status)) {
+        return WTERMSIG(status);
+      } else if (WIFSTOPPED(status)) {
+        return WSTOPSIG(status);
       }
-    } while (!WIFEXITED(status));
+    } 
   }
-  assert(false);
-  return -1;
 }
 
 } // namespace cascade

@@ -97,9 +97,9 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
   lock.unlock();
   int res = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    res = System::execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh >/dev/null 2>&1");
+    res = System::no_block_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh");
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    res = System::execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh >/dev/null 2>&1");
+    res = System::no_block_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh");
   } 
   lock.lock();
   if (res != 0) {
@@ -131,9 +131,9 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
 template <size_t M, size_t V, typename A, typename T>
 inline void VerilatorCompiler<M,V,A,T>::stop_compile() {
   if constexpr (std::is_same<T, uint32_t>::value) {
-    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_32 | awk '{print $1}' | head -n1` >/dev/null 2>&1)");
+    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_32.sh | awk '{print $1}' | head -n1`)");
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_64 | awk '{print $1}' | head -n1` >/dev/null 2>&1)");
+    System::execute(R"(pkill -9 -P `ps -ax | grep build_verilator_64.sh | awk '{print $1}' | head -n1`)");
   } 
 }
 
