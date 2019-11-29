@@ -94,14 +94,17 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
   ofs << text << std::endl;
   ofs.close();
 
-  lock.unlock();
-  int res = 0;
+  pid_t pid = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    res = System::no_block_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh");
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh", false);
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    res = System::no_block_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh");
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh", false);
   } 
+
+  lock.unlock();
+  const auto res = System::no_block_wait_finish(pid);
   lock.lock();
+
   if (res != 0) {
     return false;
   }

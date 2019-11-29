@@ -49,8 +49,11 @@ namespace cascade {
 
 struct System {
   static std::string src_root();
+
   static int execute(const std::string& cmd);
-  static int no_block_execute(const std::string& cmd, bool verbose = false);
+  static pid_t no_block_begin_execute(const std::string& cmd, bool verbose);
+  static int no_block_wait_finish(pid_t pid);
+  static int no_block_execute(const std::string& cmd, bool verbose);
 };
 
 #ifdef __APPLE__
@@ -74,7 +77,7 @@ inline int System::execute(const std::string& cmd) {
   return std::system(cmd.c_str());
 }
 
-inline int System::no_block_execute(const std::string& cmd, bool verbose) {
+inline pid_t System::no_block_begin_execute(const std::string& cmd, bool verbose) {
   const auto pid = fork();
   if (pid == 0) {
     if (!verbose) {
@@ -83,18 +86,26 @@ inline int System::no_block_execute(const std::string& cmd, bool verbose) {
     }
     return execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
   } else {
-    while (true) {
-      int status;
-      const auto w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
-      if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
-      } else if (WIFSIGNALED(status)) {
-        return WTERMSIG(status);
-      } else if (WIFSTOPPED(status)) {
-        return WSTOPSIG(status);
-      }
-    } 
+    return pid;
   }
+}
+
+inline int System::no_block_wait_finish(pid_t pid) {
+  while (true) {
+    int status;
+    const auto w = waitpid(pid, &status, WUNTRACED | WCONTINUED);
+    if (WIFEXITED(status)) {
+      return WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+      return WTERMSIG(status);
+    } else if (WIFSTOPPED(status)) {
+      return WSTOPSIG(status);
+    }
+  } 
+}
+
+inline int System::no_block_execute(const std::string& cmd, bool verbose) {
+  return no_block_wait_finish(no_block_begin_execute(cmd, verbose));
 }
 
 } // namespace cascade
