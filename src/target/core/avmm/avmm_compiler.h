@@ -244,7 +244,6 @@ inline AvmmLogic<V,A,T>* AvmmCompiler<M,V,A,T>::compile_logic(Engine::Id id, Mod
   while (true) {
     switch (slots_[slot].state) {
       case State::COMPILING:
-              std::cout << "IN COMPILE STATE" << std::endl;
         if (compile(get_text(), lock_)) {
           update();
         }
