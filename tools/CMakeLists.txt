@@ -24,3 +24,6 @@ install(TARGETS quartus_server RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin L
 add_executable(sw_fpga sw_fpga.cc)
 target_link_libraries(sw_fpga PRIVATE libcascade ncurses Threads::Threads)
 install(TARGETS sw_fpga RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+file (GLOB MARCH_DIRECTORY "../data/march/*.v")
+install(FILES ${MARCH_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cascade)

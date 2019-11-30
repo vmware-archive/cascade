@@ -21,5 +21,6 @@ add_library(libcascade SHARED STATIC
 )
 set_target_properties(libcascade PROPERTIES PREFIX "")
 
-install(TARGETS libcascade DESTINATION ${CASCADE_INSTALL_LIB_DIR})
-install(FILES cascade.h DESTINATION ${CASCADE_INSTALL_INCLUDE_DIR})
+install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cascade)
+install(FILES cascade.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade)
+install(FILES cascade_slave.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade)
