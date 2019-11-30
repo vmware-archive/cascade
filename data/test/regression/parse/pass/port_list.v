@@ -1,2 +1,2 @@
-module foo(x, .y(Y));
+module foo(x, y);
 endmodule

@@ -30,12 +30,10 @@
 
 #include "harness.h"
 
-#include <sstream>
 #include "cascade/cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 #include "gtest/gtest.h"
-#include "verilog/parse/parser.h"
 
 using namespace cascade;
 using namespace cascade::cl;
@@ -55,13 +53,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 namespace cascade {
 
 void run_parse(const string& path, bool expected) {
-  ifstream ifs(path);
-  ASSERT_TRUE(ifs.is_open());
-
-  Log log;
-  Parser p(&log);
-  p.parse(ifs);
-  EXPECT_EQ(log.error(), expected);
+  run_typecheck("regression/minimal", path, expected);
 }
 
 void run_typecheck(const string& march, const string& path, bool expected) {

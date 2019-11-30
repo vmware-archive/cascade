@@ -1,19 +1,25 @@
 project(cascade C CXX)
 
+include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-file(GLOB SOURCE_FILES
+bison_target(verilog_parser ../verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc)
+flex_target(verilog_lexer ../verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/verilog_lexer.cc)
+add_flex_bison_dependency(verilog_lexer verilog_parser)
+
+file (GLOB SOURCE_FILES
 	cascade.h
 	cascade.cc
 )
-
 file (GLOB_RECURSE SOURCE_DIRECTORY "../*.cc")
 
-add_library(libcascade SHARED STATIC ${SOURCE_FILES} ${SOURCE_DIRECTORY})
+add_library(libcascade SHARED STATIC 
+  ${BISON_verilog_parser_OUTPUTS} 
+  ${FLEX_verilog_lexer_OUTPUTS}
+  ${SOURCE_FILES} 
+  ${SOURCE_DIRECTORY}
+)
 set_target_properties(libcascade PROPERTIES PREFIX "")
-
-target_link_libraries(libcascade verilog)
 
 install(TARGETS libcascade DESTINATION ${CASCADE_INSTALL_LIB_DIR})
 install(FILES cascade.h DESTINATION ${CASCADE_INSTALL_INCLUDE_DIR})

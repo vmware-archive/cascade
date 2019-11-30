@@ -1,15 +1,17 @@
+reg clk, w, x, y, z;
+
 module foo();
-  initial fork
-  join
+  //initial fork
+  //join
   
   initial begin
   end
 
-  always fork
-  join
+  //always fork
+  //join
 
-  always begin
-  end
+  //always begin
+  //end
 
   always @* ;
 

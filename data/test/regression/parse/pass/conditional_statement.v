@@ -1,5 +1,5 @@
 module conds();
-  always begin
+  always @(*) begin
     if (cond);
 
     if (cond) begin

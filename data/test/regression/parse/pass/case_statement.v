@@ -1,5 +1,7 @@
+reg x;
+reg y;
 module cases();
-  always begin
+  always @(*) begin
     case (cond) 
       1: ;
       default ;

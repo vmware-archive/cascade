@@ -1,5 +1,5 @@
 module loops();
-  always begin
+  always @(*) begin
     repeat ( cond ) begin
     end
     while ( 1 ) begin
