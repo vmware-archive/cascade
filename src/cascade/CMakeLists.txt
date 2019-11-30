@@ -7,20 +7,26 @@ bison_target(verilog_parser ../verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_D
 flex_target(verilog_lexer ../verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/verilog_lexer.cc)
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 
-file (GLOB SOURCE_FILES
+file (GLOB LIB_SRC
 	cascade.h
 	cascade.cc
+  cascade_slave.h
+  cascade_slave.cc
 )
-file (GLOB_RECURSE SOURCE_DIRECTORY "../*.cc")
+file (GLOB_RECURSE SRC "../*.cc")
 
 add_library(libcascade SHARED STATIC 
   ${BISON_verilog_parser_OUTPUTS} 
   ${FLEX_verilog_lexer_OUTPUTS}
-  ${SOURCE_FILES} 
-  ${SOURCE_DIRECTORY}
+  ${LIB_SRC} 
+  ${SRC}
 )
 set_target_properties(libcascade PROPERTIES PREFIX "")
 
-install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cascade)
+install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES cascade.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade)
 install(FILES cascade_slave.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade)
+install(DIRECTORY "../common" DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "../runtime" DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "../target" DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "../verilog" DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cascade FILES_MATCHING PATTERN "*.h")
