@@ -86,7 +86,7 @@ template <size_t M, size_t V, typename A, typename T>
 inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
   (void) lock;
   AvalonCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
-    std::ofstream ofs(System::src_root() + "/src/target/core/avmm/avalon/device/program_logic.v");
+    std::ofstream ofs(System::src_root() + "/var/avalon/program_logic.v");
     ofs << text << std::endl;
     ofs.close();
   
@@ -105,9 +105,9 @@ inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex
     *cascade_ << "integer ifd = " << ifd << ";\n";
     *cascade_ << "integer ofd = " << ofd << ";\n";
     if constexpr (std::is_same<T, uint32_t>::value) {
-      *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon32_wrapper.v\"\n";
+      *cascade_ << "`include \"var/avalon/avalon32_wrapper.v\"\n";
     } else if constexpr (std::is_same<T, uint64_t>::value) {
-      *cascade_ << "`include \"src/target/core/avmm/avalon/device/avalon64_wrapper.v\"\n";
+      *cascade_ << "`include \"var/avalon/avalon64_wrapper.v\"\n";
     }
     *cascade_ << std::endl;
   });
