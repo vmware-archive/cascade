@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Delete any previous compilations
-rm -rf obj_dir >/dev/null
+rm -rf obj_dir
 
 # Invoke verilator: fake_main.cpp is just here to guarantee that verilator produces all of the output we expect it to (namely obj_dir/verilated.o)
 /usr/local/bin/verilator -Wno-lint -Wno-fatal -cc -O3 --x-assign fast --x-initial fast --noassert --clk clk program_logic.v --exe fake_main.cpp

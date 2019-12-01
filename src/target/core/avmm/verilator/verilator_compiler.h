@@ -92,15 +92,15 @@ template <size_t M, size_t V, typename A, typename T>
 inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
   stop_compile();
 
-  std::ofstream ofs(System::src_root() + "/src/target/core/avmm/verilator/device/program_logic.v");
+  std::ofstream ofs(System::src_root() + "/var/verilator/program_logic.v");
   ofs << text << std::endl;
   ofs.close();
 
   pid_t pid = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_32.sh", false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/var/verilator/ && ./build_verilator_32.sh", false);
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/src/target/core/avmm/verilator/device/ && ./build_verilator_64.sh", false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/var/verilator/ && ./build_verilator_64.sh", false);
   } 
 
   lock.unlock();
@@ -118,7 +118,7 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
       dlclose(handle_);
     }
     
-    handle_ = dlopen((System::src_root() + "/src/target/core/avmm/verilator/device/obj_dir/libverilator.so").c_str(), RTLD_LAZY);
+    handle_ = dlopen((System::src_root() + "/var/verilator/obj_dir/libverilator.so").c_str(), RTLD_LAZY);
     stop_ = (void (*)()) dlsym(handle_, "verilator_stop");
     
     auto read = (T (*)(A)) dlsym(handle_, "verilator_read");
