@@ -30,7 +30,7 @@
 
 #include "harness.h"
 
-#include "cascade/cascade.h"
+#include "cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 #include "gtest/gtest.h"

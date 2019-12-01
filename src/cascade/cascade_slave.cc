@@ -28,7 +28,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "cascade/cascade_slave.h"
+#include "cascade_slave.h"
 #include "target/compiler.h"
 #include "target/compiler/proxy_compiler.h"
 #include "target/core/avmm/avalon/avalon_compiler.h"

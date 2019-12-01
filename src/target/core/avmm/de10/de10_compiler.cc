@@ -222,7 +222,7 @@ void De10Compiler::reprogram(sockstream* sock) {
 
     // Form a path to the temporary location we'll be storing the rbf file
     // and the de10 config fool
-    const auto rbf_path = System::src_root() + "/src/target/core/avmm/de10/device/DE10_NANO_SoC_GHRD.rbf";
+    const auto rbf_path = System::src_root() + "/var/de10/DE10_NANO_SoC_GHRD.rbf";
     const auto de10_config = System::src_root() + "/build/tools/de10_config";
 
     // Copy the rbf file to this location

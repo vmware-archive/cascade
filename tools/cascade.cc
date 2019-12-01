@@ -32,7 +32,7 @@
 #include <signal.h>
 #include <fstream>
 #include <sstream>
-#include "cascade/cascade.h"
+#include "cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 

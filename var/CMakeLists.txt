@@ -1,0 +1,4 @@
+install(DIRECTORY avalon DESTINATION ${CMAKE_INSTALL_PREFIX}/var/cascade)
+install(DIRECTORY de10 DESTINATION ${CMAKE_INSTALL_PREFIX}/var/cascade)
+install(DIRECTORY verilator DESTINATION ${CMAKE_INSTALL_PREFIX}/var/cascade)
+

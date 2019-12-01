@@ -33,7 +33,7 @@
 
 #include <fstream>
 #include <type_traits>
-#include "cascade/cascade.h"
+#include "cascade.h"
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/avalon/avalon_logic.h"

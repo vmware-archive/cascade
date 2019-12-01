@@ -30,7 +30,7 @@
 
 #include <cstring>
 #include <signal.h>
-#include "cascade/cascade_slave.h"
+#include "cascade_slave.h"
 #include "cl/cl.h"
 
 using namespace cascade;

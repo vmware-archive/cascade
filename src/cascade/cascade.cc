@@ -29,7 +29,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cassert>
-#include "cascade/cascade.h"
+#include "cascade.h"
 #include "runtime/runtime.h"
 #include "target/compiler.h"
 #include "target/compiler/proxy_compiler.h"

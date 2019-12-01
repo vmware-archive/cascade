@@ -13,6 +13,7 @@ install(TARGETS cascade_slave RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LI
 
 add_executable(de10_config de10_config.c)
 target_link_libraries(de10_config)
+install(TARGETS de10_config RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(de10_probe de10_probe.cc)
 target_link_libraries(de10_probe PRIVATE libcascade Threads::Threads)
@@ -24,6 +25,3 @@ install(TARGETS quartus_server RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin L
 add_executable(sw_fpga sw_fpga.cc)
 target_link_libraries(sw_fpga PRIVATE libcascade ncurses Threads::Threads)
 install(TARGETS sw_fpga RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-
-install(DIRECTORY ../share/march DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cascade)
-install(DIRECTORY ../share/stdlib DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cascade)
