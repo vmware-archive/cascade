@@ -47,35 +47,35 @@ int main(int argc, char** argv) {
 
 static void BM_Array(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/array/run_7.v", "268435457\n");
+    run_benchmark("share/test/benchmark/array/run_7.v", "268435457\n");
   }
 }
 BENCHMARK(BM_Array)->Unit(benchmark::kMillisecond);
 
 static void BM_Bitcoin(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/bitcoin/run_25.v", "0109a2bd 0109a2c2\n");
+    run_benchmark("share/test/benchmark/bitcoin/run_25.v", "0109a2bd 0109a2c2\n");
   }
 }
 BENCHMARK(BM_Bitcoin)->Unit(benchmark::kMillisecond);
 
 static void BM_Mips32(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/mips32/run_bubble_128_1024.v", "1");
+    run_benchmark("share/test/benchmark/mips32/run_bubble_128_1024.v", "1");
   }
 }
 BENCHMARK(BM_Mips32)->Unit(benchmark::kMillisecond);
 
 static void BM_Regex(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/regex/run_disjunct_64.v", "27136");
+    run_benchmark("share/test/benchmark/regex/run_disjunct_64.v", "27136");
   }
 }
 BENCHMARK(BM_Regex)->Unit(benchmark::kMillisecond);
 
 static void BM_Nw(benchmark::State& state) {
   for(auto _ : state) {
-    run_benchmark("data/test/benchmark/nw/run_8.v", "-32768");
+    run_benchmark("share/test/benchmark/nw/run_8.v", "-32768");
   }
 }
 BENCHMARK(BM_Nw)->Unit(benchmark::kMillisecond);

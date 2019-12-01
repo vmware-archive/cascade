@@ -34,17 +34,17 @@
 using namespace cascade;
 
 TEST(no_inline, array) {
-  run_code("regression/no_inline", "data/test/benchmark/array/run_5.v", "1048577\n");
+  run_code("regression/no_inline", "share/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(no_inline, bitcoin) {
-  run_code("regression/no_inline", "data/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
+  run_code("regression/no_inline", "share/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
 TEST(no_inline, mips32) {
-  run_code("regression/no_inline", "data/test/benchmark/mips32/run_bubble_128.v", "1");
+  run_code("regression/no_inline", "share/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(no_inline, nw) {
-  run_code("regression/no_inline", "data/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/no_inline", "share/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(no_inline, regex) {
-  run_code("regression/no_inline", "data/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_code("regression/no_inline", "share/test/benchmark/regex/run_disjunct_1.v", "424");
 }

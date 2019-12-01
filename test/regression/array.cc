@@ -34,14 +34,14 @@
 using namespace cascade;
 
 TEST(array, run_2) {
-  run_code("regression/minimal", "data/test/benchmark/array/run_2.v", "257\n");
+  run_code("regression/minimal", "share/test/benchmark/array/run_2.v", "257\n");
 }
 TEST(array, run_3) {
-  run_code("regression/minimal", "data/test/benchmark/array/run_3.v", "4097\n");
+  run_code("regression/minimal", "share/test/benchmark/array/run_3.v", "4097\n");
 }
 TEST(array, run_4) {
-  run_code("regression/minimal", "data/test/benchmark/array/run_4.v", "65537\n");
+  run_code("regression/minimal", "share/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(array, run_5) {
-  run_code("regression/minimal", "data/test/benchmark/array/run_5.v", "1048577\n");
+  run_code("regression/minimal", "share/test/benchmark/array/run_5.v", "1048577\n");
 }

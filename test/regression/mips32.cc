@@ -34,11 +34,11 @@
 using namespace cascade;
 
 TEST(mips, sum) {
-  run_code("regression/minimal", "data/test/benchmark/mips32/sum.v", "45");
+  run_code("regression/minimal", "share/test/benchmark/mips32/sum.v", "45");
 }
 TEST(mips, run_bubble_32) {
-  run_code("regression/minimal", "data/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/minimal", "share/test/benchmark/mips32/run_bubble_32.v", "1");
 }
 TEST(mips, run_bubble_128) {
-  run_code("regression/minimal", "data/test/benchmark/mips32/run_bubble_128.v", "1");
+  run_code("regression/minimal", "share/test/benchmark/mips32/run_bubble_128.v", "1");
 }

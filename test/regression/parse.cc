@@ -34,87 +34,87 @@
 using namespace cascade;
 
 TEST(parse, pass_and) {
-  run_parse("data/test/regression/parse/pass/and.v", false);
+  run_parse("share/test/regression/parse/pass/and.v", false);
 }
 TEST(parse, pass_aoo) {
-  run_parse("data/test/regression/parse/pass/aoo.v", false);
+  run_parse("share/test/regression/parse/pass/aoo.v", false);
 }
 TEST(parse, pass_assign_1) {
-  run_parse("data/test/regression/parse/pass/assign_1.v", false);
+  run_parse("share/test/regression/parse/pass/assign_1.v", false);
 }
 TEST(parse, pass_assign_statement) {
-  run_parse("data/test/regression/parse/pass/assign_statement.v", false);
+  run_parse("share/test/regression/parse/pass/assign_statement.v", false);
 }
 TEST(parse, pass_attributes) {
-  run_parse("data/test/regression/parse/pass/attributes.v", false);
+  run_parse("share/test/regression/parse/pass/attributes.v", false);
 }
 TEST(parse, pass_case_statement) {
-  run_parse("data/test/regression/parse/pass/case_statement.v", false);
+  run_parse("share/test/regression/parse/pass/case_statement.v", false);
 }
 TEST(parse, pass_conditional_statement) {
-  run_parse("data/test/regression/parse/pass/conditional_statement.v", false);
+  run_parse("share/test/regression/parse/pass/conditional_statement.v", false);
 }
 TEST(parse, pass_construct) {
-  run_parse("data/test/regression/parse/pass/construct.v", false);
+  run_parse("share/test/regression/parse/pass/construct.v", false);
 }
 TEST(parse, pass_continuous_assign) {
-  run_parse("data/test/regression/parse/pass/continuous_assign.v", false);
+  run_parse("share/test/regression/parse/pass/continuous_assign.v", false);
 }
 TEST(parse, pass_declaration) {
-  run_parse("data/test/regression/parse/pass/declaration.v", false);
+  run_parse("share/test/regression/parse/pass/declaration.v", false);
 }
 TEST(parse, pass_issue_6) {
-  run_parse("data/test/regression/parse/pass/issue_6.v", false);
+  run_parse("share/test/regression/parse/pass/issue_6.v", false);
 }
 TEST(parse, pass_issue_224) {
-  run_parse("data/test/regression/parse/pass/issue_224.v", false);
+  run_parse("share/test/regression/parse/pass/issue_224.v", false);
 }
 TEST(parse, pass_loop_statement) {
-  run_parse("data/test/regression/parse/pass/loop_statement.v", false);
+  run_parse("share/test/regression/parse/pass/loop_statement.v", false);
 }
 TEST(parse, pass_module_declaration_1) {
-  run_parse("data/test/regression/parse/pass/module_declaration_1.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_1.v", false);
 }
 TEST(parse, pass_module_declaration_2) {
-  run_parse("data/test/regression/parse/pass/module_declaration_2.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_2.v", false);
 }
 TEST(parse, pass_module_declaration_3) {
-  run_parse("data/test/regression/parse/pass/module_declaration_3.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_3.v", false);
 }
 TEST(parse, pass_module_declaration_4) {
-  run_parse("data/test/regression/parse/pass/module_declaration_4.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_4.v", false);
 }
 TEST(parse, pass_module_declaration_5) {
-  run_parse("data/test/regression/parse/pass/module_declaration_5.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_5.v", false);
 }
 TEST(parse, pass_module_declaration_6) {
-  run_parse("data/test/regression/parse/pass/module_declaration_6.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_6.v", false);
 }
 TEST(parse, pass_module_declaration_7) {
-  run_parse("data/test/regression/parse/pass/module_declaration_7.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_7.v", false);
 }
 TEST(parse, pass_module_declaration_8) {
-  run_parse("data/test/regression/parse/pass/module_declaration_8.v", false);
+  run_parse("share/test/regression/parse/pass/module_declaration_8.v", false);
 }
 TEST(parse, pass_port_declaration) {
-  run_parse("data/test/regression/parse/pass/port_declaration.v", false);
+  run_parse("share/test/regression/parse/pass/port_declaration.v", false);
 }
 TEST(parse, pass_port_list) {
-  run_parse("data/test/regression/parse/pass/port_list.v", false);
+  run_parse("share/test/regression/parse/pass/port_list.v", false);
 }
 TEST(parse, pass_system_task) {
-  run_parse("data/test/regression/parse/pass/system_task.v", false);
+  run_parse("share/test/regression/parse/pass/system_task.v", false);
 }
 
 TEST(parse, fail_assign_1) {
-  run_parse("data/test/regression/parse/fail/assign_1.v", true);
+  run_parse("share/test/regression/parse/fail/assign_1.v", true);
 }
 TEST(parse, fail_missing_endmodule) {
-  run_parse("data/test/regression/parse/fail/missing_endmodule.v", true);
+  run_parse("share/test/regression/parse/fail/missing_endmodule.v", true);
 }
 TEST(parse, fail_module_declaration_1) {
-  run_parse("data/test/regression/parse/fail/module_declaration_1.v", true);
+  run_parse("share/test/regression/parse/fail/module_declaration_1.v", true);
 }
 TEST(parse, fail_module_declaration_2) {
-  run_parse("data/test/regression/parse/fail/module_declaration_2.v", true);
+  run_parse("share/test/regression/parse/fail/module_declaration_2.v", true);
 }
