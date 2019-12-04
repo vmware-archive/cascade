@@ -170,7 +170,7 @@ sections of this README.
 #include <cassert>
 #include <iostream>
 #include <sstream>
-#include "path/to/install/dir/cascade.h"
+#include <cascade.h>
 
 using namespace cascade;
 using namespace std;
@@ -260,7 +260,7 @@ int main() {
 To build a program that uses Cascade as a library, statically link against libcascade.
 
 ```
-$ g++ -Lpath/to/install/dir/ my_program.cc -lcascade
+$ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
 ```
 
 Environments
