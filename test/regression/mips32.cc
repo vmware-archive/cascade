@@ -29,16 +29,16 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(mips, sum) {
-  run_code("regression/minimal", "share/test/benchmark/mips32/sum.v", "45");
+  run_code("regression/minimal", "share/cascade/test/benchmark/mips32/sum.v", "45");
 }
 TEST(mips, run_bubble_32) {
-  run_code("regression/minimal", "share/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/minimal", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
 }
 TEST(mips, run_bubble_128) {
-  run_code("regression/minimal", "share/test/benchmark/mips32/run_bubble_128.v", "1");
+  run_code("regression/minimal", "share/cascade/test/benchmark/mips32/run_bubble_128.v", "1");
 }

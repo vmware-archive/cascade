@@ -29,31 +29,31 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(jit, initial) {
-  run_code("regression/jit", "share/test/regression/jit/initial.v", "once");
+  run_code("regression/jit", "share/cascade/test/regression/jit/initial.v", "once");
 }
 TEST(jit, pipeline_1) {
-  run_code("regression/jit", "share/test/regression/simple/pipeline_1.v", "0123456789");
+  run_code("regression/jit", "share/cascade/test/regression/simple/pipeline_1.v", "0123456789");
 }
 TEST(jit, pipeline_2) {
-  run_code("regression/jit", "share/test/regression/simple/pipeline_2.v", "0123456789");
+  run_code("regression/jit", "share/cascade/test/regression/simple/pipeline_2.v", "0123456789");
 }
 TEST(jit, array) {
-  run_code("regression/jit", "share/test/benchmark/array/run_5.v", "1048577\n");
+  run_code("regression/jit", "share/cascade/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(jit, bitcoin) {
-  run_code("regression/jit", "share/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
+  run_code("regression/jit", "share/cascade/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }
 TEST(jit, mips32) {
-  run_code("regression/jit", "share/test/benchmark/mips32/run_bubble_128.v", "1");
+  run_code("regression/jit", "share/cascade/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(jit, nw) {
-  run_code("regression/jit", "share/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/jit", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(jit, regex) {
-  run_code("regression/jit", "share/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_code("regression/jit", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424");
 }

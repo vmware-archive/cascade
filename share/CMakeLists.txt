@@ -1,2 +1,1 @@
-install(DIRECTORY march DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cascade)
-install(DIRECTORY stdlib DESTINATION ${CMAKE_INSTALL_PREFIX}/share/cascade)
+install(DIRECTORY cascade DESTINATION ${CMAKE_INSTALL_PREFIX}/share)

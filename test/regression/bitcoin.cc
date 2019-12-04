@@ -29,30 +29,30 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(bitcoin, bitcoin_1) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_1.v", "44420006\nccca888e\n999abbb8\ndddefffc\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_1.v", "44420006\nccca888e\n999abbb8\ndddefffc\n");
 }
 TEST(bitcoin, bitcoin_2) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_2.v", "ac62db15\n428c35fb\n5eb9e502\n29ce9275\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_2.v", "ac62db15\n428c35fb\n5eb9e502\n29ce9275\n");
 }
 TEST(bitcoin, bitcoin_3) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_3.v", "5abb9899\n3effdcdd\n00801191\n22a233b3\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_3.v", "5abb9899\n3effdcdd\n00801191\n22a233b3\n");
 }
 TEST(bitcoin, bitcoin_4) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_4.v", "3e90be27\n943e50c9\nca20d79b\n9f57a0ec\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_4.v", "3e90be27\n943e50c9\nca20d79b\n9f57a0ec\n");
 }
 TEST(bitcoin, bitcoin_5) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_5.v", "99b95531\n01654565\ncdedcda9\nfefc7630\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_5.v", "99b95531\n01654565\ncdedcda9\nfefc7630\n");
 }
 TEST(bitcoin, bitcoin_6) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_6.v", "111399df\n01474547\nfcdcfc98\nfefc7630\n");
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_6.v", "111399df\n01474547\nfcdcfc98\nfefc7630\n");
 }
 TEST(bitcoin, bitcoin_7) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_7.v", 
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_7.v", 
     "bffb8e7e13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf13579bdf 13579bdf13579bdf13579bdf0d18e67013579bdf13579bdf13579bdf515ae676\n"
     "d7cb434202468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace02468ace 02468ace02468ace02468ace4decec0102468ace02468ace02468ace1ab7748f\n"
     "c85a5e5cfedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98fedcba98 fedcba98fedcba98fedcba98590989fafedcba98fedcba98fedcba98f2a445b2\n"
@@ -60,7 +60,7 @@ TEST(bitcoin, bitcoin_7) {
   );
 }
 TEST(bitcoin, bitcoin_8) {
-  run_code("regression/minimal","share/test/regression/bitcoin/bitcoin_8.v",
+  run_code("regression/minimal","share/cascade/test/regression/bitcoin/bitcoin_8.v",
     "c14c2700d3d3a04cb44cf5fb4c63b9596927165926ee25dcae5e4a85a5487431\n"
     "61c541a57d4923f315954ac98a12f7a7b3601686996861f84c5fe80c327a1885\n"
     "9699250944f14d01c4bba0700a2576f738cdb044b7208935a696fd931370187a\n"
@@ -68,5 +68,5 @@ TEST(bitcoin, bitcoin_8) {
   );
 }
 TEST(bitcoin, run_4) {
-  run_code("regression/minimal","share/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
+  run_code("regression/minimal","share/cascade/test/benchmark/bitcoin/run_4.v", "0000000f 00000093\n");
 }

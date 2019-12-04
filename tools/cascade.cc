@@ -32,7 +32,7 @@
 #include <signal.h>
 #include <fstream>
 #include <sstream>
-#include "cascade.h"
+#include "include/cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 
@@ -226,10 +226,10 @@ int main(int argc, char** argv) {
   // Start cascade, and read the march file and -e file (if provided)
   ::cascade_->run();
   if (::input_path.value() != "") {
-    *::cascade_ << "`include \"share/march/" << ::march.value() << ".v\"\n"
+    *::cascade_ << "`include \"share/cascade/march/" << ::march.value() << ".v\"\n"
                 << "`include \"" << ::input_path.value() <<  "\"" << endl;
   } else {
-    *::cascade_ << "`include \"share/march/" << ::march.value() << ".v\"" << endl;
+    *::cascade_ << "`include \"share/cascade/march/" << ::march.value() << ".v\"" << endl;
   }
   ::cascade_->stop_now();
 

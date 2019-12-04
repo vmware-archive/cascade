@@ -29,38 +29,38 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(avalon32, array) {
-  run_code("regression/avalon32", "share/test/benchmark/array/run_4.v", "65537\n");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(avalon32, bitcoin) {
-  run_code("regression/avalon32", "share/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
 }
 TEST(avalon32, mips32) {
-  run_code("regression/avalon32", "share/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
 }
 TEST(avalon32, nw) {
-  run_code("regression/avalon32", "share/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(avalon32, regex) {
-  run_code("regression/avalon32", "share/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
 }
 
 TEST(avalon64, array) {
-  run_code("regression/avalon64", "share/test/benchmark/array/run_4.v", "65537\n");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(avalon64, bitcoin) {
-  run_code("regression/avalon64", "share/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
 }
 TEST(avalon64, mips32) {
-  run_code("regression/avalon64", "share/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
 }
 TEST(avalon64, nw) {
-  run_code("regression/avalon64", "share/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(avalon64, regex) {
-  run_code("regression/avalon64", "share/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
 }

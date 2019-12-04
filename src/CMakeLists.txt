@@ -3,8 +3,8 @@ project(cascade C CXX)
 include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-bison_target(verilog_parser verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc)
-flex_target(verilog_lexer verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/verilog_lexer.cc)
+bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc)
+flex_target(verilog_lexer cascade/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/verilog_lexer.cc)
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 
 file (GLOB_RECURSE SRC "*.cc")
@@ -14,9 +14,6 @@ add_library(libcascade SHARED STATIC
   ${SRC}
 )
 set_target_properties(libcascade PROPERTIES PREFIX "")
-install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(DIRECTORY "common" DESTINATION ${CMAKE_INSTALL_PREFIX}/src/cascade FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "runtime" DESTINATION ${CMAKE_INSTALL_PREFIX}/src/cascade FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "target" DESTINATION ${CMAKE_INSTALL_PREFIX}/src/cascade FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "verilog" DESTINATION ${CMAKE_INSTALL_PREFIX}/src/cascade FILES_MATCHING PATTERN "*.h")
+install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(DIRECTORY "cascade" DESTINATION ${CMAKE_INSTALL_PREFIX}/src FILES_MATCHING PATTERN "*.h")

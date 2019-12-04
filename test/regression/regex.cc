@@ -29,13 +29,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(regex, run_word_1) {
-  run_code("regression/minimal", "share/test/benchmark/regex/word.v", "423");
+  run_code("regression/minimal", "share/cascade/test/benchmark/regex/word.v", "423");
 }
 TEST(regex, run_disjunct_1) {
-  run_code("regression/minimal", "share/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_code("regression/minimal", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424");
 }
