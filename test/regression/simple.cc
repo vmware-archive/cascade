@@ -231,6 +231,9 @@ TEST(simple, issue_81b) {
 TEST(simple, issue_152) {
   run_code("regression/minimal","share/cascade/test/regression/simple/issue_152.v", "7bcb43d769f764 >> 86 = 00000000000000\n");
 }
+TEST(simple, issue_195) {
+  run_code("regression/minimal","share/cascade/test/regression/simple/issue_195.v", "012012");
+}
 TEST(simple, issue_228) {
   run_code("regression/minimal","share/cascade/test/regression/simple/issue_228.v", "");
 }
