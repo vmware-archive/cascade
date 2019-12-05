@@ -30,11 +30,11 @@
 
 #include "include/cascade_slave.h"
 #include "target/compiler.h"
-#include "target/compiler/proxy_compiler.h"
 #include "target/core/avmm/avalon/avalon_compiler.h"
 #include "target/core/avmm/de10/de10_compiler.h"
 #include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/sw/sw_compiler.h"
+#include "target/core/proxy/proxy_compiler.h"
 
 using namespace std;
 

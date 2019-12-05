@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_COMPILER_PROXY_COMPILER_H
-#define CASCADE_SRC_TARGET_COMPILER_PROXY_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_CORE_PROXY_PROXY_COMPILER_H
+#define CASCADE_SRC_TARGET_CORE_PROXY_PROXY_COMPILER_H
 
 #include <string>
 #include <unordered_map>
@@ -38,7 +38,7 @@
 #include "target/compiler.h"
 #include "target/compiler/rpc.h"
 #include "target/core_compiler.h"
-#include "target/compiler/proxy_core.h"
+#include "target/core/proxy/proxy_core.h"
 #include "verilog/ast/ast.h"
 #include "verilog/print/print.h"
 
