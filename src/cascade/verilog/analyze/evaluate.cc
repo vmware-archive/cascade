@@ -192,6 +192,10 @@ bool Evaluate::assign_value(const Identifier* id, const Bits& val) {
 }
 
 void Evaluate::assign_array_value(const Identifier* id, const Vector<Bits>& val) {
+  if (id->bit_val_.empty()) {
+    init(const_cast<Identifier*>(id));
+  }
+
   // Find the variable that we're referring to. 
   const auto* r = Resolve().get_resolution(id);
   assert(r != nullptr);
