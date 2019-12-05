@@ -203,6 +203,7 @@ case "${unameOut}" in
                     check_dpkg libncurses5-dev MISSING
                     check_dpkg libbenchmark-dev MISSING
                     check_dpkg libgtest-dev MISSING
+                    check_dpkg verilator MISSING
                     MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                     MISSING_LIST=${MISSING_LIST:1}
                     if [ $SILENT -eq 1 ]; then
@@ -265,6 +266,7 @@ case "${unameOut}" in
                 check_homebrew ncurses MISSING
                 check_homebrew google-benchmark MISSING
                 check_homebrew gtest MISSING
+                check_homebrew verilator MISSING
                 MISSING_LIST=$(printf " %s" "${MISSING[@]:1}")
                 MISSING_LIST=${MISSING_LIST:1}
                 if [ ${#MISSING[@]} -gt 0 ]; then 
