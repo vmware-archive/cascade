@@ -48,13 +48,13 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   set_enable_inlining(true);
   set_open_loop_target(1);
 
-  runtime_.get_compiler()->set("avalon32", new Avalon32Compiler());
-  runtime_.get_compiler()->set("avalon64", new Avalon64Compiler());
-  runtime_.get_compiler()->set("de10", new De10Compiler());
-  runtime_.get_compiler()->set("proxy", new ProxyCompiler());
-  runtime_.get_compiler()->set("sw", new SwCompiler());
-  runtime_.get_compiler()->set("verilator32", new Verilator32Compiler());
-  runtime_.get_compiler()->set("verilator64", new Verilator64Compiler());
+  runtime_.get_compiler()->set("avalon32", new avmm::Avalon32Compiler());
+  runtime_.get_compiler()->set("avalon64", new avmm::Avalon64Compiler());
+  runtime_.get_compiler()->set("de10", new avmm::De10Compiler());
+  runtime_.get_compiler()->set("proxy", new proxy::ProxyCompiler());
+  runtime_.get_compiler()->set("sw", new sw::SwCompiler());
+  runtime_.get_compiler()->set("verilator32", new avmm::Verilator32Compiler());
+  runtime_.get_compiler()->set("verilator64", new avmm::Verilator64Compiler());
 
   set_quartus_server("localhost", 9900);
 }
@@ -85,8 +85,8 @@ Cascade& Cascade::set_quartus_server(const string& host, size_t port) {
   assert(!is_running_);
   auto* dc = runtime_.get_compiler()->get("de10");
   assert(dc != nullptr);
-  static_cast<De10Compiler*>(dc)->set_host(host);
-  static_cast<De10Compiler*>(dc)->set_port(port);
+  static_cast<avmm::De10Compiler*>(dc)->set_host(host);
+  static_cast<avmm::De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 

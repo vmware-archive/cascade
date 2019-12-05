@@ -36,7 +36,7 @@
 #include "common/bits.h"
 #include "target/core.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class SwPad : public Pad {
   public:
@@ -127,6 +127,6 @@ inline void SwPad::update() {
   evaluate();
 }
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

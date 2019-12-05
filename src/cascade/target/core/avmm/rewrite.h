@@ -48,7 +48,7 @@
 #include "verilog/print/print.h"
 #include "verilog/transform/block_flatten.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t M, size_t V, typename A, typename T>
 class Rewrite {
@@ -607,6 +607,6 @@ inline void Rewrite<M,V,A,T>::emit_slice(Identifier* id, size_t w, size_t i) con
   }
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

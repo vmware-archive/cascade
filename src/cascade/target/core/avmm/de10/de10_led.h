@@ -37,7 +37,7 @@
 #include "target/input.h"
 #include "target/state.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 // This file implements an LED engine for the Terasic DE10-Nano board.  It
 // supports LED0-LED7 from the FPGA side, and it requires a PIO core be
@@ -107,6 +107,6 @@ inline void De10Led::update() {
   // Does nothing.
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

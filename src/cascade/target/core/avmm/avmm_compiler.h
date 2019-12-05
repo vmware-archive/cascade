@@ -49,7 +49,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/ast.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t M, size_t V, typename A, typename T>
 class AvmmCompiler : public CoreCompiler {
@@ -381,6 +381,6 @@ inline std::string AvmmCompiler<M,V,A,T>::get_text() {
   return ss.str();
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

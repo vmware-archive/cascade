@@ -39,6 +39,12 @@
 
 namespace cascade {
 
+namespace sw {
+
+class SwLogic;
+
+} // namespace sw
+
 class Node {
   public:
     // Type tags:
@@ -154,7 +160,7 @@ class Node {
     DECORATION(Node*, parent);
 
     friend class Evaluate;
-    friend class SwLogic;
+    friend class sw::SwLogic;
     DECORATION(uint32_t, common);
     // common_[0]    Evaluate: needs_update_
     // common_[1]    SwLogic:  active_

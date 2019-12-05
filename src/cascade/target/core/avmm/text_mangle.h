@@ -39,7 +39,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/builder.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 // Pass 1: 
 // 
@@ -268,6 +268,6 @@ inline Expression* TextMangle<V,A,T>::get_table_range(const Identifier* r, const
   return new RangeExpression(idx, RangeExpression::Type::PLUS, new Number(Bits(std::numeric_limits<T>::digits, titr->second.words_per_element)));
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

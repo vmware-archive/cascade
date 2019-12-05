@@ -44,6 +44,8 @@ namespace cascade {
 
 class interfacestream;
 
+namespace sw {
+
 class SwLogic : public Logic, public Visitor {
   public:
     SwLogic(Interface* interface, ModuleDeclaration* md);
@@ -125,6 +127,8 @@ class SwLogic : public Logic, public Visitor {
     // Debug Printing:
     void log(const std::string& op, const Node* n);
 };
+
+} // namespace sw
 
 } // namespace cascade
 

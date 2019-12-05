@@ -39,7 +39,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::avmm {
 
 constexpr auto HW_REGS_BASE = 0xfc000000u;
 constexpr auto HW_REGS_SPAN = 0x04000000u;
@@ -239,4 +239,4 @@ void De10Compiler::reprogram(sockstream* sock) {
   });
 }
 
-} // namespace cascade
+} // namespace cascade::avmm

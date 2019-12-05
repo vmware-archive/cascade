@@ -38,7 +38,7 @@
 #include "target/interface.h"
 #include "target/state.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class SwClock : public Clock {
   public:
@@ -139,6 +139,6 @@ inline void SwClock::set_val(bool v) {
   val_ = v;
 }
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

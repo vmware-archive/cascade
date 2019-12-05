@@ -211,19 +211,19 @@ inline void Engine::finalize() {
 }
 
 inline VId Engine::get_clock_id() const {
-  auto* c = dynamic_cast<SwClock*>(c_);
+  auto* c = dynamic_cast<sw::SwClock*>(c_);
   assert(c != nullptr);
   return c->get_id();
 }
 
 inline bool Engine::get_clock_val() {
-  auto* c = dynamic_cast<SwClock*>(c_);
+  auto* c = dynamic_cast<sw::SwClock*>(c_);
   assert(c != nullptr);
   return c->get_val();
 }
 
 inline void Engine::set_clock_val(bool v) {
-  auto* c = dynamic_cast<SwClock*>(c_);
+  auto* c = dynamic_cast<sw::SwClock*>(c_);
   assert(c != nullptr);
   c->set_val(v);
 }

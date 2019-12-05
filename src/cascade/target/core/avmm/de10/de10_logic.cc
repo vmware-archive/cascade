@@ -31,7 +31,7 @@
 #include "target/core/avmm/de10/de10_logic.h"
 #include "target/core/avmm/de10/io.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 De10Logic::De10Logic(Interface* interface, ModuleDeclaration* md, size_t slot, volatile uint8_t* addr) : AvmmLogic<12,uint16_t,uint32_t>(interface, md, slot) { 
   get_table()->set_read([addr](uint16_t index) {
@@ -44,4 +44,4 @@ De10Logic::De10Logic(Interface* interface, ModuleDeclaration* md, size_t slot, v
   });
 }
 
-} // namespace cascade
+} // namespace cascade::avmm

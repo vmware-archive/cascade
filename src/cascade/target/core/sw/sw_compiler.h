@@ -39,7 +39,7 @@
 #include "target/core/sw/sw_reset.h"
 #include "target/core_compiler.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class SwCompiler : public CoreCompiler {
   public:
@@ -68,6 +68,6 @@ class SwCompiler : public CoreCompiler {
     std::mutex* reset_lock_;
 };
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

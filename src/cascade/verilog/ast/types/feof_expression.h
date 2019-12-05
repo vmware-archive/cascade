@@ -36,6 +36,13 @@
 
 namespace cascade {
 
+namespace sw {
+
+class Monitor;
+class SwLogic;
+
+} // namespace sw
+
 class FeofExpression : public Expression {
   public:
     // Constructors:
@@ -52,8 +59,8 @@ class FeofExpression : public Expression {
   private:
     PTR_ATTR(Expression, fd);
 
-    friend class Monitor;
-    friend class SwLogic;
+    friend class sw::Monitor;
+    friend class sw::SwLogic;
     DECORATION(Vector<const Node*>, monitor);
 };
 

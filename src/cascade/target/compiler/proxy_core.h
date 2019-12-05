@@ -40,7 +40,7 @@
 #include "target/interface.h"
 #include "target/state.h"
 
-namespace cascade {
+namespace cascade::proxy {
 
 template <typename T>
 class ProxyCore : public T {
@@ -398,6 +398,6 @@ inline void ProxyCore<T>::recv() {
   }
 }
 
-} // namespace cascade
+} // namespace cascade::proxy
 
 #endif

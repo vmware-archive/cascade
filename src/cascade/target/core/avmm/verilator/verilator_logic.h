@@ -35,7 +35,7 @@
 #include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/avmm/verilator/verilator_logic.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t V, typename A, typename T>
 class VerilatorLogic : public AvmmLogic<V,A,T> {
@@ -59,6 +59,6 @@ inline void VerilatorLogic<V,A,T>::set_io(T(*read)(A), void(write)(A,T)) {
   });
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

@@ -35,7 +35,7 @@
 #include "common/bits.h"
 #include "target/core.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class SwLed : public Led {
   public:
@@ -108,6 +108,6 @@ inline void SwLed::update() {
   // Does nothing.
 }
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

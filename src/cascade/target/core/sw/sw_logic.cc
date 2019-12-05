@@ -46,7 +46,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::sw {
 
 SwLogic::SwLogic(Interface* interface, ModuleDeclaration* md) : Logic(interface), Visitor() { 
   // Record pointer to source code and provision update pool
@@ -482,4 +482,4 @@ void SwLogic::log(const string& op, const Node* n) {
   cout << "[" << src_->get_id() << "] " << op << " " << n << endl;
 }
 
-} // namespace cascade
+} // namespace cascade::sw

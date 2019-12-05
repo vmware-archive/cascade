@@ -42,7 +42,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/print/print.h"
 
-namespace cascade {
+namespace cascade::proxy {
 
 class ProxyCompiler : public CoreCompiler {
   public:
@@ -127,6 +127,6 @@ inline ProxyCore<T>* ProxyCompiler::generic_compile(Engine::Id id, ModuleDeclara
   return new ProxyCore<T>(interface, conn.pid, id, res.n_, conn.sync_sock);
 }
 
-} // namespace cascade
+} // namespace cascade::proxy
 
 #endif

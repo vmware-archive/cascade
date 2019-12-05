@@ -48,7 +48,7 @@
 #include "verilog/analyze/module_info.h"
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t V, typename A, typename T>
 class AvmmLogic : public Logic {
@@ -690,6 +690,6 @@ inline void AvmmLogic<V,A,T>::Sync::visit(const Identifier* id) {
   av_->table_.read_var(av_->slot_, r);
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

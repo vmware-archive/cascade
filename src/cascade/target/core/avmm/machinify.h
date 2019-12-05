@@ -38,7 +38,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/visitor.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 // Pass 2: 
 //        
@@ -455,7 +455,7 @@ inline void Machinify<T>::TaskCheck::visit(const BlockingAssign* ba) {
   }
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif
 

@@ -35,7 +35,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace cascade {
+namespace cascade::avmm {
 
 // FIFO with atomic puts and gets Peeking and put-backs are not supported
 
@@ -168,6 +168,6 @@ inline std::streamsize syncbuf::xsgetn(char_type* s, std::streamsize count) {
   return true_count;
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

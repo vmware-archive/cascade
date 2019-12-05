@@ -40,7 +40,7 @@
 #include "verilog/analyze/resolve.h"
 #include "verilog/ast/ast.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t V, typename A, typename T>
 class VarTable {
@@ -280,6 +280,6 @@ inline void VarTable<V,A,T>::write_var(size_t slot, const Identifier* id, const 
   }
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

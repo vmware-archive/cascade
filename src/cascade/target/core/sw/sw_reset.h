@@ -36,7 +36,7 @@
 #include "common/bits.h"
 #include "target/core.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class SwReset : public Reset {
   public:
@@ -124,6 +124,6 @@ inline void SwReset::update() {
   evaluate();
 }
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

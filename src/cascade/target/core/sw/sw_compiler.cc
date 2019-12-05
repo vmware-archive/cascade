@@ -38,7 +38,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::sw {
 
 SwCompiler::SwCompiler() : CoreCompiler() { 
   set_led(nullptr, nullptr);
@@ -171,4 +171,4 @@ SwReset* SwCompiler::compile_reset(Engine::Id id, ModuleDeclaration* md, Interfa
   return new SwReset(interface, oid, reset_, reset_lock_);
 }
 
-} // namespace cascade
+} // namespace cascade::sw

@@ -35,7 +35,7 @@
 #include "target/core/avmm/avalon/syncbuf.h"
 #include "target/core/avmm/avmm_logic.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t V, typename A, typename T>
 class AvalonLogic : public AvmmLogic<V,A,T> {
@@ -81,6 +81,6 @@ inline AvalonLogic<V,A,T>::AvalonLogic(Interface* interface, ModuleDeclaration* 
   }
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

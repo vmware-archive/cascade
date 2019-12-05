@@ -34,7 +34,7 @@
 
 using namespace std;
 
-namespace cascade {
+namespace cascade::proxy {
 
 ProxyCompiler::ProxyCompiler() : CoreCompiler() { 
   pool_.set_num_threads(4);
@@ -210,4 +210,4 @@ sockstream* ProxyCompiler::get_unix_sock(const string& loc) {
   return new sockstream(loc.c_str()); 
 }
 
-} // namespace cascade
+} // namespace cascade::proxy

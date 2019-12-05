@@ -37,7 +37,7 @@
 #include "target/core/avmm/de10/de10_logic.h"
 #include "target/core/avmm/de10/de10_pad.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 class De10Compiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
   public:
@@ -72,6 +72,6 @@ class De10Compiler : public AvmmCompiler<2,12,uint16_t,uint32_t> {
     void reprogram(sockstream* sock);
 };
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

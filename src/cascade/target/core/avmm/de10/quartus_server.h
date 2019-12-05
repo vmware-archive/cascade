@@ -40,6 +40,8 @@ namespace cascade {
 
 class sockstream;
 
+namespace avmm {
+
 class QuartusServer : public Thread {
   public:
     // RPC Types:
@@ -80,6 +82,8 @@ class QuartusServer : public Thread {
     void kill_all();
     bool compile(const std::string& text);
 };
+
+} // namespace avmm
 
 } // namespace cascade
 

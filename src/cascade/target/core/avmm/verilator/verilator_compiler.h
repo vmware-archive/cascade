@@ -40,7 +40,7 @@
 #include "target/core/avmm/verilator/verilator_logic.h"
 #include "target/core/avmm/avmm_compiler.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t M, size_t V, typename A, typename T>
 class VerilatorCompiler : public AvmmCompiler<M,V,A,T> {
@@ -142,6 +142,6 @@ inline void VerilatorCompiler<M,V,A,T>::stop_compile() {
   } 
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

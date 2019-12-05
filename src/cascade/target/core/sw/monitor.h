@@ -37,7 +37,7 @@
 #include "verilog/ast/ast.h"
 #include "verilog/ast/visitors/editor.h"
 
-namespace cascade {
+namespace cascade::sw {
 
 class Monitor : public Editor {
   public:
@@ -98,6 +98,6 @@ inline void Monitor::edit(ContinuousAssign* ca) {
   wait_on_reads(ca, ca->get_rhs());
 }
 
-} // namespace cascade
+} // namespace cascade::sw
 
 #endif

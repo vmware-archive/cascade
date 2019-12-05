@@ -33,7 +33,7 @@
 
 #include "target/core/avmm/avmm_logic.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 class De10Logic : public AvmmLogic<12,uint16_t,uint32_t> {
   public:
@@ -42,6 +42,6 @@ class De10Logic : public AvmmLogic<12,uint16_t,uint32_t> {
     ~De10Logic() override = default;
 };
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

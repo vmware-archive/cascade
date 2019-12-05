@@ -43,13 +43,13 @@ namespace cascade {
 CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
 
-  remote_compiler_.set("avalon32", new Avalon32Compiler());
-  remote_compiler_.set("avalon64", new Avalon64Compiler());
-  remote_compiler_.set("de10", new De10Compiler());
-  remote_compiler_.set("proxy", new ProxyCompiler());
-  remote_compiler_.set("sw", new SwCompiler());
-  remote_compiler_.set("verilator32", new Verilator32Compiler());
-  remote_compiler_.set("verilator64", new Verilator64Compiler());
+  remote_compiler_.set("avalon32", new avmm::Avalon32Compiler());
+  remote_compiler_.set("avalon64", new avmm::Avalon64Compiler());
+  remote_compiler_.set("de10", new avmm::De10Compiler());
+  remote_compiler_.set("proxy", new proxy::ProxyCompiler());
+  remote_compiler_.set("sw", new sw::SwCompiler());
+  remote_compiler_.set("verilator32", new avmm::Verilator32Compiler());
+  remote_compiler_.set("verilator64", new avmm::Verilator64Compiler());
 
   set_quartus_server("localhost", 9900);
 }
@@ -67,8 +67,8 @@ CascadeSlave& CascadeSlave::set_listeners(const string& path, size_t port) {
 CascadeSlave& CascadeSlave::set_quartus_server(const string& host, size_t port) {
   auto* dc = remote_compiler_.get("de10");
   assert(dc != nullptr);
-  static_cast<De10Compiler*>(dc)->set_host(host);
-  static_cast<De10Compiler*>(dc)->set_port(port);
+  static_cast<avmm::De10Compiler*>(dc)->set_host(host);
+  static_cast<avmm::De10Compiler*>(dc)->set_port(port);
   return *this;
 }
 

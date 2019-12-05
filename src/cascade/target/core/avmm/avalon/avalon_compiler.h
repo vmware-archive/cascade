@@ -40,7 +40,7 @@
 #include "target/core/avmm/avalon/syncbuf.h"
 #include "target/core/avmm/avmm_compiler.h"
 
-namespace cascade {
+namespace cascade::avmm {
 
 template <size_t M, size_t V, typename A, typename T>
 class AvalonCompiler : public AvmmCompiler<M,V,A,T> {
@@ -120,6 +120,6 @@ inline void AvalonCompiler<M,V,A,T>::stop_compile() {
   // Does nothing. 
 }
 
-} // namespace cascade
+} // namespace cascade::avmm
 
 #endif

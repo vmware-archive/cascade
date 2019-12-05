@@ -40,6 +40,13 @@
 
 namespace cascade {
 
+namespace sw {
+
+class Monitor;
+class SwLogic;
+
+} // namespace sw 
+
 class Identifier : public Primary {
   public:
     // Constructors:
@@ -71,8 +78,8 @@ class Identifier : public Primary {
 
     friend class Resolve;
     DECORATION(const Identifier*, resolution);
-    friend class Monitor;
-    friend class SwLogic;
+    friend class sw::Monitor;
+    friend class sw::SwLogic;
     DECORATION(Vector<const Node*>, monitor);
 };
 
