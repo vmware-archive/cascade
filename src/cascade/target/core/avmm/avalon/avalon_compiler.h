@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_AVALON_AVALON_COMPILER_H
 
+#include <cstdlib>
 #include <fstream>
 #include <type_traits>
 #include "include/cascade.h"
@@ -85,8 +86,14 @@ inline AvalonLogic<V,A,T>* AvalonCompiler<M,V,A,T>::build(Interface* interface, 
 template <size_t M, size_t V, typename A, typename T>
 inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
   (void) lock;
+
   AvalonCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, &text]{
-    std::ofstream ofs(System::src_root() + "/var/cascade/avalon/program_logic.v");
+    System::execute("mkdir -p /tmp/avalon/");
+    char path[] = "/tmp/avalon/program_logic_XXXXXX.v";
+    const auto fd = mkstemps(path, 2);
+    close(fd);
+
+    std::ofstream ofs(path);
     ofs << text << std::endl;
     ofs.close();
   
@@ -102,14 +109,15 @@ inline bool AvalonCompiler<M,V,A,T>::compile(const std::string& text, std::mutex
 
     cascade_->run();
     *cascade_ << "`include \"share/cascade/march/regression/minimal.v\"\n";
+    *cascade_ << "`include \"" << path << "\"\n";
     *cascade_ << "integer ifd = " << ifd << ";\n";
     *cascade_ << "integer ofd = " << ofd << ";\n";
     if constexpr (std::is_same<T, uint32_t>::value) {
-      *cascade_ << "`include \"var/cascade/avalon/avalon32_wrapper.v\"\n";
+      *cascade_ << "`include \"share/cascade/avalon/avalon32_wrapper.v\"\n";
     } else if constexpr (std::is_same<T, uint64_t>::value) {
-      *cascade_ << "`include \"var/cascade/avalon/avalon64_wrapper.v\"\n";
+      *cascade_ << "`include \"share/cascade/avalon/avalon64_wrapper.v\"\n";
     }
-    *cascade_ << std::endl;
+    cascade_->flush();
   });
 
   return true;

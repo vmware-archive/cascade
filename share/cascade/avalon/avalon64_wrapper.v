@@ -1,8 +1,3 @@
-`ifndef __VAR_CASCADE_AVALON_AVALON64_WRAPPER_V
-`define __VAR_CASCADE_AVALON_AVALON64_WRAPPER_V
-
-`include "var/cascade/avalon/program_logic.v"
-
 reg read = 0;
 reg write = 0;
 reg[7:0] addr[3:0];
@@ -42,5 +37,3 @@ always @(posedge clock.val) begin
 		end
 	end
 end
-
-`endif

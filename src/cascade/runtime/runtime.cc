@@ -36,7 +36,6 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include "common/incstream.h"
 #include "common/indstream.h"
 #include "common/system.h"
 #include "runtime/data_plane.h"
@@ -65,6 +64,7 @@ Runtime::Runtime() : Thread() {
 
   log_ = new Log();
   parser_ = new Parser(log_);
+  parser_->set_include_dirs(System::src_root());
   compiler_ = new LocalCompiler(this);
   dp_ = new DataPlane();
   isolate_ = new Isolate();
@@ -89,7 +89,6 @@ Runtime::Runtime() : Thread() {
   last_time_ = ::time(nullptr);
   logical_time_ = 0;
 
-  // Allocate standard streams 
   for (size_t i = 0; i < 6; ++i) {
     streambufs_.push_back(make_pair(new nullbuf(), true));
   }
@@ -141,7 +140,7 @@ Runtime::~Runtime() {
 }
 
 Runtime& Runtime::set_include_dirs(const string& s) {
-  parser_->set_include_dirs(s);
+  parser_->set_include_dirs(System::src_root() + ":" + s);
   return *this;
 }
 
@@ -347,8 +346,8 @@ void Runtime::retarget(const string& s) {
       return retarget(s);
     }
     // Give up if we can't open the march file which was requested
-    incstream ifs(System::src_root());
-    if (!ifs.open("data/march/" + s + ".v")) {
+    ifstream ifs(System::src_root() + "share/cascade/march/" + s + ".v");
+    if (!ifs.is_open()) {
       ostream(rdbuf(stderr_)) << "Unrecognized march option '" << s << "'!" << endl;
       finish(0);
       return;

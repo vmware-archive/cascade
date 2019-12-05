@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
   ::cascade_ = new Cascade();
 
   // Set command line flags
-  ::cascade_->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  ::cascade_->set_include_dirs(::inc_dirs.value());
   ::cascade_->set_enable_inlining(!::disable_inlining.value());
   ::cascade_->set_open_loop_target(::open_loop_target.value());
   ::cascade_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
