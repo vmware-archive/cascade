@@ -523,7 +523,8 @@ const Node* Evaluate::get_root(const Expression* e) const {
     // Continuous, non-blocking, or blocking assigns
     else if (root->get_parent()->is(Node::Tag::continuous_assign) || 
         root->get_parent()->is(Node::Tag::blocking_assign) ||
-        root->get_parent()->is(Node::Tag::nonblocking_assign)) {
+        root->get_parent()->is(Node::Tag::nonblocking_assign) ||
+        root->get_parent()->is(Node::Tag::variable_assign)) {
       return root->get_parent();
     }
     // Multiple Concatenation
@@ -1183,8 +1184,6 @@ void Evaluate::ContextDetermine::edit(VariableAssign* va) {
     va->get_rhs()->bit_val_[0].resize(va->get_lhs()->bit_val_[0].size());
   }
   va->accept_rhs(this);
-  // We're context determined, but these assignments happen dynamically.
-  // Nothing more to do here.
 }
 
 } // namespace cascade
