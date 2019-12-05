@@ -64,6 +64,8 @@ class LoopUnroll : public Rewriter {
     Statement* rewrite(ForStatement* fs) override;
     Statement* rewrite(RepeatStatement* rs) override;
     Statement* rewrite(WhileStatement* ws) override;
+
+    ModuleDeclaration* md_;
 };
 
 } // namespace cascade

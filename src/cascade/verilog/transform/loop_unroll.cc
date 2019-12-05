@@ -42,15 +42,10 @@ namespace cascade {
 LoopUnroll::LoopUnroll() : Rewriter() { }
 
 void LoopUnroll::run(ModuleDeclaration* md) {
+  md_ = md;
   md->accept_items(this);
-
-  // Invalidate cached state (we haven't added or deleted declarations, so
-  // there's no need to invalidate the scope tree).
-  Resolve().invalidate(md);
   ModuleInfo(md).invalidate();
 
-  // Now that we're back on solid ground, reset the values of any variables in
-  // this module which we may have updated while statically evaluating a loop.
   Reset r;
   md->accept_items(&r);
 }
@@ -93,15 +88,6 @@ Statement* LoopUnroll::Unroll::build(const RepeatStatement* rs) {
   return sb;
 }
 
-LoopUnroll::Reset::Reset() : Visitor() { }
-
-void LoopUnroll::Reset::visit(const RegDeclaration* rd) {
-  if (rd->is_non_null_val()) {
-    const auto& val = Evaluate().get_value(rd->get_val());
-    Evaluate().assign_value(rd->get_id(), val);
-  }
-}
-
 Statement* LoopUnroll::Unroll::build(const WhileStatement* ws) {
   auto* sb = new SeqBlock();
   while (Evaluate().get_value(ws->get_cond()).to_bool()) {
@@ -111,20 +97,34 @@ Statement* LoopUnroll::Unroll::build(const WhileStatement* ws) {
   return sb;
 }
 
+LoopUnroll::Reset::Reset() : Visitor() { }
+
+void LoopUnroll::Reset::visit(const RegDeclaration* rd) {
+  if (rd->is_non_null_val()) {
+    const auto& val = Evaluate().get_value(rd->get_val());
+    Evaluate().assign_value(rd->get_id(), val);
+  }
+}
+
 Statement* LoopUnroll::rewrite(ForStatement* fs) {
   Unroll u;
-  return fs->accept(&u);
+  auto* res = fs->accept(&u);
+  Resolve().invalidate(md_);
+  return res;
 }
 
 Statement* LoopUnroll::rewrite(RepeatStatement* rs) {
   Unroll u;
-  return rs->accept(&u);
+  auto* res = rs->accept(&u);
+  Resolve().invalidate(md_);
+  return res;
 }
 
 Statement* LoopUnroll::rewrite(WhileStatement* ws) {
   Unroll u;
-  return ws->accept(&u);
+  auto* res = ws->accept(&u);
+  Resolve().invalidate(md_);
+  return res;
 }
-
 
 } // namespace cascade
