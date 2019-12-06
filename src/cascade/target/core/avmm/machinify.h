@@ -229,9 +229,7 @@ inline void Machinify<T>::Generate::visit(const SeqBlock* sb) {
 
 template <typename T>
 inline void Machinify<T>::Generate::visit(const CaseStatement* cs) {
-  // TODO(eschkufz) There are similar optimizations to the ones in
-  // ConditionalStatement that can still be made here.
-
+  // Copy text as is if this statement doesn't contain any tasks
   if (!TaskCheck().run(cs)) {
     append(cs);
     return;
@@ -248,6 +246,8 @@ inline void Machinify<T>::Generate::visit(const CaseStatement* cs) {
     ends.push_back(current_);
   }
 
+  next_state();
+
   auto* branch = new CaseStatement(cs->get_type(), cs->get_cond()->clone());
   size_t idx = 0;
   for (auto i = cs->begin_items(), ie = cs->end_items(); i != ie; ++i) {
@@ -263,7 +263,6 @@ inline void Machinify<T>::Generate::visit(const CaseStatement* cs) {
   }
   append(begin.second, branch);
   
-  next_state();
   for (auto& e : ends) {
     transition(e.second, current_.first);
   }
@@ -271,48 +270,33 @@ inline void Machinify<T>::Generate::visit(const CaseStatement* cs) {
 
 template <typename T>
 inline void Machinify<T>::Generate::visit(const ConditionalStatement* cs) {
-  // No need to split a conditional statement that doesn't have any io
+  // Copy text as is if this statement doesn't contain any tasks
   if (!TaskCheck().run(cs)) {
     append(cs);
     return;
   }
 
-  // Check whether this conditional has an empty else branch
-  const auto empty_else = 
-    cs->get_else()->is(Node::Tag::seq_block) &&
-    static_cast<const SeqBlock*>(cs->get_else())->empty_stmts();
-  // Check whether this is the last statement in a seq block
-  const auto last_stmt = 
-    cs->get_parent()->is(Node::Tag::seq_block) &&
-    static_cast<const SeqBlock*>(cs->get_parent())->back_stmts() == cs;
-
-  // Record the current state
   const auto begin = current_;
 
-  // We definitely need a new state for the true branch
   next_state();
   const auto then_begin = current_;
   cs->get_then()->accept(this);
   const auto then_end = current_;
 
-  // We only need a new state for the else branch if it's non-empty.
+  const auto empty_else = 
+    cs->get_else()->is(Node::Tag::seq_block) &&
+    static_cast<const SeqBlock*>(cs->get_else())->empty_stmts();
+  auto else_begin = current_;
+  auto else_end = current_;
   if (!empty_else) {
     next_state();
+    else_begin = current_;
+    cs->get_else()->accept(this);
+    else_end = current_;
   }
-  const auto else_begin = current_;
-  cs->get_else()->accept(this);
-  const auto else_end = current_;
 
-  // And if this ISNT the last statement in a seq block or we have a non-empty
-  // else, we need a phi node to join the two. 
-  const auto phi_node = !empty_else || !last_stmt;
-  if (phi_node) {
-    next_state();
-  }
-  
-  // And now we need transitions between the branches. The true branch always
-  // goes to tbe beginning of the then state, and the else branch either goes
-  // to the beginning of the else state or one past the end of the then state.
+  next_state();
+
   auto* branch = new ConditionalStatement(
     cs->get_if()->clone(),
     new BlockingAssign(
@@ -321,18 +305,14 @@ inline void Machinify<T>::Generate::visit(const ConditionalStatement* cs) {
     ),
     new BlockingAssign(
       new Identifier(new Id("__state"), new Number(Bits(std::numeric_limits<T>::digits, idx_))),
-      new Number(Bits(std::numeric_limits<T>::digits, !empty_else ? else_begin.first : (then_end.first + 1)))
+      new Number(Bits(std::numeric_limits<T>::digits, empty_else ? current_.first : else_begin.first))
     )
   );
   append(begin.second, branch);
 
-  // If we emitted a phi node, the then branch goes there (to the current state).
-  // And if the else branch was non-empty, it goes there as well.
-  if (phi_node) {
-    transition(then_end.second, current_.first);
-    if (!empty_else) {
-      transition(else_end.second, current_.first);
-    }
+  transition(then_end.second, current_.first);
+  if (!empty_else) {
+    transition(else_end.second, current_.first);
   }
 }
 
