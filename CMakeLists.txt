@@ -37,11 +37,10 @@ endif()
 
 include_directories(.)
 include_directories(src/cascade)
-include_directories(var/cascade)
+include_directories(share/cascade)
 
 add_subdirectory(include)
 add_subdirectory(share)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(tools)
-add_subdirectory(var)

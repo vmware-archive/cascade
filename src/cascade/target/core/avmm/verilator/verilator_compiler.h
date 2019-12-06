@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_VERILATOR_VERILATOR_COMPILER_H
 
+#include <cstdlib>
 #include <dlfcn.h>
 #include <fstream>
 #include <thread>
@@ -92,15 +93,22 @@ template <size_t M, size_t V, typename A, typename T>
 inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
   stop_compile();
 
-  std::ofstream ofs(System::src_root() + "/var/cascade/verilator/program_logic.v");
+  System::execute("mkdir -p /tmp/verilator/");
+  char path[] = "/tmp/verilator/program_logic_XXXXXX.v";
+  const auto fd = mkstemps(path, 2);
+  const auto dir = std::string(path).substr(0,35);
+  close(fd);
+
+  System::execute("mkdir -p " + dir);
+  std::ofstream ofs(path);
   ofs << text << std::endl;
   ofs.close();
 
   pid_t pid = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/var/cascade/verilator/ && ./build_verilator_32.sh", false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_32.sh " + dir, false);
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/var/cascade/verilator/ && ./build_verilator_64.sh", false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_64.sh " + dir, false);
   } 
 
   lock.unlock();
@@ -111,14 +119,14 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
     return false;
   }
     
-  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this]{
+  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, dir]{
     if (handle_ != nullptr) {
       stop_();
       verilator_.join();
       dlclose(handle_);
     }
     
-    handle_ = dlopen((System::src_root() + "/var/cascade/verilator/obj_dir/libverilator.so").c_str(), RTLD_LAZY);
+    handle_ = dlopen((dir + "/libverilator.so").c_str(), RTLD_LAZY);
     stop_ = (void (*)()) dlsym(handle_, "verilator_stop");
     
     auto read = (T (*)(A)) dlsym(handle_, "verilator_read");
@@ -130,6 +138,7 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
     auto start = (void (*)()) dlsym(handle_, "verilator_start");
     verilator_ = std::thread(start);
   });
+
   return true;
 }
 
