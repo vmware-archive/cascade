@@ -390,6 +390,7 @@ void Module::compile_and_replace(size_t ignore) {
       ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << ss.str() << endl;
     }
   }
+  rt_->reset_open_loop_itrs();
 
   // Slow Path: Schedule a thread to compile in the background and swap in the
   // results in a safe runtime window when it's done. 
@@ -409,6 +410,7 @@ void Module::compile_and_replace(size_t ignore) {
           engine_->replace_with(e_slow);
           ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << str << endl;
         }
+        rt_->reset_open_loop_itrs();
       },
       [e_slow] {
         lock_guard<mutex> lg(alt_lock_);

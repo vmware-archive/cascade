@@ -277,6 +277,12 @@ bool Runtime::is_finished() const {
   return finished_;
 }
 
+void Runtime::reset_open_loop_itrs() {
+  schedule_interrupt([this]{
+    open_loop_itrs_ = 2;
+  });
+}
+
 void Runtime::debug(uint32_t action, const string& arg) {
   schedule_interrupt([this, action, arg]{
     const auto* r = resolve(arg);
@@ -341,7 +347,7 @@ void Runtime::retarget(const string& s) {
     // interrupt queue? Remember that Module::rebuild() can only be invoked in
     // a state where there are no unhandled evals. Fortunately, there's an easy
     // fix: just reinvoke retarget().  This will reschedule us on the far side
-    // of Runtime::rebuild() and it'll be safe to invoke Module::rebuild().
+    // of Runtime::resync() and it'll be safe to invoke Module::rebuild().
     if (item_evals_ > 0) {
       return retarget(s);
     }
@@ -612,10 +618,10 @@ bool Runtime::eval_item(ModuleItem* mi) {
   return true;
 }
 
-void Runtime::rebuild() {
+void Runtime::resync() {
   // If nothing has been evaled since the last call, we don't have to worry
-  // about recompilation. But we might be here because of a jit handoff, in
-  // which case we still need to check for compiler errors.
+  // about recompilation. We might be here because of a jit handoff, in which
+  // case we need to check for compiler errors.
   if (item_evals_ == 0) {
     if (compiler_->error()) {
       log_compiler_errors();
@@ -655,11 +661,8 @@ void Runtime::rebuild() {
   }
   schedule_all_ = true;
 
-  // Determine whether we can reenter open loop in this state. If we can, make
-  // sure to adjust open_loop_itrs_ back to something manageable for software!
-  // Otherwise we'll hang in the next call to open_loop.
+  // Determine whether we can reenter open loop in this state. 
   enable_open_loop_ = (logic_.size() == 2) && (clock_ != nullptr) && (inlined_logic_ != nullptr);
-  open_loop_itrs_ = 2;
 }
 
 void Runtime::drain_active() {
@@ -713,11 +716,12 @@ void Runtime::drain_interrupts() {
   if (ints_.empty()) {
     return;
   }
+
   // Slow Path: 
-  // We have at least one interrupt, which could be an eval event.  Schedule a
-  // call at the end of the queue to rebuild the codebase if necessary.
+  // We have at least one interrupt, which could be an eval event or a jit
+  // handoff.  Schedule an interrupt at the end of the queue to handle these.
   schedule_interrupt([this]{
-    rebuild();
+    resync();
   });
   for (size_t i = 0; i < ints_.size(); ++i) {
     ints_[i]();

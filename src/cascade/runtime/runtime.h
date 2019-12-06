@@ -131,6 +131,8 @@ class Runtime : public Thread {
     void schedule_asynchronous(Asynchronous async);
     // Returns true if the runtime has executed a finish statement.
     bool is_finished() const;
+    // Resets the open loop iteration counter
+    void reset_open_loop_itrs();
 
     // System Task Interface:
     //
@@ -240,9 +242,8 @@ class Runtime : public Thread {
 
     // Module Hierarchy Helpers:
     // 
-    // Instantiates new submodules below the root in the module hierarchy and
-    // recompiles engine logic as necessary.
-    void rebuild();
+    // Called whenever an interrupt is queued to handle evals or jit handoffs.
+    void resync();
 
     // Verilog Simulation Loop Scheduling Helpers:
     //
