@@ -332,26 +332,28 @@ ModuleDeclaration* Module::regenerate_ir_source(size_t ignore) {
 void Module::compile_and_replace(size_t ignore) {
   // Generate new code and bump the sequence number for this module
   auto* md = regenerate_ir_source(ignore); 
-  ++version_;
-  const auto this_version = version_;
+  const auto this_version = ++version_;
 
   // Record human readable name for this module
   const auto* iid = static_cast<const ModuleInstantiation*>(psrc_->get_parent())->get_iid();
   const auto fid = Resolve().get_readable_full_id(iid);
 
+  // Invoke compilations until all jit passes are scheduled
+  compile_and_replace(md, this_version, fid, 1);
+}
+
+void Module::compile_and_replace(ModuleDeclaration* md, size_t version, const string& id, size_t pass) {
   // Lookup annotations 
   const auto* std = md->get_attrs()->get<String>("__std");
   const auto* t = md->get_attrs()->get<String>("__target");
   const auto* l = md->get_attrs()->get<String>("__loc");
 
-  // Check: Is this an std module, was jit compilation requested?  
+  // Check: Is jit compilation required?  
   const auto tsep = t->get_readable_val().find_first_of(';');
   const auto lsep = l->get_readable_val().find_first_of(';');
   const auto jit = std->eq("logic") && ((tsep != string::npos) || (lsep != string::npos));
 
-  // If we're jit compiling, we'll need a second copy of the source need to
-  // adjust the annotations. We'll also need to erase debugging annotations from
-  // the first pass source.
+  // If we're jit compiling, we'll need a second copy of the source.
   ModuleDeclaration* md2 = nullptr;
   if (jit) {
     md2 = md->clone();
@@ -368,56 +370,62 @@ void Module::compile_and_replace(size_t ignore) {
   } else {
     md2 = new ModuleDeclaration(new Attributes(), new Identifier("null"));
   }
-  // Check whether the first pass compilation is sw
-  if (std->eq("logic") && !md->get_attrs()->get<String>("__target")->eq("sw")) {
-    rt_->get_compiler()->fatal("Fast-pass compilation for logic must target software!");
+  // Invariant: Initial blocks are removed from pass n compilations
+  if (pass > 1) {
+    DeleteInitial().run(md);
+  }
+  // Invariant: First pass for logic must be sw
+  if (std->eq("logic") && (pass == 1) && !md->get_attrs()->get<String>("__target")->eq("sw")) {
+    rt_->get_compiler()->fatal("Pass 1 compilation for logic must target software!");
     delete md;
     delete md2;
     return;
   }
 
-  // Fast Path. Compile and replace the original engine.  
+  // Compile code
   stringstream ss;
-  ss << "fast-pass recompilation of " << fid << " with attributes " << md->get_attrs();
-  auto* e_fast = rt_->get_compiler()->compile(engine_->get_id(), md);
-  if (e_fast == nullptr) {
-    rt_->get_compiler()->fatal("Unable to complete fast-pass compilation!");
-  } else {
-    engine_->replace_with(e_fast);
-    if (engine_->is_stub()) {
-      ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Deferring " << ss.str() << endl;
+  ss << "pass " << pass << " compilation of " << id << " with attributes " << md->get_attrs();
+  const auto info = ss.str();
+  auto* e = rt_->get_compiler()->compile(engine_->get_id(), md);
+
+  // Special handling for pass 1 compilation, which isn't run asynchronously
+  // and has strict reqiurements on successful completion.
+  if (pass == 1) {
+    if (e == nullptr) {
+      rt_->get_compiler()->fatal("Unable to complete pass 1 compilation!");
     } else {
-      ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << ss.str() << endl;
+      engine_->replace_with(e);
+      if (engine_->is_stub()) {
+        ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Deferring " << info << endl;
+      } else {
+        ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << info << endl;
+      }
     }
+    rt_->reset_open_loop_itrs();
   }
-  rt_->reset_open_loop_itrs();
+  // Pass n compilation takes place asynchronously
+  else {
+    rt_->schedule_interrupt([this, version, e, info]{
+      if ((version < version_) || (e == nullptr)) {
+        ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Aborted " << info << endl;
+      } else {
+        engine_->replace_with(e);
+        ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << info << endl;
+      }
+      rt_->reset_open_loop_itrs();
+    },
+    [e] {
+      lock_guard<mutex> lg(alt_lock_);
+      if (e != nullptr) {
+        delete e;
+      }
+    });
+  }
 
-  // Slow Path: Schedule a thread to compile in the background and swap in the
-  // results in a safe runtime window when it's done. 
-  if (jit && !engine_->is_stub() && (e_fast != nullptr)) {
-    rt_->schedule_asynchronous(Runtime::Asynchronous([this, this_version, md2, fid]{
-      stringstream ss;
-      ss << "slow-pass recompilation of " << fid << " with attributes " << md2->get_attrs();
-      const auto str = ss.str();
-
-      DeleteInitial().run(md2);
-      auto* e_slow = rt_->get_compiler()->compile(engine_->get_id(), md2);
-
-      rt_->schedule_interrupt([this, this_version, e_slow, str]{
-        if ((this_version < version_) || (e_slow == nullptr)) {
-          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Aborted " << str << endl;
-        } else {
-          engine_->replace_with(e_slow);
-          ostream(rt_->rdbuf(Runtime::stdinfo_)) << "Finished " << str << endl;
-        }
-        rt_->reset_open_loop_itrs();
-      },
-      [e_slow] {
-        lock_guard<mutex> lg(alt_lock_);
-        if (e_slow != nullptr) {
-          delete e_slow;
-        }
-      });
+  // Run jit compilation asynchronously
+  if (jit && !engine_->is_stub() && (e != nullptr)) {
+    rt_->schedule_asynchronous(Runtime::Asynchronous([this, md2, version, id, pass, info]{
+      compile_and_replace(md2, version, id, pass+1);
     }));
   } else {
     delete md2;

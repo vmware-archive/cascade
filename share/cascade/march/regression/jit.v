@@ -3,7 +3,7 @@
 
 `include "share/cascade/stdlib/stdlib.v"
 
-(*__target="sw;sw"*)
+(*__target="sw;sw;sw;sw;sw"*)
 Root root();
 
 Clock clock();
