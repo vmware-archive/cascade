@@ -103,6 +103,8 @@ class ModuleInfo : public Visitor {
     // Returns true if this module contains at least one always block with a
     // combination of pos/neg edge triggers and variable triggers.
     bool uses_mixed_triggers();
+    // Returns true if this module is driven by more than one clock.
+    bool uses_multiple_clocks();
 
     // Variable Indices:
     //

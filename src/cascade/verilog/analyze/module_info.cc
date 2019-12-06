@@ -72,6 +72,7 @@ void ModuleInfo::invalidate() {
   ModuleDeclaration::ConnMap().swap(md_->connections_);
   ModuleDeclaration::ChildMap().swap(md_->children_);
   md_->uses_mixed_triggers_ = false;
+  md_->clocks_ = 0;
 }
 
 bool ModuleInfo::is_declaration() {
@@ -149,6 +150,11 @@ bool ModuleInfo::is_child(const Identifier* id) {
 bool ModuleInfo::uses_mixed_triggers() {
   refresh();
   return md_->uses_mixed_triggers_;
+}
+
+bool ModuleInfo::uses_multiple_clocks() {
+  refresh();
+  return md_->clocks_ > 1;
 }
 
 const unordered_set<const Identifier*>& ModuleInfo::locals() {
@@ -725,18 +731,14 @@ void ModuleInfo::visit(const VariableAssign* va) {
 void ModuleInfo::visit(const EventControl* ec) {
   Visitor::visit(ec);
 
-  // Nothing to do if we already know this module uses mixed triggers
-  if (md_->uses_mixed_triggers_) {
-    return;
-  }
-    
-  // Otherwise, check for the presence of both pos/neg edge and edge
+  // Check for the presence of both pos/neg edge and edge, and count clocks
   auto edge = false;
   auto var = false;
   for (auto i = ec->begin_events(), ie = ec->end_events(); i != ie; ++i) {
     switch ((*i)->get_type()) {
       case Event::Type::POSEDGE:
       case Event::Type::NEGEDGE:
+        ++md_->clocks_;
         edge = true;
         break;
       case Event::Type::EDGE:
@@ -747,7 +749,7 @@ void ModuleInfo::visit(const EventControl* ec) {
         break;
     } 
   }
-  md_->uses_mixed_triggers_ = edge && var;
+  md_->uses_mixed_triggers_ = md_->uses_mixed_triggers_ || (edge && var);
 }
 
 void ModuleInfo::refresh() {

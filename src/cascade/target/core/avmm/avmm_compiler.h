@@ -167,10 +167,13 @@ inline AvmmLogic<V,A,T>* AvmmCompiler<M,V,A,T>::compile_logic(Engine::Id id, Mod
   // Check for unsupported language features
   auto unsupported = false;
   if (info.uses_mixed_triggers()) {
-    get_compiler()->error("Avmm backend does not currently support code with mixed triggers!");
+    get_compiler()->error("Avmm backends do not currently support code with mixed triggers!");
     unsupported = true;
   } else if (!info.implied_latches().empty()) {
-    get_compiler()->error("Avmm backend does not currently support the use of implied latches!");
+    get_compiler()->error("Avmm backends do not currently support the use of implied latches!");
+    unsupported = true;
+  } else if (info.uses_multiple_clocks()) {
+    get_compiler()->error("Avmm backends do not currently support the use of multiple clocks!");
     unsupported = true;
   }
   if (unsupported) {
@@ -219,7 +222,7 @@ inline AvmmLogic<V,A,T>* AvmmCompiler<M,V,A,T>::compile_logic(Engine::Id id, Mod
   const auto max_vars = T(1) << V;
   if (al->get_table()->size() >= max_vars) {
     std::stringstream ss;
-    ss << "Avmm backend does not currently support more than " << max_vars << " entries in variable table";
+    ss << "Avmm backends do not currently support more than " << max_vars << " entries in variable table";
     get_compiler()->error(ss.str());
     delete al;
     return nullptr;

@@ -90,6 +90,7 @@ class ModuleDeclaration : public Node {
     typedef std::unordered_map<const Identifier*, const ModuleDeclaration*> ChildMap;
     DECORATION(ChildMap, children);
     DECORATION(bool, uses_mixed_triggers);
+    DECORATION(size_t, clocks);
 
     friend class Navigate;
     DECORATION(Scope, scope_idx);
@@ -103,6 +104,7 @@ inline ModuleDeclaration::ModuleDeclaration(Attributes* attrs__, Identifier* id_
   parent_ = nullptr;
   next_update_ = 0;
   uses_mixed_triggers_ = false;
+  clocks_ = 0;
   scope_idx_.next_supdate_ = 0;
 }
 
