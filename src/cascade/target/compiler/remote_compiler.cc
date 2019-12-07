@@ -246,8 +246,6 @@ void RemoteCompiler::run_logic() {
           }
           case Rpc::Type::CLOSE_CONN: {
             lock_guard<mutex> lg(slock_);
-            Rpc(Rpc::Type::OKAY).serialize(*sock);
-            sock->flush();
             sock = nullptr;
             delete socks_[sock_index_[rpc.pid_].first];
             delete socks_[sock_index_[rpc.pid_].second];

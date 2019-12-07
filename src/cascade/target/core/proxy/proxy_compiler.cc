@@ -43,14 +43,12 @@ ProxyCompiler::ProxyCompiler() : CoreCompiler() {
 }
 
 ProxyCompiler::~ProxyCompiler() {
-  // TODO(eschkufz) Add some better error handling here. We assume that if a
-  // connection was opened, all further communication will succeed.
   for (auto& c : conns_) {
     Rpc(Rpc::Type::CLOSE_CONN, c.second.pid, 0, 0).serialize(*c.second.sync_sock);
     c.second.sync_sock->flush();
-    Rpc rpc;
-    rpc.deserialize(*c.second.sync_sock);
-    assert(rpc.type_ == Rpc::Type::OKAY);
+    // Don't block on a response here. All we need to do is notify the remote
+    // compiler that it's okay to release these sockets. Blocking on a response
+    // has the potential to introduce a race condition on the other side.
     delete c.second.async_sock;
     delete c.second.sync_sock;
   }
