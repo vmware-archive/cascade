@@ -35,6 +35,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #ifdef __APPLE__

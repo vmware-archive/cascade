@@ -6,11 +6,11 @@ find_package(Threads REQUIRED)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_executable(cascade cascade.cc)
-target_link_libraries(cascade PRIVATE libcascade Threads::Threads)
+target_link_libraries(cascade PRIVATE libcascade Threads::Threads ${CMAKE_DL_LIBS})
 install(TARGETS cascade RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(cascade_slave cascade_slave.cc)
-target_link_libraries(cascade_slave PRIVATE libcascade Threads::Threads)
+target_link_libraries(cascade_slave PRIVATE libcascade Threads::Threads ${CMAKE_DL_LIBS})
 install(TARGETS cascade_slave RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(de10_config de10_config.c)
