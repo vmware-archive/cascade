@@ -49,6 +49,7 @@ TEST(verilator32, regex) {
   run_code("regression/verilator32", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
 }
 
+#if __x86_64__ || __ppc64__
 TEST(verilator64, array) {
   run_code("regression/verilator64", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
@@ -64,3 +65,4 @@ TEST(verilator64, nw) {
 TEST(verilator64, regex) {
   run_code("regression/verilator64", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
 }
+#endif
