@@ -49,12 +49,14 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   set_open_loop_target(1);
 
   runtime_.get_compiler()->set("avalon32", new avmm::Avalon32Compiler());
-  runtime_.get_compiler()->set("avalon64", new avmm::Avalon64Compiler());
   runtime_.get_compiler()->set("de10", new avmm::De10Compiler());
   runtime_.get_compiler()->set("proxy", new proxy::ProxyCompiler());
   runtime_.get_compiler()->set("sw", new sw::SwCompiler());
   runtime_.get_compiler()->set("verilator32", new avmm::Verilator32Compiler());
+  #if __x86_64__ || __ppc64__
+  runtime_.get_compiler()->set("avalon64", new avmm::Avalon64Compiler());
   runtime_.get_compiler()->set("verilator64", new avmm::Verilator64Compiler());
+  #endif
 
   set_quartus_server("localhost", 9900);
 }

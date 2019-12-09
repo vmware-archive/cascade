@@ -44,12 +44,14 @@ CascadeSlave::CascadeSlave() {
   set_listeners("./cascade_sock", 8800);
 
   remote_compiler_.set("avalon32", new avmm::Avalon32Compiler());
-  remote_compiler_.set("avalon64", new avmm::Avalon64Compiler());
   remote_compiler_.set("de10", new avmm::De10Compiler());
   remote_compiler_.set("proxy", new proxy::ProxyCompiler());
   remote_compiler_.set("sw", new sw::SwCompiler());
   remote_compiler_.set("verilator32", new avmm::Verilator32Compiler());
+  #if __x86_64__ || __ppc64__
+  remote_compiler_.set("avalon64", new avmm::Avalon64Compiler());
   remote_compiler_.set("verilator64", new avmm::Verilator64Compiler());
+  #endif
 
   set_quartus_server("localhost", 9900);
 }
