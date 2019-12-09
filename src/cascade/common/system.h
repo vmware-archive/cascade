@@ -70,7 +70,7 @@ inline std::string System::src_root() {
   char buffer[1024];
   const auto count = readlink("/proc/self/exe", buffer, 1024);
   const auto path = std::string(buffer, (count > 0) ? count : 0);
-  return path.substr(0, path.rfind('/')) + "/../..";
+  return path.substr(0, path.rfind('/')) + "/../";
 }
 #endif
 
