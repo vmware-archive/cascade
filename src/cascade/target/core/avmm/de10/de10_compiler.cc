@@ -30,6 +30,7 @@
 
 #include "target/core/avmm/de10/de10_compiler.h"
 
+#include <cstdlib>
 #include <fcntl.h>
 #include <fstream>
 #include <sys/mman.h>
@@ -222,16 +223,19 @@ void De10Compiler::reprogram(sockstream* sock) {
 
     // Form a path to the temporary location we'll be storing the rbf file
     // and the de10 config fool
-    const auto rbf_path = System::src_root() + "/var/cascade/de10/DE10_NANO_SoC_GHRD.rbf";
-    const auto de10_config = System::src_root() + "/bin/de10_config";
+    System::execute("mkdir -p /tmp/de10/");
+    char path[] = "/tmp/de10/DE10_NANO_SoC_GHRD_XXXXXX.rbf";
+    const auto fd = mkstemps(path, 4);
+    close(fd);
+    const auto de10_config = System::src_root() + "/build/de10_config";
 
     // Copy the rbf file to this location
-    ofstream ofs(rbf_path);
+    ofstream ofs(path);
     ofs.write(rbf.data(), len);
     ofs.close();
 
     // Run the reprogram tool
-    System::execute(de10_config + " program " + rbf_path);
+    System::execute(de10_config + " program " + path);
 
     // Send a byte to acknowledge that we're done
     sock->put(0);
