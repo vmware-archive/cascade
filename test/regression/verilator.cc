@@ -34,35 +34,35 @@
 using namespace cascade;
 
 TEST(verilator32, array) {
-  run_code("regression/verilator32", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
+  run_code("regression/verilator32", "share/cascade/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(verilator32, bitcoin) {
-  run_code("regression/verilator32", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/verilator32", "share/cascade/test/benchmark/bitcoin/run_13.v", "00002d21 00002da5\n");
 }
 TEST(verilator32, mips32) {
-  run_code("regression/verilator32", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/verilator32", "share/cascade/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(verilator32, nw) {
   run_code("regression/verilator32", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(verilator32, regex) {
-  run_code("regression/verilator32", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
+  run_code("regression/verilator32", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424");
 }
 
 #if __x86_64__ || __ppc64__
 TEST(verilator64, array) {
-  run_code("regression/verilator64", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
+  run_code("regression/verilator64", "share/cascade/test/benchmark/array/run_5.v", "1048577\n");
 }
 TEST(verilator64, bitcoin) {
-  run_code("regression/verilator64", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/verilator64", "share/cascade/test/benchmark/bitcoin/run_13.v", "00002d21 00002da5\n");
 }
 TEST(verilator64, mips32) {
-  run_code("regression/verilator64", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/verilator64", "share/cascade/test/benchmark/mips32/run_bubble_128.v", "1");
 }
 TEST(verilator64, nw) {
   run_code("regression/verilator64", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }
 TEST(verilator64, regex) {
-  run_code("regression/verilator64", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
+  run_code("regression/verilator64", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424");
 }
 #endif
