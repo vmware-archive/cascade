@@ -27,7 +27,7 @@ ranlib Vprogram_logic__ALL.a
 cd -
 
 # Compile our harness file, which wraps invocations of verilator in extern "C" functions. 
-g++ --std=c++17 -fno-stack-protector -DNDEBUG -flto -I/usr/local/opt/verilator/share/verilator/include/ -I$1 -c harness_32.cpp -o $1/harness.o
+g++ --std=c++17 -fno-stack-protector -DNDEBUG -flto -I$VER_INSTALL/include/ -I$1 -c harness_32.cpp -o $1/harness.o
 
 # Wrap everything up in a dll
-g++ -shared -flto -o $1/libverilator.so $1/harness.o $1/Vprogram_logic__ALL.a $1/verilated.o
+g++ -fPIC -shared -flto -o $1/libverilator.so $1/harness.o $1/Vprogram_logic__ALL.a $1/verilated.o
