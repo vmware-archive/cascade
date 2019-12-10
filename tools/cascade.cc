@@ -32,7 +32,7 @@
 #include <signal.h>
 #include <fstream>
 #include <sstream>
-#include "cascade/cascade.h"
+#include "include/cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 
@@ -44,9 +44,9 @@ namespace {
 
 __attribute__((unused)) auto& g1 = Group::create("Cascade Runtime Options");
 auto& march = StrArg<string>::create("--march")
-  .usage("minimal|sw|sw_jit|de10|de10_jit|avalon_jit")
+  .usage("sw|de10")
   .description("Target architecture")
-  .initial("minimal");
+  .initial("sw");
 auto& inc_dirs = StrArg<string>::create("-I")
   .usage("<path1>:<path2>:...:<pathn>")
   .description("Paths to search for files on")
@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
   ::cascade_ = new Cascade();
 
   // Set command line flags
-  ::cascade_->set_include_dirs(::inc_dirs.value() + ":" + System::src_root());
+  ::cascade_->set_include_dirs(::inc_dirs.value());
   ::cascade_->set_enable_inlining(!::disable_inlining.value());
   ::cascade_->set_open_loop_target(::open_loop_target.value());
   ::cascade_->set_quartus_server(::quartus_host.value(), ::quartus_port.value());
@@ -226,10 +226,10 @@ int main(int argc, char** argv) {
   // Start cascade, and read the march file and -e file (if provided)
   ::cascade_->run();
   if (::input_path.value() != "") {
-    *::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"\n"
+    *::cascade_ << "`include \"share/cascade/march/" << ::march.value() << ".v\"\n"
                 << "`include \"" << ::input_path.value() <<  "\"" << endl;
   } else {
-    *::cascade_ << "`include \"data/march/" << ::march.value() << ".v\"" << endl;
+    *::cascade_ << "`include \"share/cascade/march/" << ::march.value() << ".v\"" << endl;
   }
   ::cascade_->stop_now();
 

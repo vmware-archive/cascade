@@ -29,13 +29,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "gtest/gtest.h"
-#include "harness.h"
+#include "test/harness.h"
 
 using namespace cascade;
 
 TEST(nw, run_2) {
-  run_code("minimal", "data/test/benchmark/nw/run_2.v", "-722");
+  run_code("regression/minimal", "share/cascade/test/benchmark/nw/run_2.v", "-722");
 }
 TEST(nw, run_4) {
-  run_code("minimal", "data/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/minimal", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
 }

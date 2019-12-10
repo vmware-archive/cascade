@@ -55,7 +55,7 @@ auto& port = StrArg<uint32_t>::create("--port")
   .description("Port to run quartus server on")
   .initial(9900);
 
-QuartusServer* qs = nullptr;
+avmm::QuartusServer* qs = nullptr;
 
 void handler(int sig) {
   (void) sig;
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
   action.sa_handler = ::handler;
   sigaction(SIGINT, &action, nullptr);
 
-  ::qs = new QuartusServer();
+  ::qs = new avmm::QuartusServer();
   ::qs->set_cache_path(::cache.value());
   ::qs->set_quartus_path(::path.value());
   ::qs->set_port(::port.value());

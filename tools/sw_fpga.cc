@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
   auto* rc = new RemoteCompiler();
   rc->set_path(::path.value());
   rc->set_port(::port.value());
-  auto* sc = new SwCompiler();
+  auto* sc = new sw::SwCompiler();
     sc->set_led(&led, &led_lock);
     sc->set_pad(&pad, &pad_lock);
     sc->set_reset(&rst, &rst_lock);

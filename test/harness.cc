@@ -30,12 +30,10 @@
 
 #include "harness.h"
 
-#include <sstream>
-#include "cascade/cascade.h"
 #include "cl/cl.h"
 #include "common/system.h"
 #include "gtest/gtest.h"
-#include "verilog/parse/parser.h"
+#include "include/cascade.h"
 
 using namespace cascade;
 using namespace cascade::cl;
@@ -55,13 +53,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 namespace cascade {
 
 void run_parse(const string& path, bool expected) {
-  ifstream ifs(path);
-  ASSERT_TRUE(ifs.is_open());
-
-  Log log;
-  Parser p(&log);
-  p.parse(ifs);
-  EXPECT_EQ(log.error(), expected);
+  run_typecheck("regression/minimal", path, expected);
 }
 
 void run_typecheck(const string& march, const string& path, bool expected) {
@@ -69,7 +61,7 @@ void run_typecheck(const string& march, const string& path, bool expected) {
   c.set_include_dirs(System::src_root());
   c.run();
 
-  c << "`include \"data/march/" << march << ".v\"\n" 
+  c << "`include \"share/cascade/march/" << march << ".v\"\n" 
     << "`include \"" << path << "\"" << endl;
 
   c.stop_now();
@@ -84,7 +76,7 @@ void run_code(const string& march, const string& path, const string& expected) {
   c.set_stdout(sb);
   c.run();
 
-  c << "`include \"data/march/" << march << ".v\"\n"
+  c << "`include \"share/cascade/march/" << march << ".v\"\n"
     << "`include \"" << path << "\"" << endl;
 
   c.stop_now();
@@ -111,7 +103,7 @@ void run_benchmark(const string& path, const string& expected) {
   c.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
   c.run();
 
-  c << "`include \"data/march/" << ::march.value() << ".v\"\n" 
+  c << "`include \"share/cascade/march/" << ::march.value() << ".v\"\n" 
     << "`include \"" << path << "\"" << endl;
 
   c.stop_now();
