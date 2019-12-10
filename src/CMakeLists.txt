@@ -14,7 +14,10 @@ add_library(libcascade SHARED STATIC
   ${SRC}
 )
 set_target_properties(libcascade PROPERTIES PREFIX "")
-target_compile_options(libcascade PRIVATE -Wno-psabi)
+
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") 
+  target_compile_options(libcascade PRIVATE -Wno-psabi)
+endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
 
 install(TARGETS libcascade DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(DIRECTORY "cascade" DESTINATION ${CMAKE_INSTALL_PREFIX}/src FILES_MATCHING PATTERN "*.h")
