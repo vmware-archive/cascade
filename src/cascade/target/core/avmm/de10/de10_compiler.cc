@@ -30,11 +30,13 @@
 
 #include "target/core/avmm/de10/de10_compiler.h"
 
+#include <cstdlib>
 #include <fcntl.h>
 #include <fstream>
 #include <sys/mman.h>
 #include "common/sockstream.h"
 #include "common/system.h"
+#include "target/core/avmm/de10/de10_config.h"
 #include "target/core/avmm/de10/quartus_server.h"
 
 using namespace std;
@@ -221,17 +223,18 @@ void De10Compiler::reprogram(sockstream* sock) {
     sock->read(reinterpret_cast<char*>(rbf.data()), len);
 
     // Form a path to the temporary location we'll be storing the rbf file
-    // and the de10 config fool
-    const auto rbf_path = System::src_root() + "/var/cascade/de10/DE10_NANO_SoC_GHRD.rbf";
-    const auto de10_config = System::src_root() + "/bin/de10_config";
+    System::execute("mkdir -p /tmp/de10/");
+    char path[] = "/tmp/de10/DE10_NANO_SoC_GHRD_XXXXXX.rbf";
+    const auto fd = mkstemps(path, 4);
+    close(fd);
 
     // Copy the rbf file to this location
-    ofstream ofs(rbf_path);
+    ofstream ofs(path);
     ofs.write(rbf.data(), len);
     ofs.close();
 
     // Run the reprogram tool
-    System::execute(de10_config + " program " + rbf_path);
+    De10Config().run(path);
 
     // Send a byte to acknowledge that we're done
     sock->put(0);
