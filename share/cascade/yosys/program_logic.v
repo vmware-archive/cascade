@@ -19,7 +19,7 @@ module program_logic(
   end
   assign s0_readdata = data[s0_address] << 1;
 
-  reg[9:0] count = 0;
+  reg[25:0] count = 0;
   always @(posedge clk) begin
     count <= count + 1;
   end

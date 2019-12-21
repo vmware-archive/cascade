@@ -47,7 +47,7 @@ module Harness (
     .s0_waitrequest(waitrequest)
   );
 
-  assign wdata = read ? readdata : 32'hffffffff;
+  assign wdata = readdata;
   assign enable = waitrequest == 1'b0;
 
 endmodule

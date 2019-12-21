@@ -52,17 +52,20 @@ int main() {
     read(fd, reinterpret_cast<char*>(&res), 4);
   }
 
+  auto fail = false;
   for (size_t i = 0; i < 10; ++i) {
     uint64_t val = (uint64_t(0) << 63) | (uint64_t(i) << 32) | uint64_t(0);
     write(fd, reinterpret_cast<char*>(&val), 8);
     uint32_t res = 0;
     read(fd, reinterpret_cast<char*>(&res), 4);
     cout << res << endl;
+
+    if (res != i << 1) {
+      fail = true;
+    }
   }
-
-
 
   close(fd);
 
-  return 0;
+  return fail ? 1 : 0;
 }
