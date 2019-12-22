@@ -39,7 +39,6 @@
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/verilator/verilator_logic.h"
-#include "target/core/avmm/avmm_compiler.h"
 
 namespace cascade::avmm {
 

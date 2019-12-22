@@ -34,6 +34,7 @@
 #include "target/compiler.h"
 #include "target/core/avmm/avalon/avalon_compiler.h"
 #include "target/core/avmm/de10/de10_compiler.h"
+#include "target/core/avmm/yosys/yosys_compiler.h"
 #include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 #include "target/core/proxy/proxy_compiler.h"
@@ -52,6 +53,7 @@ Cascade::Cascade() : eval_(this), iostream(&sb_), sb_() {
   runtime_.get_compiler()->set("de10", new avmm::De10Compiler());
   runtime_.get_compiler()->set("proxy", new proxy::ProxyCompiler());
   runtime_.get_compiler()->set("sw", new sw::SwCompiler());
+  runtime_.get_compiler()->set("yosys32", new avmm::Yosys32Compiler());
   runtime_.get_compiler()->set("verilator32", new avmm::Verilator32Compiler());
   #if __x86_64__ || __ppc64__
   runtime_.get_compiler()->set("avalon64", new avmm::Avalon64Compiler());

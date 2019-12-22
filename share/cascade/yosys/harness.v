@@ -4,7 +4,10 @@
 `include "program_logic.v"
 `include "uart.v"
 
-module Harness (
+module Harness #(
+  parameter ADDR_SIZE = 4,
+  parameter VAL_SIZE = 4
+)(
   input wire clk,
   input wire ftdi_to_fpga,
   output wire fpga_to_ftdi
@@ -12,13 +15,13 @@ module Harness (
 
   wire ready;
   wire enable;
-  wire[63:0] rdata;
-  wire[31:0] wdata;
+  wire[8*(ADDR_SIZE+VAL_SIZE)-1:0] rdata;
+  wire[8*VAL_SIZE-1:0] wdata;
     
   Uart#(
     .DIVIDER(25000000/115200),
-    .RSIZE(8),
-    .WSIZE(4)
+    .RSIZE(ADDR_SIZE+VAL_SIZE),
+    .WSIZE(VAL_SIZE)
   )uart(
     .clk(clk),
     .ready(ready),
@@ -29,11 +32,11 @@ module Harness (
     .wdata(wdata)
   );
 
-  wire read = ready && (rdata[63] == 1'b0);
-  wire write = ready && (rdata[63] == 1'b1);
-  wire[31:0] address = {1'b0, rdata[62:32]};
-  wire[31:0] readdata;
-  wire[31:0] writedata = rdata[31:0];
+  wire read = ready && (rdata[8*(ADDR_SIZE+VAL_SIZE)-1] == 1'b0);
+  wire write = ready && (rdata[8*(ADDR_SIZE+VAL_SIZE)-1] == 1'b1);
+  wire[8*ADDR_SIZE-1:0] address = {1'b0, rdata[8*(ADDR_SIZE+VAL_SIZE)-2:8*VAL_SIZE]};
+  wire[8*VAL_SIZE-1:0] readdata;
+  wire[8*VAL_SIZE-1:0] writedata = rdata[8*VAL_SIZE-1:0];
   wire waitrequest;
 
   program_logic pl (

@@ -32,6 +32,7 @@
 #include "target/compiler.h"
 #include "target/core/avmm/avalon/avalon_compiler.h"
 #include "target/core/avmm/de10/de10_compiler.h"
+#include "target/core/avmm/yosys/yosys_compiler.h"
 #include "target/core/avmm/verilator/verilator_compiler.h"
 #include "target/core/sw/sw_compiler.h"
 #include "target/core/proxy/proxy_compiler.h"
@@ -47,6 +48,7 @@ CascadeSlave::CascadeSlave() {
   remote_compiler_.set("de10", new avmm::De10Compiler());
   remote_compiler_.set("proxy", new proxy::ProxyCompiler());
   remote_compiler_.set("sw", new sw::SwCompiler());
+  remote_compiler_.set("yosys32", new avmm::Yosys32Compiler());
   remote_compiler_.set("verilator32", new avmm::Verilator32Compiler());
   #if __x86_64__ || __ppc64__
   remote_compiler_.set("avalon64", new avmm::Avalon64Compiler());
