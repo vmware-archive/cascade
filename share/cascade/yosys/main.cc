@@ -5,6 +5,22 @@
 
 using namespace std;
 
+int write_all(int fd, const char* data, size_t len) {
+  //write(fd, data, len);
+  for (size_t i = 0; i < len; i += write(fd, data+i, len-i)) {
+    cout << "WROTE " << i << endl; 
+  }
+  return len;
+}
+
+int read_all(int fd, char* data, size_t len) {
+  //read(fd, data, len);
+  for (size_t i = 0; i < len; i += read(fd, data+i, len-i)) {
+    cout << "READ " << i << endl;
+  }
+  return len;
+}
+
 int main() {
   const auto fd = open("/dev/cu.usbserial-120001", O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0) {
@@ -47,17 +63,17 @@ int main() {
 
   for (size_t i = 0; i < 10; ++i) {
     uint64_t val = (uint64_t(1) << 63) | (uint64_t(i) << 32) | uint64_t(i);
-    write(fd, reinterpret_cast<char*>(&val), 8);
+    write_all(fd, reinterpret_cast<char*>(&val), 8);
     uint32_t res = 0;
-    read(fd, reinterpret_cast<char*>(&res), 4);
+    read_all(fd, reinterpret_cast<char*>(&res), 4);
   }
 
   auto fail = false;
   for (size_t i = 0; i < 10; ++i) {
     uint64_t val = (uint64_t(0) << 63) | (uint64_t(i) << 32) | uint64_t(0);
-    write(fd, reinterpret_cast<char*>(&val), 8);
+    write_all(fd, reinterpret_cast<char*>(&val), 8);
     uint32_t res = 0;
-    read(fd, reinterpret_cast<char*>(&res), 4);
+    read_all(fd, reinterpret_cast<char*>(&res), 4);
     cout << res << endl;
 
     if (res != i << 1) {
