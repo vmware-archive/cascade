@@ -101,7 +101,7 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 
   pid_t pid = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./build_yosys_32.sh " + dir, true);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./build_yosys_32.sh " + dir, false);
   } 
 
   lock.unlock();
@@ -120,7 +120,7 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 
     // Reprogram the device
     if constexpr (std::is_same<T, uint32_t>::value) {
-      System::no_block_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./reprogram_yosys_32.sh " + dir, true);
+      System::no_block_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./reprogram_yosys_32.sh " + dir, false);
     }
   
     // Reopen the device
@@ -169,7 +169,9 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 template <size_t M, size_t V, typename A, typename T>
 inline void YosysCompiler<M,V,A,T>::stop_compile() {
   if constexpr (std::is_same<T, uint32_t>::value) {
-    System::execute(R"(pkill -9 -P `ps -ax | grep build_yosys_32.sh | awk '{print $1}' | head -n1`)");
+    System::no_block_execute(R"(pkill -9 -P `ps -ax | grep build_yosys_32.sh | awk '{print $1}' | head -n1`)", false);
+    System::no_block_execute("killall yosys >/dev/null", false);
+    System::no_block_execute("killall nextpnr-ecp5 /dev/null", false);
   } 
 }
 
