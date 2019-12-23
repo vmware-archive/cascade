@@ -56,20 +56,24 @@ class YosysLogic : public AvmmLogic<V,A,T> {
 template <size_t V, typename A, typename T>
 inline YosysLogic<V,A,T>::YosysLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<V,A,T>(interface, md, slot) { 
   AvmmLogic<V,A,T>::get_table()->set_read([this](A index) {
-    A addr = (A(0) << std::numeric_limits<A>::digits-1) | index;
-    write_all(reinterpret_cast<char*>(&addr), std::numeric_limits<A>::digits/8);
     T res = 0;
-    write_all(reinterpret_cast<char*>(&res), std::numeric_limits<T>::digits/8);
-    read_all(reinterpret_cast<char*>(&res), std::numeric_limits<T>::digits/8);
+    A addr = (A(0) << std::numeric_limits<A>::digits-1) | index;
+
+    // TODO(eschkufz) Ordering is correct... for little-endian machines, anyway
+    write_all(reinterpret_cast<char*>(&res), sizeof(T));
+    write_all(reinterpret_cast<char*>(&addr), sizeof(A));
+    read_all(reinterpret_cast<char*>(&res), sizeof(T));
 
     return res;
   });
   AvmmLogic<V,A,T>::get_table()->set_write([this](A index, T val) {
     A addr = (A(1) << std::numeric_limits<A>::digits-1) | index;
-    write_all(reinterpret_cast<char*>(&addr), std::numeric_limits<A>::digits/8);
-    write_all(reinterpret_cast<char*>(&val), std::numeric_limits<T>::digits/8);
     T res = 0;
-    read_all(reinterpret_cast<char*>(&res), std::numeric_limits<T>::digits/8);
+
+    // TODO(eschkufz) Ordering is correct... for little-endian machines, anyway
+    write_all(reinterpret_cast<char*>(&val), sizeof(T));
+    write_all(reinterpret_cast<char*>(&addr), sizeof(A));
+    read_all(reinterpret_cast<char*>(&res), sizeof(T));
   });
 }
 

@@ -120,7 +120,7 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 
     // Reprogram the device
     if constexpr (std::is_same<T, uint32_t>::value) {
-      System::no_block_execute("cd " + dir + " && ./reprogram_yosys_32.sh", true);
+      System::no_block_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./reprogram_yosys_32.sh " + dir, true);
     }
   
     // Reopen the device
