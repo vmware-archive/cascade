@@ -24,7 +24,7 @@ jobs:
     dist: xenial
     before_install: .travis/setup_chroot.sh
     script: echo "build"
-    install: .travis/install.sh
+    install: COVERAGE=0 .travis/install.sh
     before_cache: .travis/unmount_env.sh
     cache: 
       directories:
