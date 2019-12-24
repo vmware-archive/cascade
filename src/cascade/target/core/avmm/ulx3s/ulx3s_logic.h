@@ -31,6 +31,7 @@
 #ifndef CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_LOGIC_H
 #define CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_LOGIC_H
 
+#include <functional>
 #include <unistd.h>
 #include "target/core/avmm/avmm_logic.h"
 #include "target/core/avmm/ulx3s/ulx3s_compiler.h"
@@ -41,13 +42,18 @@ namespace cascade::avmm {
 template <size_t V, typename A, typename T>
 class Ulx3sLogic : public AvmmLogic<V,A,T> {
   public:
-    Ulx3sLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
-    virtual ~Ulx3sLogic() override = default;
+    // Typedefs:
+    typedef std::function<void()> Callback;
 
-    void set_fd(int fd);
+    Ulx3sLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
+    virtual ~Ulx3sLogic() override;
+
+    Ulx3sLogic& set_fd(int fd);
+    Ulx3sLogic& set_callback(Callback cb);
 
   private:
     int fd_;
+    Callback cb_;
 
     void write_all(const char* data, size_t len);
     void read_all(char* data, size_t len);
@@ -55,6 +61,9 @@ class Ulx3sLogic : public AvmmLogic<V,A,T> {
 
 template <size_t V, typename A, typename T>
 inline Ulx3sLogic<V,A,T>::Ulx3sLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<V,A,T>(interface, md, slot) { 
+  fd_ = -1;
+  cb_ = nullptr;
+
   AvmmLogic<V,A,T>::get_table()->set_read([this](A index) {
     T res = 0;
     A addr = (A(0) << std::numeric_limits<A>::digits-1) | index;
@@ -78,8 +87,22 @@ inline Ulx3sLogic<V,A,T>::Ulx3sLogic(Interface* interface, ModuleDeclaration* md
 }
 
 template <size_t V, typename A, typename T>
-inline void Ulx3sLogic<V,A,T>::set_fd(int fd) {
+inline Ulx3sLogic<V,A,T>::~Ulx3sLogic() {
+  if (cb_ != nullptr) {
+    cb_();
+  }
+}
+
+template <size_t V, typename A, typename T>
+inline Ulx3sLogic<V,A,T>& Ulx3sLogic<V,A,T>::set_fd(int fd) {
   fd_ = fd;
+  return *this;
+}
+
+template <size_t V, typename A, typename T>
+inline Ulx3sLogic<V,A,T>& Ulx3sLogic<V,A,T>::set_callback(Callback cb) {
+  cb_ = cb;
+  return *this;
 }
 
 template <size_t V, typename A, typename T>

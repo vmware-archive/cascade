@@ -39,6 +39,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/ulx3s/ulx3s_logic.h"
@@ -55,8 +56,8 @@ class Ulx3sCompiler : public AvmmCompiler<M,V,A,T> {
     // Device Handle:
     int fd_;
 
-    // Logic Core Handle:
-    Ulx3sLogic<V,A,T>* logic_;
+    // Logic Core Handles:
+    std::unordered_set<Ulx3sLogic<V,A,T>*> logic_;
 
     // Compilation Cache:
     std::unordered_map<std::string, std::string> cache_;
@@ -89,8 +90,13 @@ inline Ulx3sCompiler<M,V,A,T>::~Ulx3sCompiler() {
 
 template <size_t M, size_t V, typename A, typename T>
 inline Ulx3sLogic<V,A,T>* Ulx3sCompiler<M,V,A,T>::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
-  logic_ = new Ulx3sLogic<V,A,T>(interface, md, slot);
-  return logic_;
+  auto* l = new Ulx3sLogic<V,A,T>(interface, md, slot);
+  logic_.insert(l); 
+  l->set_callback([this, l]{
+    logic_.erase(l);                 
+  });
+
+  return l;
 }
 
 template <size_t M, size_t V, typename A, typename T>
@@ -192,9 +198,10 @@ inline bool Ulx3sCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
     const auto sres = tcsetattr(fd_, TCSANOW, &tty);
     assert(sres == 0);
 
-    // Udpate the device's file descriptor for all active cores
-    // TODO(eschkufz): This only updates fd for the most recently comoiled core
-    logic_->set_fd(fd_);
+    // Update every registered core's file descriptor
+    for (auto* l : logic_) {
+      l->set_fd(fd_);
+    }
   });
 
   return true;
