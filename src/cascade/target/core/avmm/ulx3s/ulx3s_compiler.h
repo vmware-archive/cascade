@@ -131,10 +131,10 @@ inline bool Ulx3sCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
       return false;
     }
 
-    std::ofstream ofs2;
     std::stringstream ss;
     ss << "bitstream_" << cache_.size() << ".bit";
 
+    std::ofstream ofs2;
     if constexpr (std::is_same<T, uint32_t>::value) {
       System::execute("cp " + dir + "/root32.bit /tmp/ulx3s/cache32/" + ss.str());
       ofs2.open("/tmp/ulx3s/cache32/index.txt", std::ios::app);
