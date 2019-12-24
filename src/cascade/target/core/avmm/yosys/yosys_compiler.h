@@ -35,7 +35,10 @@
 #include <fcntl.h>
 #include <fstream>
 #include <termios.h>
+#include <sstream>
+#include <string>
 #include <type_traits>
+#include <unordered_map>
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
 #include "target/core/avmm/yosys/yosys_logic.h"
@@ -49,22 +52,31 @@ class YosysCompiler : public AvmmCompiler<M,V,A,T> {
     ~YosysCompiler() override;
 
   private:
-    // Avmm Compiler Interface:
-    YosysLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
-    bool compile(const std::string& text, std::mutex& lock) override;
-    void stop_compile() override;
-
     // Device Handle:
     int fd_;
 
     // Logic Core Handle:
     YosysLogic<V,A,T>* logic_;
+
+    // Compilation Cache:
+    std::unordered_map<std::string, std::string> cache_;
+
+    // Avmm Compiler Interface:
+    YosysLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
+    bool compile(const std::string& text, std::mutex& lock) override;
+    void stop_compile() override;
+
+    // Helper Methods:
+    void init_tmp();
+    void init_cache();
 };
 
 using Yosys32Compiler = YosysCompiler<10,21,uint32_t,uint32_t>;
 
 template <size_t M, size_t V, typename A, typename T>
 inline YosysCompiler<M,V,A,T>::YosysCompiler() : AvmmCompiler<M,V,A,T>() {
+  init_tmp();
+  init_cache();
   fd_ = -1;
 }
 
@@ -83,36 +95,58 @@ inline YosysLogic<V,A,T>* YosysCompiler<M,V,A,T>::build(Interface* interface, Mo
 
 template <size_t M, size_t V, typename A, typename T>
 inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
+  // Stop any previous compilations
   stop_compile();
 
-  System::execute("mkdir -p /tmp/yosys/");
-  char path[] = "/tmp/yosys/program_logic_XXXXXX.v";
-  const auto fd = mkstemps(path, 2);
-  const auto dir = std::string(path).substr(0,31);
-  close(fd);
+  // Compile a cache entry if none previously existed
+  if (cache_.find(text) == cache_.end()) {
+    char path[] = "/tmp/yosys/program_logic_XXXXXX.v";
+    const auto fd = mkstemps(path, 2);
+    const auto dir = std::string(path).substr(0,31);
+    close(fd);
 
-  System::execute("mkdir -p " + dir);
-  std::ofstream ofs(path);
-  ofs << text << std::endl;
-  ofs.close();
-  System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.v " + dir);
-  System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.lpf " + dir);
-  System::execute("mv " + std::string(path) + " " + dir + "/program_logic.v");
+    System::execute("mkdir -p " + dir);
+    std::ofstream ofs(path);
+    ofs << text << std::endl;
+    ofs.close();
+    System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.v " + dir);
+    System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.lpf " + dir);
+    System::execute("mv " + std::string(path) + " " + dir + "/program_logic.v");
 
-  pid_t pid = 0;
-  if constexpr (std::is_same<T, uint32_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./build_yosys_32.sh " + dir, false);
-  } 
+    pid_t pid = 0;
+    if constexpr (std::is_same<T, uint32_t>::value) {
+      pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./build_yosys_32.sh " + dir, false);
+    } 
 
-  lock.unlock();
-  const auto res = System::no_block_wait_finish(pid);
-  lock.lock();
+    // Compilation can take a potentially long time. Release the lock while we
+    // wait for completion.
+    lock.unlock();
+    const auto res = System::no_block_wait_finish(pid);
+    lock.lock();
 
-  if (res != 0) {
-    return false;
+    // If control has reached here with failure, it means compilation was
+    // aborted and we can return false. Otherwise, we have a bitstream which we
+    // can enter into the cache.
+    if (res != 0) {
+      return false;
+    }
+
+    std::ofstream ofs2;
+    std::stringstream ss;
+    ss << "bitstream_" << cache_.size() << ".bit";
+
+    if constexpr (std::is_same<T, uint32_t>::value) {
+      System::execute("cp " + dir + "/root32.bit /tmp/yosys/cache32/" + ss.str());
+      ofs2.open("/tmp/yosys/cache32/index.txt", std::ios::app);
+      ofs2 << text << '\0' << "/tmp/yosys/cache32/" << ss.str() << '\0';
+      cache_[text] = "/tmp/yosys/cache32/" + ss.str();
+    }
   }
-    
-  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, dir]{
+
+  // If control has reached here, we have a lock on the device and a bitstream
+  // in the cache.  Schedule a state-safe interrupt to reprogram the device.
+  const auto path = cache_[text];
+  AvmmCompiler<M,V,A,T>::get_compiler()->schedule_state_safe_interrupt([this, path]{
     // Close the device if necessary
     if (fd_ >= 0) {
       close(fd_);
@@ -120,7 +154,7 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 
     // Reprogram the device
     if constexpr (std::is_same<T, uint32_t>::value) {
-      System::no_block_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./reprogram_yosys_32.sh " + dir, false);
+      System::no_block_execute("ujprog -b 3000000 " + path, false);
     }
   
     // Reopen the device
@@ -172,6 +206,31 @@ inline void YosysCompiler<M,V,A,T>::stop_compile() {
     System::no_block_execute(R"(pkill -9 -P `ps -ax | grep build_yosys_32.sh | awk '{print $1}' | head -n1`)", false);
     System::no_block_execute("killall yosys >/dev/null", false);
     System::no_block_execute("killall nextpnr-ecp5 /dev/null", false);
+  } 
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline void YosysCompiler<M,V,A,T>::init_tmp() {
+  System::execute("mkdir -p /tmp/yosys");
+  System::execute("mkdir -p /tmp/yosys/cache32");
+  System::execute("touch /tmp/yosys/cache32/index.txt");
+}
+
+template <size_t M, size_t V, typename A, typename T>
+inline void YosysCompiler<M,V,A,T>::init_cache() {
+  std::ifstream ifs;
+  if constexpr (std::is_same<T, uint32_t>::value) {
+    ifs.open("/tmp/yosys/cache32/index.txt");
+  }
+  while (true) {
+    std::string text;
+    getline(ifs, text, '\0');
+    if (ifs.eof()) {
+      break;
+    } 
+    std::string path;
+    getline(ifs, path, '\0');
+    cache_.insert(make_pair(text, path));
   } 
 }
 
