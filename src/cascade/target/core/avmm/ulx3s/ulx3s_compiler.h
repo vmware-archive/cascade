@@ -28,8 +28,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_YOSYS_YOSYS_COMPILER_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_YOSYS_YOSYS_COMPILER_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_COMPILER_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_COMPILER_H
 
 #include <cassert>
 #include <fcntl.h>
@@ -41,28 +41,28 @@
 #include <unordered_map>
 #include "common/system.h"
 #include "target/core/avmm/avmm_compiler.h"
-#include "target/core/avmm/yosys/yosys_logic.h"
+#include "target/core/avmm/ulx3s/ulx3s_logic.h"
 
 namespace cascade::avmm {
 
 template <size_t M, size_t V, typename A, typename T>
-class YosysCompiler : public AvmmCompiler<M,V,A,T> {
+class Ulx3sCompiler : public AvmmCompiler<M,V,A,T> {
   public:
-    YosysCompiler();
-    ~YosysCompiler() override;
+    Ulx3sCompiler();
+    ~Ulx3sCompiler() override;
 
   private:
     // Device Handle:
     int fd_;
 
     // Logic Core Handle:
-    YosysLogic<V,A,T>* logic_;
+    Ulx3sLogic<V,A,T>* logic_;
 
     // Compilation Cache:
     std::unordered_map<std::string, std::string> cache_;
 
     // Avmm Compiler Interface:
-    YosysLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
+    Ulx3sLogic<V,A,T>* build(Interface* interface, ModuleDeclaration* md, size_t slot) override;
     bool compile(const std::string& text, std::mutex& lock) override;
     void stop_compile() override;
 
@@ -71,36 +71,36 @@ class YosysCompiler : public AvmmCompiler<M,V,A,T> {
     void init_cache();
 };
 
-using Yosys32Compiler = YosysCompiler<10,21,uint32_t,uint32_t>;
+using Ulx3s32Compiler = Ulx3sCompiler<10,21,uint32_t,uint32_t>;
 
 template <size_t M, size_t V, typename A, typename T>
-inline YosysCompiler<M,V,A,T>::YosysCompiler() : AvmmCompiler<M,V,A,T>() {
+inline Ulx3sCompiler<M,V,A,T>::Ulx3sCompiler() : AvmmCompiler<M,V,A,T>() {
   init_tmp();
   init_cache();
   fd_ = -1;
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline YosysCompiler<M,V,A,T>::~YosysCompiler() {
+inline Ulx3sCompiler<M,V,A,T>::~Ulx3sCompiler() {
   if (fd_ >= 0) {
     close(fd_);
   }
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline YosysLogic<V,A,T>* YosysCompiler<M,V,A,T>::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
-  logic_ = new YosysLogic<V,A,T>(interface, md, slot);
+inline Ulx3sLogic<V,A,T>* Ulx3sCompiler<M,V,A,T>::build(Interface* interface, ModuleDeclaration* md, size_t slot) {
+  logic_ = new Ulx3sLogic<V,A,T>(interface, md, slot);
   return logic_;
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
+inline bool Ulx3sCompiler<M,V,A,T>::compile(const std::string& text, std::mutex& lock) {
   // Stop any previous compilations
   stop_compile();
 
   // Compile a cache entry if none previously existed
   if (cache_.find(text) == cache_.end()) {
-    char path[] = "/tmp/yosys/program_logic_XXXXXX.v";
+    char path[] = "/tmp/ulx3s/program_logic_XXXXXX.v";
     const auto fd = mkstemps(path, 2);
     const auto dir = std::string(path).substr(0,31);
     close(fd);
@@ -109,13 +109,13 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
     std::ofstream ofs(path);
     ofs << text << std::endl;
     ofs.close();
-    System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.v " + dir);
-    System::execute("cp " + System::src_root() + "/share/cascade/yosys/*.lpf " + dir);
+    System::execute("cp " + System::src_root() + "/share/cascade/ulx3s/*.v " + dir);
+    System::execute("cp " + System::src_root() + "/share/cascade/ulx3s/*.lpf " + dir);
     System::execute("mv " + std::string(path) + " " + dir + "/program_logic.v");
 
     pid_t pid = 0;
     if constexpr (std::is_same<T, uint32_t>::value) {
-      pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/yosys/ && ./build_yosys_32.sh " + dir, false);
+      pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/ulx3s/ && ./build_ulx3s_32.sh " + dir, false);
     } 
 
     // Compilation can take a potentially long time. Release the lock while we
@@ -136,10 +136,10 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
     ss << "bitstream_" << cache_.size() << ".bit";
 
     if constexpr (std::is_same<T, uint32_t>::value) {
-      System::execute("cp " + dir + "/root32.bit /tmp/yosys/cache32/" + ss.str());
-      ofs2.open("/tmp/yosys/cache32/index.txt", std::ios::app);
-      ofs2 << text << '\0' << "/tmp/yosys/cache32/" << ss.str() << '\0';
-      cache_[text] = "/tmp/yosys/cache32/" + ss.str();
+      System::execute("cp " + dir + "/root32.bit /tmp/ulx3s/cache32/" + ss.str());
+      ofs2.open("/tmp/ulx3s/cache32/index.txt", std::ios::app);
+      ofs2 << text << '\0' << "/tmp/ulx3s/cache32/" << ss.str() << '\0';
+      cache_[text] = "/tmp/ulx3s/cache32/" + ss.str();
     }
   }
 
@@ -201,26 +201,26 @@ inline bool YosysCompiler<M,V,A,T>::compile(const std::string& text, std::mutex&
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void YosysCompiler<M,V,A,T>::stop_compile() {
+inline void Ulx3sCompiler<M,V,A,T>::stop_compile() {
   if constexpr (std::is_same<T, uint32_t>::value) {
-    System::no_block_execute(R"(pkill -9 -P `ps -ax | grep build_yosys_32.sh | awk '{print $1}' | head -n1`)", false);
-    System::no_block_execute("killall yosys >/dev/null", false);
+    System::no_block_execute(R"(pkill -9 -P `ps -ax | grep build_ulx3s_32.sh | awk '{print $1}' | head -n1`)", false);
+    System::no_block_execute("killall ulx3s >/dev/null", false);
     System::no_block_execute("killall nextpnr-ecp5 /dev/null", false);
   } 
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void YosysCompiler<M,V,A,T>::init_tmp() {
-  System::execute("mkdir -p /tmp/yosys");
-  System::execute("mkdir -p /tmp/yosys/cache32");
-  System::execute("touch /tmp/yosys/cache32/index.txt");
+inline void Ulx3sCompiler<M,V,A,T>::init_tmp() {
+  System::execute("mkdir -p /tmp/ulx3s");
+  System::execute("mkdir -p /tmp/ulx3s/cache32");
+  System::execute("touch /tmp/ulx3s/cache32/index.txt");
 }
 
 template <size_t M, size_t V, typename A, typename T>
-inline void YosysCompiler<M,V,A,T>::init_cache() {
+inline void Ulx3sCompiler<M,V,A,T>::init_cache() {
   std::ifstream ifs;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    ifs.open("/tmp/yosys/cache32/index.txt");
+    ifs.open("/tmp/ulx3s/cache32/index.txt");
   }
   while (true) {
     std::string text;

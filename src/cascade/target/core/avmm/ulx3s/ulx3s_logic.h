@@ -28,21 +28,21 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_YOSYS_YOSYS_LOGIC_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_YOSYS_YOSYS_LOGIC_H
+#ifndef CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_LOGIC_H
+#define CASCADE_SRC_TARGET_CORE_AVMM_ULX3S_ULX3S_LOGIC_H
 
 #include <unistd.h>
 #include "target/core/avmm/avmm_logic.h"
-#include "target/core/avmm/yosys/yosys_compiler.h"
-#include "target/core/avmm/yosys/yosys_logic.h"
+#include "target/core/avmm/ulx3s/ulx3s_compiler.h"
+#include "target/core/avmm/ulx3s/ulx3s_logic.h"
 
 namespace cascade::avmm {
 
 template <size_t V, typename A, typename T>
-class YosysLogic : public AvmmLogic<V,A,T> {
+class Ulx3sLogic : public AvmmLogic<V,A,T> {
   public:
-    YosysLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
-    virtual ~YosysLogic() override = default;
+    Ulx3sLogic(Interface* interface, ModuleDeclaration* md, size_t slot);
+    virtual ~Ulx3sLogic() override = default;
 
     void set_fd(int fd);
 
@@ -54,7 +54,7 @@ class YosysLogic : public AvmmLogic<V,A,T> {
 };
 
 template <size_t V, typename A, typename T>
-inline YosysLogic<V,A,T>::YosysLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<V,A,T>(interface, md, slot) { 
+inline Ulx3sLogic<V,A,T>::Ulx3sLogic(Interface* interface, ModuleDeclaration* md, size_t slot) : AvmmLogic<V,A,T>(interface, md, slot) { 
   AvmmLogic<V,A,T>::get_table()->set_read([this](A index) {
     T res = 0;
     A addr = (A(0) << std::numeric_limits<A>::digits-1) | index;
@@ -78,17 +78,17 @@ inline YosysLogic<V,A,T>::YosysLogic(Interface* interface, ModuleDeclaration* md
 }
 
 template <size_t V, typename A, typename T>
-inline void YosysLogic<V,A,T>::set_fd(int fd) {
+inline void Ulx3sLogic<V,A,T>::set_fd(int fd) {
   fd_ = fd;
 }
 
 template <size_t V, typename A, typename T>
-inline void YosysLogic<V,A,T>::write_all(const char* data, size_t len) {
+inline void Ulx3sLogic<V,A,T>::write_all(const char* data, size_t len) {
   for (size_t i = 0; i < len; i += write(fd_, data+i, len-i));
 }
 
 template <size_t V, typename A, typename T>
-inline void YosysLogic<V,A,T>::read_all(char* data, size_t len) {
+inline void Ulx3sLogic<V,A,T>::read_all(char* data, size_t len) {
   for (size_t i = 0; i < len; i += read(fd_, data+i, len-i));
 }
 
