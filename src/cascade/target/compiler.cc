@@ -32,7 +32,6 @@
 
 #include <cassert>
 #include "target/compiler/stub_core.h"
-#include "target/core/trace/trace_core.h"
 #include "target/core_compiler.h"
 #include "target/engine.h"
 #include "verilog/analyze/module_info.h"
@@ -102,7 +101,7 @@ Engine* Compiler::compile(Engine::Id id, ModuleDeclaration* md) {
     return nullptr;
   }
 
-  return new Engine(id, i, new trace::TraceCore(c));
+  return new Engine(id, i, c);
 }
 
 void Compiler::stop_compile(Engine::Id id) {
