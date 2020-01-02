@@ -44,7 +44,7 @@ namespace {
 
 __attribute__((unused)) auto& g1 = Group::create("Cascade Runtime Options");
 auto& march = StrArg<string>::create("--march")
-  .usage("sw|de10")
+  .usage("sw|de10|ulx3s")
   .description("Target architecture")
   .initial("sw");
 auto& inc_dirs = StrArg<string>::create("-I")
@@ -68,7 +68,7 @@ auto& quartus_port = StrArg<uint32_t>::create("--quartus_port")
 __attribute__((unused)) auto& g3 = Group::create("Logging Options");
 auto& profile = StrArg<int>::create("--profile")
   .usage("<n>")
-  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_log")
+  .description("Number of seconds to wait between profiling events; setting n to zero disables profiling; only effective with --enable_info")
   .initial(0);
 auto& enable_info = FlagArg::create("--enable_info")
   .description("Turn on info messages");

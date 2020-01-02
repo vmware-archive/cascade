@@ -368,18 +368,18 @@ Cascade is running.
 Cascade currently provides support for two hardware backends: the [Terasic
 DE10 Nano
 SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046)
-and the [ULX3S](https://radiona.org/ulx3s/). When cascade is run on either of these targets, instead of mapping compute and leds
+and the [ULX3S](https://radiona.org/ulx3s/). When Cascade is run on either of these targets, instead of mapping compute and leds
 onto virtual components, it can map them directly onto real hardware.
 
 ### DE10 Nano
 
-Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run cascade's compilation server that machine.
+Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run Cascade's compilation server that machine.
 ```
 $ quartus_server --path <quartus/install/dir> --port 9900
 ```
 
-Next you'll need an SD card image for your DE10 with a valid installation of cascade. Cascade can generate
-this image for you automatically or you can download a prebuilt image [here (todo)](todo). Reboot your DE10 using this image and run cascade as usual (but on the DE10, use sudo).
+Next you'll need an SD card image for your DE10 with a valid installation of Cascade. Cascade can generate
+this image for you automatically or you can download a prebuilt image [here (todo)](todo). Reboot your DE10 using this image and run Cascade as usual (but on the DE10, use sudo).
 ```
 $ cd cascade
 $ sudo cascade --march de10 --quartus_host <64-bit Linux IP> --quartus_port <64-bit Linux port>
@@ -404,7 +404,7 @@ toggle real leds.
 
 Cascade supports the ULX3S using the entirely open source [Yosys](http://www.clifford.at/yosys/)->[NextPNR](https://github.com/YosysHQ/nextpnr)->[ujprog](https://github.com/f32c/tools/tree/master/ujprog) toolchain. Before getting started, you'll need to follow the directions [here](https://github.com/SymbiFlow/prjtrellis) for installing Yosys and NextPNR, and [here](https://github.com/f32c/tools/tree/master/ujprog) for install ujprog. Make sure that all components are installed to the standard ```/usr/local``` directory tree.
 
-Next, you should be able to run cascade as usual.
+Next, you should be able to run Cascade as usual.
 ``` bash
 $ cascade --march ulx3s
 ```
@@ -413,15 +413,15 @@ Cascade does not currently support any of the I/O peripherals on the ULX3s, but 
 
 ### JIT Compilation
 
-If you'd like more information on how cascade transitions  code between
-software and hardware, trying using the ``--enable_info``` flag. This will cause cascade to print
+If you'd like more information on how Cascade transitions  code between
+software and hardware, trying using the ``--enable_info``` flag. This will cause Cascade to print
 status updates to the REPL whenever part of your program begins execution in a new context.
 ``` bash
 $ cascade --enable_info
 ```
 
 In general, you can expect your virtual clock frequency to increase as more and more of your logic
-transitions to hardware. Providing the ```--profile <n>``` flag will cause cascade to periodically (every
+transitions to hardware. Providing the ```--profile <n>``` flag will cause Cascade to periodically (every
 <n> seconds) print the current time and Cascade's virtual clock frequency to the REPL. To see this effect, try executing a very long-running program by typing.
 ```
 $ cascade --march <sw|de10|ulx3s> -e share/cascade/test/benchmark/bitcoin/run_25.v --enable_info --profile 3
@@ -534,7 +534,7 @@ a newline character to the end of its output.
 #### Scanf
 
 The scan system task can be used to read values from stdin. However this
-feature is only useful when cascade is used as a library, as when Cascade is
+feature is only useful when Cascade is used as a library, as when Cascade is
 run in a REPL, it dedicates stdin to parsing code.
 
 ### Debugging Tasks
@@ -548,7 +548,7 @@ displays information about program scopes.
 
 The logging-family of system tasks behave identically to the printf-family of
 system tasks. The only difference is that their output can be filtered based on
-the arguments that you provide when you run cascade. By default,
+the arguments that you provide when you run Cascade. By default,
 ```$warning()``` and ```$error()``` messages are printed to the REPL. You can
 disable this behavior off by running Cascade with the ```--disable_warning```
 and ```--disable_error``` flags. In contrast, ```$info()``` messages are not
@@ -559,7 +559,7 @@ with the ```--enable_info``` flag.
 
 The ```$finish()``` system task can be used to shut Cascade down
 programmatically. Evaluating the ```$finish()``` task with an argument other
-than 0 will cause cascade to emit a status message before shutting down. You
+than 0 will cause Cascade to emit a status message before shutting down. You
 can think of the ```$fatal()``` system task as a combination of the
 ```$finish()``` and ```$error()``` system tasks. The following two programs are
 identical.
@@ -845,7 +845,7 @@ be verified at instantiation-time. If Cascade emits a warning, it is generally
 because it cannot statically prove that the module you declared will
 instantiate correctly in every possible program context.  
 
-#### Why does cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 1)?
+#### Why does Cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 1)?
 ```verilog
 localparam x = 0;
 module Foo();
@@ -885,7 +885,7 @@ Foo f(); // This instantiation will fail because the only variable
          // reachable from f is q.r.
 ```
 
-#### Why does cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 2)?
+#### Why does Cascade warn that x is undeclared when I declare Foo, but not when I instantiate it (Part 2)?
 ```verilog
 module #(parameter N) Foo();
   genvar i;
@@ -909,5 +909,5 @@ generate constructs until instantiation-time.
 #### I get it, but it seems like there's something about pretty much every module declaration that Cascade can't prove.
 The truth hurts. Remember that if you'd like to disable warnings you can type.
 ```
-$ ./bin/cascade --disable_warning
+$ cascade --disable_warning
 ```

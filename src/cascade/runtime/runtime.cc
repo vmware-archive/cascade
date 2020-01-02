@@ -856,7 +856,7 @@ void Runtime::log_freq() {
   }
   auto event = [this]{
     last_check_ = ::time(nullptr);
-    ostream(rdbuf(stdlog_)) << "*** PROF @ " << logical_time_ << "\n" << current_frequency() << endl;
+    ostream(rdbuf(stdinfo_)) << "Logical Time: " << logical_time_ << "\nVirtual Freq: " << current_frequency() << endl;
   };
   schedule_interrupt(event, event);
 }
