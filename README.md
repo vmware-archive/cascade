@@ -268,7 +268,7 @@ int main() {
 ```
 
 To build a program that uses Cascade as a library, statically link against libcascade. If you installed cascade to a directory
-other than /usr/local/ you'll need to provide alternate values for the ```-I``` and ```-L``` flags.
+other than ```/usr/local/``` you'll need to provide alternate values for the ```-I``` and ```-L``` flags.
 
 ```
 $ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
@@ -402,7 +402,7 @@ toggle real leds.
 
 ### ULX3S
 
-Cascade supports the ULX3S using the entirely open source [Yosys](http://www.clifford.at/yosys/)->[NextPNR](https://github.com/YosysHQ/nextpnr)->[ujprog](https://github.com/f32c/tools/tree/master/ujprog) toolchain. Before getting started, you'll need to follow the directions [here](https://github.com/SymbiFlow/prjtrellis) for installing Yosys and NextPNR, and [here](https://github.com/f32c/tools/tree/master/ujprog) for install ujprog. Make sure that all components are installed to the standard ```/usr/local``` directory tree.
+Cascade supports the ULX3S using the entirely open source [Yosys](http://www.clifford.at/yosys/)->[NextPNR](https://github.com/YosysHQ/nextpnr)->[ujprog](https://github.com/f32c/tools/tree/master/ujprog) toolchain. Before getting started, you'll need to follow the directions [here](https://github.com/SymbiFlow/prjtrellis) for installing Yosys and NextPNR, and [here](https://github.com/f32c/tools/tree/master/ujprog) for installing ujprog. Make sure that all components are installed to the standard ```/usr/local``` directory tree.
 
 Next, you should be able to run Cascade as usual.
 ``` bash
@@ -414,7 +414,7 @@ Cascade does not currently support any of the I/O peripherals on the ULX3s, but 
 ### JIT Compilation
 
 If you'd like more information on how Cascade transitions  code between
-software and hardware, trying using the ``--enable_info``` flag. This will cause Cascade to print
+software and hardware, trying using the ```--enable_info``` flag. This will cause Cascade to print
 status updates to the REPL whenever part of your program begins execution in a new context.
 ``` bash
 $ cascade --enable_info
@@ -422,7 +422,7 @@ $ cascade --enable_info
 
 In general, you can expect your virtual clock frequency to increase as more and more of your logic
 transitions to hardware. Providing the ```--profile <n>``` flag will cause Cascade to periodically (every
-<n> seconds) print the current time and Cascade's virtual clock frequency to the REPL. To see this effect, try executing a very long-running program by typing.
+<n> seconds) print the current time and Cascade's virtual clock frequency to the REPL. To see this effect, try executing a very long-running program.
 ```
 $ cascade --march <sw|de10|ulx3s> -e share/cascade/test/benchmark/bitcoin/run_25.v --enable_info --profile 3
 ```
