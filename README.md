@@ -25,11 +25,19 @@ programming software and programming hardware.
 Much of the work which has gone into building Cascade has been documented in
 conference proceedings. A complete list of publications (hopefully with more to
 come) is below. Note however, that Cascade is under active development. In some
-cases, its implementation may have already diverged what is described in these
+cases, its implementation may have diverged what is described in these
 texts. The most up-to-date information on Cascade's implementation is always
 its source code.
 
 - [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/doc/asplos19.pdf)
+
+Recent Updates:
+
+* **12/19** Cascade supports the [ULX3S](https://radiona.org/ulx3s/) as a backend target.
+* **11/19** Cascade uses [Verilator](https://www.veripool.org/wiki/verilator) as an intermediate compilation pass between software simulation and hardware.
+* **10/19** Cascade provides experimental support for Xilinx FPGAs on Amazon F1 (release coming soon).
+* **9/19** Cascade can be linked into C++ projects as a library. This allows Cacade to target itself as a backend target.
+* **5/19** Cascade supports the [DE10 Nano](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046) as a backend target.
 
 Index
 =====
@@ -37,12 +45,13 @@ Index
 1. [Building Cascade](#building-cascade)
 2. [Using Cascade](#using-cascade)
     1. [Command Line Interface](#command-line-interface)
-    2. [C++ API](#c++-api)
+    2. [As a Library](#as-a-library)
 3. [Environments](#environments)
-    1. [Minimal Environment](#minimal-environment)
-    2. [Software Backend](#software-backend)
-    3. [Hardware Backends](#hardware-backends)
-    4. [JIT Backend](#jit-backend)
+    1. [Software Backend](#software-backend)
+    2. [Hardware Backends](#hardware-backends)
+        1. [DE10 Nano](#de10-nano)
+        2. [ULX3S](#ulx3s)
+    3. [JIT Compilation](#jit-compilation)
 4. [Support for Synthesizable Verilog](#support-for-synthesizable-verilog)
 5. [Support for Unsynthesizable Verilog](#support-for-unsynthesizable-verilog)
 6. [Standard Library](#standard-library)
@@ -58,20 +67,18 @@ Building Cascade
 =====
 1. Clone this repository 
 ```
-*NIX $ git clone https://github.com/vmware/cascade cascade
+$ git clone https://github.com/vmware/cascade
 ```
 
 2. Run the setup script
 
 ```bash
-*NIX $ cd cascade
-*NIX $ ./setup
+$ cd cascade
+$ ./setup
 ```
 
 The setup script should guide you through installing dependencies, as
 well as configuring, building and testing Cascade.
-
-Once installed, cascade should now be accessible by just typing ```cascade```.
 
 Using Cascade
 =====
@@ -80,7 +87,7 @@ Using Cascade
 
 Start Cascade by typing
 ```
-*NIX $ cascade
+$ cascade
 ```
 This will place you in a Read-Evaluate-Print-Loop (REPL). Code which is typed
 here is appended to the source of the (initially empty) top-level (root) module
@@ -92,7 +99,9 @@ The Verilog specification requires that code inside of ```initial``` blocks is
 executed exactly once when a program begins executing. Because Cascade is a
 dynamic environment, we generalize that specification: code inside of
 ```initial``` blocks is executed exactly once immediately after it is compiled.
-Try printing the value of the wire you just defined. 
+Try printing the value of the wire you just defined. Cascade uses a two-value model
+for signals. Unknown logic values (X) are set to zero, and high-impedence values (Z)
+are assigned non-deterministic values.
 ```verilog
 >>> initial $display(x);
 >>> 0
@@ -143,11 +152,11 @@ If you'd like to use additional search paths, you can start Cascade using the
 ```-I``` flag and provide a list of semicolon-separated alternatives. Cascade
 will try each of these paths as a prefix, in order, until it finds a match.
 ```
-*NIX $ ./bin/cascade -I path/to/dir1:path/to/dir2
+$ cascade -I path/to/dir1:path/to/dir2
 ```
 Alternately, you can start Cascade with the ```-e``` flag and the name of a file to include.
 ```
-*NIX $ ./bin/cascade -e path/to/file.v
+$ cascade -e path/to/file.v
 ```
 Finally, Cascade will stop running whenever a program invokes the ```$finish``` task.
 ```verilog
@@ -159,12 +168,12 @@ You can also force a shutdown by typing ```Ctrl-C``` or ```Ctrl-D```.
 >>> module Foo(); wir... I give up... arg... ^C
 ```
 
-### C++ API
+### As a Library
 
 Cascade can also be called directly from C++ code. Cascade's command line interface
-is nothing more than a thin-wrapper around a small set of functions. A minimal example 
+is a thin-wrapper around a small set of functions. A minimal example 
 is shown below. Further dicussion of the concepts in this example appears in subsequent
-sections of this README.
+sections of this README. 
 
 ```c++
 #include <cassert>
@@ -176,7 +185,8 @@ using namespace cascade;
 using namespace std;
 
 int main() {
-    // Create an instance of Cascade.
+    // Create an instance of Cascade. Cascade is thread-safe. Multiple instances
+    // may share the same address space.
     Cascade cascade;
     
     // Configuration options. These methods should all be called before
@@ -257,7 +267,8 @@ int main() {
 }
 ```
 
-To build a program that uses Cascade as a library, statically link against libcascade.
+To build a program that uses Cascade as a library, statically link against libcascade. If you installed cascade to a directory
+other than /usr/local/ you'll need to provide alternate values for the ```-I``` and ```-L``` flags.
 
 ```
 $ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
@@ -266,11 +277,11 @@ $ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
 Environments
 =====
 
-### Minimal Environment
-By default, Cascade is started in a minimal environment. You can invoke this
-behavior explicitly using the ```--march``` flag.
+### Software Backend
+By default, Cascade runs in software. You can invoke this
+behavior explicitly using the ```--sw``` flag.
 ```
-*NIX $ ./bin/cascade --march minimal
+$ cascade --march sw
 ```
 This environment declares the following module and instantiates it into the
 top-level module for you:
@@ -314,23 +325,17 @@ and how much I/O it performs. This abstraction is the key mechanism by which
 Cascade is able to move programs between software and hardware without
 involving the user.  
 
-### Software Backend
-Up until this point the code we've looked at has been entirely compute-based
-and run in software. However most hardware programs involve the use of I/O
+Up until this point the code we've looked at has been entirely compute-based. 
+However most hardware programs involve the use of I/O
 peripherals. Before we get into real hardware, first try running Cascade's
 virtual software FPGA.
 ```
-*NIX $ ./bin/sw_fpga
+$ sw_fpga
 ```
 Cascade's virtual FPGA provides an ncurses GUI with four buttons, one reset,
 and eight leds. You can toggle the buttons using the ```1 2 3 4``` keys, toggle
 the reset using the ```r``` key, and shut down the virtual FPGA by typing
-```q```. In order to write code which uses these peripherals, restart Cascade
-using the ```--march sw``` flag on the same machine as the virtual FPGA.
-```
-*NIX $ ./bin/cascade --march sw
-```
-Cascade will automatically detect the virtual FPGA and expose its peripherals
+```q```. Cascade's software backend will automatically detect the virtual FPGA and expose its peripherals
 as modules which are implicitly declared and instantiated in the top-level
 module:
 ```verilog
@@ -352,7 +357,7 @@ module Led(
 endmodule
 Led led();
 ```
-Now try writing a simple program that connects the pads to the leds.
+Try writing a simple program that connects the pads to the leds.
 ```verilog
 >>> assign led.val = pad.val;
 ```
@@ -360,18 +365,28 @@ Toggling the pads should now change the values of the leds for as long as
 Cascade is running.
 
 ### Hardware Backends
-Cascade currently provides support for a single hardware backend: the [Terasic
+Cascade currently provides support for two hardware backends: the [Terasic
 DE10 Nano
-SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046).
-When Cascade is run on the DE10's ARM core, instead of mapping compute and leds
-onto virtual components, it can map them directly onto a real FPGA. Try ssh'ing
-onto the ARM core ([see FAQ](#faq)), building Cascade, and starting it using
-the ```--march de10``` flag.
+SoC](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046)
+and the [ULX3S](https://radiona.org/ulx3s/). When cascade is run on either of these targets, instead of mapping compute and leds
+onto virtual components, it can map them directly onto real hardware.
+
+### DE10 Nano
+
+Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run cascade's compilation server that machine.
 ```
-DE10 $ ./bin/cascade --march de10
+$ quartus_server --path <quartus/install/dir> --port 9900
 ```
+
+Next you'll need an SD card image for your DE10 with a valid installation of cascade. Cascade can generate
+this image for you automatically or you can download a prebuilt image [here (todo)](todo). Reboot your DE10 using this image and run cascade as usual (but on the DE10, use sudo).
+```
+$ cd cascade
+$ sudo cascade --march de10 --quartus_host <64-bit Linux IP> --quartus_port <64-bit Linux port>
+```
+
 Assuming Cascade is able to successfully connect to the FPGA fabric, you will
-be presented with a similar environment to the one described above. The only
+be presented with a similar environment to the one you encountered when using the software backend. The only
 difference is that instead of a Reset module, Cascade will implicitly declare
 the following module, which represents the DE10's Arduino header.
 ```verilog
@@ -381,46 +396,36 @@ module GPIO(
 endmodule
 GPIO gpio();
 ```
+
 Try repeating the example from the previous section and watch real buttons
 toggle real leds.
 
-### JIT Backend
-For each of the ```--march``` flags described above, the core computation of a
-program would still be performed in software. Cascade's ```--march de10_jit```
-backend is necessary for transitioning a program completely to hardware. Before
-restarting Cascade, you'll first need to install [Intel's Quartus Lite
-IDE](http://fpgasoftware.intel.com/?edition=lite) on a 64-bit Linux machine.
-Once you've done so, connect this machine to your DE10's USB Blaster II Port
-[See FAQ](#faq), and verify the connection by typing.
+### ULX3S
+
+Cascade supports the ULX3S using the entirely open source [Yosys](http://www.clifford.at/yosys/)->[NextPNR](https://github.com/YosysHQ/nextpnr)->[ujprog](https://github.com/f32c/tools/tree/master/ujprog) toolchain. Before getting started, you'll need to follow the directions [here](https://github.com/SymbiFlow/prjtrellis) for installing Yosys and NextPNR, and [here](https://github.com/f32c/tools/tree/master/ujprog) for install ujprog. Make sure that all components are installed to the standard ```/usr/local``` directory tree.
+
+Next, you should be able to run cascade as usual.
+``` bash
+$ cascade --march ulx3s
 ```
-64-Bit LINUX $ <quartus/install/dir>/jtagconfig
+
+Cascade does not currently support any of the I/O peripherals on the ULX3s, but it can target its reprogrammable fabric to improve virtual clock frequency for most applications.
+
+### JIT Compilation
+
+If you'd like more information on how cascade transitions  code between
+software and hardware, trying using the ``--enable_info``` flag. This will cause cascade to print
+status updates to the REPL whenever part of your program begins execution in a new context.
+``` bash
+$ cascade --enable_info
 ```
-You'll see something like the following. Take note of the string in square
-brackets.
+
+In general, you can expect your virtual clock frequency to increase as more and more of your logic
+transitions to hardware. Providing the ```--profile <n>``` flag will cause cascade to periodically (every
+<n> seconds) print the current time and Cascade's virtual clock frequency to the REPL. To see this effect, try executing a very long-running program by typing.
 ```
-1) DE-SoC [1-3]
-  4BA00477     SOCVHPS
-  02D020DD     5CSEBA6(.|ES)/5CSEMA6/..
+$ cascade --march <sw|de10|ulx3s> -e share/cascade/test/benchmark/bitcoin/run_25.v --enable_info --profile 3
 ```
-You can now start Cascade's JIT server by typing the following, where the
-```--usb``` command line argument is what appeared when you invoked
-```jtagconfig```.
-```
-64-Bit LINUX $ ./bin/quartus_server --path <quartus/install/dir> --usb "[1-3]"
-```
-Now ssh back into the ARM core on your DE10, and restart cascade with a very long running program by typing.
-```
-DE10 $ ./bin/cascade --quartus_host <64-Bit LINUX IP> --march de10_jit -I data/test/benchmark/bitcoin -e bitcoin.v --profile 10 --enable_log
-```
-Providing the ```--profile``` flag will cause cascade to periodically (every
-10s) print the current time and Cascade's virtual clock frequency to the log
-(providing the ```---enable_log``` flag dumps this log to a file). Over time as
-the JIT compilation runs to completion, and the program transitions from
-software to hardware, you should see this value transition from O(10 KHz) to
-O(10 MHz). If at any point you modify a program which is mid-compilation, that
-compilation will be aborted. Modifying a program which has already transitioned
-to hardware will cause its execution to transition back to software while the
-new compilation runs to completion.
 
 Support for Synthesizable Verilog
 =====
@@ -435,7 +440,7 @@ impression of what Cascade is capable of.
 |                       | `ifdef                    |  x        |             |                  |
 |                       | `ifndef                   |  x        |             |                  |
 |                       | `elsif                    |  x        |             |                  |
-|                       | `else                     |  x        |             |                  |
+|                       | `else                   w  |  x        |             |                  |
 |                       | `endif                    |  x        |             |                  |
 |                       | `include                  |  x        |             |                  |
 | Primitive Types       | Net Declarations          |  x        |             |                  |
@@ -531,6 +536,13 @@ a newline character to the end of its output.
 The scan system task can be used to read values from stdin. However this
 feature is only useful when cascade is used as a library, as when Cascade is
 run in a REPL, it dedicates stdin to parsing code.
+
+### Debugging Tasks
+
+The debugging-family of system tasks can be used to print information about
+the program which Cascade is currently running. ```$list``` displays source code,
+```$showvars``` displays information about program variables, and ```$showscopes```
+displays information about program scopes.
 
 #### Logging Tasks
 
@@ -670,13 +682,13 @@ already seen examples of many of the peripherals in Cascade's Standard Library.
 A complete listing, along with the ```--march``` targets which support them, is
 shown below.
 
-| Component | minimal | sw | de10 | de10_jit |
-|:----------|:-------:|:--:|:----:|:--------:|
-| Clock     | x       | x  | x    | x        |
-| Led       |         | x  | x    | x        |
-| Pad       |         | x  | x    | x        |
-| Reset     |         | x  |      |          |
-| GPIO      |         |    | x    | x        |
+| Component | sw | de10 | ulx3s    |
+|:----------|:--:|:----:|:--------:|
+| Clock     | x  | x    | x        |
+| Led       | x  | x    |          |
+| Pad       | x  | x    |          |
+| Reset     | x  |      |          |
+| GPIO      |    | x    |          |
 
 Target-Specific Components
 =====
@@ -824,12 +836,6 @@ FAQ
 This is related to the version of flex that you have installed; some versions
 of port will install an older revision. Try using the version of flex provided
 by XCode in ```/usr/bin/flex```.
-
-#### How do I ssh into the DE10's ARM core using a USB cable?
-(Coming soon.)
-
-#### How do I configure the DE10's USB Blaster II Programming Cable in a Linux Environment?
-(Coming soon.)
 
 #### Cascade emits strange warnings whenever I declare a module.
 Module declarations are typechecked in the global scope, separate from the rest
