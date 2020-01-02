@@ -37,6 +37,7 @@ Recent Updates:
 * **11/19** Cascade uses [Verilator](https://www.veripool.org/wiki/verilator) as an intermediate compilation pass between software simulation and hardware.
 * **10/19** Cascade provides experimental support for Xilinx FPGAs on Amazon F1 (release coming soon).
 * **9/19** Cascade can be linked into C++ projects as a library. This allows Cacade to target itself as a backend target.
+* **7/19** Cascade supports unsynthesizable file I/O primitives from hardware.
 * **5/19** Cascade supports the [DE10 Nano](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=1046) as a backend target.
 
 Index
