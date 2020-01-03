@@ -836,7 +836,9 @@ FAQ
 #### Flex fails during build with an error related to yyin.rdbuf(std::cin.rdbuf()) on OSX.
 This is related to the version of flex that you have installed; some versions
 of port will install an older revision. Try using the version of flex provided
-by XCode in ```/usr/bin/flex```.
+by XCode in ```/usr/bin/flex```. CMake should now detect older versions of flex
+and abort compilation before it gets to this point. If you see this error
+message, please contact the developers.
 
 #### Cascade emits strange warnings whenever I declare a module.
 Module declarations are typechecked in the global scope, separate from the rest
