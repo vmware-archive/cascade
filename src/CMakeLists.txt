@@ -3,7 +3,11 @@ project(cascade C CXX)
 include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc)
+if(${BISON_VERSION} VERSION_GREATER 3.2.9) 
+  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc COMPILE_FLAGS --warnings=none)
+else(${BISON_VERSION} VERSION_GREATER 3.2.9)
+  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/verilog_parser.cc)
+endif(${BISON_VERSION} VERSION_GREATER 3.2.9)
 flex_target(verilog_lexer cascade/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/verilog_lexer.cc)
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 
