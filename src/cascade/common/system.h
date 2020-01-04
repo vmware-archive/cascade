@@ -65,13 +65,22 @@ inline std::string System::src_root() {
   const auto path = (res == -1) ? "" : std::string(buffer);
   return path.substr(0, path.rfind('/')) + "/../";
 }
-#else
+#elif defined(__linux__)
 inline std::string System::src_root() {
   char buffer[1024];
   const auto count = readlink("/proc/self/exe", buffer, 1024);
   const auto path = std::string(buffer, (count > 0) ? count : 0);
   return path.substr(0, path.rfind('/')) + "/../";
 }
+#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__) || defined(__NetBSD__)
+inline std::string System::src_root() {
+  char buffer[1024];
+  const auto count = readlink("/proc/curproc/file", buffer, 1024);
+  const auto path = std::string(buffer, (count > 0) ? count : 0);
+  return path.substr(0, path.rfind('/')) + "/../";
+}
+#else
+#  error "Unknown OS"
 #endif
 
 inline int System::execute(const std::string& cmd) {
