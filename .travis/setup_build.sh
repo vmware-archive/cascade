@@ -1,5 +1,4 @@
-#!/bin/bash
-mkdir -p ~/.conan && cp .travis/conan_settings.yml ~/.conan/settings.yml
+#!/bin/sh
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
 ./setup --pre-ci --coverage=$COVERAGE
