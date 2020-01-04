@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [ "$OSTYPE" == "darwin"* ]; then
 echo "macos doesn't use chroot, no need to unmount."
 else
 echo "Unmounting chroot mount points..."

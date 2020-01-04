@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 WHITE='\033[1;37m'
 LCYAN='\033[1;36m'
@@ -8,7 +8,7 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "                                                                               
+echo "                                                                               
             :/${LCYAN}++${NC}+++++/-                                                                             
          -o+-. ${LCYAN}--${NC}    .:o+.                                                                          
         o+   ${CYAN}ss${LCYAN}++${CYAN}ooooo${NC}  .o+                                                                         
@@ -21,11 +21,11 @@ echo -e "
          :o/-      ${LCYAN}.${NC}   ++.                                                                          
            .:/+++++${LCYAN}+${NC}+/-                                     VMware Cascade Build Setup Script"
 
-echo -e 
+echo 
 
 PROCESSORS="$(getconf _NPROCESSORS_ONLN)"
 if [ -d "build" ]; then
-  echo -e "Build is already setup! Run:
+  echo "Build is already setup! Run:
 ${WHITE}cd build
 make -j ${PROCESSORS}
 make install${NC}
@@ -91,10 +91,10 @@ done
 check_homebrew() {
     printf '%.20s %s' "$1..................................";
     if brew ls --versions $1 > /dev/null; then
-        echo -e "${GREEN}present${NC}"
+        echo "${GREEN}present${NC}"
         return 1
     else
-        echo -e "${RED}missing${NC}"
+        echo "${RED}missing${NC}"
         MISSING=$2[@]
         if [ $1 == "gtest" ]; then
             MISSING+=("share/cascade/script/gtest.rb")
@@ -108,10 +108,10 @@ check_homebrew() {
 check_dpkg() {
     printf '%.20s %s' "$1..................................";
     if dpkg-query -W -f='${Status}' $1 2>/dev/null | grep -c "ok installed"; then
-        echo -e "${GREEN}present${NC}"
+        echo "${GREEN}present${NC}"
         return 1
     else
-        echo -e "${RED}missing${NC}"
+        echo "${RED}missing${NC}"
         MISSING=$2[@]
         MISSING+=($1)
         return 0
@@ -134,9 +134,9 @@ function call_prompt() {
 }
 
 build_cascade() {
-    echo -en "Creating build directory..."
+    echo "Creating build directory..."
     mkdir -p build
-    echo -e "${GREEN}ok${NC}"
+    echo "${GREEN}ok${NC}"
     cd build
     echo "Running cmake..."
     cmake $1 $CMAKE_EXTRA -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
@@ -146,12 +146,12 @@ build_cascade() {
         $WRAPPER make -j ${PROCESSORS};
     else 
         echo "When you are ready, to build cascade run:";
-        echo -e "${WHITE}cd build${NC}";
-        echo -e "${WHITE}make -j ${PROCESSORS}${NC}";
+        echo "${WHITE}cd build${NC}";
+        echo "${WHITE}make -j ${PROCESSORS}${NC}";
         echo "Then to run the tests:";
-        echo -e "${WHITE}make test${NC}";
+        echo "${WHITE}make test${NC}";
         echo "Finally, to install cascade to your system:";
-        echo -e "${WHITE}sudo make install${NC}";
+        echo "${WHITE}sudo make install${NC}";
         cd ..;
         exit 0;
     fi
@@ -164,34 +164,34 @@ build_cascade() {
         fi
     else 
         echo "Skipping the tests. If you want to run the tests run:"
-        echo -e "${WHITE}cd build${NC}"
-        echo -e "${WHITE}make test${NC}"
+        echo "${WHITE}cd build${NC}"
+        echo "${WHITE}make test${NC}"
     fi
     call_prompt "Would you like us to install Cascade to your system (requires admin rights)?" $DO_INSTALL
     if [ $? -eq 1 ]; then
         sudo make install 
-        echo -e "Cascade installed. You can run cascade by typing ${WHITE}cascade${NC} from your terminal."
-        echo -e "If you would like to develop Cascade, the appropriate Makefiles have been generated in the ${WHITE}build${NC} directory."
+        echo "Cascade installed. You can run cascade by typing ${WHITE}cascade${NC} from your terminal."
+        echo "If you would like to develop Cascade, the appropriate Makefiles have been generated in the ${WHITE}build${NC} directory."
     else 
         echo "Skipping installation. You can manually run Cascade from ${WHITE}build/bin/cascade${NC}"
         echo "Or to install,"
-        echo -e "${WHITE}cd build${NC}"
-        echo -e "${WHITE}sudo make install${NC}"
+        echo "${WHITE}cd build${NC}"
+        echo "${WHITE}sudo make install${NC}"
     fi
     cd ..                          
 }
 unameOut="$(uname -s)"
 case "${unameOut}" in
-    Linux*)     echo -e "Detected Linux.";
+    Linux*)     echo "Detected Linux.";
                 if ! [ -x "$(command -v dpkg-query)" ]; then
-                    echo -e "This is not a dpkg/apt managed system."
-                    echo -e "We can't check if packages are installed for you."
-                    echo -e "If building fails, you should make sure you have the packages"
-                    echo -e "g++ cmake flex bison python3-venv"
-                    echo -e "installed."
+                    echo "This is not a dpkg/apt managed system."
+                    echo "We can't check if packages are installed for you."
+                    echo "If building fails, you should make sure you have the packages"
+                    echo "g++ cmake flex bison python3-venv"
+                    echo "installed."
                 else
-                    echo -e "dpkg is ${GREEN}installed${NC}."
-                    echo -e "Checking for required dpkg packages..."
+                    echo "dpkg is ${GREEN}installed${NC}."
+                    echo "Checking for required dpkg packages..."
                     MISSING=()
                     check_dpkg g++ MISSING
                     check_dpkg git MISSING
@@ -239,16 +239,16 @@ case "${unameOut}" in
                 fi
                 build_cascade LOCAL_FLAGS
     ;;
-    Darwin*)    echo -e "Detected macOS."
+    Darwin*)    echo "Detected macOS."
                 # check for homebrew
                 if ! [ -x "$(command -v brew)" ]; then
-                    echo -e "Homebrew is  ${RED}not installed${NC}."
-                    echo -e "Homebrew is a package manager for macOS."
-                    echo -e "We need it to check and configure dependencies."
-                    echo -e "We can try to install it for you, or you can install it yourself by visiting"
-                    echo -e "${WHITE}https://brew.sh/${NC}"
-                    echo -e "Without homebrew, you will have to configure and build the cmake project manually."
-                    echo -e "Would you like us to install homebrew for you?"
+                    echo "Homebrew is  ${RED}not installed${NC}."
+                    echo "Homebrew is a package manager for macOS."
+                    echo "We need it to check and configure dependencies."
+                    echo "We can try to install it for you, or you can install it yourself by visiting"
+                    echo "${WHITE}https://brew.sh/${NC}"
+                    echo "Without homebrew, you will have to configure and build the cmake project manually."
+                    echo "Would you like us to install homebrew for you?"
                     select yn in "Yes" "No"; do
                         case $yn in
                             Yes ) ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"; break;;
@@ -256,8 +256,8 @@ case "${unameOut}" in
                         esac
                     done
                 fi
-                echo -e "Homebrew is ${GREEN}installed${NC}."
-                echo -e "Checking for required Homebrew packages..."
+                echo "Homebrew is ${GREEN}installed${NC}."
+                echo "Checking for required Homebrew packages..."
                 MISSING=()
                 check_homebrew cmake MISSING
                 check_homebrew flex MISSING
@@ -285,9 +285,9 @@ case "${unameOut}" in
                     fi
                 fi
                 if type xcode-select >&- && xpath=$( xcode-select --print-path ) && test -d "${xpath}" && test -x "${xpath}" ; then
-                    echo -e "xcode is ${GREEN}installed${NC}."
+                    echo "xcode is ${GREEN}installed${NC}."
                 else
-                    echo -e "xcode is ${RED}not installed${NC}."
+                    echo "xcode is ${RED}not installed${NC}."
                     echo "xcode must be installed in order to build Cascade"
                     echo "Would you like us to install xcode for you?"
                     select yn in "Yes" "No"; do
@@ -301,18 +301,18 @@ case "${unameOut}" in
                 export CPP="g++ -E"
                 if [ ! -d "/usr/include" ]; then
                     if [ $SILENT -eq 1 ]; then
-                        echo -e "Your /usr/include directly does not seem to be configured correctly (CI ignored)."
+                        echo "Your /usr/include directly does not seem to be configured correctly (CI ignored)."
                     else
-                        echo -e "Your /usr/include directly does not seem to be configured correctly."
+                        echo "Your /usr/include directly does not seem to be configured correctly."
                         OS_VERSION=$(sw_vers -productVersion | sed "s:.[[:digit:]]*.$::g")
                         HEADERS_INSTALL_PATH="/Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_${OS_VERSION}.pkg"
                         echo "Try installing the package manually by running:"
-                        echo -e "${WHITE}open ${HEADERS_INSTALL_PATH}${NC}"
+                        echo "${WHITE}open ${HEADERS_INSTALL_PATH}${NC}"
                         exit 1
                     fi
                 fi
                 LOCAL_FLAGS="-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
                 build_cascade "$LOCAL_FLAGS"
     ;;
-    *)          echo -e "Sorry, your machine type ${unameOut} is not yet supported. Please setup the cmake project manually."
+    *)          echo "Sorry, your machine type ${unameOut} is not yet supported. Please setup the cmake project manually."
 esac
