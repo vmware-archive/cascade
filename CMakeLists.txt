@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(FLEX 2.6.0 REQUIRED)
-find_package(BISON 3.2.0 REQUIRED)
+find_package(BISON 3.0.4 REQUIRED)
 
 if (APPLE)
     set(cxxlib libc++)
