@@ -272,7 +272,7 @@ To build a program that uses Cascade as a library, statically link against libca
 other than ```/usr/local/``` you'll need to provide alternate values for the ```-I``` and ```-L``` flags.
 
 ```
-$ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
+$ g++ --std=c++17 -I/usr/local/include/cascade my_program.cc -lcascade
 ```
 
 Environments
