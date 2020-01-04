@@ -528,6 +528,7 @@ uint32_t Runtime::sputn(FId id, const char* c, uint32_t n) {
 void Runtime::run_logic() {
   if (logical_time_ == 0) {
     log_event("BEGIN");
+    ostream(rdbuf(stdinfo_)) << "Started logical simulation...\nInstallation Path: " << System::src_root() << endl; 
   }
   if (finished_) {
     return;
@@ -543,6 +544,7 @@ void Runtime::run_logic() {
   if (finished_) {
     done_simulation();
     log_event("END");
+    ostream(rdbuf(stdinfo_)) << "Finished logical simulation" << endl;
   }
 }
 
