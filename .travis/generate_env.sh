@@ -6,7 +6,7 @@ mkdir $HOME/$ARCH
 wget http://cdimage.ubuntu.com/ubuntu-base/releases/18.04.2/release/ubuntu-base-18.04.2-base-$ARCH.tar.gz -O ubuntu.tar.gz
 sudo tar xzf ubuntu.tar.gz -C $HOME/$ARCH
 
-if [ $ARCH == "armhf" ]; then
+if [ "$ARCH" = "armhf" ]; then
     QEMU_ARCH="arm"
     wget https://github.com/multiarch/qemu-user-static/releases/download/v4.0.0-2/qemu-${QEMU_ARCH}-static
     chmod a+x qemu-${QEMU_ARCH}-static

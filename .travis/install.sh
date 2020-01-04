@@ -1,16 +1,16 @@
 #!/bin/sh
 
-if [ "$OSTYPE" == "darwin"* ]; then
+if [ "$OSTYPE" = "darwin"* ]; then
 ./setup --silent --ci --coverage=$COVERAGE
 else
 
-if [ "$COVERAGE" == 1 ]; then
+if [ $COVERAGE -eq 1 ]; then
 sudo chroot $HOME/$ARCH /bin/sh -c "apt-get install -y lcov"
 fi
 
 sudo chroot --userspec travis:travis $HOME/$ARCH /bin/sh -c "cd /cascade && ./setup --silent --ci --coverage=$COVERAGE"
 
-if [ "$COVERAGE" == 1 ]; then
+if [ $COVERAGE -eq 1 ]; then
 curl -L https://codecov.io/sh -o codecov.sh
 sh codecov.sh -x gcov 2>&1 | grep -v 'has arcs to entry block' | grep -v 'has arcs from exit block' 
 
