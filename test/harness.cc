@@ -58,7 +58,6 @@ void run_parse(const string& path, bool expected) {
 
 void run_typecheck(const string& march, const string& path, bool expected) {
   Cascade c;
-  c.set_include_dirs(System::src_root());
   if (!expected) {
     c.set_stderr(cout.rdbuf());
   }
@@ -75,7 +74,6 @@ void run_code(const string& march, const string& path, const string& expected) {
   auto* sb = new stringbuf();
 
   Cascade c;
-  c.set_include_dirs(System::src_root());
   c.set_stdout(sb);
   c.set_stderr(cout.rdbuf());
   c.run();
@@ -102,7 +100,6 @@ void run_benchmark(const string& path, const string& expected) {
   auto* sb = new stringbuf();
 
   Cascade c;
-  c.set_include_dirs(System::src_root());
   c.set_stdout(sb);
   c.set_stderr(cout.rdbuf());
   c.set_quartus_server(::quartus_host.value(), ::quartus_port.value());
