@@ -78,6 +78,7 @@ class Runtime : public Thread {
     // 
     // These methods should all be invoked prior to starting the runtime
     // thread. Invoking these methods afterwards is undefined.
+    Runtime& set_fopen_dirs(const std::string& s);
     Runtime& set_include_dirs(const std::string& s);
     Runtime& set_open_loop_target(size_t olt);
     Runtime& set_disable_inlining(bool di);
@@ -169,6 +170,15 @@ class Runtime : public Thread {
     uint32_t sputn(FId id, const char* c, uint32_t n);
 
   private:
+    // Configuration State:
+    std::string include_dirs_;
+    std::string fopen_dirs_;
+    bool disable_inlining_;
+    bool enable_open_loop_;
+    size_t open_loop_itrs_;
+    size_t open_loop_target_;
+    size_t profile_interval_;
+
     // Thread Pool:
     ThreadPool pool_;
 
@@ -183,13 +193,6 @@ class Runtime : public Thread {
     Program* program_;
     Module* root_;
     Engine::Id next_id_;
-
-    // Configuration State:
-    bool disable_inlining_;
-    bool enable_open_loop_;
-    size_t open_loop_itrs_;
-    size_t open_loop_target_;
-    size_t profile_interval_;
 
     // Interrupt Queue:
     bool finished_;
