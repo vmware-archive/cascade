@@ -60,6 +60,7 @@ class Cascade : public std::iostream {
     //
     // These methods should only be called prior to the first invocation of
     // run.  Inoking any of these methods afterwards is undefined.
+    Cascade& set_fopen_dirs(const std::string& path);
     Cascade& set_include_dirs(const std::string& path);
     Cascade& set_enable_inlining(bool enable);
     Cascade& set_open_loop_target(size_t n);

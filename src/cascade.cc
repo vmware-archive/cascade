@@ -67,6 +67,12 @@ Cascade::~Cascade() {
   stop_now();
 }
 
+Cascade& Cascade::set_fopen_dirs(const string& path) {
+  assert(!is_running_);
+  runtime_.set_fopen_dirs(path);
+  return *this;
+}
+
 Cascade& Cascade::set_include_dirs(const string& path) {
   assert(!is_running_);
   runtime_.set_include_dirs(path);
