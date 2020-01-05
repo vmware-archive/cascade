@@ -39,7 +39,6 @@ include_directories(${FLEX_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}/src)
 include_directories(.)
 include_directories(src/cascade)
-include_directories(share/cascade)
 
 add_subdirectory(include)
 add_subdirectory(share)
