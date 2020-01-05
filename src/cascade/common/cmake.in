@@ -28,25 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_VERILOG_PARSE_LEXER_H
-#define CASCADE_SRC_VERILOG_PARSE_LEXER_H
+#ifndef CASCADE_SRC_COMMON_CMAKE_H
+#define CASCADE_SRC_COMMON_CMAKE_H
 
-#ifndef __FLEX_LEXER_H
-#include <FlexLexer.h>
-#endif
-#include <iosfwd>
-#include "codegen/verilog_parser.hh"
-
-namespace cascade {
-
-class yyLexer : public yyFlexLexer {
-  public:
-    yyLexer() : yyFlexLexer() { }
-    ~yyLexer() override = default;
-      
-    yyParser::symbol_type yylex(Parser* parser); 
-};
-
-} // namespace cascade
+#define CMAKE_C_COMPILER "@CMAKE_C_COMPILER@"
+#define CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@"
 
 #endif

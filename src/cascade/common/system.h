@@ -42,19 +42,32 @@
 #include <mach-o/dyld.h>
 #endif
 
+#include "codegen/cmake.h"
+
 namespace cascade {
 
-// This class is a thin wrapper aorund some basic *nix environment
-// functionality. Its goal is to abstract away platform specific differences
-// between osx and linux.
+// This class provides a thin wrapper aorund some basic *nix functionality and
+// environment-specific build-time constants.
 
 struct System {
+  // Returns the directory that cascade is installed in
   static std::string src_root();
 
+  // Invokes the execute() command and returns its exit value
   static int execute(const std::string& cmd);
+  // Forks a process and returns its pid, setting verbose to false will
+  // redirect all output to /dev/null. Unlike execute(), this method will not
+  // prevent sigint and sigkill from reaching the main thread
   static pid_t no_block_begin_execute(const std::string& cmd, bool verbose);
+  // Blocks until a pid completes execution
   static int no_block_wait_finish(pid_t pid);
+  // Convenience method, invokes no_block_begin_execute and then blocks on
+  // the result.
   static int no_block_execute(const std::string& cmd, bool verbose);
+
+  // Returns constants which were defined when cmake was invoked
+  static std::string c_compiler();
+  static std::string cxx_compiler();
 };
 
 #ifdef __APPLE__
@@ -116,6 +129,14 @@ inline int System::no_block_wait_finish(pid_t pid) {
 
 inline int System::no_block_execute(const std::string& cmd, bool verbose) {
   return no_block_wait_finish(no_block_begin_execute(cmd, verbose));
+}
+
+inline std::string System::c_compiler() {
+  return CMAKE_C_COMPILER;
+}
+
+inline std::string System::cxx_compiler() {
+  return CMAKE_CXX_COMPILER;
 }
 
 } // namespace cascade

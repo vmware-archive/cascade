@@ -545,8 +545,9 @@ void Runtime::run_logic() {
     ostream os(rdbuf(stdinfo_));
     os << "Started logical simulation..." << "\n";
     os << "Installation Path: " << System::src_root() << "\n";
-    os << "fopen dirs:        " << fopen_dirs_ << "\n";
-    os << "include dirs:      " << include_dirs_ << "\n";
+    os << "Fopen dirs:        " << fopen_dirs_ << "\n";
+    os << "Include dirs:      " << include_dirs_ << "\n";
+    os << "C++ Compiler:      " << System::cxx_compiler() << "\n";
     os.flush();
   }
   if (finished_) {

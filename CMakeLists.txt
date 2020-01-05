@@ -35,6 +35,8 @@ set(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
 set(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
+include_directories(${FLEX_INCLUDE_DIRS})
+include_directories(${CMAKE_BINARY_DIR}/src)
 include_directories(.)
 include_directories(src/cascade)
 include_directories(share/cascade)
