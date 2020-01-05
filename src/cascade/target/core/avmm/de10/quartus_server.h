@@ -58,6 +58,7 @@ class QuartusServer : public Thread {
 
     QuartusServer& set_cache_path(const std::string& path);
     QuartusServer& set_quartus_path(const std::string& path);
+    QuartusServer& set_quartus_tunnel_command(const std::string& tunnel_command);
     QuartusServer& set_port(uint32_t port);
 
     bool error() const;
@@ -66,6 +67,7 @@ class QuartusServer : public Thread {
     // Condiguration State:
     std::string cache_path_;
     std::string quartus_path_;
+    std::string quartus_tunnel_command_;
     uint32_t port_;
 
     // Comoilation State:
