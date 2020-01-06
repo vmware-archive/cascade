@@ -2,6 +2,9 @@
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+
+echo "OS TYPE = "$OSTYPE
+
 if [ "$OSTYPE" = "darwin"* ]; then
   echo "macos doesn't use chroot, no need to mount."
 else

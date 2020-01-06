@@ -1,12 +1,11 @@
 #!/bin/sh
 
 if [ "$OSTYPE" = "darwin"* ]; then
-  ./setup --silent --no-install $COVERAGE
+  ./setup --silent --no-install
 else
   if [ "$COVERAGE" = "--coverage" ]; then
     sudo chroot $HOME/$ARCH /bin/sh -c "apt-get install -y lcov"
   fi
-
   sudo chroot --userspec travis:travis $HOME/$ARCH /bin/sh -c "cd /cascade && ./setup --silent --no-install $COVERAGE"
 
   if [ "$COVERAGE" = "--coverage" ]; then
