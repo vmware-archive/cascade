@@ -7,11 +7,11 @@ wget http://cdimage.ubuntu.com/ubuntu-base/releases/18.04.2/release/ubuntu-base-
 sudo tar xzf ubuntu.tar.gz -C $HOME/$ARCH
 
 if [ "$ARCH" = "armhf" ]; then
-    QEMU_ARCH="arm"
-    wget https://github.com/multiarch/qemu-user-static/releases/download/v4.0.0-2/qemu-${QEMU_ARCH}-static
-    chmod a+x qemu-${QEMU_ARCH}-static
-    sudo cp qemu-${QEMU_ARCH}-static $HOME/$ARCH/usr/bin
-    docker run --rm --privileged multiarch/qemu-user-static:register --credential yes
+  QEMU_ARCH="arm"
+  wget https://github.com/multiarch/qemu-user-static/releases/download/v4.0.0-2/qemu-${QEMU_ARCH}-static
+  chmod a+x qemu-${QEMU_ARCH}-static
+  sudo cp qemu-${QEMU_ARCH}-static $HOME/$ARCH/usr/bin
+  docker run --rm --privileged multiarch/qemu-user-static:register --credential yes
 fi
 
 sudo cp /etc/resolv.conf $HOME/$ARCH/etc/resolv.conf

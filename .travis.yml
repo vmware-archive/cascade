@@ -24,7 +24,7 @@ jobs:
     dist: xenial
     before_install: .travis/setup_chroot.sh
     script: echo "build"
-    install: COVERAGE=0 .travis/install.sh
+    install: COVERAGE="" .travis/install.sh
     before_cache: .travis/unmount_env.sh
     cache: 
       directories:
@@ -48,7 +48,7 @@ jobs:
       ARCH=armhf
   - <<: *build
     name: Coverage, Debug
-    install: COVERAGE=1 .travis/install.sh
+    install: COVERAGE="--coverage" .travis/install.sh
     env:
       ARCH=amd64
     addons:
