@@ -91,9 +91,9 @@ check_homebrew() {
   else
     echo "${RED}missing${NC}"
     if [ $1 == "gtest" ]; then
-      MISSING="share/cascade/script/gtest.rb "$MISSING
+      MISSING="share/cascade/script/gtest.rb $MISSING"
     else
-      MISSING=$1" "$MISSING
+      MISSING="$1 $MISSING"
     fi
     return 0
   fi
@@ -106,7 +106,7 @@ check_dpkg() {
     return 1
   else
     echo "${RED}missing${NC}"
-    MISSING=$1" "$MISSING
+    MISSING="$1 $MISSING"
     return 0
   fi
 }
