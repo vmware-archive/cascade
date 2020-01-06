@@ -33,19 +33,16 @@ sudo chmod -R a+rw $HOME/$ARCH/var
 # Remove /etc/sudoers before starting in case it is cached
 # Otherwise, sudo install will get stuck
 sudo rm $HOME/$ARCH/etc/sudoers
-sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo build-essential cmake git python3 python3-venv python3-dev flex bison;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
+sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
+sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo build-essential g++ git cmake flex bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
 sudo cp $DIR/nopasswd_sudo $HOME/$ARCH/etc/sudoers
 
-echo 1
 sudo chown root:root $HOME/$ARCH/etc/sudoers
 sudo chmod 4755 $HOME/$ARCH/etc/sudoers
-echo 2
 sudo chown root:root $HOME/$ARCH/usr/bin/sudo
 sudo chmod 4755 $HOME/$ARCH//usr/bin/sudo
-echo 3
 sudo chown root:root $HOME/$ARCH/usr/lib/sudo/sudoers.so
 sudo chmod 4755 $HOME/$ARCH/usr/lib/sudo/sudoers.so
-echo 4
 sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
 sudo chmod -R 4755 $HOME/$ARCH/etc/sudoers.d
 
