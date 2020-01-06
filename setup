@@ -116,13 +116,16 @@ call_prompt() {
     return $2
   else
     echo $1
-    select yn in "Yes" "No"; do
-      case $yn in
-        Yes ) return 1; break;;
-        No ) return 0; break;;
-      esac
-    done
-    return 0
+    echo "1) Yes"
+    echo "2) No"
+    read -p "#? " yn
+    case $yn in
+      [yY]* ) return 1; break;;
+      [nN]* ) return 0; break;;
+      "1" )   return 1; break;;
+      "0" )   return 0; break;;
+      * )     echo "Please enter yes or no"; break;;
+    esac
   fi
 }
 
@@ -199,14 +202,12 @@ case "${unameOut}" in
       if [ "$MISSING" != "" ]; then
         if [ $SILENT -eq 0 ]; then
           echo "You are missing the following packages: $MISSING"
-          echo "Would you like us to install these packages using apt for you?"
-          select yn in "Yes" "No"; do
-            case $yn in
-              Yes ) break;;
-              No )  echo "Please install these packages manually, then run this script again.";
+          call_prompt "Would you like us to install these packages using apt for you?" 1
+          case $? in
+           1 ) break;;
+           0 )  echo "Please install these packages manually, then run this script again.";
                 exit 1;;
-            esac
-          done
+          esac
         fi
         sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
           cd /usr/src/gtest; \
@@ -224,13 +225,11 @@ case "${unameOut}" in
     echo "Detected macOS."
     if ! [ -x "$(command -v brew)" ]; then
       echo "This is not a homebrew managed system."
-      echo -e "Would you like us to install homebrew for you?"
-        select yn in "Yes" "No"; do
-          case $yn in
-            Yes ) ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"; break;;
-            No )  break;;
-          esac
-        done
+      call_prompt "Would you like us to install homebrew for you?" 1
+      case $? in
+        1 ) ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"; break;;
+        0 ) break;;
+      esac
       echo "If your build fails, please check for the following packages: "
       echo "  cmake flex bison python3 ncurses google-benchmark gtest verilator"
     fi
@@ -249,14 +248,12 @@ case "${unameOut}" in
       if [ "$MISSING" != "" ]; then
         if [ $SILENT -eq 0 ]; then
           echo "You are missing the following packages: $MISSING"
-          echo "Would you like us to install these packages using homebrew for you?"
-          select yn in "Yes" "No"; do
-            case $yn in
-              Yes ) break;;
-              No )  echo "Please install these packages manually, then run this script again.";
+          call_prompt "Would you like us to install these packages using homebrew for you?" 1
+          case $? in
+            1 ) break;;
+            0 ) echo "Please install these packages manually, then run this script again.";
                 exit 1;;
-            esac
-          done
+          esac
         fi
         brew install $MISSING
       fi
@@ -266,14 +263,12 @@ case "${unameOut}" in
     else
       echo "xcode is ${RED}not installed${NC}."
       echo "xcode must be installed in order to build Cascade"
-      echo "Would you like us to install xcode for you?"
-      select yn in "Yes" "No"; do
-        case $yn in
-          Yes ) xcode-select --install; break;;
-          No ) echo "Please install xcode manually, then run this script again.";
-          exit 1;;
-        esac
-      done
+      call_prompt "Would you like us to install xcode for you?" 1
+      case $yn in
+        1 ) xcode-select --install; break;;
+        0 ) echo "Please install xcode manually, then run this script again.";
+            exit 1;;
+      esac
     fi
     export CPP="g++ -E"
     if [ ! -d "/usr/include" ]; then
