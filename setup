@@ -62,14 +62,12 @@ case $i in
     --ci)
     SILENT=1
     ;;   
-    -c=*|--coverage=*)
-    if [ "${i#*=}" -eq "1" ]; then
-        BUILD_TYPE="Debug"
-        COVERAGE=1
-        WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
-        CMAKE_EXTRA="-DCOVERAGE=TRUE -DBUILD_TESTS=ON"
-        DO_TESTS=1
-    fi
+    --coverage)
+    BUILD_TYPE="Debug"
+    COVERAGE=1
+    WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
+    CMAKE_EXTRA="-DCOVERAGE=TRUE -DBUILD_TESTS=ON"
+    DO_TESTS=1
     ;;
     --no-install)
     DO_INSTALL=0
@@ -97,9 +95,9 @@ check_homebrew() {
         echo "${RED}missing${NC}"
         MISSING=$2[@]
         if [ $1 == "gtest" ]; then
-            MISSING+=("share/cascade/script/gtest.rb")
+            MISSING+=( "share/cascade/script/gtest.rb" )
         else
-            MISSING+=($1)
+            MISSING+=( $1 )
         fi
         return 0
     fi
@@ -113,7 +111,7 @@ check_dpkg() {
     else
         echo "${RED}missing${NC}"
         MISSING=$2[@]
-        MISSING+=($1)
+        MISSING+=( $1 )
         return 0
     fi
 }

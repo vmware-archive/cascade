@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-mkdir $HOME/$ARCH
+mkdir -p $HOME/$ARCH
 
 wget http://cdimage.ubuntu.com/ubuntu-base/releases/18.04.2/release/ubuntu-base-18.04.2-base-$ARCH.tar.gz -O ubuntu.tar.gz
 sudo tar xzf ubuntu.tar.gz -C $HOME/$ARCH
