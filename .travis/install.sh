@@ -3,7 +3,6 @@
 if [ "$OSTYPE" = "darwin"* ]; then
   ./setup --silent --ci $COVERAGE
 else
-
   if [ "$COVERAGE" = "--coverage" ]; then
     sudo chroot $HOME/$ARCH /bin/sh -c "apt-get install -y lcov"
   fi
