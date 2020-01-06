@@ -34,7 +34,6 @@
 #include <sstream>
 #include "include/cascade.h"
 #include "cl/cl.h"
-#include "common/system.h"
 
 using namespace cascade;
 using namespace cascade::cl;
