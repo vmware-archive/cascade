@@ -374,9 +374,14 @@ onto virtual components, it can map them directly onto real hardware.
 
 ### DE10 Nano
 
-Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run Cascade's compilation server that machine.
+Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run Cascade's compilation server on that machine.
 ```
 $ quartus_server --path <quartus/install/dir> --port 9900
+```
+
+Alternatively, you can use Quartus Lite IDE installed on a remote host:
+```
+$ quartus_server --tunnel-command <command/like/ssh> --path <quartus/install/dir> --port 9900
 ```
 
 Next you'll need an SD card image for your DE10 with a valid installation of Cascade. Cascade can generate
