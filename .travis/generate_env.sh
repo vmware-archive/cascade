@@ -21,7 +21,7 @@ sudo mount -o bind /dev $HOME/$ARCH/dev
 sudo mount -o bind /proc $HOME/$ARCH/proc
 sudo mount -o bind /sys $HOME/$ARCH/sys
 sudo mount -o bind /dev/pts $HOME/$ARCH/dev/pts
-sudo mkdir $HOME/$ARCH/cascade
+sudo mkdir -p $HOME/$ARCH/cascade
 sudo mount -o bind . $HOME/$ARCH/cascade
 sudo mount -o bind /home $HOME/$ARCH/home
 # Remove /etc/sudoers before starting in case it is cached
