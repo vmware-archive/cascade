@@ -39,7 +39,7 @@ fi
 
 SILENT=0
 DO_BUILD=1
-DO_TESTS=0
+DO_TESTS=1
 DO_INSTALL=1
 BUILD_TYPE="Release"
 CMAKE_EXTRA=""
@@ -51,20 +51,11 @@ for i in "$@"; do
     --debug)
       BUILD_TYPE="Debug"
       ;;
-    --pre-ci)
-      SILENT=1
-      DO_INSTALL=0
-      DO_BUILD=0
-      ;;
-    --ci)
-      SILENT=1
-      ;;   
     --coverage)
       BUILD_TYPE="Debug"
       COVERAGE=1
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
       CMAKE_EXTRA="-DCOVERAGE=TRUE -DBUILD_TESTS=ON"
-      DO_TESTS=1
       ;;
     --no-install)
       DO_INSTALL=0

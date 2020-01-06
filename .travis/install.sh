@@ -1,13 +1,13 @@
 #!/bin/sh
 
 if [ "$OSTYPE" = "darwin"* ]; then
-  ./setup --silent --ci $COVERAGE
+  ./setup --silent --no-install $COVERAGE
 else
   if [ "$COVERAGE" = "--coverage" ]; then
     sudo chroot $HOME/$ARCH /bin/sh -c "apt-get install -y lcov"
   fi
 
-  sudo chroot --userspec travis:travis $HOME/$ARCH /bin/sh -c "cd /cascade && ./setup --silent --ci $COVERAGE"
+  sudo chroot --userspec travis:travis $HOME/$ARCH /bin/sh -c "cd /cascade && ./setup --silent --no-install $COVERAGE"
 
   if [ "$COVERAGE" = "--coverage" ]; then
     curl -L https://codecov.io/sh -o codecov.sh
