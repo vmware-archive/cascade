@@ -84,7 +84,7 @@ bool QuartusServer::error() const {
   if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_asm > /dev/null") != 0) {
     return true;
   }
-  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_pgm > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_cpf > /dev/null") != 0) {
     return true;
   }
   return false;
