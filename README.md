@@ -29,7 +29,7 @@ cases, its implementation may have diverged what is described in these
 texts. The most up-to-date information on Cascade's implementation is always
 its source code.
 
-- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/doc/asplos19.pdf)
+- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/share/cascade/doc/asplos19.pdf)
 
 Recent Updates:
 
@@ -272,7 +272,7 @@ To build a program that uses Cascade as a library, statically link against libca
 other than ```/usr/local/``` you'll need to provide alternate values for the ```-I``` and ```-L``` flags.
 
 ```
-$ g++ --std=c++17 -I/usr/local/src/cascade my_program.cc -lcascade
+$ g++ --std=c++17 -I/usr/local/include/cascade my_program.cc -lcascade
 ```
 
 Environments
@@ -374,9 +374,14 @@ onto virtual components, it can map them directly onto real hardware.
 
 ### DE10 Nano
 
-Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run Cascade's compilation server that machine.
+Before using the de10 backend you'll first need to install [Intel's Quartus Lite IDE](http://fpgasoftware.intel.com/?edition=lite) on a network-accessible 64-bit Linux machine. You'll also need to run Cascade's compilation server on that machine.
 ```
 $ quartus_server --path <quartus/install/dir> --port 9900
+```
+
+Alternatively, you can use Quartus Lite IDE installed on a remote host:
+```
+$ quartus_server --tunnel-command <command/like/ssh> --path <quartus/install/dir> --port 9900
 ```
 
 Next you'll need an SD card image for your DE10 with a valid installation of Cascade. Cascade can generate
@@ -833,12 +838,13 @@ Rebuild your source and... everything should just work... Happy debugging!
 FAQ
 ====
 
-#### Flex fails during build with an error related to yyin.rdbuf(std::cin.rdbuf()) on OSX.
-This is related to the version of flex that you have installed; some versions
-of port will install an older revision. Try using the version of flex provided
-by XCode in ```/usr/bin/flex```. CMake should now detect older versions of flex
-and abort compilation before it gets to this point. If you see this error
-message, please contact the developers.
+#### Flex fails during build with an error related to yyin even though I'm using version 2.6 or greater.
+Some package managers fail to update the flex header file ```FlexLexer.h``` when upgrading versions.
+Locate your copy of ```FlexLexer.h``` and look up the definition of ```yyFlexLexer::yyin```. If 
+this variable has type ```std::istream*```, your file is out of date and you will need to patch it. 
+The current version of this file, which should have been installed can be found in Flex's top-level 
+```src/``` directory.
+
 
 #### Cascade emits strange warnings whenever I declare a module.
 Module declarations are typechecked in the global scope, separate from the rest

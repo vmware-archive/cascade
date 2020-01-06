@@ -36,6 +36,7 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include "common/incstream.h"
 #include "common/indstream.h"
 #include "common/system.h"
 #include "runtime/data_plane.h"
@@ -59,12 +60,20 @@ using namespace std;
 namespace cascade {
 
 Runtime::Runtime() : Thread() {
+  include_dirs_ = System::src_root();
+  fopen_dirs_ = "./";
+  disable_inlining_ = false;
+  enable_open_loop_ = false;
+  open_loop_itrs_ = 2;
+  open_loop_target_ = 1;
+  profile_interval_ = 0;
+
   pool_.set_num_threads(4);
   pool_.run();
 
   log_ = new Log();
   parser_ = new Parser(log_);
-  parser_->set_include_dirs(System::src_root());
+  parser_->set_include_dirs(include_dirs_);
   compiler_ = new LocalCompiler(this);
   dp_ = new DataPlane();
   isolate_ = new Isolate();
@@ -72,11 +81,6 @@ Runtime::Runtime() : Thread() {
   program_ = new Program();
   root_ = nullptr;
   next_id_ = 0;
-
-  enable_open_loop_ = false;
-  open_loop_itrs_ = 2;
-  open_loop_target_ = 1;
-  disable_inlining_ = false;
 
   finished_ = false;
   item_evals_ = 0;
@@ -139,8 +143,14 @@ Runtime::~Runtime() {
   }
 }
 
+Runtime& Runtime::set_fopen_dirs(const string& s) {
+  fopen_dirs_ = string("./") + ":" + s;
+  return *this;
+}
+
 Runtime& Runtime::set_include_dirs(const string& s) {
-  parser_->set_include_dirs(System::src_root() + ":" + s);
+  include_dirs_ = System::src_root() + ":" + s;
+  parser_->set_include_dirs(include_dirs_);
   return *this;
 }
 
@@ -452,6 +462,10 @@ streambuf* Runtime::rdbuf(FId id) const {
 }
 
 FId Runtime::fopen(const std::string& path, uint8_t mode) {
+  incstream is(fopen_dirs_);
+  const auto full_path = is.find(path);
+  const auto target = full_path == "" ? path : full_path;
+
   auto* fb = new filebuf();
   auto m = ios_base::in;
   switch (mode) {
@@ -462,7 +476,7 @@ FId Runtime::fopen(const std::string& path, uint8_t mode) {
     case 5: m = ios_base::in | ios_base::app; break;
     default: break;
   }
-  fb->open(path.c_str(), m);
+  fb->open(target.c_str(), m);
   streambufs_.push_back(make_pair(fb, true));
   return (streambufs_.size()-1);;
 }
@@ -528,6 +542,13 @@ uint32_t Runtime::sputn(FId id, const char* c, uint32_t n) {
 void Runtime::run_logic() {
   if (logical_time_ == 0) {
     log_event("BEGIN");
+    ostream os(rdbuf(stdinfo_));
+    os << "Started logical simulation..." << "\n";
+    os << "Installation Path: " << System::src_root() << "\n";
+    os << "Fopen dirs:        " << fopen_dirs_ << "\n";
+    os << "Include dirs:      " << include_dirs_ << "\n";
+    os << "C++ Compiler:      " << System::cxx_compiler() << "\n";
+    os.flush();
   }
   if (finished_) {
     return;
@@ -543,6 +564,7 @@ void Runtime::run_logic() {
   if (finished_) {
     done_simulation();
     log_event("END");
+    ostream(rdbuf(stdinfo_)) << "Finished logical simulation" << endl;
   }
 }
 

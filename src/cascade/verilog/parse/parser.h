@@ -36,10 +36,10 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "codegen/verilog_parser.hh"
 #include "verilog/ast/ast_fwd.h"
 #include "verilog/ast/visitors/editor.h"
 #include "verilog/parse/lexer.h"
-#include "verilog_parser.hh"
 
 namespace cascade {
 

@@ -50,6 +50,10 @@ auto& path = StrArg<string>::create("--path")
   .usage("<path/to/quarus>")
   .description("Path to quartus installation directory")
   .initial("~/intelFPGA_lite/17.1/quartus");
+auto& tunnel_command = StrArg<string>::create("--tunnel-command")
+  .usage("<command to reach remote-host>")
+  .description("Optional tunnel command to reach the host where quartus installation directory is located")
+  .initial("");
 auto& port = StrArg<uint32_t>::create("--port")
   .usage("<int>")
   .description("Port to run quartus server on")
@@ -76,6 +80,7 @@ int main(int argc, char** argv) {
   ::qs = new avmm::QuartusServer();
   ::qs->set_cache_path(::cache.value());
   ::qs->set_quartus_path(::path.value());
+  ::qs->set_quartus_tunnel_command(::tunnel_command.value());
   ::qs->set_port(::port.value());
 
   if (::qs->error()) {

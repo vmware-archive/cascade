@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(FLEX 2.6.0 REQUIRED)
-find_package(BISON 3.2.0 REQUIRED)
+find_package(BISON 3.0.4 REQUIRED)
 
 if (APPLE)
     set(cxxlib libc++)
@@ -35,9 +35,10 @@ set(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
 set(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
 endif()
 
+include_directories(${FLEX_INCLUDE_DIRS})
+include_directories(${CMAKE_BINARY_DIR}/src)
 include_directories(.)
 include_directories(src/cascade)
-include_directories(share/cascade)
 
 add_subdirectory(include)
 add_subdirectory(share)

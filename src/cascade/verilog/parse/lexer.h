@@ -35,7 +35,7 @@
 #include <FlexLexer.h>
 #endif
 #include <iosfwd>
-#include "verilog_parser.hh"
+#include "codegen/verilog_parser.hh"
 
 namespace cascade {
 

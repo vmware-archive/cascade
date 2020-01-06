@@ -28,65 +28,10 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
-#define CASCADE_SRC_TARGET_CORE_AVMM_DE10_QUARTUS_SERVER_H
+#ifndef CASCADE_SRC_COMMON_CMAKE_H
+#define CASCADE_SRC_COMMON_CMAKE_H
 
-#include <unordered_map>
-#include <string>
-#include "common/thread.h"
-#include "common/thread_pool.h"
-
-namespace cascade {
-
-class sockstream;
-
-namespace avmm {
-
-class QuartusServer : public Thread {
-  public:
-    // RPC Types:
-    enum class Rpc : uint8_t {
-      ERROR = 0,
-      OKAY,
-      KILL_ALL,
-      COMPILE,
-      REPROGRAM
-    };
-
-    QuartusServer();
-    ~QuartusServer() override = default;
-
-    QuartusServer& set_cache_path(const std::string& path);
-    QuartusServer& set_quartus_path(const std::string& path);
-    QuartusServer& set_quartus_tunnel_command(const std::string& tunnel_command);
-    QuartusServer& set_port(uint32_t port);
-
-    bool error() const;
-
-  private:
-    // Condiguration State:
-    std::string cache_path_;
-    std::string quartus_path_;
-    std::string quartus_tunnel_command_;
-    uint32_t port_;
-
-    // Comoilation State:
-    ThreadPool pool_;
-    std::unordered_map<std::string, std::string> cache_;
-    bool busy_;
-
-    // Thread Interface:
-    void run_logic() override;
-
-    // Helper Methods:
-    void init_pool();
-    void init_cache();
-    void kill_all();
-    bool compile(const std::string& text);
-};
-
-} // namespace avmm
-
-} // namespace cascade
+#define CMAKE_C_COMPILER "@CMAKE_C_COMPILER@"
+#define CMAKE_CXX_COMPILER "@CMAKE_CXX_COMPILER@"
 
 #endif

@@ -59,8 +59,8 @@
 #include <fcntl.h>    
 #include <sys/mman.h> 
 #include <unistd.h>
-#include "de10/include/socal.h"
-#include "de10/include/hps.h"
+#include "target/core/avmm/de10/hps.h"
+#include "target/core/avmm/de10/socal.h"
 
 // Useful macros
 #define BIT(x,n) (((x) >> (n)) & 1)

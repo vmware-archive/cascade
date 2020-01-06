@@ -34,7 +34,6 @@
 #include <sstream>
 #include "include/cascade.h"
 #include "cl/cl.h"
-#include "common/system.h"
 
 using namespace cascade;
 using namespace cascade::cl;
@@ -47,9 +46,13 @@ auto& march = StrArg<string>::create("--march")
   .usage("sw|de10|ulx3s")
   .description("Target architecture")
   .initial("sw");
+auto& fopen_dirs = StrArg<string>::create("-F")
+  .usage("<path1>:<path2>:...:<pathn>")
+  .description("Paths to search when resolving $fopen() statements")
+  .initial("");
 auto& inc_dirs = StrArg<string>::create("-I")
   .usage("<path1>:<path2>:...:<pathn>")
-  .description("Paths to search for files on")
+  .description("Paths to search when resolving `include directives")
   .initial("");
 auto& input_path = StrArg<string>::create("-e")
   .usage("path/to/file.v")
@@ -194,6 +197,7 @@ int main(int argc, char** argv) {
   ::cascade_ = new Cascade();
 
   // Set command line flags
+  ::cascade_->set_fopen_dirs(::fopen_dirs.value());
   ::cascade_->set_include_dirs(::inc_dirs.value());
   ::cascade_->set_enable_inlining(!::disable_inlining.value());
   ::cascade_->set_open_loop_target(::open_loop_target.value());

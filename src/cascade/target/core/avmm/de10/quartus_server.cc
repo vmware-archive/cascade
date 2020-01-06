@@ -44,6 +44,7 @@ namespace cascade::avmm {
 QuartusServer::QuartusServer() : Thread() { 
   set_cache_path("/tmp/quartus_cache/");
   set_quartus_path("");
+  set_quartus_tunnel_command("");
   set_port(9900);
 
   busy_ = false;
@@ -59,6 +60,11 @@ QuartusServer& QuartusServer::set_quartus_path(const string& path) {
   return *this;
 }
 
+QuartusServer& QuartusServer::set_quartus_tunnel_command(const string& tunnel_command) {
+  quartus_tunnel_command_ = tunnel_command;
+  return *this;
+}
+
 QuartusServer& QuartusServer::set_port(uint32_t port) {
   port_ = port;
   return *this;
@@ -66,19 +72,19 @@ QuartusServer& QuartusServer::set_port(uint32_t port) {
 
 bool QuartusServer::error() const {
   // Return true if we can't locate any of the necessary quartus components
-  if (System::execute("ls " + quartus_path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/sopc_builder/bin/qsys-generate > /dev/null") != 0) {
     return true;
   }
-  if (System::execute("ls " + quartus_path_ + "/bin/quartus_map > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_map > /dev/null") != 0) {
     return true;
   }
-  if (System::execute("ls " + quartus_path_ + "/bin/quartus_fit > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_fit > /dev/null") != 0) {
     return true;
   }
-  if (System::execute("ls " + quartus_path_ + "/bin/quartus_asm > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_asm > /dev/null") != 0) {
     return true;
   }
-  if (System::execute("ls " + quartus_path_ + "/bin/quartus_pgm > /dev/null") != 0) {
+  if (System::execute(quartus_tunnel_command_ + " ls " + quartus_path_ + "/bin/quartus_cpf > /dev/null") != 0) {
     return true;
   }
   return false;
@@ -235,11 +241,11 @@ bool QuartusServer::compile(const std::string& text) {
   // Note that kill all will only stop this first script. If control reaches
   // the second (which should finish quickly), we allow it to run to completion
   // (and assume it will do so without error).
-  const auto res = System::no_block_execute("cd " + dir + " && ./build_de10.sh " + quartus_path_, true);
+  const auto res = System::no_block_execute("cd " + dir + " && ./build_de10.sh \"" + quartus_tunnel_command_ + " " + quartus_path_ + "\"", true);
   if (res != 0) {
     return false;
   }
-  System::no_block_execute("cd " + dir + " && ./assemble_de10.sh " + quartus_path_, true);
+  System::no_block_execute("cd " + dir + " && ./assemble_de10.sh \"" + quartus_tunnel_command_ + " " + quartus_path_ + "\"", true);
 
   stringstream ss;
   ss << "bitstream_" << cache_.size() << ".rbf";
