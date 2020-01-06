@@ -111,7 +111,7 @@ check_dpkg() {
   fi
 }
 
-function call_prompt() {
+call_prompt() {
   if [ $SILENT -eq 1 ]; then
     return $2
   else
