@@ -10,6 +10,9 @@ jobs:
     install: echo "Building Ubuntu chroot environment..."
     script: .travis/generate_env.sh
     before_cache: .travis/unmount_env.sh
+    cache:
+      directories:
+        - $HOME/$ARCH
     env: 
       ARCH=amd64
   - <<: *chroot
@@ -23,6 +26,9 @@ jobs:
     script: echo "build"
     install: COVERAGE="" .travis/install.sh
     before_cache: .travis/unmount_env.sh
+    cache:
+      directories:
+        - $HOME/$ARCH
     env: 
       ARCH=amd64
   - <<: *build

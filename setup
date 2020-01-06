@@ -111,11 +111,11 @@ call_prompt() {
     echo "2) No"
     read -p "#? " yn
     case $yn in
-      [yY]* ) return 1; break;;
-      [nN]* ) return 0; break;;
-      "1" )   return 1; break;;
-      "0" )   return 0; break;;
-      * )     echo "Please enter yes or no"; break;;
+      [yY]* ) return 1
+      [nN]* ) return 0 
+      "1" )   return 1 
+      "0" )   return 0 
+      * )     echo "Please enter yes or no"
     esac
   fi
 }
@@ -170,7 +170,7 @@ build_cascade() {
 unameOut="$(uname -s)"
 case "${unameOut}" in
   Linux*)     
-    echo "Detected Linux.";
+    echo "Detected Linux."
     if ! [ -x "$(command -v dpkg-query)" ]; then
       echo "This is not a dpkg/apt managed system."
       echo "If your build fails, please check for the following packages: "
@@ -195,9 +195,9 @@ case "${unameOut}" in
           echo "You are missing the following packages: $MISSING"
           call_prompt "Would you like us to install these packages using apt for you?" 1
           case $? in
-           1 ) break;;
-           0 )  echo "Please install these packages manually, then run this script again.";
-                exit 1;;
+           1 ) break
+           0 )  echo "Please install these packages manually, then run this script again."
+                exit 1
           esac
         fi
         sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
@@ -218,8 +218,8 @@ case "${unameOut}" in
       echo "This is not a homebrew managed system."
       call_prompt "Would you like us to install homebrew for you?" 1
       case $? in
-        1 ) ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"; break;;
-        0 ) break;;
+        1 ) ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+        0 ) break
       esac
       echo "If your build fails, please check for the following packages: "
       echo "  cmake flex bison python3 ncurses google-benchmark gtest verilator"
@@ -241,9 +241,9 @@ case "${unameOut}" in
           echo "You are missing the following packages: $MISSING"
           call_prompt "Would you like us to install these packages using homebrew for you?" 1
           case $? in
-            1 ) break;;
-            0 ) echo "Please install these packages manually, then run this script again.";
-                exit 1;;
+            1 ) break
+            0 ) echo "Please install these packages manually, then run this script again."
+                exit 1
           esac
         fi
         brew install $MISSING
@@ -256,9 +256,9 @@ case "${unameOut}" in
       echo "xcode must be installed in order to build Cascade"
       call_prompt "Would you like us to install xcode for you?" 1
       case $yn in
-        1 ) xcode-select --install; break;;
-        0 ) echo "Please install xcode manually, then run this script again.";
-            exit 1;;
+        1 ) xcode-select --install
+        0 ) echo "Please install xcode manually, then run this script again."
+            exit 1
       esac
     fi
     export CPP="g++ -E"
