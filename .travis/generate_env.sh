@@ -24,21 +24,22 @@ sudo mount -o bind /dev/pts $HOME/$ARCH/dev/pts
 sudo mkdir -p $HOME/$ARCH/cascade
 sudo mount -o bind . $HOME/$ARCH/cascade
 sudo mount -o bind /home $HOME/$ARCH/home
-# Remove /etc/sudoers before starting in case it is cached
-# Otherwise, sudo install will get stuck
-sudo rm $HOME/$ARCH/etc/sudoers
 sudo chown root:root $HOME/$ARCH/usr/bin/sudo
 sudo chmod 4755 $HOME/$ARCH//usr/bin/sudo
 sudo chown root:root $HOME/$ARCH/usr/lib/sudo/sudoers.so
 sudo chmod 4755 $HOME/$ARCH/usr/lib/sudo/sudoers.so
+sudo chmod -R a+rw $HOME/$ARCH/root
+sudo chmod -R a+rw $HOME/$ARCH/etc
+sudo chmod -R a+rw $HOME/$ARCH/var
+
+# Remove /etc/sudoers before starting in case it is cached
+# Otherwise, sudo install will get stuck
+sudo rm $HOME/$ARCH/etc/sudoers
+sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo build-essential cmake git python3 python3-venv python3-dev flex bison;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
 sudo cp $DIR/nopasswd_sudo $HOME/$ARCH/etc/sudoers
 sudo chown root:root $HOME/$ARCH/etc/sudoers
 sudo chmod 4755 $HOME/$ARCH/etc/sudoers
 sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
 sudo chmod -R 4755 $HOME/$ARCH/etc/sudoers.d
-sudo chmod -R a+rw $HOME/$ARCH/root
-sudo chmod -R a+rw $HOME/$ARCH/etc
-sudo chmod -R a+rw $HOME/$ARCH/var
-git config --global protocol.version 1
 
-sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo build-essential cmake git python3 python3-venv python3-dev flex bison;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
+git config --global protocol.version 1
