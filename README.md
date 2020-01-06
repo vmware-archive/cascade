@@ -29,7 +29,7 @@ cases, its implementation may have diverged what is described in these
 texts. The most up-to-date information on Cascade's implementation is always
 its source code.
 
-- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/doc/asplos19.pdf)
+- [**Just-in-Time Compilation for Verilog** -- ASPLOS 2019](https://raw.githubusercontent.com/vmware/cascade/master/share/cascade/doc/asplos19.pdf)
 
 Recent Updates:
 
