@@ -105,9 +105,9 @@ inline bool VerilatorCompiler<M,V,A,T>::compile(const std::string& text, std::mu
 
   pid_t pid = 0;
   if constexpr (std::is_same<T, uint32_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_32.sh " + dir, false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_32.sh " + dir + " " + System::cxx_compiler(), false);
   } else if constexpr (std::is_same<T, uint64_t>::value) {
-    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_64.sh " + dir, false);
+    pid = System::no_block_begin_execute("cd " + System::src_root() + "/share/cascade/verilator/ && ./build_verilator_64.sh " + dir + " " + System::cxx_compiler(), false);
   } 
 
   lock.unlock();
