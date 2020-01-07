@@ -2,9 +2,15 @@ language: cpp
 
 jobs:
   include:
-  -stage Xenial Build AMD64
+  - stage: Xenial AMD64 Build
     os: linux
     dist: xenial
     arch: amd64
+    install: echo "nothing to install"
+    script: ./setup --no-install --silent
+  - stage: Xenial ARM Build 
+    os: linux
+    dist: xenial
+    arch: armhf
     install: echo "nothing to install"
     script: ./setup --no-install --silent
