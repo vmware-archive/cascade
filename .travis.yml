@@ -8,3 +8,14 @@ jobs:
     arch: amd64
     before_script: sudo apt-get update 
     script: ./setup --no-install --silent
+  - stage: Bionic ARM Build
+    os: linux
+    dist: bionic
+    arch: armhf
+    before_script: sudo apt-get update 
+    script: ./setup --no-install --silent
+  - stage: OSX Build
+    os: osx
+    arch: amd64
+    script: ./setup --no-install --silent
+

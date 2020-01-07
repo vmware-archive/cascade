@@ -152,6 +152,9 @@ build_cascade() {
       make cascade_coverage
     else
       make test
+      if [ $? -ne 0 ]; then
+        return 1
+      fi
     fi
   else 
     echo "Skipping the tests. If you want to run the tests run:"
