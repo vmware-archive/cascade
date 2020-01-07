@@ -6,5 +6,5 @@ jobs:
     os: linux
     dist: bionic
     arch: amd64
-    before_script: sudo apt-get update && sudo apt-get install flexc++
+    before_script: sudo apt-get update && sudo apt-get install libfl-dev
     script: ls /usr/include && ./setup --no-install --silent
