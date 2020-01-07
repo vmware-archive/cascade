@@ -179,7 +179,7 @@ case "${unameOut}" in
     if ! [ -x "$(command -v dpkg-query)" ]; then
       echo "This is not a dpkg/apt managed system."
       echo "If your build fails, please check for the following packages: "
-      echo "  g++ git cmake flex bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator"
+      echo "  g++ git cmake flex libfl-dev bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator"
     else
       echo "dpkg is ${GREEN}installed${NC}."
       echo "Checking for required dpkg packages..."
@@ -188,6 +188,7 @@ case "${unameOut}" in
       check_dpkg git 
       check_dpkg cmake 
       check_dpkg flex 
+      check_dpkg libfl-dev
       check_dpkg bison 
       check_dpkg python3-venv 
       check_dpkg python3-dev 
