@@ -2,6 +2,15 @@ language: cpp
 
 jobs:
   include:
+  - stage: Coverage
+    os: linux
+    dist: bionic
+    arch: amd64
+    before_script: sudo apt-get update && sudo apt-get install lcov
+    script: ./setup --no-install --coverage --silent
+    addons:
+      sonarcloud:
+        organization: cascade
   - stage: Builds
     os: linux
     dist: bionic
@@ -16,9 +25,3 @@ jobs:
   - os: osx
     arch: amd64
     script: ./setup --no-install --silent
-  - stage: Coverage
-    os: linux
-    dist: bionic
-    arch: amd64
-    before_script: sudo apt-get update && sudo apt-get install lcov
-    script: ./setup --no-install --coverage --silent
