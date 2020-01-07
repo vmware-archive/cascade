@@ -6,11 +6,11 @@ jobs:
     os: linux
     dist: xenial
     arch: amd64
-    install: echo "nothing to install"
+    install: sudo apt-get update
     script: ./setup --no-install --silent
   - stage: Xenial ARM Build 
     os: linux
     dist: xenial
     arch: armhf
-    install: echo "nothing to install"
+    install: sudo apt-get update
     script: ./setup --no-install --silent
