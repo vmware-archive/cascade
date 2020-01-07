@@ -5,6 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 case "$OSTYPE" in
   "darwin"*)
     echo "macos doesn't use chroot, no need to mount."
+    ;;
   *)
     if [ "$ARCH" = "armhf" ]; then
       docker run --rm --privileged multiarch/qemu-user-static:register --credential yes
@@ -29,4 +30,5 @@ case "$OSTYPE" in
     sudo chmod -R 4755 $HOME/$ARCH/etc/sudoers.d
 
     git config --global protocol.version 1
+    ;;
 esac

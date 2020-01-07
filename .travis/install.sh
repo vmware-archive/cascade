@@ -3,6 +3,7 @@
 case "$OSTYPE" in
   "darwin"*)
     ./setup --silent --no-install
+    ;;
   *)
     if [ "$COVERAGE" = "--coverage" ]; then
       sudo chroot $HOME/$ARCH /bin/sh -c "apt-get install -y lcov"
@@ -14,4 +15,5 @@ case "$OSTYPE" in
       # Move on if we can't submit coverage
       cd .. && sonar-scanner -Dsonar.projectKey=cascade -Dsonar.organization=cascade -Dsonar.sources=lib,src,tools -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=cascade_coverage/*,**/cascade_coverage/*,**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN) || true
     fi
+    ;;
 esac
