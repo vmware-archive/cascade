@@ -208,6 +208,13 @@ case "${unameOut}" in
           esac
         fi
         sudo apt-get install -y --no-install-recommends $MISSING
+        cd /usr/src/gtest; \
+          sudo cmake CMakeLists.txt; \
+          sudo make; \
+          sudo make install; \
+          cd -; \
+          sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
+          sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a;
       fi
     fi
     build_cascade "-DFLEX_EXECUTABLE=/usr/bin/flex -DBISON_EXECUTABLE=/usr/bin/bison -DFLEX_INCLUDE_DIR=/usr/include"
