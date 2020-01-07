@@ -150,7 +150,7 @@ build_cascade() {
     if [ $COVERAGE -eq 0 ]; then 
       make test
     else
-      make coverage
+      make cascade_coverage
     fi
     if [ $? -ne 0 ]; then
       return 1
