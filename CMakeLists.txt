@@ -27,10 +27,11 @@ enable_testing()
 if (COVERAGE STREQUAL "TRUE")
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis/cmake)
   include(CodeCoverage)
-  setup_target_for_coverage_lcov(NAME cascade_coverage 
+  setup_target_for_coverage_lcov(
+    NAME cascade_coverage 
     EXECUTABLE ctest -R run_regression --verbose
-    DEPENDENCIES run_regression)
-
+    DEPENDENCIES run_regression
+  )
   set(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
   set(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
 endif()
