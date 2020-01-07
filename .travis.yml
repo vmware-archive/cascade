@@ -13,7 +13,7 @@ jobs:
       - INTERCEPTOR_LINK=`sed "s/x86_64/haswell/g"<<<"$INTERCEPTOR_LIB"`
       - ln -s $INTERCEPTOR_LIB $INTERCEPTOR_LINK
       - ./setup --coverage --no-install --silent
-      - sonar-scanner
+      - sonar-scanner -Dsonar.projectKey=cascade -Dsonar.organization=cascade -Dsonar.sources=lib,src,tools -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build -Dsonar.host.url=https://sonarcloud.io -Dsonar.l    ogin=$SONAR_TOKEN -Dsonar.exclusions=cascade_coverage/*,**/cascade_coverage/*,**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN)
     addons:
       sonarcloud:
         organization: cascade
