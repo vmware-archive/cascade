@@ -55,7 +55,7 @@ for i in "$@"; do
       BUILD_TYPE="Debug"
       COVERAGE=1
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
-      CMAKE_EXTRA="-DCOVERAGE=TRUE -DBUILD_TESTS=ON"
+      CMAKE_EXTRA="-DCOVERAGE=TRUE"
       ;;
     --no-install)
       DO_INSTALL=0
