@@ -8,33 +8,21 @@ find_package(FLEX 2.6.0 REQUIRED)
 find_package(BISON 3.0.4 REQUIRED)
 
 if (APPLE)
-    set(cxxlib libc++)
-    set(force_compiler "compiler=apple-clang")
+  set(cxxlib libc++)
+  set(force_compiler "compiler=apple-clang")
 else ()
-    set(cxxlib libstdc++11)
-    set(force_compiler "")
+  set(cxxlib libstdc++11)
+  set(force_compiler "")
 endif()
 
 if (${CMAKE_SYSTEM_PROCESSOR} MATCHES "^armv7*")
-    set(force_arch "armv7")
+  set(force_arch "armv7")
 else()
-    set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
+  set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
 include(CTest)
 enable_testing()
-
-if (COVERAGE STREQUAL "TRUE")
-  set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis/cmake)
-  include(CodeCoverage)
-  setup_target_for_coverage_lcov(
-    NAME cascade_coverage 
-    EXECUTABLE ctest -R run_regression --verbose
-    DEPENDENCIES run_regression
-  )
-  set(CMAKE_CXX_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-  set(CMAKE_C_FLAGS "-g -O0 -fprofile-arcs -ftest-coverage")
-endif()
 
 include_directories(${FLEX_INCLUDE_DIR})
 include_directories(${CMAKE_BINARY_DIR}/src)

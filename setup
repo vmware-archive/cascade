@@ -148,13 +148,9 @@ build_cascade() {
   fi
   call_prompt "Would you like us to run the tests to make sure Cascade was built correctly?" $DO_TESTS
   if [ $? -eq 1 ]; then
-    if [ $COVERAGE -eq 1 ]; then
-      make cascade_coverage
-    else
-      make test
-      if [ $? -ne 0 ]; then
-        return 1
-      fi
+    make test
+    if [ $? -ne 0 ]; then
+      return 1
     fi
   else 
     echo "Skipping the tests. If you want to run the tests run:"
