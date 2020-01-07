@@ -29,6 +29,10 @@ case "$OSTYPE" in
     sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
     sudo chmod -R 4755 $HOME/$ARCH/etc/sudoers.d
 
+    sudo chmod -R 4775 $HOME/$ARCH/root
+    sudo chmod -R 4775 $HOME/$ARCH/etc
+    sudo chmod -R 4775 $HOME/$ARCH/var
+
     git config --global protocol.version 1
     ;;
 esac

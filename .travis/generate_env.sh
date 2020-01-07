@@ -31,7 +31,7 @@ sudo mount -o bind /sys $HOME/$ARCH/sys
 sudo rm $HOME/$ARCH/etc/sudoers
 sudo chown -R root:root $HOME/$ARCH/etc/sudoers.d
 sudo chmod -R 4755 $HOME/$ARCH/etc/sudoers.d
-sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo build-essential g++ git cmake flex bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
+sudo chroot $HOME/$ARCH /bin/sh -c "apt-get update;apt-get install -y sudo lcov build-essential g++ git cmake flex bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator;sudo apt-get autoclean;sudo apt-get clean;sudo apt-get autoremove"
 
 sudo cp $DIR/nopasswd_sudo $HOME/$ARCH/etc/sudoers
 sudo chown root:root $HOME/$ARCH/etc/sudoers

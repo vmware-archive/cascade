@@ -39,8 +39,13 @@ jobs:
       homebrew:
         update: true
         packages:
+          - cmake
           - flex
           - bison
+          - python3
+          - ncurses
+          - google-benchmark
+          - verilator
     env:
       ARCH=amd64  
   - <<: *build
