@@ -44,7 +44,6 @@ DO_INSTALL=1
 BUILD_TYPE="Release"
 CMAKE_EXTRA=""
 WRAPPER=""
-COVERAGE=0
 
 for i in "$@"; do
   case $i in
@@ -53,9 +52,7 @@ for i in "$@"; do
       ;;
     --coverage)
       BUILD_TYPE="Debug"
-      COVERAGE=1
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
-      CMAKE_EXTRA="-DCOVERAGE=TRUE"
       ;;
     --no-install)
       DO_INSTALL=0
@@ -130,7 +127,7 @@ build_cascade() {
   mkdir -p build
   cd build
   echo "Running cmake..."
-  cmake $1 $CMAKE_EXTRA -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+  cmake $1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
   echo "Build directory configured and makefiles generated."
   call_prompt "Would you like us to build Cascade for you?" $DO_BUILD
   if [ $? -eq 1 ]; then
