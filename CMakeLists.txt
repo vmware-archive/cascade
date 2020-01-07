@@ -29,8 +29,8 @@ if (COVERAGE STREQUAL "TRUE")
     EXECUTABLE ctest -R run_regression --verbose
     DEPENDENCIES run_regression
   )
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
-  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fprofile-arcs -ftest-coverage")
+  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -g -fprofile-arcs -ftest-coverage")
 endif()
 
 include(CTest)
