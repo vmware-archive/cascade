@@ -38,6 +38,7 @@ if [ -d "build" ]; then
 fi
 
 SILENT=0
+COVERAGE=0
 DO_BUILD=1
 DO_TESTS=1
 DO_INSTALL=1
@@ -51,6 +52,7 @@ for i in "$@"; do
       BUILD_TYPE="Debug"
       ;;
     --coverage)
+      COVERAGE=1
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
       CMAKE_FLAGS="-DCOVERAGE=TRUE"
       ;;
@@ -145,10 +147,10 @@ build_cascade() {
   fi
   call_prompt "Would you like us to run the tests to make sure Cascade was built correctly?" $DO_TESTS
   if [ $? -eq 1 ]; then
-    if [ $COVERAGE -eq 1 ]; then 
-      make coverage
-    else
+    if [ $COVERAGE -eq 0 ]; then 
       make test
+    else
+      make coverage
     fi
     if [ $? -ne 0 ]; then
       return 1
