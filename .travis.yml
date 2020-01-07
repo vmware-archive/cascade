@@ -1,65 +1,11 @@
-dist: xenial
 language: cpp
 
 jobs:
   include:
-  - &chroot
-    stage: Prepare Build Environment
-    os: linux
-    dist: xenial
-    install: echo "Building Ubuntu chroot environment..."
-    script: .travis/generate_env.sh
-    before_cache: .travis/unmount_env.sh
-    cache:
-      directories:
-        - $HOME/$ARCH
-    env: 
-      ARCH=amd64
-  - <<: *chroot
-    env:
-      ARCH=armhf
-  - &build
-    stage: Build Cascade
-    os: linux
-    dist: xenial
-    before_install: .travis/setup_chroot.sh
-    script: echo "build"
-    install: COVERAGE="" .travis/install.sh
-    before_cache: .travis/unmount_env.sh
-    cache:
-      directories:
-        - $HOME/$ARCH
-    env: 
-      ARCH=amd64
-  - <<: *build
-    os: osx
-    osx_image: xcode10.2
-    compiler: clang
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - cmake
-          - flex
-          - bison
-          - python3
-          - ncurses
-          - google-benchmark
-          - verilator
-    env:
-      ARCH=amd64  
-  - <<: *build
-    env:
-      ARCH=armhf
-  - <<: *build
-    name: Coverage, Debug
-    install: COVERAGE="--coverage" .travis/install.sh
-    env:
-      ARCH=amd64
-    addons:
-      sonarcloud:
-        organization: cascade
-env:
-  global:
-  - secure: HCmvfaRvj3TmSB+KJA3zbIaLEBXKpv3ED4vnayNg93FTBaLtLw0W8XXk8Sa7pOU+u00rE+2tkC52nKdMikscJlcYZm3KBR2Zqh4Br/hnMVIeXCFs9LTrA6UZDBVs1AeXYYV1KwetcG03o5YZDYNvS8tRZs8Fwl7pZzlfms8wdFyqnG59MNY0znG6RC18eO/dFCu78f4urjYW9UrmEQzU5YyGFYhHH9SylXV5o8cL1+XHoIUlqhyYswZ/PgdBQTUGLvts5IeV+gsO1GD9ibxO5iAlJ4M9OpnFuAxWojKqNcA+GxoC3XH+6Uga09UV/5qXn6gkEnKtMJMoGTI8sWkYlJ8yp5XJqCJOCIfQ11yagp2e9pYogxLNfiC7OZ63q3CHnwNU3PRSJemhX9HwBvp2ZFa1NkQTmwk5tdLYCel0d8uGNqJgyNp7JpLMxA1Fo3yuvVDoRjB2RgT8SSH2CbSmMhsbqdaDtuOsW6JcV/GxnvqCj8KRM2HJNIkCZMY1lX8E0z/QnWcCWt3gKCQ6FzSsjUWZIXsvSPcgbUm7NMY6UXbPY4IkOQZ5+0cCM21s5NAozk8ln86pdjxRwlrpxjAn50jGgy29ZSxxaGvXKtdJ6NrUkZgtNC5AtVQE/NItEwF5KKvm9vqG9ug4IOldSjXEHExH8Z28hU1KhEV2K+JAjE0=
-  - secure: gfurwSBGbAB1DJDRXlNWzC0aWYq5GlxQ7c3F0b1PYFifOWBt5q6HfrIi5AjHaPL7Jl0ntxGbPeGWru70r5AMx2FUDJ+7gkD2yQCHjYvultcjfWI3Z5rGhxEcsWsEszPIVBCPwd5zUHqICNxzGHtmnvAzhrbSeZTLhGrijv8ldrMHRwMgq0B3zrtGT7VNqX95K9ECwg3/U0DkueKvRTLGwF6S3Bfd8mXgesFEKxVaOPti2Np/qRIevuQYbAW8U9qiQKX8DIOFMol2Qt6QuQ90AXAn40uwXICfODRuCYJxJyVqsCHsD29VhXWzwzqLb0RbgwwszyT3Ch8ib+uep+ecWgEesx7KvcTKN8tgtBlIuFJHEwpjmt37hSgSvu3oooMtKXFICoo8ikIxcGrZiSR0TZmJ6Nn9bWg7wE+T0dWaXySCGOYrwLqvecjYnv5Jb4/G5cEIP6ufFQFaQnaRigRz6ZOtN1zqZWBIpTzGFCLBIhTRVCXRZNbx21r+87J55X3oHXnMd9uN9gMxCbgrbucXMvAvTBh20SeUsHzoK9G6f6hyl/QBuHWmpW+CmPzxIu/8J9XrS6dVmXBxvbRkzTjmzB199sNyCBlmZ8DUV+Vub4et2tfezdmEmDPkCdXDlYOZubWUB5BEaMYXXj9Hjn+mzDyVCbcjIWT5NHWsDNaqEFo=
+    -stage Xenial Build AMD64
+      os: linux
+      dist: xenial
+      arch: amd64
+      install: echo "nothing to install"
+      script: ./setup --no-install --silent
+
