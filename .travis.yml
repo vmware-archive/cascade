@@ -8,7 +8,7 @@ jobs:
     dist: bionic
     arch: amd64
     before_script: sudo apt-get update
-    script: strace -f -E LD_DEBUG=all ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output /bin/echo test >stdout.txt 2>stderr.txt && ./setup --coverage --no-install --silent && sonar-scanner
+    script: ./setup --coverage --no-install --silent && sonar-scanner
     addons:
       sonarcloud:
         organization: cascade
