@@ -8,7 +8,7 @@ jobs:
     dist: bionic
     arch: amd64
     before_script: sudo apt-get update && sudo apt-get install lcov
-    script: ./setup --no-install --coverage --silent
+    script: ./setup --no-install --no-test --silent && sonar-scanner
     addons:
       sonarcloud:
         organization: cascade
