@@ -42,8 +42,8 @@ DO_BUILD=1
 DO_TESTS=1
 DO_INSTALL=1
 BUILD_TYPE="Release"
-CMAKE_EXTRA=""
 WRAPPER=""
+CMAKE_FLAGS=""
 
 for i in "$@"; do
   case $i in
@@ -52,6 +52,7 @@ for i in "$@"; do
       ;;
     --coverage)
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
+      CMAKE_FLAGS="-DCOVERAGE=TRUE"
       ;;
     --no-install)
       DO_INSTALL=0
@@ -126,7 +127,7 @@ build_cascade() {
   mkdir -p build
   cd build
   echo "Running cmake..."
-  cmake $1 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+  cmake $1 $CMAKE_FLAGS -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
   echo "Build directory configured and makefiles generated."
   call_prompt "Would you like us to build Cascade for you?" $DO_BUILD
   if [ $? -eq 1 ]; then
@@ -144,7 +145,11 @@ build_cascade() {
   fi
   call_prompt "Would you like us to run the tests to make sure Cascade was built correctly?" $DO_TESTS
   if [ $? -eq 1 ]; then
-    make test
+    if [ $COVERAGE -eq 1 ]; then 
+      make coverage
+    else
+      make test
+    fi
     if [ $? -ne 0 ]; then
       return 1
     fi
@@ -214,6 +219,7 @@ case "${unameOut}" in
     fi
     build_cascade "-DFLEX_EXECUTABLE=/usr/bin/flex -DBISON_EXECUTABLE=/usr/bin/bison -DFLEX_INCLUDE_DIR=/usr/include"
     ;;
+
   Darwin*)    
     echo "Detected macOS."
     if ! [ -x "$(command -v brew)" ]; then
@@ -283,6 +289,7 @@ case "${unameOut}" in
     fi
     build_cascade "-DFLEX_EXECUTABLE=/usr/local/opt/flex/bin/flex -DBISON_EXECUTABLE=/usr/local/opt/bison/bin/bison -DFLEX_INCLUDE_DIR=/usr/local/opt/flex/include"
     ;;
+
   *)
     echo "Sorry, your machine type ${unameOut} is not yet supported. Please setup the cmake project manually."
     ;;
