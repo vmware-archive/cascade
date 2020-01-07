@@ -8,7 +8,12 @@ jobs:
     dist: bionic
     arch: amd64
     before_script: sudo apt-get update
-    script: ./setup --coverage --no-install --silent && sonar-scanner
+    script: 
+      - INTERCEPTOR_LIB=`find ${TRAVIS_HOME} -name libinterceptor-x86_64.so`
+      - INTERCEPTOR_LINK=`sed "s/x86_64/haswell/g"<<<"$INTERCEPTOR_LIB"`
+      - ln -s $INTERCEPTOR_LIB $INTERCEPTOR_LINK
+      - ./setup --coverage --no-install --silent
+      - sonar-scanner
     addons:
       sonarcloud:
         organization: cascade
