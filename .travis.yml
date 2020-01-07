@@ -3,6 +3,7 @@ language: cpp
 jobs:
   include:
   - stage: Coverage
+    name: Coverage
     os: linux
     dist: bionic
     arch: amd64
@@ -12,16 +13,19 @@ jobs:
       sonarcloud:
         organization: cascade
   - stage: Builds
+    name: Bionic AMD64 Build
     os: linux
     dist: bionic
     arch: amd64
     before_script: sudo apt-get update 
     script: ./setup --no-install --silent
-  - os: linux
+  - name: Bionic ARM Build
+    os: linux
     dist: bionic
     arch: armhf
     before_script: sudo apt-get update 
     script: ./setup --no-install --silent
-  - os: osx
+  - name: OSX Build
+    os: osx
     arch: amd64
     script: ./setup --no-install --silent
