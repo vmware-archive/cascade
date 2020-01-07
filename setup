@@ -51,7 +51,6 @@ for i in "$@"; do
       BUILD_TYPE="Debug"
       ;;
     --coverage)
-      BUILD_TYPE="Debug"
       WRAPPER="build-wrapper-linux-x86-64 --out-dir bw-output"
       ;;
     --no-install)
