@@ -32,7 +32,7 @@
 #define CASCADE_SRC_VERILOG_PARSE_LEXER_H
 
 #ifndef __FLEX_LEXER_H
-#include "FlexLexer.h"
+#include <FlexLexer.h>
 #endif
 #include <iosfwd>
 #include "codegen/verilog_parser.hh"

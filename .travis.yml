@@ -7,4 +7,4 @@ jobs:
     dist: bionic
     arch: amd64
     before_script: sudo apt-get update
-    script: ./setup --no-install --silent
+    script: ls /usr/include && ./setup --no-install --silent
