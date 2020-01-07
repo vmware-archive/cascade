@@ -26,9 +26,9 @@ sudo mount -o bind /home $HOME/$ARCH/home
 sudo mount -o bind /proc $HOME/$ARCH/proc
 sudo mount -o bind /sys $HOME/$ARCH/sys
 
-sudo chmod -R a+rw $HOME/$ARCH/root
-sudo chmod -R a+rw $HOME/$ARCH/etc
-sudo chmod -R a+rw $HOME/$ARCH/var
+sudo chmod -R 4775 $HOME/$ARCH/root
+sudo chmod -R 4775 $HOME/$ARCH/etc
+sudo chmod -R 4775 $HOME/$ARCH/var
 
 # Remove /etc/sudoers before starting in case it is cached
 # Otherwise, sudo install will get stuck
