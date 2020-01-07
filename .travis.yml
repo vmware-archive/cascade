@@ -6,11 +6,6 @@ jobs:
     os: linux
     dist: xenial
     arch: amd64
-    install: sudo apt-get update
-    script: ./setup --no-install --silent
-  - stage: Xenial ARM Build 
-    os: linux
-    dist: xenial
-    arch: armhf
-    install: sudo apt-get update
+    before_install: sudo apt-get update
+    install: sudo apt-get install g++ git cmake flex bison python3-venv python3-dev libncurses5-dev libbenchmark-dev libgtest-dev verilator
     script: ./setup --no-install --silent
