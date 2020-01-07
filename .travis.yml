@@ -2,9 +2,9 @@ language: cpp
 
 jobs:
   include:
-  - stage: Xenial AMD64 Build
+  - stage: Bionic AMD64 Build
     os: linux
-    dist: xenial
+    dist: bionic
     arch: amd64
     before_script: sudo apt-get update
     script: ./setup --no-install --silent
