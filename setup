@@ -209,7 +209,7 @@ case "${unameOut}" in
         sudo apt-get install -y --no-install-recommends $MISSING
       fi
     fi
-    build_cascade ""
+    build_cascade "-DFLEX_EXECUTABLE=/usr/bin/flex -DBISON_EXECUTABLE=/usr/bin/bison -DFLEX_INCLUDE_DIR=/usr/include"
     ;;
   Darwin*)    
     echo "Detected macOS."
