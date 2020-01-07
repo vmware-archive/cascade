@@ -206,14 +206,7 @@ case "${unameOut}" in
                ;;
           esac
         fi
-        sudo apt-get install -y --no-install-recommends ${MISSING_LIST}; \
-          cd /usr/src/gtest; \
-          sudo cmake CMakeLists.txt; \
-          sudo make; \
-          sudo make install; \
-          cd -; \
-          sudo rm /usr/local/lib/libgtest_main.a && sudo ln -n /usr/src/gtest/libgtest_main.a /usr/local/lib/libgtest_main.a; \
-          sudo rm /usr/local/lib/libgtest.a && sudo ln -n /usr/src/gtest/libgtest.a /usr/local/lib/libgtest.a;
+        sudo apt-get install -y --no-install-recommends $MISSING
       fi
     fi
     build_cascade ""
@@ -255,6 +248,7 @@ case "${unameOut}" in
           esac
         fi
         brew install $MISSING
+        brew link --overwrite gtest
       fi
     fi
     if type xcode-select >&- && xpath=$( xcode-select --print-path ) && test -d "${xpath}" && test -x "${xpath}" ; then
