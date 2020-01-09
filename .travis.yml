@@ -2,23 +2,6 @@ language: cpp
 
 jobs:
   include:
-  - stage: Coverage
-    name: Coverage
-    os: linux
-    dist: bionic
-    arch: amd64
-    before_script: 
-      - sudo apt-get update
-      - sudo apt-get install lcov
-    script: 
-      - INTERCEPTOR_LIB=`find ${TRAVIS_HOME} -name libinterceptor-x86_64.so`
-      - INTERCEPTOR_LINK=`sed "s/x86_64/haswell/g"<<<"$INTERCEPTOR_LIB"`
-      - ln -s $INTERCEPTOR_LIB $INTERCEPTOR_LINK
-      - ./setup --coverage --no-install --silent --debug
-      - sonar-scanner -Dsonar.projectKey=cascade -Dsonar.organization=cascade -Dsonar.sources=src -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN)
-    addons:
-      sonarcloud:
-        organization: cascade
   - stage: Builds
     name: Bionic AMD64 Build
     os: linux
@@ -36,9 +19,27 @@ jobs:
     os: osx
     arch: amd64
     script: ./setup --no-install --silent
+  - stage: Coverage
+    name: Coverage
+    os: linux
+    dist: bionic
+    arch: amd64
+    before_script: 
+      - sudo apt-get update
+      - sudo apt-get install lcov
+    script: 
+      - INTERCEPTOR_LIB=`find ${TRAVIS_HOME} -name libinterceptor-x86_64.so`
+      - INTERCEPTOR_LINK=`sed "s/x86_64/haswell/g"<<<"$INTERCEPTOR_LIB"`
+      - ln -s $INTERCEPTOR_LIB $INTERCEPTOR_LINK
+      - ./setup --coverage --no-install --silent --debug
+      - curl -L https://codecov.io/bash -o codecov.sh
+      - bash codecov.sh -x gcov 2>&1 | grep -v 'has arcs to entry block' | grep -v 'has arcs from exit block' 
+      - sonar-scanner -Dsonar.projectKey=cascade -Dsonar.organization=cascade -Dsonar.sources=src -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN) || true
+    addons:
+      sonarcloud:
+        organization: cascade
 
 env:
   global:
   - secure: HCmvfaRvj3TmSB+KJA3zbIaLEBXKpv3ED4vnayNg93FTBaLtLw0W8XXk8Sa7pOU+u00rE+2tkC52nKdMikscJlcYZm3KBR2Zqh4Br/hnMVIeXCFs9LTrA6UZDBVs1AeXYYV1KwetcG03o5YZDYNvS8tRZs8Fwl7pZzlfms8wdFyqnG59MNY0znG6RC18eO/dFCu78f4urjYW9UrmEQzU5YyGFYhHH9SylXV5o8cL1+XHoIUlqhyYswZ/PgdBQTUGLvts5IeV+gsO1GD9ibxO5iAlJ4M9OpnFuAxWojKqNcA+GxoC3XH+6Uga09UV/5qXn6gkEnKtMJMoGTI8sWkYlJ8yp5XJqCJOCIfQ11yagp2e9pYogxLNfiC7OZ63q3CHnwNU3PRSJemhX9HwBvp2ZFa1NkQTmwk5tdLYCel0d8uGNqJgyNp7JpLMxA1Fo3yuvVDoRjB2RgT8SSH2CbSmMhsbqdaDtuOsW6JcV/GxnvqCj8KRM2HJNIkCZMY1lX8E0z/QnWcCWt3gKCQ6FzSsjUWZIXsvSPcgbUm7NMY6UXbPY4IkOQZ5+0cCM21s5NAozk8ln86pdjxRwlrpxjAn50jGgy29ZSxxaGvXKtdJ6NrUkZgtNC5AtVQE/NItEwF5KKvm9vqG9ug4IOldSjXEHExH8Z28hU1KhEV2K+JAjE0=
   - secure: gfurwSBGbAB1DJDRXlNWzC0aWYq5GlxQ7c3F0b1PYFifOWBt5q6HfrIi5AjHaPL7Jl0ntxGbPeGWru70r5AMx2FUDJ+7gkD2yQCHjYvultcjfWI3Z5rGhxEcsWsEszPIVBCPwd5zUHqICNxzGHtmnvAzhrbSeZTLhGrijv8ldrMHRwMgq0B3zrtGT7VNqX95K9ECwg3/U0DkueKvRTLGwF6S3Bfd8mXgesFEKxVaOPti2Np/qRIevuQYbAW8U9qiQKX8DIOFMol2Qt6QuQ90AXAn40uwXICfODRuCYJxJyVqsCHsD29VhXWzwzqLb0RbgwwszyT3Ch8ib+uep+ecWgEesx7KvcTKN8tgtBlIuFJHEwpjmt37hSgSvu3oooMtKXFICoo8ikIxcGrZiSR0TZmJ6Nn9bWg7wE+T0dWaXySCGOYrwLqvecjYnv5Jb4/G5cEIP6ufFQFaQnaRigRz6ZOtN1zqZWBIpTzGFCLBIhTRVCXRZNbx21r+87J55X3oHXnMd9uN9gMxCbgrbucXMvAvTBh20SeUsHzoK9G6f6hyl/QBuHWmpW+CmPzxIu/8J9XrS6dVmXBxvbRkzTjmzB199sNyCBlmZ8DUV+Vub4et2tfezdmEmDPkCdXDlYOZubWUB5BEaMYXXj9Hjn+mzDyVCbcjIWT5NHWsDNaqEFo=
-
