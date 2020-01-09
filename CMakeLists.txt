@@ -29,7 +29,7 @@ if (COVERAGE STREQUAL "TRUE")
   include(CodeCoverage)
   setup_target_for_coverage_lcov(
     NAME cascade_coverage 
-    EXECUTABLE ctest --verbose
+    EXECUTABLE ctest --verbose --timeout 3600
     DEPENDENCIES run_regression
   )
   append_coverage_compiler_flags("-g -fprofile-arcs -ftest-coverage")
