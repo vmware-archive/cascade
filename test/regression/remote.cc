@@ -29,12 +29,15 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "include/cascade_slave.h"
+#include "cl/cl.h"
 #include "gtest/gtest.h"
 #include "test/harness.h"
 
 using namespace cascade;
+using namespace cascade::cl;
 
 int main(int argc, char** argv) {
+  Simple::read(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
 
   CascadeSlave slave;
@@ -67,11 +70,11 @@ TEST(one_to_one, regex) {
 }
 
 TEST(many_to_one, bitcoin) {
-  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/bitcoin/run_12.v", "00001314 00001398\n");
+  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/bitcoin/run_12.v", "00001314 00001398\n", true);
 }
 TEST(many_to_one, regex) {
-  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424");
+  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/regex/run_disjunct_1.v", "424", true);
 }
 TEST(many_to_one, array) {
-  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/array/run_5.v", "1048577\n");
+  run_concurrent("regression/concurrent", "share/cascade/test/benchmark/array/run_5.v", "1048577\n", true);
 }

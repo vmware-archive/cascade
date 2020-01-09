@@ -21,15 +21,16 @@ else()
   set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
-include(CTest)
-enable_testing()
-
 if (COVERAGE STREQUAL "TRUE")
+  include(CTest)
+  enable_testing()
+  add_test(coverage test/run_regression --coverage)
+
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis)
   include(CodeCoverage)
   setup_target_for_coverage_lcov(
     NAME cascade_coverage 
-    EXECUTABLE ctest --verbose --timeout 3600
+    EXECUTABLE ctest -I 1 --verbose --timeout 3600
     DEPENDENCIES run_regression
   )
   append_coverage_compiler_flags("-g -fprofile-arcs -ftest-coverage")
