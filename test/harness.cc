@@ -41,6 +41,8 @@ using namespace std;
 
 namespace {
 
+auto& coverage = FlagArg::create("--coverage");
+
 auto& march = StrArg<string>::create("--march")
   .initial("minimal");
 auto& quartus_host = StrArg<string>::create("--quartus_host")
@@ -71,7 +73,11 @@ void run_typecheck(const string& march, const string& path, bool expected) {
   EXPECT_EQ(c.bad(), expected);
 }
 
-void run_code(const string& march, const string& path, const string& expected) {
+void run_code(const string& march, const string& path, const string& expected, bool omit_from_coverage) {
+  if (::coverage && omit_from_coverage) {
+    return;
+  }
+
   auto* sb = new stringbuf();
 
   Cascade c;
@@ -91,9 +97,12 @@ void run_code(const string& march, const string& path, const string& expected) {
   EXPECT_EQ(sb->str(), expected);
 }
 
-void run_concurrent(const string& march, const string& path, const string& expected) {
-  std::thread t1(run_code, march, path, expected);
-  std::thread t2(run_code, march, path, expected);
+void run_concurrent(const string& march, const string& path, const string& expected, bool omit_from_coverage) {
+  if (::coverage && omit_from_coverage) {
+    return;
+  }
+  std::thread t1(run_code, march, path, expected, false);
+  std::thread t2(run_code, march, path, expected, false);
   t1.join();
   t2.join();
 }

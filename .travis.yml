@@ -19,20 +19,19 @@ jobs:
     os: osx
     arch: amd64
     script: ./setup --no-install --silent
-  - stage: Coverage
-    name: Coverage
+  - name: Coverage
     os: linux
     dist: bionic
     arch: amd64
     before_script: 
       - sudo apt-get update
       - sudo apt-get install lcov
-    script: 
       - INTERCEPTOR_LIB=`find ${TRAVIS_HOME} -name libinterceptor-x86_64.so`
       - INTERCEPTOR_LINK=`sed "s/x86_64/haswell/g"<<<"$INTERCEPTOR_LIB"`
       - ln -s $INTERCEPTOR_LIB $INTERCEPTOR_LINK
-      - travis_wait 120 ./setup --coverage --no-install --silent --debug
       - curl -L https://codecov.io/bash -o codecov.sh
+    script: 
+      - ./setup --coverage --no-install --silent --debug
       - bash codecov.sh -x gcov 2>&1 | grep -v 'has arcs to entry block' | grep -v 'has arcs from exit block' 
       - sonar-scanner -Dsonar.projectKey=cascade -Dsonar.organization=cascade -Dsonar.sources=src -Dsonar.tests=test -Dsonar.cfamily.build-wrapper-output=build/bw-output -Dsonar.cfamily.gcov.reportsPath=build -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=**/verilog_parser.cc,**/verilog_parser.hh,**/verilog_lexer.cc -Dsonar.cfamily.threads=$(getconf _NPROCESSORS_ONLN) || true
     addons:

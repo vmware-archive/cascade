@@ -37,13 +37,13 @@ TEST(avalon32, array) {
   run_code("regression/avalon32", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(avalon32, bitcoin) {
-  run_code("regression/avalon32", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n", true);
 }
 TEST(avalon32, mips32) {
-  run_code("regression/avalon32", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1", true);
 }
 TEST(avalon32, nw) {
-  run_code("regression/avalon32", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/avalon32", "share/cascade/test/benchmark/nw/run_4.v", "-1126", true);
 }
 TEST(avalon32, regex) {
   run_code("regression/avalon32", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");
@@ -54,13 +54,13 @@ TEST(avalon64, array) {
   run_code("regression/avalon64", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(avalon64, bitcoin) {
-  run_code("regression/avalon64", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/bitcoin/run_11.v", "00000253 000002d7\n", true);
 }
 TEST(avalon64, mips32) {
-  run_code("regression/avalon64", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/mips32/run_bubble_32.v", "1", true);
 }
 TEST(avalon64, nw) {
-  run_code("regression/avalon64", "share/cascade/test/benchmark/nw/run_4.v", "-1126");
+  run_code("regression/avalon64", "share/cascade/test/benchmark/nw/run_4.v", "-1126", true);
 }
 TEST(avalon64, regex) {
   run_code("regression/avalon64", "share/cascade/test/benchmark/regex/run_disjunct_abridged_1.v", "38");

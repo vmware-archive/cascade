@@ -43,5 +43,5 @@ TEST(array, run_4) {
   run_code("regression/minimal", "share/cascade/test/benchmark/array/run_4.v", "65537\n");
 }
 TEST(array, run_5) {
-  run_code("regression/minimal", "share/cascade/test/benchmark/array/run_5.v", "1048577\n");
+  run_code("regression/minimal", "share/cascade/test/benchmark/array/run_5.v", "1048577\n", true);
 }

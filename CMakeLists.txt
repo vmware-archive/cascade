@@ -25,6 +25,7 @@ include(CTest)
 enable_testing()
 
 if (COVERAGE STREQUAL "TRUE")
+  add_test(NAME coverage COMMAND ${CMAKE_BINARY_DIR}/test/run_regression --coverage WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/..)
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis)
   include(CodeCoverage)
   setup_target_for_coverage_lcov(
@@ -33,6 +34,8 @@ if (COVERAGE STREQUAL "TRUE")
     DEPENDENCIES run_regression
   )
   append_coverage_compiler_flags("-g -fprofile-arcs -ftest-coverage")
+else()
+  add_test(NAME regression COMMAND ${CMAKE_BINARY_DIR}/test/run_regression WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 endif()
 
 include_directories(${FLEX_INCLUDE_DIR})
