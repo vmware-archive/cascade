@@ -21,23 +21,22 @@ else()
   set(force_arch ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
+include(CTest)
+enable_testing()
+
 if (COVERAGE STREQUAL "TRUE")
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/.travis)
   include(CodeCoverage)
   setup_target_for_coverage_lcov(
     NAME cascade_coverage 
-    EXECUTABLE ctest -R run_regression --verbose
+    EXECUTABLE ctest --verbose
     DEPENDENCIES run_regression
   )
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fprofile-arcs -ftest-coverage")
-  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -g -fprofile-arcs -ftest-coverage")
+  append_coverage_compiler_flags("-g -fprofile-arcs -ftest-coverage")
 endif()
 
-include(CTest)
-enable_testing()
-
 include_directories(${FLEX_INCLUDE_DIR})
-include_directories(${CMAKE_BINARY_DIR}/src)
+include_directories(${CMAKE_BINARY_DIR})
 include_directories(.)
 include_directories(src/cascade)
 

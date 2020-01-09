@@ -8,7 +8,7 @@ file (GLOB_RECURSE REGRESSION_DIR "regression/*.cc")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_executable(run_regression harness.cc regression/remote.cc) #${REGRESSION_DIR})
+add_executable(run_regression harness.cc ${REGRESSION_DIR})
 target_link_libraries(run_regression libcascade gtest Threads::Threads ${CMAKE_DL_LIBS})
 
 add_executable(run_benchmark harness.cc benchmark/benchmark.cc)

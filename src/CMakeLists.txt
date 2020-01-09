@@ -1,13 +1,13 @@
 project(cascade C CXX)
 
-configure_file(${CMAKE_SOURCE_DIR}/src/cascade/common/cmake.in ${CMAKE_CURRENT_BINARY_DIR}/codegen/cmake.h)
+configure_file(${CMAKE_SOURCE_DIR}/src/cascade/common/cmake.in ${CMAKE_CURRENT_BINARY_DIR}/../codegen/cmake.h)
 
 if(${BISON_VERSION} VERSION_GREATER 3.2.9) 
-  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/codegen/verilog_parser.cc COMPILE_FLAGS --warnings=none)
+  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/../codegen/verilog_parser.cc COMPILE_FLAGS --warnings=none)
 else(${BISON_VERSION} VERSION_GREATER 3.2.9)
-  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/codegen/verilog_parser.cc)
+  bison_target(verilog_parser cascade/verilog/parse/verilog.yy ${CMAKE_CURRENT_BINARY_DIR}/../codegen/verilog_parser.cc)
 endif(${BISON_VERSION} VERSION_GREATER 3.2.9)
-flex_target(verilog_lexer cascade/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/codegen/verilog_lexer.cc)
+flex_target(verilog_lexer cascade/verilog/parse/verilog.ll ${CMAKE_CURRENT_BINARY_DIR}/../codegen/verilog_lexer.cc)
 add_flex_bison_dependency(verilog_lexer verilog_parser)
 
 file (GLOB_RECURSE SRC "*.cc")
