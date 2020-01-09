@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # $1 = unique compilation name
 # $2 = cxx compiler path
