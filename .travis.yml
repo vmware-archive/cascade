@@ -19,6 +19,14 @@ jobs:
     os: osx
     arch: amd64
     script: ./setup --no-install --silent
+  - name: Cygwin Build
+    os: windows
+    before_script:
+      - choco install bash make --source cygwin
+    script:
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'env'"
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'echo hello'"
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'make'"
   - name: Coverage
     os: linux
     dist: bionic
