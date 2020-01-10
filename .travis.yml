@@ -24,7 +24,8 @@ jobs:
     before_script:
       - choco install bash make --source cygwin
       - ls
-      - cd /cygdrive/
+      - ls C:/
+      - ls C:/cygwin
     script:
       - ls
   - name: Coverage
