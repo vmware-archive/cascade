@@ -24,9 +24,9 @@ jobs:
     before_script:
       - choco install bash make --source cygwin
     script:
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'env'"
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'echo hello'"
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'make'"
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'ls'"
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'pwd'"
+      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'ls C:\\tools\\cygwin\\'"
   - name: Coverage
     os: linux
     dist: bionic
