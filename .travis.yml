@@ -25,7 +25,8 @@ jobs:
       - choco install bash make --source cygwin
       - ls
       - ls C:/
-      - ls C:/cygwin
+      - ls C:/tools/cygwin
+      - cp ../cascade C:/tools/cygwin/Desktop/
     script:
       - ls
   - name: Coverage
