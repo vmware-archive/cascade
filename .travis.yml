@@ -23,10 +23,10 @@ jobs:
     os: windows
     before_script:
       - choco install bash make --source cygwin
+      - mv ../cascade C:\cygwin\Desktop
+      - cd C:\\cygwin\Desktop\cascade
     script:
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'ls'"
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'pwd'"
-      - cmd.exe /c "C:\\tools\\cygwin\\bin\\bash -lc 'ls C:\\tools\\cygwin\\'"
+      - ls
   - name: Coverage
     os: linux
     dist: bionic
