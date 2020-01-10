@@ -23,8 +23,8 @@ jobs:
     os: windows
     before_script:
       - choco install bash make --source cygwin
-      - mv ../cascade C:\cygwin\Desktop
-      - cd C:\\cygwin\Desktop\cascade
+      - ls
+      - cd /cygdrive/
     script:
       - ls
   - name: Coverage
