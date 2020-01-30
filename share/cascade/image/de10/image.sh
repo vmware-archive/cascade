@@ -9,6 +9,20 @@ export SDCARD=/dev/sdb
 sudo apt-get update
 sudo apt-get install bison flex libc6-i386 make wget
 
+# Create download directory if it doesn't already exist
+
+if [ ! -d download ]; then
+  mkdir -p download
+fi
+
+# Download tar files and installers
+
+if [ ! -f download/ubuntu.tar.gz ]; then
+  cd download
+  wget http://cdimage.ubuntu.com/ubuntu-base/releases/18.04.2/release/ubuntu-base-18.04.2-base-armhf.tar.gz -O ubuntu.tar.gz
+  cd ..
+fi
+
 # Copy root file system
 
 if [ ! -d rootfs ]; then

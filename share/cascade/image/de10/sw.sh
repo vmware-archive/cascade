@@ -22,7 +22,7 @@ fi
 
 # Download tar files and installers
 
-if [ ! -f download/ubuntu.tar.gz ]; then
+if [ ! -f download/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf.tar.xz ]; then
   cd download
   wget https://releases.linaro.org/components/toolchain/binaries/6.3-2017.05/arm-linux-gnueabihf/gcc-linaro-6.3.1-2017.05-x86_64_arm-linux-gnueabihf.tar.xz
   cd ..
