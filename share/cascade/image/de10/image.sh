@@ -28,17 +28,24 @@ fi
 if [ ! -d rootfs ]; then
   mkdir rootfs
   sudo tar -xf download/ubuntu.tar.gz -C rootfs
-  sudo cp data/fstab rootfs/etc/
   sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 
   sudo ./runc rootfs apt-get update
 
-  sudo ./runc rootfs export DEBIAN_FRONTEND=noninteractive; ln -fs /usr/share/zoneinfo/America/Los_Angeles /etc/localtime; apt-get install -y tzdata; dpkg-reconfigure --frontend noninteractive tzdata
   sudo ./runc rootfs apt-get --reinstall install -y rsyslog
   sudo ./runc rootfs apt-get install -y ubuntu-minimal
+  sudo ./runc rootfs apt-get install -y openssh-server
+  sudo ./runc rootfs apt-get install -y net-tools
+  sudo ./runc rootfs apt-get install -y ifupdown
 
-  sudo ./runc rootfs useradd -m -p '\$6\$xJFN8Cb2\$LII5axOW4ByQL8P3ctYuZC7vpwETFBTXJgcV806P2/UjYNV2hxXPeta6uNX/GbF.FD4M/xMM3ABGE1P7KMhyt1' -s /bin/bash fpga
+  sudo ./runc rootfs useradd -m -s /bin/bash fpga
+  sudo ./runc rootfs passwd fpga
   sudo ./runc rootfs usermod -aG sudo fpga
+
+  sudo ./runc rootfs echo 'y' | /usr/local/sbin/unminimize
+
+  sudo cp data/fstab rootfs/etc/
+  sudo cp data/interfaces rootfs/etc/network/
 fi
 
 # Write Image

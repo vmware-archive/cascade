@@ -1,1 +1,1 @@
-/dev/mmcblk0p2 / ext4 rw,user,noauto,exec,utf8 0 0
+/dev/mmcblk0p2 / ext4 relatime,errors=remount-ro  0   1
