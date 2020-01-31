@@ -7,7 +7,7 @@ export SDCARD=/dev/sdb
 # Install apt dependencies
 
 sudo apt-get update
-sudo apt-get install bison flex libc6-i386 make wget
+sudo apt-get install bison flex libc6-i386 make wget qemu-user-static
 
 # Create download directory if it doesn't already exist
 
@@ -29,7 +29,15 @@ if [ ! -d rootfs ]; then
   mkdir rootfs
   sudo tar -xf download/ubuntu.tar.gz -C rootfs
   sudo cp data/fstab rootfs/etc/
+  sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
+
+  sudo ./runc rootfs apt-get update
+  sudo ./runc rootfs apt-get install apt-utils
+  sudo ./runc rootfs apt-get install ubuntu-minimal
+  sudo ./runc rootfs useradd -m -p '\$6\$xJFN8Cb2\$LII5axOW4ByQL8P3ctYuZC7vpwETFBTXJgcV806P2/UjYNV2hxXPeta6uNX/GbF.FD4M/xMM3ABGE1P7KMhyt1' -s /bin/bash fpga
+  sudo ./runc rootfs usermod -aG sudo fpga
 fi
+exit
 
 # Write Image
 
@@ -66,3 +74,7 @@ sync
 sudo rm -f sdcard.img
 
 sudo losetup -d $LOOPBACK
+
+# Cleanup
+
+sudo rm -rf rootfs

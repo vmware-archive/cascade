@@ -1,0 +1,86 @@
+#! /bin/bash
+
+# -- Help text.
+
+HELP=\
+"Usage: runc [options] <chroot directory> <command> [command arguments]
+Options:
+  -h, --help        Print this help.
+runc is a tool for running commands inside a chroot environment.
+"
+
+
+# -- Helper functions.
+
+error () {
+	printf "runc: $@\n" >& 2
+	exit 1
+}
+
+clean () {
+
+	# -- Clean the system mountpoints.
+
+	for d in $CHROOT_DIR/*; do
+
+		mountpoint -q $d &&
+			umount -f $d
+
+	done
+
+}
+
+
+# -- Handle the arguments.
+
+case $1 in
+
+	-h|--help)
+
+		printf "$HELP"
+		exit 0
+
+	;;
+
+esac
+
+[ $# -lt 2 ] &&
+	error "Too few arguments."
+
+[ -d $1 ] && {
+	CHROOT_DIR=$1
+	shift
+} || {
+	error "'$1' is not a directory."
+}
+
+
+# -- Clean the chroot directory on exit.
+
+trap clean EXIT HUP INT TERM
+
+
+# -- Create the essential mountpoints for the chroot.
+
+mount -t proc -o nosuid,noexec,nodev . $CHROOT_DIR/proc
+mount -t sysfs -o nosuid,noexec,nodev,ro . $CHROOT_DIR/sys
+mount -t devtmpfs -o mode=0755,nosuid . $CHROOT_DIR/dev
+mount -t tmpfs -o nosuid,nodev,mode=0755 . $CHROOT_DIR/run
+mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid . $CHROOT_DIR/tmp
+
+
+# -- Allow network access.
+
+[ -f /etc/resolv.conf ] &&
+	cp $(readlink -f /etc/resolv.conf) $CHROOT_DIR/etc/resolv.conf
+
+
+# -- Run the command in the chroot.
+
+if [ -f $1 -a -x $1 ]; then
+	cp $1 $CHROOT_DIR/
+	chroot $CHROOT_DIR /$@
+	rm -r $CHROOT_DIR/$1
+else
+	chroot $CHROOT_DIR $@
+fi
