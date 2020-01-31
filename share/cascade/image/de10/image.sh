@@ -32,12 +32,14 @@ if [ ! -d rootfs ]; then
   sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/
 
   sudo ./runc rootfs apt-get update
-  sudo ./runc rootfs apt-get install apt-utils
-  sudo ./runc rootfs apt-get install ubuntu-minimal
+
+  sudo ./runc rootfs export DEBIAN_FRONTEND=noninteractive; ln -fs /usr/share/zoneinfo/America/Los_Angeles /etc/localtime; apt-get install -y tzdata; dpkg-reconfigure --frontend noninteractive tzdata
+  sudo ./runc rootfs apt-get --reinstall install -y rsyslog
+  sudo ./runc rootfs apt-get install -y ubuntu-minimal
+
   sudo ./runc rootfs useradd -m -p '\$6\$xJFN8Cb2\$LII5axOW4ByQL8P3ctYuZC7vpwETFBTXJgcV806P2/UjYNV2hxXPeta6uNX/GbF.FD4M/xMM3ABGE1P7KMhyt1' -s /bin/bash fpga
   sudo ./runc rootfs usermod -aG sudo fpga
 fi
-exit
 
 # Write Image
 
