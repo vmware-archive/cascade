@@ -3,6 +3,8 @@
 # Constant Defintiions
 
 export SDCARD=/dev/sdb
+export SIZE=4G
+export SIZE_MINUS=4054M
 
 # Install apt dependencies
 
@@ -33,16 +35,24 @@ if [ ! -d rootfs ]; then
   sudo ./runc rootfs apt-get update
 
   sudo ./runc rootfs apt-get --reinstall install -y rsyslog
-  sudo ./runc rootfs apt-get install -y ubuntu-minimal
   sudo ./runc rootfs apt-get install -y openssh-server
   sudo ./runc rootfs apt-get install -y net-tools
   sudo ./runc rootfs apt-get install -y ifupdown
 
+  # I think we get this with unminimize
+  #sudo ./runc rootfs apt-get install -y ntp ntpdate
+  # This seems excessive and might be redundant with unminimize
+  #sudo ./runc rootfs apt-get install -y ubuntu-minimal
+  # This doesn't seem to work here
+  #sudo ./runc rootfs echo 'y' | /usr/local/sbin/unminimize
+  # Running this here doesn't seem to be fixing the date
+  #sudo ./runc rootfs ntpdate -u pool.ntp.org
+  # I don't think this is working correctly
+  #sudo ./runc rootfs apt-get install -y avahi-daemon
+
   sudo ./runc rootfs useradd -m -s /bin/bash fpga
   sudo ./runc rootfs passwd fpga
   sudo ./runc rootfs usermod -aG sudo fpga
-
-  sudo ./runc rootfs echo 'y' | /usr/local/sbin/unminimize
 
   sudo cp data/fstab rootfs/etc/
   sudo cp data/interfaces rootfs/etc/network/
@@ -50,12 +60,12 @@ fi
 
 # Write Image
 
-sudo dd if=/dev/zero of=sdcard.img bs=1 count=0 seek=512M
+sudo dd if=/dev/zero of=sdcard.img bs=1 count=0 seek=${SIZE}
 export LOOPBACK=`sudo losetup --show -f sdcard.img`
 
 sudo sfdisk ${LOOPBACK} -uS << EOF
 ,32M,b
-,470M,83
+,${SIZE_MINUS},83
 ,10M,A2
 EOF
 sudo partprobe ${LOOPBACK}
@@ -80,10 +90,9 @@ rmdir ext_mount
 
 sudo dd if=sdcard.img of=${SDCARD} bs=2048
 sync
-sudo rm -f sdcard.img
-
-sudo losetup -d $LOOPBACK
 
 # Cleanup
 
-sudo rm -rf rootfs
+sudo rm -f sdcard.img
+sudo losetup -d $LOOPBACK
+#sudo rm -rf rootfs
