@@ -35,19 +35,15 @@ if [ ! -d rootfs ]; then
   sudo ./runc rootfs apt-get update
 
   sudo ./runc rootfs apt-get --reinstall install -y rsyslog
-  sudo ./runc rootfs apt-get install -y openssh-server
-  sudo ./runc rootfs apt-get install -y net-tools
-  sudo ./runc rootfs apt-get install -y ifupdown
+  sudo ./runc rootfs apt-get install -y openssh-server net-tools ifupdown
+  sudo ./runc rootfs apt-get install -y sudo udev
+  sudo ./runc rootfs apt-get install -y ntp ntpdate
 
-  # I think we get this with unminimize
-  #sudo ./runc rootfs apt-get install -y ntp ntpdate
-  # This seems excessive and might be redundant with unminimize
-  #sudo ./runc rootfs apt-get install -y ubuntu-minimal
-  # This doesn't seem to work here
-  #sudo ./runc rootfs echo 'y' | /usr/local/sbin/unminimize
-  # Running this here doesn't seem to be fixing the date
+  # Running this here doesn't seem to fix the date, try running by hand
   #sudo ./runc rootfs ntpdate -u pool.ntp.org
-  # I don't think this is working correctly
+  # This doesn't seem to work here, try running by hand
+  #sudo ./runc rootfs echo 'y' | /usr/local/sbin/unminimize
+  # This either doesn't work or I don't know how to make it work
   #sudo ./runc rootfs apt-get install -y avahi-daemon
 
   sudo ./runc rootfs useradd -m -s /bin/bash fpga
