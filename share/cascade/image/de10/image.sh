@@ -38,6 +38,7 @@ if [ ! -d rootfs ]; then
   sudo ./runc rootfs apt-get install -y openssh-server net-tools ifupdown
   sudo ./runc rootfs apt-get install -y sudo udev
   sudo ./runc rootfs apt-get install -y ntp ntpdate
+  sudo ./runc rootfs apt-get install -y make
 
   # Running this here doesn't seem to fix the date, try running by hand
   #sudo ./runc rootfs ntpdate -u pool.ntp.org
