@@ -3,8 +3,8 @@
 # Constant Defintiions
 
 export SDCARD=/dev/sdb
-export SIZE=2G
-export SIZE_MINUS=2006M
+export SIZE=4G
+export SIZE_MINUS=4054M
 
 # Install apt dependencies
 
