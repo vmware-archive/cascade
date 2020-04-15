@@ -58,34 +58,42 @@ void ReadSet::visit(const FeofExpression* fe) {
 }
 
 void ReadSet::visit(const Identifier* id) {
-  if (lhs_) {
-    return;
-  }
+  // Descend on this node regardless of which side we're on; indices are reads
+  // regardless of where they appear. But don't any ids from the lhs of an
+  // assignment.
 
+  const auto prev_lhs = lhs_;
+  lhs_ = false;
   id->accept_ids(this);
   id->accept_dim(this);
+  lhs_ = prev_lhs;
 
-  reads_.insert(id);
+  if (!lhs_) {
+    reads_.insert(id);
+  }
 }
 
 void ReadSet::visit(const BlockingAssign* ba) {
+  const auto prev_lhs = lhs_;
   lhs_ = true;
   ba->accept_lhs(this);
-  lhs_ = false;
+  lhs_ = prev_lhs;
   ba->accept_rhs(this);
 }
 
 void ReadSet::visit(const NonblockingAssign* na) {
+  const auto prev_lhs = lhs_;
   lhs_ = true;
   na->accept_lhs(this);
-  lhs_ = false;
+  lhs_ = prev_lhs;
   na->accept_rhs(this);
 }
 
 void ReadSet::visit(const VariableAssign* va) {
+  const auto prev_lhs = lhs_;
   lhs_ = true;
   va->accept_lhs(this);
-  lhs_ = false;
+  lhs_ = prev_lhs;
   va->accept_rhs(this);
 }
 
