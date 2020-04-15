@@ -83,11 +83,12 @@ sync
 sudo umount ext_mount
 rmdir ext_mount
 
-sudo dd if=sdcard.img of=${SDCARD} bs=2048
+sudo dd if=sdcard.img of=${SDCARD} bs=4M status=progress
 sync
 
 # Cleanup
 
 sudo rm -f sdcard.img
 sudo losetup -d $LOOPBACK
+sudo rm -rf download
 sudo rm -rf rootfs
