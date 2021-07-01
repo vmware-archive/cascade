@@ -1,3 +1,4 @@
+! VMware has ended active development of this project, this repository will no longer be updated.
 ![alt text](LOGO.png "Cascade: A JIT Compiler for Verilog from VMware Research")
 ---
 [![Build Status](https://img.shields.io/travis/com/vmware/cascade/master.svg?style=flat-square)](https://travis-ci.com/vmware/cascade)
