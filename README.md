@@ -385,12 +385,14 @@ Alternatively, you can use Quartus Lite IDE installed on a remote host:
 $ quartus_server --tunnel-command <command/like/ssh> --path <quartus/install/dir> --port 9900
 ```
 
-Next you'll need an SD card image for your DE10 with a valid installation of Cascade. Cascade can generate
-this image for you automatically or you can download a prebuilt image [here (todo)](todo). Reboot your DE10 using this image and run Cascade as usual (but on the DE10, use sudo).
+Next you'll need an SD card image for your DE10 which is compatible with Cascade.  Any embedded version of Ubuntu will do, but a pre-built image is available [here](https://drive.google.com/open?id=1EnwC3NOevqvTYvIEnHfXCSK_7UKwBWwi). Flash the image onto an SD card, reboot your DE10, and log in using the username/password ```fpga```/```fpga```. You can log in either over the UART port using an application such as screen, over the USB port using ssh over USB using the static IP ```192.168.7.1```, or over the network port using ssh (though you'll need to login through another means first to determine the IP assigned by DHCP).
+
+Once you are logged in, you can run Cascade as usual (IMPORTANT: but on the DE10, use sudo).
 ```
 $ cd cascade
 $ sudo cascade --march de10 --quartus_host <64-bit Linux IP> --quartus_port <64-bit Linux port>
 ```
+As Cascade is under active development, you may wish to first type ```git pull``` and perform a fresh rebuild to take advantage of any recent bug fixes.
 
 Assuming Cascade is able to successfully connect to the FPGA fabric, you will
 be presented with a similar environment to the one you encountered when using the software backend. The only

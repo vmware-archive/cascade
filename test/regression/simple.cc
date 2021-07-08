@@ -165,6 +165,9 @@ TEST(simple, hello_2) {
 TEST(simple, hello_3) {
   run_code("regression/minimal","share/cascade/test/regression/simple/hello_3.v", "Hello World");
 }
+TEST(simple, hex) {
+  run_code("regression/minimal","share/cascade/test/regression/simple/hex.v", "dead\ndead\n");
+}
 TEST(simple, ifdef_1) {
   run_code("regression/minimal","share/cascade/test/regression/simple/ifdef_1.v", "1234567");
 }

@@ -1435,7 +1435,7 @@ inline void BitsBase<T, BT, ST>::read_2_8_16(std::istream& is, size_t base) {
   size_t idx = 0;
   for (int i = s.length()-1; i >= 0; --i) {
     // Convert character to bits
-    const T bits = static_cast<bool>(isalpha(s[i])) ? ((s[i]-'a')+10) : (s[i]-'0');
+    const T bits = static_cast<bool>(isalpha(s[i])) ? ((tolower(s[i])-'a')+10) : (s[i]-'0');
     // Copy bits into storage and bump idx.
     val_[word] |= (bits << idx);
     idx += step;
