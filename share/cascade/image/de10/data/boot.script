@@ -1,0 +1,13 @@
+echo -- Programming FPGA --
+fatload mmc 0:1 $fpgadata soc_system.rbf;
+fpga load 0 $fpgadata $filesize;
+run bridge_enable_handoff;
+
+echo -- Setting Env Variables --
+setenv fdtimage soc_system.dtb;
+setenv mmcroot /dev/mmcblk0p2;
+setenv mmcload 'mmc rescan;${mmcloadcmd} mmc 0:${mmcloadpart} ${loadaddr} ${bootimage};${mmcloadcmd} mmc 0:${mmcloadpart} ${fdtaddr} ${fdtimage};';
+setenv mmcboot 'setenv bootargs console=ttyS0,115200 root=${mmcroot} rw rootwait; bootz ${loadaddr} - ${fdtaddr}';
+
+run mmcload;
+run mmcboot;
